@@ -57,7 +57,7 @@ const PrivacyPolicy = () => (
 
     {[
       { num: '01', title: 'Data We Collect', body: 'We collect gameplay telemetry, session data, and device identifiers (Google Advertising ID on Android) to power personalized experiences and serve relevant advertisements via AdMob.' },
-      { num: '02', title: 'How We Use It', body: 'Your data helps us refine our AI narrative engine, improve game balance, and deliver ads through Google AdMob. We never sell your personal information to third parties.' },
+      { num: '02', title: 'How We Use It', body: 'Your data helps us refine our narrative engine, improve game balance, and deliver ads through Google AdMob. We never sell your personal information to third parties.' },
       { num: '03', title: 'Third-Party Services', body: 'Founder Sim integrates Google Play Services, Firebase Analytics, and Google AdMob. Each service operates under its own privacy protocol. We recommend reviewing their policies for complete transparency.' },
       { num: '04', title: 'Contact', body: 'Questions about your data? Reach our compliance team at foundersim.game@gmail.com. We respond within 48 hours.' },
     ].map((s) => (
@@ -245,7 +245,7 @@ const LandingPage = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              The most realistic AI-powered startup simulation. Raise funding, manage your cap table, navigate 100+ founder decisions, and build a company worth billions.
+              The most realistic startup simulation. Raise funding, manage your cap table, navigate 100+ founder decisions, and build a company worth billions.
             </motion.p>
 
             <motion.div
@@ -385,7 +385,7 @@ const LandingPage = () => {
             <span className="glow-purple">REAL CONSEQUENCES.</span>
           </h2>
           <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.4)', maxWidth: 560, lineHeight: 1.7 }}>
-            Built on a proprietary AI narrative engine that adapts to your leadership style. No two playthroughs are the same.
+            Built on a proprietary narrative engine that adapts to your leadership style. No two playthroughs are the same.
           </p>
         </motion.div>
 
@@ -548,7 +548,7 @@ const LandingPage = () => {
               <span className="nav-logo-text">FOUNDER<span>SIM</span></span>
             </Link>
             <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', lineHeight: 1.75, maxWidth: 340 }}>
-              The most realistic AI-powered startup simulation. Build your legacy. From zero to IPO.
+              The most realistic startup simulation. Build your legacy. From zero to IPO.
             </p>
           </div>
 
