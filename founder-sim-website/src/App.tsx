@@ -8,9 +8,20 @@ import {
   Building2, Rocket, BarChart3, Lightbulb, Target
 } from 'lucide-react';
 import screenIpo from './assets/screen-ipo.png';
-import screenFunding from './assets/screen-funding.png';
-import screenDecision from './assets/screen-decision.png';
-import screenFinancials from './assets/screen-financials.png';
+
+// New High-Fidelity Screens from public/assets
+const screenHome = '/assets/Main Home Screen.png';
+const screenProduct = '/assets/Product Screen.png';
+const screenHiring = '/assets/Hiring Screen.png';
+const screenDashboard = '/assets/New Dashboard Screen.png';
+const screenMarketing = '/assets/Markeitng Screen.png';
+const screenEvent = '/assets/Event Screen.png';
+const screenTeam = '/assets/Team Managee.png';
+const screenLifestyle = '/assets/Founder Lifestyle Screen.png';
+const screenFinancialsNew = '/assets/Financials Screen.png';
+const screenPitch = '/assets/Investor Pitch Screen.png';
+const screenFundingNew = '/assets/Funding Screen.png';
+const screenIpoNew = screenIpo; // User requested src/assets/screen-ipo.png
 
 // ─── ANIMATION VARIANTS ───────────────────────────────────────────────
 const fadeUp: Variants = {
@@ -121,10 +132,10 @@ const LandingPage = () => {
   ];
 
   const steps = [
-    { num: '01', title: 'Build Your Startup', desc: 'Name your company, pick your vertical, and begin Month 1 with $200K seed capital and a big idea.' },
-    { num: '02', title: 'Make Decisions', desc: 'Every month brings new hiring calls, investor meetings, product pivots, and market events. Your choices shape everything.' },
-    { num: '03', title: 'Raise & Scale', desc: 'Pitch VCs, negotiate term sheets, watch your cap table shift. Scale users or focus on unit economics.' },
-    { num: '04', title: 'IPO or Acquisition', desc: 'Hit IPO-ready status across 5 key milestones, or accept a $15B acquisition offer. Your legacy is calculated.' },
+    { num: '01', title: 'Pick Your Vertical', desc: 'Choose from 8+ startup sectors like FinTech, BioTech, or AI. Each comes with unique market multipliers.' },
+    { num: '02', title: 'Manage Cash & Burn', desc: 'Navigate monthly decisions that impact metrics. Balance product development with fundraising.' },
+    { num: '03', title: 'Hire Your A-Team', desc: 'Recruit engineers and sales. Manage team burnout and equity pools as you scale from 1 to 40 people.' },
+    { num: '04', title: 'Scale to IPO', desc: 'Hit critical revenue and product milestones. Negotiate acquisitions or file for IPO to secure your legacy.' },
   ];
 
   const testimonials = [
@@ -304,14 +315,14 @@ const LandingPage = () => {
               }}
             >
               <div className="phone-frame">
-                <img src={screenFinancials} alt="Financials" />
+                <img src={screenFinancialsNew} alt="Financials" />
               </div>
             </div>
 
             {/* Front phone — IPO */}
             <div className="float-anim hero-phone-front" style={{ position: 'relative', width: 270, zIndex: 2 }}>
               <div className="phone-frame">
-                <img src={screenIpo} alt="IPO Success Screen" />
+                <img src={screenIpoNew} alt="IPO Success Screen" />
               </div>
 
               {/* Floating $1.6B badge */}
@@ -358,7 +369,6 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* ─── STATS STRIP ─── */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.3)' }}>
         <div style={{ maxWidth: 1320, margin: '0 auto', padding: '0 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           {[
@@ -418,7 +428,8 @@ const LandingPage = () => {
 
         <motion.div
           variants={stagger}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}
+          className="steps-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}
         >
           {steps.map((s) => (
             <motion.div key={s.num} variants={fadeUp} className="step-card">
@@ -455,10 +466,18 @@ const LandingPage = () => {
           }}
         >
           {[
-            { img: screenIpo, tag: 'Endgame', title: 'IPO Success', desc: '$1.6B Personal Payout', icon: <Award size={15} color="var(--orange)" /> },
-            { img: screenFunding, tag: 'Strategy', title: 'Cap Table', desc: 'Manage Dilution & VCs', icon: <Building2 size={15} color="var(--green)" /> },
-            { img: screenFinancials, tag: 'Economic', title: 'Unit Economics', desc: 'Track Burn & Margins', icon: <BarChart3 size={15} color="var(--purple-light)" /> },
-            { img: screenDecision, tag: 'Leadership', title: 'Founder Decisions', desc: '100+ Narrative Events', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenHome, tag: 'Launch', title: 'Main Menu', desc: 'Pick your sector & team', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenProduct, tag: 'Product', title: 'Product Dev', desc: 'Build core technology', icon: <Zap size={15} color="var(--purple-light)" /> },
+            { img: screenHiring, tag: 'Hiring', title: 'Recruiting', desc: 'Find your A-Team', icon: <Zap size={15} color="var(--purple-light)" /> },
+            { img: screenDashboard, tag: 'Growth', title: 'The Dashboard', desc: 'Monthly decision engine', icon: <Zap size={15} color="var(--purple-light)" /> },
+            { img: screenMarketing, tag: 'Marketing', title: 'User Acquisition', desc: 'Scale your userbase', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenEvent, tag: 'Decisions', title: 'Narrative Events', desc: '100+ Startup Scenarios', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenTeam, tag: 'Leadership', title: 'Team Culture', desc: 'Manage Burnout & Equity', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenLifestyle, tag: 'Lifestyle', title: 'Founder Balance', desc: 'Health vs. Hustle', icon: <Award size={15} color="var(--orange)" /> },
+            { img: screenFinancialsNew, tag: 'Economic', title: 'Unit Economics', desc: 'Burn, MRR & Profitability', icon: <BarChart3 size={15} color="var(--purple-light)" /> },
+            { img: screenPitch, tag: 'Raising', title: 'The Pitch', desc: 'High-stakes negotiations', icon: <DollarSign size={15} color="var(--green)" /> },
+            { img: screenFundingNew, tag: 'Strategy', title: 'Cap Table', desc: 'Manage Dilution & VCs', icon: <Building2 size={15} color="var(--green)" /> },
+            { img: screenIpoNew, tag: 'Endgame', title: 'IPO Success', desc: '$1.6B Personal Payout', icon: <Award size={15} color="var(--orange)" /> },
           ].map((s, idx) => (
             <motion.div key={idx} variants={fadeUp}>
               <div className="card" style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column' }}>
