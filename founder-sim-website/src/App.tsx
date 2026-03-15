@@ -109,8 +109,8 @@ const LandingPage = () => {
     {
       color: 'orange', icon: <Lightbulb size={26} color="var(--orange)" />,
       title: 'Founder Decisions',
-      desc: 'Return to Office? Hire a CMO? Accept the acquisition? 100+ high-stakes events test your leadership and long-term thinking.',
-      stat: '100+ critical decision events'
+      desc: 'Return to Office? Hire a CMO? Accept the acquisition? 100% AI-powered events test your leadership with personalized, realistic scenarios.',
+      stat: '100% AI-powered events'
     },
     {
       color: 'purple', icon: <Award size={26} color="var(--purple-light)" />,
@@ -257,7 +257,7 @@ const LandingPage = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              The most realistic startup simulation. Raise funding, manage your cap table, navigate 100+ founder decisions, and build a company worth billions.
+              The most realistic startup simulation. Raise funding, manage your cap table, navigate 100% AI-powered founder decisions, and build a company worth billions.
             </motion.p>
 
             <motion.div
@@ -375,7 +375,7 @@ const LandingPage = () => {
           {[
             { val: '$4.3B', label: 'Peak Valuation Achieved', color: 'var(--purple-light)' },
             { val: '737K+', label: 'Peak Users Simulated', color: 'var(--green)' },
-            { val: '100+', label: 'Decision Events', color: 'var(--orange)' },
+            { val: '100%', label: 'AI Decision Events', color: 'var(--orange)' },
             { val: '$15.4B', label: 'Largest Acquisition Offer', color: 'var(--purple-light)' },
             { val: '98/100', label: 'Max Legacy Score', color: 'var(--orange)' },
           ].map((s) => (
@@ -472,7 +472,7 @@ const LandingPage = () => {
             { img: screenHiring, tag: 'Hiring', title: 'Recruiting', desc: 'Find your A-Team', icon: <Zap size={15} color="var(--purple-light)" /> },
             { img: screenDashboard, tag: 'Growth', title: 'The Dashboard', desc: 'Monthly decision engine', icon: <Zap size={15} color="var(--purple-light)" /> },
             { img: screenMarketing, tag: 'Marketing', title: 'User Acquisition', desc: 'Scale your userbase', icon: <Rocket size={15} color="var(--orange)" /> },
-            { img: screenEvent, tag: 'Decisions', title: 'Narrative Events', desc: '100+ Startup Scenarios', icon: <Rocket size={15} color="var(--orange)" /> },
+            { img: screenEvent, tag: 'Decisions', title: 'Narrative Events', desc: '100% AI-Generated Scenarios', icon: <Rocket size={15} color="var(--orange)" /> },
             { img: screenTeam, tag: 'Leadership', title: 'Team Culture', desc: 'Manage Burnout & Equity', icon: <Rocket size={15} color="var(--orange)" /> },
             { img: screenLifestyle, tag: 'Lifestyle', title: 'Founder Balance', desc: 'Health vs. Hustle', icon: <Award size={15} color="var(--orange)" /> },
             { img: screenFinancialsNew, tag: 'Economic', title: 'Unit Economics', desc: 'Burn, MRR & Profitability', icon: <BarChart3 size={15} color="var(--purple-light)" /> },
