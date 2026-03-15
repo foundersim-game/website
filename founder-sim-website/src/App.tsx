@@ -553,7 +553,7 @@ const LandingPage = () => {
               Download on Google Play <ArrowRight size={18} />
             </a>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
-              <ShieldCheck size={16} color="var(--green)" /> Free · No ads during gameplay
+              <ShieldCheck size={16} color="var(--green)" /> Free to Play
             </div>
           </div>
         </motion.div>
