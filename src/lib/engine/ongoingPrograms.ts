@@ -50,16 +50,26 @@ export function processOngoingPrograms(
         // Formula: floor(sqrt(valuation / 250k)) - ensures gradual scaling as company grows
         const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
 
+        // Growth specific scaling (PMF + Quality) - Only for users
+        const pmf = startup.metrics.pmf_score || 10;
+        const qual = startup.metrics.product_quality || 10;
+        const growthMult = (0.5 + pmf / 100) * (0.5 + qual / 100);
+
         // Scale effects
         const scaledEffects: StatEffect = {};
         for (const [key, val] of Object.entries(def.baseMonthlyEffect)) {
             if (val === undefined) continue;
 
-            const applyPhaseScale = ['cash', 'users', 'revenue'].includes(key.toLowerCase());
+            const isUsers = key.toLowerCase() === 'users';
+            const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
+            const applyPhaseScale = isGrowthMetric || key.toLowerCase() === 'revenue';
+
+            let finalMultiplier = multiplier;
+            if (isGrowthMetric) finalMultiplier *= growthMult;
 
             const scaledVal = val > 0
-                ? Math.max(1, Math.round((val as number) * multiplier))
-                : Math.min(-1, Math.round((val as number) * multiplier));
+                ? Math.max(1, Math.round((val as number) * finalMultiplier))
+                : Math.min(-1, Math.round((val as number) * finalMultiplier));
 
             (scaledEffects as any)[key] = scaledVal * (applyPhaseScale ? phaseMult : 1);
         }

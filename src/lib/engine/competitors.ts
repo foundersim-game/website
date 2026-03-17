@@ -19,8 +19,18 @@ export type CompetitorAction = {
     impactBrand: number;   // brand awareness change
 };
 
-const NAMES = ["Hooli", "Aviato", "Endframe", "Gavin Belson Corp", "Bachmanity", "Sliceline", "Raviga", "Pied Piper (The Evil One)"];
-const INDUSTRIES = ["Tech SaaS", "AI Startup", "E-commerce Brand"];
+const NAMES = ["Hooli", "Aviato", "Endframe", "Gavin Belson Corp", "Bachmanity", "Sliceline", "Raviga", "Pied Piper"];
+const INDUSTRIES = ["Tech SaaS", "AI Startup", "E-commerce Brand", "FinTech", "EdTech", "Dev Tools", "Mobile Game", "OTT / Streaming"];
+
+export const RIVAL_BANTER = [
+    "Sam is too soft. I'm here to crush you.",
+    "I don't care about 'runway' — I care about domination.",
+    "Stay out of my way, or you'll be another 'Lessons Learned' blog post.",
+    "I'm coming for everything you built. ⚡",
+    "Nice MVP. It'll look great in my 'Acquisition Target' folder.",
+];
+
+export const RIVAL_INTRO = "I heard you're trying to build in my space, {name}. Big mistake. I've got more capital, more hustle, and zero respect for 'burnout'. See you at the finish line—if you make it that far.";
 
 const COMPETITOR_ACTIONS: CompetitorAction[] = [
     {
@@ -67,16 +77,29 @@ const COMPETITOR_ACTIONS: CompetitorAction[] = [
     },
 ];
 
-export function generateInitialCompetitors(count: number): Competitor[] {
-    return Array.from({ length: count }).map((_, i) => ({
+export function generateInitialCompetitors(count: number, playerIndustry?: string): Competitor[] {
+    const comps: Competitor[] = Array.from({ length: count - 1 }).map((_, i) => ({
         id: `comp-${i}`,
         name: NAMES[Math.floor(Math.random() * NAMES.length)] + " " + (i + 1),
-        industry: INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)],
+        industry: playerIndustry || INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)],
         valuation: 500000 + Math.random() * 500000,
         users: Math.floor(Math.random() * 100),
         status: "active",
-        growth_rate: 1.05 + Math.random() * 0.1, // 5% to 15% growth
+        growth_rate: 1.05 + Math.random() * 0.1,
     }));
+
+    // Add CHADLY
+    comps.unshift({
+        id: "chadly",
+        name: "Chadly (AI Rival)",
+        industry: playerIndustry || "Hyper-Growth AI",
+        valuation: 750000,
+        users: 120,
+        status: "active",
+        growth_rate: 1.15, // Chadly grows fast
+    });
+
+    return comps;
 }
 
 export function simulateCompetitors(
@@ -107,11 +130,23 @@ export function simulateCompetitors(
             news.push(`💰 FUNDING NEWS: ${newComp.name} raised ${formatMoney(raise)} in new funding.`);
         }
 
-        // Rival action (competitive move against the player) — 20% chance if player is scaling
-        if (playerUsers > 100 && Math.random() < 0.20 && newComp.status === "active") {
+        // Rival action (competitive move against the player)
+        const isChadly = comp.id === "chadly";
+        const actionChance = isChadly ? 0.35 : 0.15; // Chadly is more aggressive
+        
+        // Attack earlier (at 10 users instead of 50)
+        if (playerUsers > 10 && Math.random() < actionChance && newComp.status === "active") {
             const rivalAction = COMPETITOR_ACTIONS[Math.floor(Math.random() * COMPETITOR_ACTIONS.length)];
             newComp.last_action = rivalAction.type;
-            news.push(`⚔️ RIVAL MOVE: ${newComp.name} ${rivalAction.description}`);
+            
+            if (isChadly) {
+                const banter = RIVAL_BANTER[Math.floor(Math.random() * RIVAL_BANTER.length)];
+                (newComp as any).banter = banter;
+                news.push(`⚔️ CHADLY ATTACK: "${banter}" — ${newComp.name} ${rivalAction.description}`);
+            } else {
+                news.push(`⚔️ RIVAL MOVE: ${newComp.name} ${rivalAction.description}`);
+            }
+            
             rivalActions.push({ action: rivalAction, competitorName: newComp.name });
         }
 

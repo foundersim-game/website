@@ -94,7 +94,16 @@ class AdService {
 
     async showRewardedAd(onReward: () => void, adUnitId?: string) {
         if (!this.initialized) await this.initialize();
-        if (!this.isNative) return;
+        
+        if (!this.isNative) {
+            // Web Fallback: Simulate an ad delay for testing
+            toast.info("Simulating ad for web...");
+            setTimeout(() => {
+                onReward();
+                toast.success("Reward earned!");
+            }, 2000);
+            return;
+        }
 
         const options: RewardAdOptions = {
             adId: adUnitId || REWARDED_ID,
@@ -114,6 +123,7 @@ class AdService {
 
         } catch (e) {
             console.error('Rewarded ad failed', e);
+            toast.error("Failed to load ad.");
         }
     }
 }

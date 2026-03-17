@@ -207,6 +207,10 @@ export type Startup = {
     peak_users?: number;                    // All-time high for legacy
     scenario?: string;                      // "classic", "bootstrap", "bear", etc.
     unlocked_perks?: string[];             // Legacy perks active for this run
+    adUsage?: {
+        lastConsults: string[]; // ISO timestamps
+        lastGrants: string[];   // ISO timestamps
+    };
 };
 
 export type GameSession = {

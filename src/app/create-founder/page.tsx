@@ -37,10 +37,40 @@ const INDUSTRIES = [
 - **Removed Overrides**: Cleaned up the `Dashboard` component by removing hardcoded font styles, allowing it to inherit the new global `Inter` style natively.
 - **Aesthetic Refinement**: All screens now use the premium, tech-focused aesthetic previously only seen inside the game.
 */
-const GTM_MOTIONS = [
-    { id: "PLG", label: "Product-Led Growth", icon: Sparkles, desc: "Freemium → viral loops → self-serve upgrades. Your product is your sales channel.", pros: ["Fast early traction", "Low CAC", "Viral potential"], cons: ["Need excellent UX", "Slower enterprise deals"] },
-    { id: "SLG", label: "Sales-Led Growth", icon: Megaphone, desc: "Outbound demos → enterprise contracts → high ACV deals.", pros: ["High revenue per customer", "Predictable pipeline", "Better relationships"], cons: ["Expensive CAC", "Needs sales team early"] },
-];
+const INDUSTRY_STRATEGIES: Record<string, { id: string; label: string; icon: any; sub: string; desc: string; pros: string[]; cons: string[] }[]> = {
+    "SaaS Platform": [
+        { id: "PLG", label: "Self-Serve SaaS", icon: Sparkles, sub: "Strategic direction for your mission", desc: "Freemium → viral loops → self-serve upgrades. Your product is your sales channel.", pros: ["Fast early traction", "Low CAC", "Viral potential"], cons: ["Need excellent UX", "Slower enterprise deals"] },
+        { id: "SLG", label: "Enterprise SaaS", icon: Building2, sub: "Strategic direction for your mission", desc: "Outbound demos → complex contracts → high ACV deals.", pros: ["High revenue per customer", "Predictable pipeline", "Stronger retention"], cons: ["Long sales cycles", "Needs sales team early"] },
+    ],
+    "AI Platform": [
+        { id: "PLG", label: "Self-Serve API Model", icon: Sparkles, sub: "Strategic direction for your mission", desc: "Simple API access for developers to build on your models. Pay-as-you-go.", pros: ["Massive throughput", "Low touch sales", "Network of apps"], cons: ["High infra cost", "Easy for users to switch"] },
+        { id: "SLG", label: "Enterprise AI Solutions", icon: Building2, sub: "Strategic direction for your mission", desc: "Custom fine-tuned models and on-prem deployments for big corporations.", pros: ["Huge deal sizes", "Proprietary moat", "Stickier Integration"], cons: ["Manual setup needed", "Slow deployment cycle"] },
+    ],
+    "OTT / Streaming": [
+        { id: "PLG", label: "Direct-to-Consumer", icon: User, sub: "Strategic direction for your mission", desc: "Broad library access for monthly subscribers. Focus on churn and content loops.", pros: ["Compound revenue", "Direct user data", "Brand loyalty"], cons: ["Massive content spend", "High churn risk"] },
+        { id: "SLG", label: "Content Licensing", icon: Building2, sub: "Strategic direction for your mission", desc: "Selling content rights to other platforms and distributors.", pros: ["Large upfront cash", "Fixed revenue", "Lower marketing cost"], cons: ["Capped upside", "Less brand ownership"] },
+    ],
+    "Mobile Game": [
+        { id: "PLG", label: "F2P Viral Growth", icon: Sparkles, sub: "Strategic direction for your mission", desc: "Free-to-play with aggressive ad-mediation and IAP hooks.", pros: ["Massive scale", "High ad revenue", "Social loops"], cons: ["Unpredictable hits", "Short lifecycle"] },
+        { id: "SLG", label: "Branded / IP Games", icon: Trophy, sub: "Strategic direction for your mission", desc: "Working with movie studios or brands to build high-quality licensed games.", pros: ["Guaranteed audience", "Brand funding", "Higher LTV"], cons: ["Royalties eat margin", "Limited creative freedom"] },
+    ],
+    "FinTech": [
+        { id: "PLG", label: "Consumer Neo-bank", icon: User, sub: "Strategic direction for your mission", desc: "Elegant mobile banking for Gen-Z and digital nomads.", pros: ["Strong brand affinity", "High daily usage", "Word-of-mouth"], cons: ["Low margins", "Heavy regulatory cost"] },
+        { id: "SLG", label: "B2B Infrastructure", icon: Building2, sub: "Strategic direction for your mission", desc: "Embedded finance APIs and payment rails for other companies.", pros: ["High transaction vol", "Deep moats", "B2B stickiness"], cons: ["Long legal reviews", "Invisible brand"] },
+    ],
+    "EdTech": [
+        { id: "PLG", label: "Direct-to-Learner", icon: Sparkles, sub: "Strategic direction for your mission", desc: "Self-paced courses and community-led learning for individuals.", pros: ["Fast go-to-market", "Organic growth", "Flexible content"], cons: ["High CAC", "Lower completion rates"] },
+        { id: "SLG", label: "Institutional Sales", icon: Building2, sub: "Strategic direction for your mission", desc: "Selling whole-school or corporate-training licenses.", pros: ["Stable contracts", "High seat count", "Budget predictability"], cons: ["Slow procurement", "Top-down friction"] },
+    ],
+    "Dev Tools": [
+        { id: "PLG", label: "Open Source Core", icon: Sparkles, sub: "Strategic direction for your mission", desc: "Free oss tool that developers love, charging for hosting/cloud.", pros: ["Developer love", "Community support", "Organic adoption"], cons: ["Hard to monetize", "Support overhead"] },
+        { id: "SLG", label: "Enterprise Cloud", icon: Building2, sub: "Strategic direction for your mission", desc: "Managed deployments with security, SSO, and compliance for huge teams.", pros: ["Big ticket deals", "Compliance moat", "SSO/SAML uplift"], cons: ["Complex dev cycles", "Sales-led roadmap"] },
+    ],
+    "Marketplace": [
+        { id: "PLG", label: "Community Growth", icon: User, sub: "Strategic direction for your mission", desc: "Niche marketplace growing through user reviews and social trust.", pros: ["Organic liquidity", "Low supply cost", "Brand defensibility"], cons: ["Slow start", "Hard to moderate"] },
+        { id: "SLG", label: "Managed Supply", icon: Building2, sub: "Strategic direction for your mission", desc: "Vetting and managing supply directly to guarantee high-quality service.", pros: ["High unit margins", "Quality control", "Premium pricing"], cons: ["Operations heavy", "Scaling friction"] },
+    ],
+};
 
 const LOGOS = ["🚀", "🤖", "🎮", "📺", "💡", "🦄", "🌐", "⚡"];
 
@@ -296,7 +326,7 @@ export default function CreateFounder() {
                         {/* STEP 4: GTM Motion */}
                         {step === 4 && (
                             <div className="space-y-4">
-                                {GTM_MOTIONS.map(gtm => (
+                                {(INDUSTRY_STRATEGIES[formData.industry] || INDUSTRY_STRATEGIES["SaaS Platform"]).map(gtm => (
                                     <button
                                         key={gtm.id}
                                         onClick={() => setFormData({ ...formData, gtmMotion: gtm.id })}
@@ -313,18 +343,18 @@ export default function CreateFounder() {
                                             </div>
                                             <div>
                                                 <p className={cn("font-black text-sm uppercase italic", formData.gtmMotion === gtm.id ? "text-indigo-700" : "text-slate-800")}>{gtm.label}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium">{gtm.id === "PLG" ? "Product leads, sales follows" : "Sales leads, product supports"}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium tracking-tight uppercase">{gtm.sub}</p>
                                             </div>
                                         </div>
                                         <p className="text-xs text-slate-600 leading-relaxed mb-3">{gtm.desc}</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <p className="text-[8px] font-black text-emerald-600 uppercase tracking-wider mb-1">Advantages</p>
-                                                {gtm.pros.map(p => <p key={p} className="text-[10px] text-slate-500">✓ {p}</p>)}
+                                                {gtm.pros.map(p => <p key={p} className="text-[10px] text-slate-500 leading-tight">✓ {p}</p>)}
                                             </div>
                                             <div>
                                                 <p className="text-[8px] font-black text-rose-500 uppercase tracking-wider mb-1">Trade-offs</p>
-                                                {gtm.cons.map(c => <p key={c} className="text-[10px] text-slate-400">× {c}</p>)}
+                                                {gtm.cons.map(c => <p key={c} className="text-[10px] text-slate-400 leading-tight">× {c}</p>)}
                                             </div>
                                         </div>
                                     </button>

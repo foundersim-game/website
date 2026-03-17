@@ -343,27 +343,39 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const isFinTech = industry === "FinTech" || industry === "FinTech App";
 
     let monthlyRevenue = 0, monthlyCogs = 0;
-    if (isSubscription) {
-        const cogsPct = industry.includes("AI") ? 0.30 : 0.15;
+    // --- OVERHAULED INDUSTRY MONETIZATION ---
+    if (industry === "Mobile Game") {
+        const isPLG = startup.gtm_motion === "PLG";
+        if (isPLG) {
+            const adsFreq = (metrics as any).ad_intensity || 0;
+            const iapPrice = metrics.pricing || 0;
+            const adRevenue = metrics.users * (adsFreq / 100) * 0.15;
+            const iapRevenue = metrics.users * 0.03 * iapPrice;
+            monthlyRevenue = adRevenue + iapRevenue;
+        } else {
+            // SLG (Branded IP sponsorship): Revenue scales off Contract size ($)
+            monthlyRevenue = (metrics.b2b_pipeline?.closed_won || 0) * price;
+        }
+        monthlyCogs = monthlyRevenue * 0.05; 
+    } else if (industry === "AI Platform" || industry === "AI Startup") {
+        monthlyRevenue = metrics.users * price; 
+        monthlyCogs = monthlyRevenue * 0.35; // high GPU COGS
+    } else if (industry === "FinTech" || industry === "FinTech App") {
+        // Interchange volume math: $200 volume per user average
+        const txVolume = metrics.users * 200; 
+        monthlyRevenue = txVolume * (price / 100); 
+        monthlyCogs = monthlyRevenue * 0.20;
+    } else if (industry === "Marketplace") {
+        const gmv = metrics.users * 150; 
+        monthlyRevenue = gmv * (price / 100);
+        monthlyCogs = monthlyRevenue * 0.15;
+    } else {
+        // Default SaaS / Subscriptions (OTT, EdTech, Dev Tools)
         monthlyRevenue = metrics.users * price;
-        monthlyCogs = monthlyRevenue * cogsPct;
+        monthlyCogs = monthlyRevenue * 0.15;
         if (priceElasticity > (metrics.product_quality / 100) * 1.5) {
             metrics.users -= Math.floor(metrics.users * 0.03 * (priceElasticity - 0.5));
         }
-    } else if (isMobileGame) {
-        monthlyRevenue = Math.floor(metrics.users * (0.02 + (metrics.pmf_score / 150) * 0.05)) * (price * 2);
-        monthlyCogs = monthlyRevenue * 0.10;
-    } else if (isFinTech) {
-        monthlyRevenue = metrics.users * price * 0.012 * 15;
-        monthlyCogs = monthlyRevenue * 0.25;
-    } else if (isTransactional) {
-        const unitsSold = Math.floor(metrics.users * (Math.min(0.4, 0.04 / priceElasticity)));
-        monthlyRevenue = unitsSold * price;
-        monthlyCogs = monthlyRevenue * 0.45;
-        metrics.unit_sales = unitsSold;
-    } else {
-        monthlyRevenue = metrics.users * price;
-        monthlyCogs = monthlyRevenue * 0.20;
     }
 
     metrics.revenue = monthlyRevenue;

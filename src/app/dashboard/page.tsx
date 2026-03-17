@@ -17,6 +17,7 @@ import { generateAcquisitionOffer } from "@/lib/engine/manda";
 import { getRandomEvent } from "@/lib/engine/events";
 import { generateCrisisEvent, generateFounderStory } from "@/lib/engine/ai";
 import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
+import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
 import { calcDynamicImpact, applyEffectsToState, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS } from "@/lib/engine/actions";
@@ -52,6 +53,120 @@ const STAGE_COLORS: Record<string, string> = {
 };
 
 const MAX_SLOTS = 6;
+
+interface PricingConfigNode {
+    maxPrice: number;
+    label: string;
+    unit: string;
+    sliders?: { key: string; label: string; min: number; max: number; step: number; unit: string }[];
+    calc: (p: number, m: any) => { conversion: number; churn: number; loopPower: number };
+}
+
+const INDUSTRY_PRICING_CONFIG: Record<string, {
+    PLG: PricingConfigNode;
+    SLG: PricingConfigNode;
+}> = {
+    "SaaS Platform": {
+        PLG: {
+            maxPrice: 300, label: "Self-Serve Price", unit: "/ mo",
+            calc: (p) => ({
+                conversion: p === 0 ? 5.0 : Math.max(0.01, 50 / (p + 10)),
+                churn: p === 0 ? 0.01 : Math.min(0.25, 0.02 + (p / 200) * 0.10),
+                loopPower: p === 0 ? 5 : Math.max(-10, (30 - p) * 0.1)
+            })
+        },
+        SLG: {
+            maxPrice: 2000, label: "Enterprise Retainer", unit: "/ mo",
+            calc: (p) => ({
+                conversion: Math.max(0.01, 100 / (p + 100)),
+                churn: 0.02,
+                loopPower: 4
+            })
+        }
+    },
+    "AI Platform": {
+        PLG: {
+            maxPrice: 50, label: "Token Bundle Price", unit: "/ 10k",
+            calc: (p) => ({
+                conversion: p === 0 ? 4.0 : Math.max(0.01, 20 / (p + 5)),
+                churn: 0.04 + (p / 50) * 0.05,
+                loopPower: 5
+            })
+        },
+        SLG: {
+            maxPrice: 10000, label: "Enterprise Solution", unit: " value",
+            calc: (p) => ({ conversion: Math.max(0.01, 500 / (p + 100)), churn: 0.03, loopPower: 6 })
+        }
+    },
+    "OTT / Streaming": {
+        PLG: {
+            maxPrice: 30, label: "Sub Price", unit: "/ mo",
+            calc: (p) => ({ conversion: p === 0 ? 8.0 : Math.max(0.01, 40 / (p + 5)), churn: 0.06 + (p / 30) * 0.05, loopPower: 10 })
+        },
+        SLG: {
+            maxPrice: 50000, label: "Content License Price", unit: " deal",
+            calc: (p) => ({ conversion: Math.max(0.01, 4000 / (p + 1000)), churn: 0.00, loopPower: 2 })
+        }
+    },
+    "Mobile Game": {
+        PLG: {
+            maxPrice: 20, label: "IAP Item Size", unit: " scale",
+            sliders: [{ key: "ad_intensity", label: "Ad Frequency", min: 0, max: 100, step: 1, unit: "%" }],
+            calc: (p, m) => {
+                const ads = m.ad_intensity || 0;
+                return {
+                    conversion: 8.0 * (1 + (20 - p)/20), 
+                    churn: 0.10 + (ads > 50 ? 0.06 : 0) + (p / 10) * 0.05,
+                    loopPower: 10 - (ads / 10)
+                };
+            }
+        },
+        SLG: {
+            maxPrice: 10000, label: "IP Sponsorship", unit: " scale",
+            calc: (p) => ({ conversion: Math.max(0.01, 200 / (p + 50)), churn: 0.05, loopPower: 3 })
+        }
+    },
+    "FinTech": {
+        PLG: {
+            maxPrice: 5, label: "% Interchange Fee", unit: "%",
+            calc: (p) => ({ conversion: p === 0 ? 6.0 : Math.max(0.01, 3.0 / (p + 0.5)), churn: p > 2 ? 0.05 : 0.01, loopPower: 4 })
+        },
+        SLG: {
+            maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
+            calc: (p) => ({ conversion: Math.max(0.01, 500 / (p + 100)), churn: 0.02, loopPower: 1 })
+        }
+    },
+    "EdTech": {
+        PLG: {
+            maxPrice: 100, label: "Course Ticket", unit: " avg",
+            calc: (p) => ({ conversion: p === 0 ? 4.0 : Math.max(0.01, 25 / (p + 5)), churn: 0.04, loopPower: 3 })
+        },
+        SLG: {
+            maxPrice: 200, label: "Per Seat/yr", unit: " avg",
+            calc: (p) => ({ conversion: p === 0 ? 2.0 : Math.max(0.01, 15 / (p + 10)), churn: 0.02, loopPower: 2 })
+        }
+    },
+    "Dev Tools": {
+        PLG: {
+            maxPrice: 100, label: "Paid Tier", unit: "/ mo",
+            calc: (p) => ({ conversion: p === 0 ? 5.0 : Math.max(0.01, 30 / (p + 10)), churn: 0.03, loopPower: 8 })
+        },
+        SLG: {
+            maxPrice: 1000, label: "Enterprise SSO Package", unit: "/ mo",
+            calc: (p) => ({ conversion: Math.max(0.01, 200 / (p + 100)), churn: 0.02, loopPower: 4 })
+        }
+    },
+    "Marketplace": {
+        PLG: {
+            maxPrice: 15, label: "Take Rate", unit: "%",
+            calc: (p) => ({ conversion: p === 0 ? 8.0 : Math.max(0.01, 5.0 / (p + 1)), churn: 0.05, loopPower: 4 })
+        },
+        SLG: {
+            maxPrice: 500, label: "Supplier Retainer", unit: "/ mo",
+            calc: (p) => ({ conversion: Math.max(0.01, 250 / (p + 50)), churn: 0.04, loopPower: 2 })
+        }
+    }
+};
 
 // ─── Base startup state ───────────────────────────────────────────────────────
 const STARTUP_BASE = {
@@ -297,7 +412,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         
                         // Format the dynamic label
                         const dynamicImpact = Object.entries(scaledEffects)
-                            .filter(([k, v]) => v && v !== 0 && k !== "technical_debt") // Hide debt in short label for brevity
+                            .filter(([k, v]) => v && v !== 0) // Unhide debt for dynamic layouts
                             .slice(0, 3)
                             .map(([k, v]) => {
                                 const val = v as number;
@@ -317,6 +432,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <p className="text-[9px] text-slate-400 font-medium">{dynamicImpact || action.impact}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                    {scaledEffects.technical_debt && scaledEffects.technical_debt < 0 && (
+                                        <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 shadow-sm mb-1">⬇️ DEBT</span>
+                                    )}
                                     <span className="text-[8px] font-black bg-indigo-50 text-indigo-500 border border-indigo-100 px-1.5 py-0.5 rounded-full opacity-90">⚡{action.energyCost}h</span>
                                 </div>
                             </div>
@@ -331,59 +449,95 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
                 </div>
                 <div className="w-full max-w-[250px] mx-auto mb-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center">
-                    <span className="text-xl font-black text-slate-800 tracking-tighter">${m.pricing} <span className="text-xs text-slate-400 font-normal tracking-normal lowercase">/ user</span></span>
-                    <input
-                        type="range"
-                        min="0" max="500" step="1"
-                        value={m.pricing || 0}
-                        onChange={(e) => {
-                            const newPrice = Number(e.target.value);
-                            setStartup((s: any) => ({
-                                ...s,
-                                metrics: { ...s.metrics, pricing: newPrice }
-                            }));
-                        }}
-                        className="w-full mt-2 accent-indigo-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between w-full mt-1 px-1 text-[8px] font-black text-slate-400 uppercase">
-                        <span>Free</span>
-                        <span>$250</span>
-                        <span>$500</span>
-                    </div>
-
                     {(() => {
+                        const ind = startup.industry || "SaaS Platform";
                         const isPLG = startup.gtm_motion === "PLG";
-                        const p = m.pricing || 0;
-                        const brandGain = p === 0 ? 5 : Math.max(-15, (30 - p) * 0.1);
-                        const churn = p === 0 ? 0.01 : Math.min(0.30, 0.02 + (p / 200) * 0.10);
-                        const conversion = p === 0 ? 5.0 : Math.max(0.01, (isPLG ? 50 : 35) / (p + 10));
-
+                        const cfgBase = INDUSTRY_PRICING_CONFIG[ind] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+                        const cfg = isPLG ? cfgBase.PLG : cfgBase.SLG;
+                        
                         return (
-                            <div className="mt-3 pt-3 border-t border-slate-200 w-full grid grid-cols-3 gap-1 text-center">
-                                <div className="flex flex-col justify-center items-center">
-                                    <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
-                                        {isPLG ? "Virality" : "Sales Conversion"}
-                                    </span>
-                                    <span className={cn("text-[10px] font-black leading-none", conversion < 0.5 ? "text-rose-600" : conversion > 1.2 ? "text-emerald-500" : "text-amber-600")}>
-                                        {conversion.toFixed(1)}x
-                                    </span>
-                                </div>
-                                <div className="flex flex-col justify-center items-center border-l border-slate-200">
-                                    <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">Churn</span>
-                                    <span className={cn("text-[10px] font-black leading-none", churn > 0.06 ? "text-rose-600" : "text-emerald-500")}>
-                                        {(churn * 100).toFixed(0)}%
+                            <div className="w-full">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{cfg.label}</span>
+                                    <span className="text-xl font-black text-slate-800 tracking-tighter">
+                                        {cfg.unit === "%" ? `${m.pricing}%` : `$${m.pricing}`} 
+                                        <span className="text-xs text-slate-400 font-normal tracking-normal lowercase"> {cfg.unit}</span>
                                     </span>
                                 </div>
-                                <div className="flex flex-col justify-center items-center border-l border-slate-200">
-                                    <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
-                                        {isPLG ? "Loop Power" : "Net Score"}
-                                    </span>
-                                    <span className={cn("text-[10px] font-black leading-none", brandGain < 0 ? "text-rose-500" : "text-indigo-600")}>
-                                        {brandGain > 0 ? '+' : ''}{brandGain.toFixed(0)}
-                                    </span>
+                                <input
+                                    type="range"
+                                    min="0" max={cfg.maxPrice} step="1"
+                                    value={m.pricing || 0}
+                                    onChange={(e) => {
+                                        const newPrice = Number(e.target.value);
+                                        setStartup((s: any) => ({
+                                            ...s,
+                                            metrics: { ...s.metrics, pricing: newPrice }
+                                        }));
+                                    }}
+                                    className="w-full mt-2 accent-indigo-600 cursor-pointer"
+                                />
+                                <div className="flex justify-between w-full mt-1 px-1 text-[8px] font-black text-slate-400 uppercase">
+                                    <span>Free</span>
+                                    <span>${Math.round(cfg.maxPrice / 2)}</span>
+                                    <span>${cfg.maxPrice}</span>
                                 </div>
+
+                                {/* Sub-sliders (like Ad Frequency) */}
+                                {cfg.sliders && cfg.sliders.map(sl => (
+                                    <div key={sl.key} className="mt-4 pt-4 border-t border-slate-200/60 w-full">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase">{sl.label}</span>
+                                            <span className="text-xs font-black text-slate-700">{m[sl.key] || 0}{sl.unit}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min={sl.min} max={sl.max} step={sl.step}
+                                            value={m[sl.key] || 0}
+                                            onChange={(e) => {
+                                                const v = Number(e.target.value);
+                                                setStartup((s: any) => ({
+                                                    ...s,
+                                                    metrics: { ...s.metrics, [sl.key]: v }
+                                                }));
+                                            }}
+                                            className="w-full accent-indigo-500 cursor-pointer"
+                                        />
+                                    </div>
+                                ))}
+
+                                {(() => {
+                                    const { conversion, churn, loopPower } = cfg.calc(m.pricing || 0, m);
+
+                                    return (
+                                        <div className="mt-3 pt-3 border-t border-slate-200 w-full grid grid-cols-3 gap-1 text-center">
+                                            <div className="flex flex-col justify-center items-center">
+                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
+                                                    {isPLG ? "Virality" : "Sales Conversion"}
+                                                </span>
+                                                <span className={cn("text-[10px] font-black leading-none", conversion < 0.5 ? "text-rose-600" : conversion > 1.2 ? "text-emerald-500" : "text-amber-600")}>
+                                                    {conversion.toFixed(1)}x
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col justify-center items-center border-l border-slate-200">
+                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">Churn</span>
+                                                <span className={cn("text-[10px] font-black leading-none", churn > 0.06 ? "text-rose-600" : "text-emerald-500")}>
+                                                    {(churn * 100).toFixed(0)}%
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col justify-center items-center border-l border-slate-200">
+                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
+                                                    {isPLG ? "Loop Power" : "Net Score"}
+                                                </span>
+                                                <span className={cn("text-[10px] font-black leading-none", loopPower < 0 ? "text-rose-500" : "text-indigo-600")}>
+                                                    {loopPower > 0 ? '+' : ''}{loopPower.toFixed(0)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
-                        );
+                         );
                     })()}
 
                     <div className="w-full mt-3 px-1">
@@ -1247,7 +1401,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             { label: "Technical", category: "technical" as const },
             { label: "Leadership", category: "leadership" as const },
             { label: "Networking", category: "networking" as const },
-            { label: "Marketing Skill", category: "marketing_skill" as const },
+            { label: "Marketing", category: "founder_marketing" as const },
             { label: "Health", category: "health" as const },
             { label: "Burnout Recovery", category: "burnout" as const },
         ];
@@ -1476,6 +1630,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
                                             const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.5;
                                             const uIdx = Math.min(usedCount, 4);
+                                            
+                                            const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, { 
+                                                month: startup.history?.length || 0, 
+                                                startup, 
+                                                founder, 
+                                                m: startup.metrics 
+                                            });
+
                                             return (
                                                 <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
                                                     className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
@@ -1484,23 +1646,40 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs font-bold text-slate-800 truncate">{action.label}</p>
                                                         {(() => {
-                                                            const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, { 
-                                                                month: startup.history?.length || 0, 
-                                                                startup, 
-                                                                founder, 
-                                                                m 
-                                                            });
-                                                            const impactStr = action.impact;
-                                                            // We try to replace the cash part of the string if it's there, or just append it
+                                                            const effectsList = Object.entries(scaledEffects)
+                                                                .map(([key, val]) => {
+                                                                    if (!val) return null;
+                                                                    const sign = val > 0 ? "+" : "";
+                                                                    if (key === "cash") return `${formatMoney(val)}`;
+                                                                    const label = key.replace(/_/g, " ")
+                                                                        .replace("intelligence", "Int")
+                                                                        .replace("technical skill", "Tech")
+                                                                        .replace("leadership", "Lead")
+                                                                        .replace("networking", "Net")
+                                                                        .replace("marketing skill", "Mkt")
+                                                                        .replace("founder burnout", "Burnout")
+                                                                        .replace("founder health", "Health")
+                                                                        .replace("product quality", "Qual")
+                                                                        .replace("technical debt", "Debt")
+                                                                        .replace("reliability", "Rel")
+                                                                        .replace("brand awareness", "Brand");
+                                                                    return `${sign}${val} ${label}`;
+                                                                })
+                                                                .filter(Boolean)
+                                                                .join(" · ");
+
                                                             return (
-                                                                <p className="text-[9px] text-slate-400">
-                                                                    {scaledEffects.cash ? `${impactStr.replace(/-?\$?[\d.]+k?\s?(Cash|Burn)/i, "").trim()} · ${formatMoney(scaledEffects.cash)}` : impactStr}
+                                                                <p className="text-[9px] text-slate-500 font-bold">
+                                                                    {effectsList}
                                                                 </p>
                                                             );
                                                         })()}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                                         <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">⚡{action.energyCost}h</span>
+                                                        {scaledEffects.technical_debt && scaledEffects.technical_debt < 0 && (
+                                                            <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 shadow-sm flex items-center gap-0.5">⬇️ DEBT</span>
+                                                        )}
                                                         {usedCount > 0 && <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded-md border", usageColors[uIdx])}>{usageLabels[uIdx]}</span>}
                                                     </div>
                                                 </div>
@@ -1567,7 +1746,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             )}>
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">{isFailed ? "💀" : isIPO ? "🚀" : "🏢"}</span>
+                                        {comp.id === 'chadly' ? (
+                                             <div className="w-9 h-9 rounded-full border-2 border-indigo-400 overflow-hidden bg-indigo-100 shadow-sm flex-shrink-0">
+                                                 <img src="/characters/chad_rival.png" alt="Chad" className="object-cover w-full h-full" />
+                                             </div>
+                                         ) : (
+                                             <span className="text-lg">{isFailed ? "💀" : isIPO ? "🚀" : "🏢"}</span>
+                                         )}
                                         <div>
                                             <p className="text-xs font-black text-slate-800">{comp.name}</p>
                                             <p className="text-[8px] font-bold text-slate-400 uppercase">{comp.industry}</p>
@@ -1744,6 +1929,12 @@ export default function Dashboard() {
     const [month, setMonth] = useState(1);
     const [eventsTimeline, setEventsTimeline] = useState<{ month: number; text: string }[]>([]);
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
+    const [isSamModalOpen, setIsSamModalOpen] = useState(false);
+    const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
+    const [hasSeenIntro, setHasSeenIntro] = useState(false);
+    const [samConsults, setSamConsults] = useState<number[]>([]);
+    const [isChadModalOpen, setIsChadModalOpen] = useState(false);
+    const [chadAdvice, setChadAdvice] = useState<{ title: string; message: string; buttonText: string } | null>(null);
     const [selectedAction, setSelectedAction] = useState<StartupAction>("none");
     const [isProcessing, setIsProcessing] = useState(false);
     const [endgameStory, setEndgameStory] = useState<string | null>(null);
@@ -2003,6 +2194,18 @@ export default function Dashboard() {
             setCompetitors(generateInitialCompetitors(3));
         }
     }, []);
+
+    // --- SAM INTRO MENTOR SETUP (AUTO-TRIGGER) ---
+    useEffect(() => {
+        if (month === 1 && startup.id && (!startup.history || startup.history.length === 0) && !isSamModalOpen) {
+            const intro = getEducationalAdvice(startup, founder);
+            if (intro && !seenEventIds.includes(intro.trigger)) {
+                setSamAdvice(intro);
+                setIsSamModalOpen(true);
+                setSeenEventIds(prev => [...prev, intro.trigger]);
+            }
+        }
+    }, [month, startup, founder, isSamModalOpen, seenEventIds]);
 
     // Autosave
     useEffect(() => {
@@ -2413,6 +2616,13 @@ export default function Dashboard() {
                 toast.warning("⚡ Low Runway", { description: `${runway} months remaining.` });
             }
 
+            // Sam Mentor Advice Trigger
+            const samAlert = getEducationalAdvice(newStartup, founder);
+            if (samAlert) {
+                setSamAdvice(samAlert);
+                setIsSamModalOpen(true);
+            }
+
             // Burnout game-over
             if ((newStartup.metrics.founder_burnout || 0) >= 100) {
                 newStartup.outcome = "burnout";
@@ -2456,6 +2666,15 @@ export default function Dashboard() {
             setCompetitors(updated);
             news.forEach(n => addTimelineEvent(n, nextMonth));
             rivalActions.forEach(({ action, competitorName }) => {
+                if (competitorName.toLowerCase().includes("chadly")) {
+                    setChadAdvice({
+                        title: "⚔️ CHADLY ATTACKS!",
+                        message: `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
+                        buttonText: "I'LL CRUSH HIM"
+                    });
+                    setIsChadModalOpen(true);
+                }
+
                 if (action.impactUser !== 0) newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * (1 + action.impactUser)));
                 if (action.impactMorale !== 0) newStartup.metrics.team_morale = Math.max(0, Math.min(100, newStartup.metrics.team_morale + action.impactMorale));
                 if (action.impactBrand !== 0) newStartup.metrics.brand_awareness = Math.max(0, Math.min(100, (newStartup.metrics.brand_awareness || 0) + action.impactBrand));
@@ -2603,6 +2822,30 @@ export default function Dashboard() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-full flex items-center gap-1 shadow-sm"
+                        onClick={() => {
+                            const now = Date.now();
+                            const hourAgo = now - 60 * 60 * 1000;
+                            const validConsults = samConsults.filter(t => t > hourAgo);
+                            
+                            if (validConsults.length >= 2) {
+                                toast.error("Advice Limit Reached", { description: "You can consult Sam 2 times per hour maximum!" });
+                                return;
+                            }
+                            
+                            adService.showRewardedAd(() => {
+                                setSamConsults([...validConsults, now]);
+                                const advice = getConsultationAdvice(startup);
+                                setSamAdvice(advice);
+                                setIsSamModalOpen(true);
+                            });
+                        }}
+                    >
+                        🩺 <span className="hidden xs:inline">Consult</span> Sam
+                    </Button>
                     <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-2.5 py-1 rounded-full">{formatMoney(m.cash)}</div>
                     <DropdownMenu>
                         <DropdownMenuTrigger className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
@@ -2859,6 +3102,63 @@ export default function Dashboard() {
             </AnimatePresence>
 
             <EventModal event={activeEvent} onResolve={handleEventResolution} onClose={() => setActiveEvent(null)} />
+
+            
+            {isChadModalOpen && chadAdvice && (
+                <Dialog open={isChadModalOpen} onOpenChange={setIsChadModalOpen}>
+                    <DialogContent className="sm:max-w-[425px] rounded-3xl p-6 border-indigo-600 border-4 shadow-xl shadow-indigo-100/50">
+                        <DialogHeader>
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full border-2 border-indigo-400 overflow-hidden bg-indigo-50 shadow-sm flex items-center justify-center">
+                                    <img src="/characters/chad_rival.png" alt="Chad" className="object-cover h-full" />
+                                </div>
+                            </div>
+                            <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">{chadAdvice.title}</DialogTitle>
+                            <DialogDescription className="mt-2 text-slate-600 font-medium whitespace-pre-line text-sm">
+                                {chadAdvice.message}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4 flex flex-col gap-2">
+                            <Button className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-2xl" onClick={() => setIsChadModalOpen(false)}>
+                                {chadAdvice.buttonText}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {isSamModalOpen && samAdvice && (
+                <Dialog open={isSamModalOpen} onOpenChange={setIsSamModalOpen}>
+                    <DialogContent className="sm:max-w-[425px] rounded-3xl p-6">
+                        <DialogHeader>
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full border-2 border-indigo-500 overflow-hidden bg-indigo-50 shadow-sm flex item-center justify-center">
+                                    <img src="/characters/sam_mentor.png" alt="Sam" className="object-cover h-full" />
+                                </div>
+                            </div>
+                            <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">{samAdvice.title.replace(/{name}/g, founder.name || "Founder")}</DialogTitle>
+                            <DialogDescription className="mt-2 text-slate-600 font-medium whitespace-pre-line text-sm">
+                                {samAdvice.message.replace(/{name}/g, founder.name || "Founder")}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4 flex flex-col gap-2">
+                            <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl" onClick={() => {
+                                setIsSamModalOpen(false);
+                                if (month === 1) {
+                                    setChadAdvice({
+                                        title: "⚔️ A RIVAL APPEARS!",
+                                        message: `I heard you're trying to build in my space, ${founder.name}. Big mistake. I've got more capital, more hustle, and zero respect for 'burnout'. See you at the finish line—if you make it that far.`,
+                                        buttonText: "BRING IT ON"
+                                    });
+                                    setIsChadModalOpen(true);
+                                }
+                            }}>
+                                {samAdvice.buttonText}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
 
             {/* HIRING MODAL */}
             <Dialog open={!!pendingCandidate} onOpenChange={(open) => !open && setPendingCandidate(null)}>

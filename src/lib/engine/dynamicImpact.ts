@@ -2,7 +2,7 @@
  * dynamicImpact.ts — Context-sensitive impact calculator
  *
  * Formula:
- *   impact = base × diminishFactor × gapBonus × statCeiling × situational
+ *   impact = base × diminishFactor (monthly) × fatigueFactor (lifetime) × Power (Dept + Founder) × multipliers
  */
 
 import { ActionDef, StatEffect, SituationalContext } from "./actions";
@@ -12,6 +12,8 @@ export interface ActionUsageLog {
     thisMonth: Record<string, number>;
     /** action id → last month it was used */
     lastUsedMonth: Record<string, number>;
+    /** action id → total times ever used in this save */
+    lifetimeUsed?: Record<string, number>;
 }
 
 export interface GameContext {
@@ -21,11 +23,16 @@ export interface GameContext {
     m: any; // metrics shorthand
 }
 
-// ─── Diminishing returns curve ────────────────────────────────────────────────
-// NOT a fixed table — tapers naturally using a decay function
+// ─── Diminishing returns curve (Monthly) ────────────────────────────────────
 function diminishFactor(timesThisMonth: number): number {
-    // 1st: 1.0, 2nd: ~0.65, 3rd: ~0.40, 4th: ~0.22, 5th: ~0.10
-    return Math.pow(0.6, Math.max(0, timesThisMonth));
+    // 1st: 1.0, 2nd: 0.5, 3rd: 0.25
+    return Math.pow(0.5, Math.max(0, timesThisMonth));
+}
+
+// ─── Long-term Action Fatigue ────────────────────────────────────────────────
+function fatigueFactor(lifetimeUsed: number): number {
+    // Slowly decays over long-term use. 1.0 -> 0.9 after 10 uses, 0.8 after 20.
+    return Math.max(0.5, 1 - (lifetimeUsed * 0.01));
 }
 
 // ─── Gap bonus — reward not having done this in a while ──────────────────────
@@ -38,24 +45,73 @@ function gapBonus(monthsGap: number): number {
 
 // ─── Stat ceiling — harder to improve a stat that's already high ──────────────
 function statCeilingFactor(currentValue: number, cap = 100): number {
-    // At 0: full factor (1.0). At 90: ~0.3. At 100: ~0.1
     if (currentValue >= cap) return 0.1;
     return Math.max(0.1, 1 - Math.pow(currentValue / cap, 1.5));
+}
+
+// ─── Department Power ────────────────────────────────────────────────────────
+function getDepartmentPower(category: string, startup: any): number {
+    const employees = (startup.employees || []) as any[];
+    const cxoTeam = startup.cxoTeam || {};
+    
+    // Map categories to skill types and roles
+    const mapping: Record<string, { skill: string, role: string, cxo: string }> = {
+        technical: { skill: "technical", role: "engineer", cxo: "CTO" },
+        product: { skill: "technical", role: "engineer", cxo: "CTO" },
+        marketing_skill: { skill: "marketing", role: "marketer", cxo: "CMO" },
+        growth: { skill: "marketing", role: "marketer", cxo: "CMO" },
+        leadership: { skill: "sales", role: "sales", cxo: "COO" },
+        culture: { skill: "sales", role: "sales", cxo: "COO" },
+        funding: { skill: "sales", role: "sales", cxo: "CFO" }
+    };
+
+    const map = mapping[category] || { skill: "technical", role: "engineer", cxo: "" };
+    
+    // Skill average of relevant employees + CXOs
+    const relevantStaff = employees.filter((e: any) => 
+        e.role === map.role || (e.isCXO && e.role === map.cxo.toLowerCase())
+    );
+    
+    const avgSkill = relevantStaff.length > 0 
+        ? relevantStaff.reduce((acc: number, e: any) => acc + ((e.skills as any)[map.skill] || 50), 0) / relevantStaff.length
+        : 50;
+
+    let power = 0.8 + (avgSkill / 100) * 0.4; // 0.8 to 1.2 base on avg skill
+    if (cxoTeam[map.cxo]) power *= 1.5; // Huge 1.5x CXO multiplier
+    
+    return power;
+}
+
+// ─── Founder Power ───────────────────────────────────────────────────────────
+function getFounderPower(category: string, founder: any): number {
+    const attrs = founder.attributes || {};
+    const mapping: Record<string, string> = {
+        technical: "technical_skill",
+        product: "technical_skill",
+        marketing_skill: "marketing_skill",
+        growth: "marketing_skill",
+        leadership: "leadership",
+        culture: "leadership",
+        funding: "networking",
+        networking: "networking",
+        intelligence: "intelligence"
+    };
+
+    const statKey = mapping[category] || "intelligence";
+    const statVal = attrs[statKey] || 50;
+    
+    return 0.5 + (statVal / 100);
 }
 
 // ─── Detect active situational contexts ──────────────────────────────────────
 export function detectContexts(ctx: GameContext): SituationalContext[] {
     const contexts: SituationalContext[] = [];
-    const { startup, founder, m } = ctx;
+    const { startup, m } = ctx;
 
-    // Currently raising / just pitched
     const invPipe = m.investor_pipeline || { leads: 0, meetings: 0 };
     const isFundraising = invPipe.leads > 0 || invPipe.meetings > 0 || startup._pitchingInProgress;
 
-    if (isFundraising) {
-        contexts.push("fundraising");
-    }
-
+    if (isFundraising) contexts.push("fundraising");
     if (m.team_morale < 40) contexts.push("low_morale");
     if ((m.founder_burnout || 0) > 70) contexts.push("high_burnout");
     if ((m.technical_debt || 0) > 60) contexts.push("high_debt");
@@ -77,82 +133,100 @@ export function calcDynamicImpact(
 ): { scaledEffects: StatEffect; multiplier: number; hints: string[] } {
 
     const timesThisMonth = usageLog.thisMonth[action.id] ?? 0;
+    const lifetimeUsed = usageLog.lifetimeUsed?.[action.id] ?? 0;
     const lastUsed = usageLog.lastUsedMonth[action.id];
     const monthsGap = lastUsed !== undefined ? ctx.month - lastUsed : 999;
 
     const activeContexts = detectContexts(ctx);
     const hints: string[] = [];
 
-    // Build multiplier
     let multiplier = 1.0;
 
-    // 1. Diminishing returns
+    // 1. Monthly Fatigue
     const dim = diminishFactor(timesThisMonth);
     multiplier *= dim;
     if (timesThisMonth >= 1) {
-        hints.push(`×${(dim * 100).toFixed(0)}% — repeated this month`);
+        hints.push(`📉 Repeated: ${(dim * 100).toFixed(0)}% effect`);
     }
 
-    // 2. Gap bonus
+    // 2. Long-term Decay
+    const fat = fatigueFactor(lifetimeUsed);
+    multiplier *= fat;
+    if (fat < 0.95) {
+        hints.push(`⌛ Fatigue: ${(fat * 100).toFixed(0)}% (Heavy Use)`);
+    }
+
+    // 3. Dept & Founder Power
+    const deptPower = getDepartmentPower(action.category, ctx.startup);
+    const founderPower = getFounderPower(action.category, ctx.founder);
+    multiplier *= (deptPower * founderPower);
+
+    if (deptPower > 1.2) hints.push(`🔥 Dept Strength (+${((deptPower - 1) * 100).toFixed(0)}%)`);
+    if (founderPower > 1.2) hints.push(`🧠 Founder Skill (+${((founderPower - 1) * 100).toFixed(0)}%)`);
+
+    // 4. Gap bonus
     const gap = gapBonus(monthsGap);
     multiplier *= gap;
     if (gap > 1.0 && timesThisMonth === 0) {
-        hints.push(`✨ ${((gap - 1) * 100).toFixed(0)}% fresh-start bonus`);
+        hints.push(`✨ Fresh-start bonus (+${((gap - 1) * 100).toFixed(0)}%)`);
     }
 
-    // 3. Situational multipliers
+    // 5. Situational multipliers
     for (const ctx_key of activeContexts) {
         const boost = action.situationalBoosts?.[ctx_key];
         if (boost !== undefined) {
-            multiplier *= boost;
+            multiplier *= (boost as number);
             const note = action.situationalNote?.[ctx_key];
             if (note) hints.push(note);
         }
     }
 
-    // 4. Apply stat ceiling for primary stat
-    // We detect the primary affected stat (first non-cash, non-negative entry)
+    // 6. Stat ceiling
     const primaryStat = getPrimaryStatKey(action.baseEffects);
     if (primaryStat) {
         const statValue = getStatValue(primaryStat, ctx);
         const ceiling = statCeilingFactor(statValue, 100);
-        // Only apply ceiling to the attribute stats, not cash/morale/etc.
         if (isAttributeStat(primaryStat)) {
             multiplier *= ceiling;
-            if (statValue > 70 && ceiling < 0.6) {
-                hints.push(`📊 High base — diminishing returns above 70`);
-            }
         }
     }
 
-    // 5. Cap multiplier range
-    multiplier = Math.max(0.02, Math.min(3.0, multiplier));
+    multiplier = Math.max(0.1, Math.min(5.0, multiplier));
 
-    // Phase scaling for absolute metrics (costs and numerical rewards)
-    // Formula: floor(sqrt(valuation / 250k)) - ensures gradual scaling as company grows
-    const phaseMult = Math.max(1, Math.floor(Math.sqrt(ctx.startup.valuation / 250_000)));
+    // Scaling factors
+    const val = ctx.startup.valuation || 250000;
+    const rewardMult = Math.max(1, Math.floor(Math.sqrt(val / 250_000)));
+    const costMult = 1 + (val / 500_000);
+    
+    // Growth specific scaling (PMF + Quality)
+    const pmf = ctx.m.pmf_score || 10;
+    const qual = ctx.m.product_quality || 10;
+    const growthMult = (0.5 + pmf / 100) * (0.5 + qual / 100);
 
-    // Scale all base effects
     const scaledEffects: StatEffect = {};
-    for (const [key, val] of Object.entries(action.baseEffects)) {
-        if (val === undefined) continue;
+    for (const [key, v] of Object.entries(action.baseEffects)) {
+        if (v === undefined) continue;
 
-        const applyPhaseScale = ['cash', 'users', 'revenue'].includes(key.toLowerCase());
-
-        // Cash costs are NOT scaled by diminishing returns (you still pay full price)
         if (key === "cash") {
-            (scaledEffects as any)[key] = val * (applyPhaseScale ? phaseMult : 1);
+            (scaledEffects as any)[key] = Math.round(v * costMult);
         } else {
-            const scaledVal = val > 0
-                ? Math.max(1, Math.round(val * multiplier))
-                : Math.min(-1, Math.round(val * multiplier));
+            const isUsers = key.toLowerCase() === 'users';
+            const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
+            const applyRewardScale = isGrowthMetric || key.toLowerCase() === 'revenue';
+            
+            let finalMult = multiplier;
+            if (isGrowthMetric) {
+                finalMult *= growthMult;
+                if (isUsers && growthMult > 1.2) hints.push(`📈 PMF/Quality Boost (+${((growthMult - 1) * 100).toFixed(0)}%)`);
+                if (isUsers && growthMult < 0.8) hints.push(`⚠️ Low PMF/Quality Penalty (-${((1 - growthMult) * 100).toFixed(0)}%)`);
+            }
 
-            (scaledEffects as any)[key] = scaledVal * (applyPhaseScale ? phaseMult : 1);
+            const scaledVal = v > 0
+                ? Math.max(1, Math.round(v * finalMult))
+                : Math.min(-1, Math.round(v * finalMult));
+
+            (scaledEffects as any)[key] = scaledVal * (applyRewardScale ? rewardMult : 1);
         }
-    }
-
-    if (phaseMult > 1 && getPrimaryStatKey(action.baseEffects) === "users") {
-        hints.push(`🚀 ${phaseMult}x Phase Scaling applied`);
     }
 
     return { scaledEffects, multiplier, hints };
@@ -230,7 +304,6 @@ export function applyEffectsToState(
                     ? Math.min(100, Math.max(0, cur + val))
                     : Math.max(0, cur + val);
 
-            // If team morale is changing, distribute to individual employees
             if (key === "team_morale" && newStartup.employees) {
                 newStartup.employees = newStartup.employees.map((emp: any) => ({
                     ...emp,
@@ -242,3 +315,5 @@ export function applyEffectsToState(
 
     return { startup: newStartup, founder: newFounder };
 }
+
+// HMR Cache Reset Touch
