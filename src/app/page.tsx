@@ -11,6 +11,7 @@ import { cn, formatMoney } from "@/lib/utils";
 import { getLegacyData, LegacyData, PERKS, Perk, buyPerk } from "@/lib/engine/legacy";
 import { toast, Toaster } from "sonner";
 import { DollarSign, ShieldCheck, Zap as ZapIcon, Rocket as RocketIcon, Settings } from "lucide-react";
+import { adService } from "@/lib/services/adService";
 
 export type SaveSlot = {
   id: string;
@@ -83,6 +84,7 @@ export default function Home() {
   };
 
   useEffect(() => { 
+    adService.hideBanner();
     loadSaves(); 
     setLegacyData(getLegacyData());
 

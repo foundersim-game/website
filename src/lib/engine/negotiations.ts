@@ -11,18 +11,24 @@ export type Candidate = {
     personality: "Ambitious" | "Stable" | "Workaholic" | "Creative";
 };
 
-const NAMES = ["Alex", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Sam", "Charlie"];
+export const CANDIDATE_NAMES = [
+    "Aarav", "Priya", "Jordan", "Mei", "Samuel", "Aisha", 
+    "Liam", "Riya", "Chris", "Nadia", "Tyler", "Zara",
+    "Alex", "Taylor", "Morgan", "Casey", "Riley", "Sam", "Charlie"
+];
 
-export function generateCandidate(role: string, startupStage: string): Candidate {
-    let level: Candidate["level"] = "Junior";
-    const roll = Math.random();
-
-    if (startupStage === "Bootstrapping") {
-        level = roll < 0.1 ? "Mid" : "Junior";
-    } else if (startupStage === "Angel Investment") {
-        level = roll < 0.1 ? "Lead" : roll < 0.4 ? "Senior" : roll < 0.7 ? "Mid" : "Junior";
-    } else {
-        level = roll < 0.2 ? "Lead" : roll < 0.5 ? "Senior" : roll < 0.8 ? "Mid" : "Junior";
+export function generateCandidate(role: string, startupStage: string, forcedDetails?: Partial<Candidate>): Candidate {
+    let level: Candidate["level"] = forcedDetails?.level || "Junior";
+    
+    if (!forcedDetails?.level) {
+        const roll = Math.random();
+        if (startupStage === "Bootstrapping") {
+            level = roll < 0.1 ? "Mid" : "Junior";
+        } else if (startupStage === "Angel Investment") {
+            level = roll < 0.1 ? "Lead" : roll < 0.4 ? "Senior" : roll < 0.7 ? "Mid" : "Junior";
+        } else {
+            level = roll < 0.2 ? "Lead" : roll < 0.5 ? "Senior" : roll < 0.8 ? "Mid" : "Junior";
+        }
     }
 
     const salaryRanges = {
@@ -33,10 +39,12 @@ export function generateCandidate(role: string, startupStage: string): Candidate
     };
 
     const range = salaryRanges[level];
-    let expectedSalary = Math.floor(range.min + Math.random() * (range.max - range.min));
+    let expectedSalary = forcedDetails?.expectedSalary || Math.floor(range.min + Math.random() * (range.max - range.min));
 
-    if (role === "engineer") expectedSalary *= 1.1;
-    if (role === "sales") expectedSalary *= 0.9;
+    if (!forcedDetails?.expectedSalary) {
+        if (role === "engineer") expectedSalary *= 1.1;
+        if (role === "sales") expectedSalary *= 0.9;
+    }
 
     const experience = level === "Lead" ? 10 + Math.floor(Math.random() * 8) :
         level === "Senior" ? 6 + Math.floor(Math.random() * 5) :
@@ -45,16 +53,16 @@ export function generateCandidate(role: string, startupStage: string): Candidate
 
     const stageEquityDivisor = startupStage === "Bootstrapping" ? 1 : startupStage === "Angel Investment" ? 2 : startupStage === "Seed Round" ? 5 : 10;
     const baseEquity = (level === "Lead" ? 2.5 : level === "Senior" ? 1.0 : level === "Mid" ? 0.3 : 0.1) / stageEquityDivisor;
-    const expectedEquity = Number((baseEquity * (0.8 + Math.random() * 0.4)).toFixed(2));
+    const expectedEquity = forcedDetails?.expectedEquity || Number((baseEquity * (0.8 + Math.random() * 0.4)).toFixed(2));
 
     return {
-        name: NAMES[Math.floor(Math.random() * NAMES.length)] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
+        name: forcedDetails?.name || (CANDIDATE_NAMES[Math.floor(Math.random() * CANDIDATE_NAMES.length)] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + "."),
         role,
         level,
         experience,
         expectedSalary: Math.floor(expectedSalary),
         expectedEquity,
-        personality: ["Ambitious", "Stable", "Workaholic", "Creative"][Math.floor(Math.random() * 4)] as Candidate["personality"]
+        personality: forcedDetails?.personality || (["Ambitious", "Stable", "Workaholic", "Creative"][Math.floor(Math.random() * 4)] as Candidate["personality"])
     };
 }
 
@@ -126,7 +134,7 @@ export function generateInvestor(stage: string): Investor {
     };
 
     return {
-        name: NAMES[Math.floor(Math.random() * NAMES.length)],
+        name: CANDIDATE_NAMES[Math.floor(Math.random() * CANDIDATE_NAMES.length)],
         firm: firmData.firm,
         type,
         personality: firmData.personality,
@@ -141,70 +149,78 @@ export function generateInvestor(stage: string): Investor {
 export function negotiateFunding(
     investor: Investor,
     startup: Startup,
-    proposedValuation: number,
+    proposedPostMoney: number,
     proposedEquity: number
 ): { success: boolean, counterValuation?: number, counterEquity?: number, message: string } {
 
-    const targetValuation = startup.valuation;
-    const valuationRatio = proposedValuation / targetValuation;
+    // Post-Money = Pre-Money + Investment
+    // Equity % = Investment / Post-Money
+    // Investment = Post-Money * (Equity / 100)
+    // Pre-Money = Post-Money - Investment = Post-Money * (1 - Equity/100)
+    
+    const proposedPreMoney = proposedPostMoney * (1 - proposedEquity / 100);
+    const currentMark = startup.valuation;
+    const stepUpRatio = proposedPreMoney / currentMark;
 
-    let sentiment = 50;
+    let sentiment = 40; // Base sentiment lower for more challenge
 
     // Personality-driven scoring
     switch (investor.personality) {
         case "Spray & Pray":
-            // Low bar — just needs some traction
-            sentiment += startup.metrics.users > 10 ? 20 : 0;
+            sentiment += startup.metrics.users > 50 ? 25 : 5;
             break;
         case "Operator First":
-            // Cares about founder reputation
             sentiment += (startup.metrics.team_morale - 50) / 2;
-            sentiment += startup.metrics.employees > 3 ? 10 : 0;
+            sentiment += startup.metrics.employees > 5 ? 15 : 0;
+            sentiment += (startup as any).hasCoFounder ? 10 : 0;
             break;
         case "Thesis Driven":
-            // Needs product quality + innovation
-            sentiment += (startup.metrics.product_quality / 100) * 20;
+            sentiment += (startup.metrics.product_quality / 100) * 30;
             sentiment += (startup.metrics.innovation / 100) * 20;
             break;
         case "Contrarian":
-            // Invests when metrics are nascent but story is strong
-            sentiment += startup.metrics.users < 100 ? 20 : -5;
+            sentiment += stepUpRatio < 1.2 ? 25 : -10;
             break;
         case "Momentum Chaser":
-            // Cares only about growth rate
-            sentiment += (startup.metrics.growth_rate * 100) * 2;
-            sentiment += startup.metrics.users > 500 ? 20 : -10;
+            const growthFactor = (startup.metrics.growth_rate * 100);
+            sentiment += growthFactor > 15 ? 30 : growthFactor > 5 ? 10 : -20;
             break;
     }
 
-    // Standard valuation checks
-    if (valuationRatio > 1.6) sentiment -= 30; // Slightly more headroom
-    else if (valuationRatio > 1.3) sentiment -= 10;
-    else if (valuationRatio < 0.95) sentiment += 15;
+    // Valuation Check (Step-up is key for VCs)
+    if (stepUpRatio > 3.0) sentiment -= 60;      // 3x jump is huge
+    else if (stepUpRatio > 2.0) sentiment -= 40; // 2x jump is hard
+    else if (stepUpRatio > 1.5) sentiment -= 20;
+    else if (stepUpRatio < 1.1) sentiment += 20; // "Flat" rounds are easy to close
 
     // Equity check vs their preferred range
-    if (proposedEquity < investor.preferredEquity.min) sentiment -= 20;
-    else if (proposedEquity > investor.preferredEquity.max) sentiment += 10; // They like more equity
+    if (proposedEquity < investor.preferredEquity.min) sentiment -= 25;
+    else if (proposedEquity > investor.preferredEquity.max) sentiment += 15;
 
     const roll = Math.random() * 100;
     if (roll < sentiment) {
-        return { success: true, message: `${investor.firm} loved the deal. Funds are being wired! 🚀` };
-    } else if (roll < sentiment + 40) { // Increased counter-offer range, lowering hard walk-out chance
-        const counterValuation = Math.floor(targetValuation * (0.8 + Math.random() * 0.3));
-        const counterEquity = Math.min(30, Math.floor(proposedEquity * 1.5));
+        return { success: true, message: `${investor.firm} accepts the terms. "You've built something special here. Let's go!" 🚀` };
+    } else if (roll < sentiment + 45) { 
+        // Generates a more aggressive counter
+        const targetPreMoney = currentMark * (1.1 + Math.random() * 0.4); // They want a 1.1x - 1.5x step up
+        const targetEquity = Math.max(investor.preferredEquity.min, Math.min(investor.preferredEquity.max, proposedEquity + 5));
+        
+        // Final Post-Money counter = Pre-Money / (1 - Equity/100)
+        const counterPostMoney = Math.floor(targetPreMoney / (1 - targetEquity / 100));
+
         return {
             success: false,
-            counterValuation,
-            counterEquity,
-            message: `${investor.firm} counters: ${formatMoney(counterValuation)} at ${counterEquity}%. Our ${investor.focus} bar wasn't quite met.`
+            counterValuation: counterPostMoney,
+            counterEquity: targetEquity,
+            message: `${investor.firm} counters: ${formatMoney(counterPostMoney)} at ${targetEquity}%. "The valuation is a bit ahead of the metrics, but we want to be in business with you."`
         };
     } else {
         const rejectionMessages: Record<InvestorPersonality, string> = {
-            "Spray & Pray": "We need more signal before we can move. Come back with users.",
-            "Operator First": "We want to see a stronger team before committing capital.",
-            "Thesis Driven": "Doesn't fit our current thesis. Nothing personal.",
-            "Contrarian": "Honestly? Too many investors are already chasing this space.",
-            "Momentum Chaser": "The growth rate doesn't excite us yet. Hit 20% MoM and call us.",
+            "Spray & Pray": "We're not seeing the user growth we need for this valuation.",
+            "Operator First": "We don't think the team is ready to deploy this much capital yet.",
+            "Thesis Driven": "The product doesn't meet our 'moat' requirements at this price point.",
+            "Contrarian": "The market feels too crowded for us to overpay here.",
+            "Momentum Chaser": "Come back when you have a 3-month track record of 20% growth.",
         };
         return { success: false, message: rejectionMessages[investor.personality] };
     }

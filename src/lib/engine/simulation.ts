@@ -1,6 +1,223 @@
 import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry } from "../types/database.types";
 import { SCENARIOS, ScenarioId } from "./legacy";
 
+export interface PricingConfigNode {
+    maxPrice: number;
+    label: string;
+    unit: string;
+    sliders?: { key: string; label: string; min: number; max: number; step: number; unit: string }[];
+    calc: (p: number, m: any) => { conversion: number; churn: number; loopPower: number };
+    salesRoleName: string;
+    salesRoleDescription: string;
+}
+
+export type IndustryConfig = {
+    PLG: PricingConfigNode;
+    SLG: PricingConfigNode;
+};
+
+export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
+    "SaaS Platform": {
+        PLG: {
+            maxPrice: 300, label: "Self-Serve Price", unit: "/ mo",
+            calc: (p) => {
+                return {
+                    conversion: p === 0 ? 5.0 : Math.max(0.1, 50 / (p + 15)),
+                    churn: p === 0 ? 0.01 : Math.min(0.15, 0.03 + (p / 200) * 0.05),
+                    loopPower: p === 0 ? 6 : Math.max(1, (300 - p) / 50)
+                };
+            },
+            salesRoleName: "Growth Specialist",
+            salesRoleDescription: "New User Conversions · Self-Serve Revenue"
+        },
+        SLG: {
+            maxPrice: 5000, label: "Enterprise Retainer", unit: "/ mo",
+            calc: (p) => {
+                return {
+                    conversion: Math.max(0.01, 20 / (p/100 + 10)),
+                    churn: Math.min(0.05, 0.015 + (p / 5000) * 0.01),
+                    loopPower: 1.5
+                };
+            },
+            salesRoleName: "Account Executive",
+            salesRoleDescription: "B2B Pipeline Win Rate · Enterprise Contracts"
+        }
+    },
+    "AI Platform": {
+        PLG: {
+            maxPrice: 50, label: "Token Bundle Price", unit: "/ 10k",
+            calc: (p) => {
+                return {
+                    conversion: p === 0 ? 6.0 : Math.max(0.5, 30 / (p + 5)),
+                    churn: 0.05 + (p / 50) * 0.08,
+                    loopPower: 8
+                };
+            },
+            salesRoleName: "DevRel / Growth",
+            salesRoleDescription: "Developer Adoption · Token Usage Optimization"
+        },
+        SLG: {
+            maxPrice: 10000, label: "Enterprise Solution", unit: " value",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                churn: 0.015,
+                loopPower: 2 
+            }),
+            salesRoleName: "Solutions Architect",
+            salesRoleDescription: "Enterprise API Integration · Custom Solutions"
+        }
+    },
+    "OTT / Streaming": {
+        PLG: {
+            maxPrice: 30, label: "Sub Price", unit: "/ mo",
+            calc: (p) => {
+                return { 
+                    conversion: p === 0 ? 8.0 : Math.max(0.1, 80 / (p * 2 + 5)),
+                    churn: Math.min(0.20, 0.04 + (p / 30) * 0.08),
+                    loopPower: 5 
+                };
+            },
+            salesRoleName: "Acquisition Manager",
+            salesRoleDescription: "Subscriber Growth · Trial Conversions"
+        },
+        SLG: {
+            maxPrice: 50000, label: "Content License Price", unit: " deal",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 10 / (p/1000 + 5)),
+                churn: 0.01,
+                loopPower: 0.5 
+            }),
+            salesRoleName: "Content Partnership",
+            salesRoleDescription: "Licensing Deals · Distribution Expansion"
+        }
+    },
+    "Mobile Game": {
+        PLG: {
+            maxPrice: 20, label: "IAP Item Size", unit: " scale",
+            sliders: [{ key: "ad_intensity", label: "Ad Frequency", min: 0, max: 100, step: 1, unit: "%" }],
+            calc: (p, m) => {
+                const ads = m.ad_intensity || 0;
+                return {
+                    conversion: p === 0 ? 10.0 : Math.max(0.1, 15 / (p + 5)),
+                    churn: 0.12 + (ads / 100) * 0.15 + (p / 20) * 0.05,
+                    loopPower: 10 - (ads / 20)
+                };
+            },
+            salesRoleName: "Monetization Manager",
+            salesRoleDescription: "IAP Conversions · Ad Revenue Optimization"
+        },
+        SLG: {
+            maxPrice: 5000, label: "Engine License Fee", unit: "/ mo",
+            calc: (p) => {
+                const convMult = 10 / (p/100 + 5); 
+                return {
+                    conversion: Math.max(0.01, convMult),
+                    churn: 0.02, 
+                    loopPower: 3 
+                };
+            },
+            salesRoleName: "Ad Network Sales",
+            salesRoleDescription: "DSP/SSP Partnerships · Brand Deal Acquisition"
+        }
+    },
+    "FinTech": {
+        PLG: {
+            maxPrice: 5, label: "% Interchange Fee", unit: "%",
+            calc: (p) => {
+                return { 
+                    conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
+                    churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02, 
+                    loopPower: 4 
+                };
+            },
+            salesRoleName: "Conversion Analyst",
+            salesRoleDescription: "User Activation · Transaction Volume"
+        },
+        SLG: {
+            maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                churn: 0.01,
+                loopPower: 1 
+            }),
+            salesRoleName: "Partnership Manager",
+            salesRoleDescription: "Bank Partnerships · Institutional Onboarding"
+        }
+    },
+    "EdTech": {
+        PLG: {
+            maxPrice: 100, label: "Course Ticket", unit: " avg",
+            calc: (p) => {
+                return { 
+                    conversion: p === 0 ? 4.0 : Math.max(0.1, 30 / (p + 10)),
+                    churn: 0.08 + (p / 100) * 0.05, 
+                    loopPower: 3 
+                };
+            },
+            salesRoleName: "Learning Consultant",
+            salesRoleDescription: "Course Enrollment · Student Success"
+        },
+        SLG: {
+            maxPrice: 200, label: "Per Seat/yr", unit: " avg",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 10 / (p/10 + 5)),
+                churn: 0.02,
+                loopPower: 2 
+            }),
+            salesRoleName: "Institutional Sales",
+            salesRoleDescription: "School District Deals · University Partnerships"
+        }
+    },
+    "Dev Tools": {
+        PLG: {
+            maxPrice: 100, label: "Paid Tier", unit: "/ mo",
+            calc: (p) => {
+                return { 
+                    conversion: p === 0 ? 5.0 : Math.max(0.1, 40 / (p + 10)),
+                    churn: 0.02 + (p / 100) * 0.03,
+                    loopPower: 8
+                };
+            },
+            salesRoleName: "Developer Advocate",
+            salesRoleDescription: "Community Growth · Open Source Conversion"
+        },
+        SLG: {
+            maxPrice: 1000, label: "Enterprise SSO Package", unit: "/ mo",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 15 / (p/50 + 5)),
+                churn: 0.015, 
+                loopPower: 3 
+            }),
+            salesRoleName: "Enterprise Sales",
+            salesRoleDescription: "Security/Compliance Deals · SSO Upsells"
+        }
+    },
+    "Marketplace": {
+        PLG: {
+            maxPrice: 15, label: "Take Rate", unit: "%",
+            calc: (p) => {
+                return { 
+                    conversion: p === 0 ? 8.0 : Math.max(0.01, 10.0 / (p + 2)),
+                    churn: p > 15 ? 0.08 : 0.04,
+                    loopPower: 6
+                };
+            },
+            salesRoleName: "Supply Growth",
+            salesRoleDescription: "Vendor Onboarding · GMV Optimization"
+        },
+        SLG: {
+            maxPrice: 500, label: "Supplier Retainer", unit: "/ mo",
+            calc: (p) => ({ 
+                conversion: Math.max(0.01, 10 / (p/25 + 5)),
+                churn: 0.04,
+                loopPower: 1 
+            }),
+            salesRoleName: "Merchant Success",
+            salesRoleDescription: "Enterprise Merchant Support · Retainer Deals"
+        }
+    }
+};
+
 export type StartupAction =
     // Product
     | "build_mvp_features"
@@ -261,36 +478,36 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const isPLG = startup.gtm_motion === "PLG";
     const isSLG = startup.gtm_motion === "SLG";
 
-    const standardPrice = industry === "AI Startup" ? 49 : industry === "E-commerce Brand" ? 85 : 19;
-    const price = metrics.pricing ?? standardPrice;
-    metrics.pricing = price;
-    const priceElasticity = price / standardPrice;
+    const configRef = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+    const activeConfig = isPLG ? configRef.PLG : configRef.SLG;
 
-    const currentPrice = metrics.pricing || 0;
-    const pricingConversionMult = currentPrice === 0 ? 2.5 : Math.max(0.01, 35 / (currentPrice + 10));
+    const currentPrice = metrics.pricing ?? (isPLG ? activeConfig.maxPrice * 0.1 : activeConfig.maxPrice * 0.5);
+    metrics.pricing = Math.min(currentPrice, activeConfig.maxPrice);
+
+    // Fetch real math from config
+    const { conversion: configConversion, churn: configChurn, loopPower } = activeConfig.calc(metrics.pricing, metrics);
+
+    // Div by 2 to match original balance format where ~2.5 was standard PLG multiplier
+    const pricingConversionMult = configConversion / 2;
     const pmfMultiplier = Math.max(0.05, (metrics.pmf_score / 120));
     const annualBillingMult = metrics.annual_billing ? 0.70 : 1.0;
     
-    // GTM specific multipliers
-    const plgViralBonus = isPLG ? 1.25 : 1.0;
-    const slgSalesBonus = isSLG ? 1.25 : 1.0;
+    // Virality (loopPower) directly enhances organic baseline growth
+    const viralBonus = 1 + (loopPower * 0.05);
 
     // Quality Penalty for Growth: People hate low-quality products
     const qualityGrowthMult = metrics.product_quality < 20 ? 0.3 : metrics.product_quality < 40 ? 0.7 : 1.0;
 
     const burnoutGrowthPenalty = metrics.founder_burnout > 50 ? (metrics.founder_burnout - 50) / 100 : 0;
     // --- MARKET DYNAMICS ---
-    // Market cycle fluctuates every 18 months, with a bias towards headwinds in "hard mode"
     const marketCycle = Math.sin(monthsPassed / 3); 
-    const marketSentiment = 0.85 + (marketCycle * 0.1); // Ranges 0.75 - 0.95 (tougher market)
+    const marketSentiment = 0.85 + (marketCycle * 0.1); 
     
-    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.5 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * plgViralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * marketSentiment;
+    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.5 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * marketSentiment;
     
-    // Legacy Perk: Growth Hacker
     if (startup.unlocked_perks?.includes("growth_hacker")) {
         growthRate *= 1.10;
     }
-    
     metrics.growth_rate = growthRate;
 
     if (scenarioRules.fundingDifficulty && action === "pitch_investors") {
@@ -299,31 +516,33 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     const initialUsers = startup.metrics.users || 0;
     let grossNewUsers = 0;
-    if (currentPrice > 199 || isSLG) {
+    if (isSLG) {
         if (!metrics.b2b_pipeline) metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
         
-        // solo founders with low marketing skills should get near-zero leads initially
         if (pipelinePower < 15 && metrics.users < 10) {
-            newLeads = Math.random() < 0.1 ? 1 : 0; // Very rare 1-lead chance
+            newLeads = Math.random() < 0.1 ? 1 : 0;
         } else {
             newLeads = Math.floor(metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60)));
         }
         
-        // SLG strategy gets more consistent lead flow but still relies on power
-        if (isSLG && newLeads < 1 && pipelinePower > 30) newLeads += 1;
+        if (newLeads < 1 && pipelinePower > 30) newLeads += 1;
 
         metrics.b2b_pipeline.leads += newLeads;
         const toActive = Math.floor(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
         metrics.b2b_pipeline.leads -= toActive;
         metrics.b2b_pipeline.active_deals += toActive;
-        // Win rate is now heavily dependent on Quality and Sales Power
+        
+        // SLG Win rate uses the precise config conversion %, boosted by actual sales power 
         const qualityWinMult = metrics.product_quality / 100;
-        const winRate = Math.min(0.5, (0.05 + (qualityWinMult * 0.2) + (totalSalesPower * 0.004)) * slgSalesBonus);
+        const baseWinRate = configConversion / 100; // e.g. 0.5% => 0.005
+        const winRate = Math.min(1.0, baseWinRate * (1 + (qualityWinMult * 2)) * (1 + (totalSalesPower / 50)));
+
         const toClosed = Math.floor(metrics.b2b_pipeline.active_deals * winRate);
         metrics.b2b_pipeline.active_deals -= toClosed;
-        metrics.b2b_pipeline.closed_won = toClosed;
+        metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won || 0) + toClosed;
+        
         grossNewUsers = toClosed;
         metrics.users += grossNewUsers;
     } else {
@@ -337,44 +556,35 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         }
     }
 
-    const isSubscription = ["Tech SaaS", "SaaS Platform", "AI Platform", "AI Startup", "OTT / Streaming", "EdTech", "Dev Tools"].includes(industry);
-    const isTransactional = ["Marketplace", "E-commerce Brand"].includes(industry);
-    const isMobileGame = industry === "Mobile Game";
-    const isFinTech = industry === "FinTech" || industry === "FinTech App";
-
     let monthlyRevenue = 0, monthlyCogs = 0;
     // --- OVERHAULED INDUSTRY MONETIZATION ---
-    if (industry === "Mobile Game") {
-        const isPLG = startup.gtm_motion === "PLG";
-        if (isPLG) {
-            const adsFreq = (metrics as any).ad_intensity || 0;
-            const iapPrice = metrics.pricing || 0;
-            const adRevenue = metrics.users * (adsFreq / 100) * 0.15;
-            const iapRevenue = metrics.users * 0.03 * iapPrice;
-            monthlyRevenue = adRevenue + iapRevenue;
-        } else {
-            // SLG (Branded IP sponsorship): Revenue scales off Contract size ($)
-            monthlyRevenue = (metrics.b2b_pipeline?.closed_won || 0) * price;
-        }
-        monthlyCogs = monthlyRevenue * 0.05; 
-    } else if (industry === "AI Platform" || industry === "AI Startup") {
-        monthlyRevenue = metrics.users * price; 
-        monthlyCogs = monthlyRevenue * 0.35; // high GPU COGS
-    } else if (industry === "FinTech" || industry === "FinTech App") {
-        // Interchange volume math: $200 volume per user average
-        const txVolume = metrics.users * 200; 
-        monthlyRevenue = txVolume * (price / 100); 
-        monthlyCogs = monthlyRevenue * 0.20;
-    } else if (industry === "Marketplace") {
-        const gmv = metrics.users * 150; 
-        monthlyRevenue = gmv * (price / 100);
-        monthlyCogs = monthlyRevenue * 0.15;
+    if (isSLG) {
+        // All SLG models are straightforward: Active Contracts * Contract Size
+        monthlyRevenue = metrics.users * metrics.pricing;
+        monthlyCogs = monthlyRevenue * (industry === "AI Platform" || industry === "AI Startup" ? 0.30 : 0.10);
     } else {
-        // Default SaaS / Subscriptions (OTT, EdTech, Dev Tools)
-        monthlyRevenue = metrics.users * price;
-        monthlyCogs = monthlyRevenue * 0.15;
-        if (priceElasticity > (metrics.product_quality / 100) * 1.5) {
-            metrics.users -= Math.floor(metrics.users * 0.03 * (priceElasticity - 0.5));
+        // PLG models have specialized revenue mappings based on their unit types
+        if (industry === "Mobile Game") {
+            const adsFreq = (metrics as any).ad_intensity || 0;
+            const adRevenue = metrics.users * (adsFreq / 100) * 0.15;
+            const iapRevenue = metrics.users * 0.03 * metrics.pricing;
+            monthlyRevenue = adRevenue + iapRevenue;
+            monthlyCogs = monthlyRevenue * 0.05; 
+        } else if (industry === "AI Platform" || industry === "AI Startup") {
+            monthlyRevenue = metrics.users * metrics.pricing * 2; // Assuming 20k tokens a month avg usage
+            monthlyCogs = monthlyRevenue * 0.35; 
+        } else if (industry === "FinTech" || industry === "FinTech App") {
+            const txVolume = metrics.users * 200; 
+            monthlyRevenue = txVolume * (metrics.pricing / 100); 
+            monthlyCogs = monthlyRevenue * 0.20;
+        } else if (industry === "Marketplace") {
+            const gmv = metrics.users * 150; 
+            monthlyRevenue = gmv * (metrics.pricing / 100);
+            monthlyCogs = monthlyRevenue * 0.15;
+        } else {
+            // Default PLG SaaS
+            monthlyRevenue = metrics.users * metrics.pricing;
+            monthlyCogs = monthlyRevenue * 0.15;
         }
     }
 
@@ -383,23 +593,27 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.opex = monthlyOpex;
     metrics.net_profit = monthlyRevenue - monthlyCogs - monthlyOpex;
     metrics.cash += metrics.net_profit;
-    if (metrics.annual_billing && grossNewUsers > 0) metrics.cash += (grossNewUsers * price * 11);
+    if (metrics.annual_billing && grossNewUsers > 0 && !isSLG) metrics.cash += (grossNewUsers * metrics.pricing * 11);
 
     const actualNetBurn = -metrics.net_profit;
     metrics.burn_rate = actualNetBurn > 0 ? actualNetBurn : 0;
     metrics.runway = actualNetBurn > 0 ? Math.floor(metrics.cash / actualNetBurn) : 99;
 
     // --- CHURN & QUALITY GAP ---
-    let baseChurn = currentPrice === 0 ? 0.04 : Math.min(0.35, 0.08 + (currentPrice / 150) * 0.15);
+    // Inherit the exact calculated churn from the industry config
+    let baseChurn = configChurn;
     if (metrics.annual_billing) baseChurn *= 0.4;
 
     if (metrics.users > 0) {
         let currentChurn = baseChurn;
         const monthsActive = startup.history?.length || 0;
         const expectedQuality = Math.min(85, 20 + (monthsActive * 1.5));
+        
+        // Quality gap penalty
         if (metrics.product_quality < expectedQuality) currentChurn += (expectedQuality - metrics.product_quality) / 500;
         if (metrics.pmf_score < 45) currentChurn += 0.08 * ((45 - metrics.pmf_score) / 45);
         if (scenarioRules.churnMultiplier) currentChurn *= scenarioRules.churnMultiplier;
+        
         metrics.users = Math.max(0, metrics.users - Math.floor(metrics.users * currentChurn * (1 - (metrics.product_quality / 250))));
     }
 
@@ -456,7 +670,13 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         finalValuation *= 1.3;
     }
 
-    newStartup.valuation = Math.floor(finalValuation);
+    // --- VALUATION PERSISTENCE (Damping) ---
+    // Prevent sudden crashes after a high-valuation round. 
+    // Valuation can only drop by ~3% per month unless metrics are truly disastrous.
+    const previousValuation = startup.valuation || 500000;
+    const supportFloor = previousValuation * 0.97;
+    
+    newStartup.valuation = Math.max(Math.floor(finalValuation), Math.floor(supportFloor));
 
     // --- SKILL ATROPHY & MAINTENANCE (Use it or Lose it!) ---
     const actionCategories: Record<string, string[]> = {

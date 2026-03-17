@@ -24,7 +24,11 @@ export default function RootLayout({
     const hasLaunched = sessionStorage.getItem("app_launched");
     if (!hasLaunched) {
       sessionStorage.setItem("app_launched", "true");
-      if (pathname !== "/") router.push("/");
+      // Only force home if no save exists or we're already somewhere else
+      const hasSave = typeof window !== 'undefined' && !!localStorage.getItem("founder_sim_state");
+      if (pathname !== "/" && !hasSave) {
+        router.push("/");
+      }
     }
 
     // 2. Handle Resume from Background
@@ -34,12 +38,9 @@ export default function RootLayout({
         const { App } = await import("@capacitor/app");
         App.addListener("appStateChange", ({ isActive }) => {
           if (isActive) {
-            // When app becomes active (relaunch/foreground), go to home
-            // Also clear the splash-seen flag so they see the splash again
+            // Only clear splash seen, don't force redirect on every resume
+            // This prevented ads from landing correctly
             sessionStorage.removeItem("founder_sim_splash_seen");
-            if (window.location.pathname !== "/") {
-              router.push("/");
-            }
           }
         });
       } catch (e) {

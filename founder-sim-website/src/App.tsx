@@ -323,7 +323,7 @@ const LandingPage = () => {
             {/* Front phone — IPO */}
             <div className="float-anim hero-phone-front" style={{ position: 'relative', width: 270, zIndex: 2 }}>
               <div className="phone-frame">
-                <img src={screenIpoNew} alt="IPO Success Screen" />
+                <img src={typeof screenIpoNew === 'string' ? screenIpoNew : (screenIpoNew as any).src || screenIpoNew} alt="IPO Success Screen" />
               </div>
 
               {/* Floating $1.6B badge */}
@@ -489,7 +489,7 @@ const LandingPage = () => {
                 <h3 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, color: '#fff' }}>{s.title}</h3>
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, marginBottom: 20 }}>{s.desc}</p>
                 <div style={{ borderRadius: 16, overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.05)', marginTop: 'auto' }}>
-                  <img src={s.img} alt={s.title} style={{ width: '100%', display: 'block', aspectRatio: '9/16', objectFit: 'cover' }} />
+                  <img src={typeof s.img === 'string' ? s.img : (s.img as any)?.src || s.img} alt={s.title} style={{ width: '100%', display: 'block', aspectRatio: '9/16', objectFit: 'cover' }} />
                 </div>
               </div>
             </motion.div>

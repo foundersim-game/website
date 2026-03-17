@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { toast, Toaster } from "sonner";
 import { PerkModal } from "@/components/PerkModal";
 import { getLegacyData, buyPerk, LegacyData } from "@/lib/engine/legacy";
+import { adService } from "@/lib/services/adService";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ export default function CreateFounder() {
 
     // Load legacy data on mount
     useEffect(() => {
+        adService.hideBanner();
         setLegacyData(getLegacyData());
     }, []);
 

@@ -7,59 +7,41 @@ export type FundingRound = {
     equityGiven: number;
 };
 
-export function attemptFunding(founder: Founder, startup: Startup, investorUpdateStreak: number = 0): FundingRound | null {
-    const revScore = (startup.metrics.revenue * 12) / 50000; // 1 point per 50k ARR
-    const userScore = startup.metrics.users / 500; // 1 point per 500 users
-    const valScore = (startup.valuation / 1000000) * 2; // 2 points per 1M valuation
+export function getNextFundingStage(current: string): string | null {
+    const sequence = ["Bootstrapping", "Angel Investment", "Seed Round", "Series A", "Series B", "Series C", "IPO Ready"];
+    const idx = sequence.indexOf(current);
+    if (idx === -1 || idx === sequence.length - 1) return null;
+    return sequence[idx + 1];
+}
 
-    const prob = (founder.attributes.networking * 0.15) + (founder.attributes.reputation * 0.2) + revScore + userScore + valScore;
-    const randomRoll = Math.random() * 100;
+export function getFundingPhase(stage: string): string {
+    if (stage === "Bootstrapping") return "Idea Phase";
+    if (stage === "Angel Investment") return "Early Startup";
+    if (stage === "Seed Round") return "Traction";
+    if (stage === "Series A") return "Growth";
+    if (stage === "Series B" || stage === "Series C") return "Scaling";
+    return "Growth";
+}
 
-    if (randomRoll > prob && prob < 90) return null; // failed to raise
-
-    let raised = 0;
-    let equity = 0;
-
-    // Adjust terms based on Investor Updates streak
+export function generateFundingTerms(startup: Startup, stage: string, investorUpdateStreak: number = 0): FundingRound {
+    // This provides "Market Rate" terms for the negotiation UI to start from
     const valuationBump = investorUpdateStreak >= 6 ? 1.30 : investorUpdateStreak >= 3 ? 1.15 : 1.0;
-    const equityDiscount = investorUpdateStreak >= 6 ? 0.70 : investorUpdateStreak >= 3 ? 0.85 : 1.0;
-
     const effectiveValuation = startup.valuation * valuationBump;
+    
+    let raisedRatio = 0.15;
+    let equityBase = 15;
 
-    if (startup.funding_stage === "Bootstrapping") {
-        // Angel
-        startup.funding_stage = "Angel Investment";
-        raised = Math.floor(effectiveValuation * 0.12);
-        equity = 10 * equityDiscount;
-    } else if (startup.funding_stage === "Angel Investment") {
-        // Seed
-        startup.funding_stage = "Seed Round";
-        raised = Math.floor(effectiveValuation * 0.18);
-        equity = 15 * equityDiscount;
-    } else if (startup.funding_stage === "Seed Round") {
-        // Series A
-        startup.funding_stage = "Series A";
-        raised = Math.floor(effectiveValuation * 0.22);
-        equity = 20 * equityDiscount;
-    } else if (startup.funding_stage === "Series A") {
-        // Series B
-        startup.funding_stage = "Series B";
-        raised = Math.floor(effectiveValuation * 0.25);
-        equity = 18 * equityDiscount;
-    } else if (startup.funding_stage === "Series B") {
-        // Series C
-        startup.funding_stage = "Series C";
-        raised = Math.floor(effectiveValuation * 0.28);
-        equity = 15 * equityDiscount;
-    } else {
-        return null; // Cap reached or IPO process in progress
-    }
+    if (stage === "Angel Investment") { raisedRatio = 0.12; equityBase = 10; }
+    else if (stage === "Seed Round") { raisedRatio = 0.18; equityBase = 15; }
+    else if (stage === "Series A") { raisedRatio = 0.22; equityBase = 20; }
+    else if (stage === "Series B") { raisedRatio = 0.25; equityBase = 18; }
+    else if (stage === "Series C") { raisedRatio = 0.28; equityBase = 15; }
 
     return {
-        type: startup.funding_stage,
-        raised,
-        valuation: effectiveValuation,
-        equityGiven: Number(equity.toFixed(1))
+        type: stage,
+        raised: Math.floor(effectiveValuation * raisedRatio),
+        valuation: effectiveValuation, // Market Valuation (Pre-money for the offer calculation)
+        equityGiven: equityBase
     };
 }
 

@@ -281,12 +281,14 @@ export function applyEffectsToState(
 
     const ATTR_KEYS = [
         "intelligence", "technical_skill", "leadership",
-        "networking", "marketing_skill", "reputation"
+        "networking", "marketing_skill", "sales_skill", "reputation",
+        "risk_appetite", "stress_tolerance"
     ];
     const METRIC_KEYS = [
         "founder_burnout", "founder_health", "product_quality",
         "technical_debt", "reliability", "team_morale",
-        "brand_awareness", "users", "revenue", "pmf_score", "culture_score"
+        "brand_awareness", "users", "revenue", "pmf_score", "culture_score",
+        "innovation", "growth_rate"
     ];
 
     for (const [key, val] of Object.entries(effects)) {
