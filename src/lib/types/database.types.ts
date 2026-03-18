@@ -172,6 +172,7 @@ export type Startup = {
             term_sheets: number; // Formal offers
         };
         option_pool: number; // % of company reserved for employees (dilutes founders)
+        former_employee_equity?: number; // % owned by departed vested employees
         cac?: number;
         ltv?: number;
         aov?: number;  // E-com: Average Order Value

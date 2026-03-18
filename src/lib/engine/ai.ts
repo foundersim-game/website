@@ -41,9 +41,9 @@ CRITICAL: Return ONLY valid JSON in this exact format:
   "title": "Caught in the Middle",
   "description": "A brief, compelling 2-3 sentence description of the situation.",
   "choices": [
-    { "text": "Option A...", "effects": { "cash": -5000, "team_morale": 10 } },
-    { "text": "Option B...", "effects": { "product_quality": 5, "brand_awareness": -5 } },
-    { "text": "Option C...", "effects": { "reputation": 5, "burn_rate": 500 } }
+    { "text": "Invest heavily in core architecture to reduce future technical debt", "effects": { "cash": -5000, "team_morale": 10 } },
+    { "text": "Launch aggressive marketing push targeting niche industry demographics", "effects": { "product_quality": 5, "brand_awareness": -5 } },
+    { "text": "Halt feature development to focus entirely on server reliability", "effects": { "reputation": 5, "burn_rate": 500 } }
   ]
 }
 

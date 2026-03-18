@@ -22,7 +22,7 @@ import { checkAchievements, Achievement } from "@/lib/engine/achievements";
 import { calcDynamicImpact, applyEffectsToState, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS } from "@/lib/engine/actions";
 import { processOngoingPrograms, startProgram, stopProgram, getStreakMultiplier, ongoingProgramsTotalEnergy, type ActiveProgram } from "@/lib/engine/ongoingPrograms";
-import { EventModal, GameEvent, EventChoice } from "@/components/EventModal";
+import { EventModal, GameEvent, EventChoice, generateImpactSentence } from "@/components/EventModal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -31,10 +31,11 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown } from "lucide-react";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
 import { adService, REWARDED_CASH_ID } from "@/lib/services/adService";
+import { iapService } from "@/lib/services/iapService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatSaveDate(dateStr: string) {
@@ -720,10 +721,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     const mktAvg = avgSkill(mkt, "marketing");
                     const salAvg = avgSkill(sal, "sales");
 
-                    // Power = avg_skill * headcount * performance_weight (1.0 = no CXO, +20% with CXO)
-                    const engPow = Math.round(engAvg * (eng.length + cxoEng) * (cxoEng ? 1.20 : 1.0));
-                    const mktPow = Math.round(mktAvg * (mkt.length + cxoMkt) * (cxoMkt ? 1.20 : 1.0));
-                    const salPow = Math.round(salAvg * (sal.length + cxoSal) * (cxoSal ? 1.20 : 1.0));
+                    // Power = avg_skill * headcount * performance_weight (1.0 = no CXO, +20% with CXO) * Morale
+                    const teamEfficiency = Math.max(0.3, (m.team_morale || 100) / 100);
+                    const engPow = Math.round(engAvg * (eng.length + cxoEng) * (cxoEng ? 1.20 : 1.0) * teamEfficiency);
+                    const mktPow = Math.round(mktAvg * (mkt.length + cxoMkt) * (cxoMkt ? 1.20 : 1.0) * teamEfficiency);
+                    const salPow = Math.round(salAvg * (sal.length + cxoSal) * (cxoSal ? 1.20 : 1.0) * teamEfficiency);
 
                     const DeptCard = ({ emoji, label, count, avgSk, power, drives, color, bg, border }: any) => (
                         <div className={`rounded-2xl border-2 ${bg} ${border} p-3 mb-2`}>
@@ -756,6 +758,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                     return (
                         <div className="mb-4">
+                            {/* ── Team & Culture Stats Panel ── */}
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2.5 text-center">
+                                    <p className="text-lg font-black text-emerald-700 leading-none">{employees.length}</p>
+                                    <p className="text-[8px] font-black text-emerald-500 uppercase tracking-wide mt-0.5">Team Size</p>
+                                </div>
+                                <div className="bg-pink-50 border border-pink-100 rounded-2xl p-2.5 text-center">
+                                    <p className="text-lg font-black text-pink-700 leading-none">{Math.round(m.team_morale || 0)}%</p>
+                                    <p className="text-[8px] font-black text-pink-500 uppercase tracking-wide mt-0.5">Morale</p>
+                                </div>
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-2.5 text-center">
+                                    <p className="text-lg font-black text-indigo-700 leading-none">{Math.round(startup.culture_score || 60)}%</p>
+                                    <p className="text-[8px] font-black text-indigo-500 uppercase tracking-wide mt-0.5">Culture</p>
+                                </div>
+                            </div>
+
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">🏢 Department Power</p>
                             <p className="text-[8px] text-slate-400 mb-3 leading-tight">Each dept's power = avg skill × headcount × performance. Power directly multiplies the attribute it drives every month.</p>
                             <DeptCard
@@ -806,7 +824,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 role: roleDef.role,
                                                 level: tier.label as any,
                                                 experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
-                                                expectedSalary: salary,
+                                                expectedSalary: salary * 12,
                                                 expectedEquity: 0.5, // Default for non-negotiated display
                                                 personality: "Ambitious" // Static for UI display
                                             };
@@ -865,7 +883,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 active ? "bg-indigo-50 border-indigo-300" : "bg-white border-slate-100")}>
                             <span className="text-xl">{prog.emoji}</span>
                             <div className="flex-1">
-                                <p className="text-sm font-bold text-slate-800">{prog.label}</p>
+                                <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-bold text-slate-800">{prog.label}</p>
+                                    {prog.monthlyEnergy > 0 && (
+                                        <span className="text-[8px] font-black bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-full">
+                                            ⚡{prog.monthlyEnergy}h/mo
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="text-[9px] text-slate-400">{prog.description} · {label}</p>
                             </div>
                             {active && streak > 0 && <span className="text-[10px] font-black text-indigo-600">🔥{streak} ×{mult.toFixed(0)}</span>}
@@ -1759,7 +1784,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <div className="space-y-1.5 mt-1.5 ml-1">
                                         {groupActions.map(action => {
                                             const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                                            const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.5;
+                                            const isOver = (focusHoursUsed + action.energyCost) > maxHours;
                                             const uIdx = Math.min(usedCount, 4);
 
                                             const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, {
@@ -2088,6 +2113,7 @@ export default function Dashboard() {
     const [monthSummary, setMonthSummary] = useState<any | null>(null);
     const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
     const [hiringOffer, setHiringOffer] = useState({ salary: 0, equity: 0 });
+    const [isMilestoneExpanded, setIsMilestoneExpanded] = useState(false);
     const [pendingInvestor, setPendingInvestor] = useState<Investor | null>(null);
     const [fundingOffer, setFundingOffer] = useState({ valuation: 0, equity: 0 });
     const [pendingCounterOffer, setPendingCounterOffer] = useState<{ valuation: number; equity: number } | null>(null);
@@ -2110,6 +2136,14 @@ export default function Dashboard() {
     });
     const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
 
+    useEffect(() => {
+        iapService.initialize().then(() => {
+            iapService.checkPremiumStatus().then(premium => {
+                if (premium) setIsPremium(true);
+            });
+        });
+    }, []);
+
     const getDisplayRoleName = (role: string, plural: boolean = false) => {
         if (role !== "sales") return plural ? role + "s" : role;
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
@@ -2131,7 +2165,7 @@ export default function Dashboard() {
     }, [pendingInvestor]);
     const [isTeamOpen, setIsTeamOpen] = useState(false);
     const [teamSearch, setTeamSearch] = useState("");
-    const [teamDeptFilter, setTeamDeptFilter] = useState<string>("all");
+    const [teamDeptFilter, setTeamDeptFilter] = useState<string>("cxo");
     const [selectedEmpIdx, setSelectedEmpIdx] = useState(0);
     const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
     const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
@@ -2563,13 +2597,9 @@ export default function Dashboard() {
             const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
             const energyToCommit = def.monthlyEnergy || 0;
 
-            if (focusHoursUsed + energyToCommit > maxHours * 1.5) {
-                toast.error("Not enough focus energy!", { description: "You are already too over-committed." });
-                return;
-            }
-
             if (focusHoursUsed + energyToCommit > maxHours) {
-                toast.warning("⚡ Over capacity!", { description: "Starting this will spike your burnout." });
+                toast.error("Not enough focus energy!", { description: "You cannot exceed your maximum focus hours." });
+                return;
             }
 
             setOngoingPrograms(prev => startProgram(prev, id, month));
@@ -2632,7 +2662,7 @@ export default function Dashboard() {
         const handleHiringConfirm = () => {
             if (!pendingCandidate) return;
 
-            const cohortSize = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
+            const cohortSize = 1;
             const totalEquity = hiringOffer.equity * cohortSize;
             if ((startup.metrics.option_pool || 0) < totalEquity) {
                 toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity}% but only have ${(startup.metrics.option_pool || 0).toFixed(1)}%` });
@@ -2641,13 +2671,13 @@ export default function Dashboard() {
 
             const result = calculateHiringSuccess(pendingCandidate, hiringOffer, startup, founder);
             if (result.success) {
-                toast.success(cohortSize > 1 ? `Hired Team of ${cohortSize}!` : "Hired!", { description: result.reason });
-                const skillBase = pendingCandidate.level === "Lead" ? 80 : pendingCandidate.level === "Senior" ? 60 : pendingCandidate.level === "Mid" ? 40 : 20;
-                const skillRandom = () => skillBase + Math.floor(Math.random() * 20);
+                toast.success("Hired!", { description: result.reason });
+                const skillBase = pendingCandidate.level === "Lead" ? 90 : pendingCandidate.level === "Senior" ? 75 : pendingCandidate.level === "Mid" ? 55 : 35;
+                const skillRandom = () => skillBase + Math.floor(Math.random() * 10);
 
-                const newEmployees = Array.from({ length: cohortSize }).map((_, i) => ({
-                    id: `emp_${Date.now()}_${i}`,
-                    name: cohortSize > 1 ? (i === 0 ? pendingCandidate.name : `${pendingCandidate.name}'s Hire #${i}`) : pendingCandidate.name,
+                const newEmployees = [{
+                    id: `emp_${Date.now()}`,
+                    name: pendingCandidate.name,
                     role: pendingCandidate.role as "engineer" | "marketer" | "sales",
                     level: pendingCandidate.level as "Senior" | "Mid" | "Junior" | "Lead",
                     salary: hiringOffer.salary,
@@ -2656,12 +2686,12 @@ export default function Dashboard() {
                     performance: 70 + Math.floor(Math.random() * 20),
                     morale: 90 + Math.floor(Math.random() * 10),
                     skills: {
-                        technical: pendingCandidate.role === "engineer" ? skillRandom() : 20,
-                        marketing: pendingCandidate.role === "marketer" ? skillRandom() : 20,
-                        sales: pendingCandidate.role === "sales" ? skillRandom() : 20,
+                        technical: pendingCandidate.role === "engineer" ? 60 : 20,
+                        marketing: pendingCandidate.role === "marketer" ? 60 : 20,
+                        sales: pendingCandidate.role === "sales" ? 60 : 20,
                     },
                     joined_at: month,
-                }));
+                }];
 
                 setStartup(s => {
                     const ns = {
@@ -2679,7 +2709,7 @@ export default function Dashboard() {
                     return ns;
                 });
                 const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
-                addTimelineEvent(`Personnel: ${cohortSize > 1 ? `A team of ${displayRole}` : `${pendingCandidate.name} as ${displayRole}`} joined.`);
+                addTimelineEvent(`Personnel: ${`${pendingCandidate.name} as ${displayRole}`} joined.`);
                 setFocusHoursUsed(curr => curr + 20);
                 setSelectedAction("none");
                 setPendingCandidate(null);
@@ -2820,7 +2850,15 @@ export default function Dashboard() {
                     if (e.id !== id) return e;
                     const levels: any = ["Junior", "Mid", "Senior", "Lead"];
                     const idx = levels.indexOf(e.level);
-                    if (idx === levels.length - 1) return e;
+                    if (idx === levels.length - 1) {
+                        return {
+                            ...e,
+                            isCXO: true,
+                            salary: Math.floor(e.salary * 1.5),
+                            performance: Math.min(100, e.performance + 10),
+                            morale: 100
+                        };
+                    }
                     return {
                         ...e,
                         level: levels[idx + 1],
@@ -3007,6 +3045,7 @@ export default function Dashboard() {
                         description: action.description,
                         duration: 5000
                     });
+                    addTimelineEvent(`⚔️ ${competitorName}: ${(action as any).title || action.description}`, nextMonth);
                 });
 
                 // --- LIFESTYLE & ASSETS ---
@@ -3103,8 +3142,8 @@ export default function Dashboard() {
         };
 
         const handleEventResolution = (choice: EventChoice) => {
-            const impactParts: string[] = [];
             const multiplier = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
+            const impactString = generateImpactSentence(choice.text, choice.effects, multiplier);
 
             // Use functional updates to ensure we have the absolute latest state
             setStartup(prevStartup => {
@@ -3120,12 +3159,6 @@ export default function Dashboard() {
                         const cur = (metrics as any)[key] || 0;
                         (metrics as any)[key] = cur + adjustedVal;
                     }
-
-                    const formattedKey = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    const isMoney = ['cash', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase());
-                    const displayVal = isMoney ? `${formatMoney(adjustedVal)}` : Math.abs(adjustedVal).toString();
-                    const sign = adjustedVal >= 0 ? '+' : '-';
-                    impactParts.push(`${formattedKey} ${sign}${displayVal}`);
                 });
 
                 // Catch-all clamping for metrics
@@ -3151,8 +3184,7 @@ export default function Dashboard() {
                 return { ...prevFounder, attributes: attrs };
             });
 
-            const impactString = impactParts.length > 0 ? ` (${impactParts.join(', ')})` : '';
-            addTimelineEvent(`Resolved Event: ${activeEvent?.title}${impactString}`);
+            addTimelineEvent(impactString);
         };
 
         const m = startup.metrics;
@@ -3163,7 +3195,7 @@ export default function Dashboard() {
             <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden" style={{ backgroundColor: '#f7f8fc' }}>
 
                 {/* HEADER */}
-                <div className="shrink-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm">
+                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '12px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
@@ -3267,10 +3299,12 @@ export default function Dashboard() {
                                                 cancelText: "Maybe Later",
                                                 type: "premium",
                                                 onConfirm: () => {
-                                                    localStorage.setItem("founder_sim_premium", "true");
-                                                    setIsPremium(true);
-                                                    adService.hideBanner();
-                                                    toast.success("Welcome to the 1%!", { description: "Premium unlocked. Ads removed, focus sharpened." });
+                                                    iapService.purchasePremium().then(success => {
+                                                        if (success) {
+                                                            setIsPremium(true);
+                                                            adService.hideBanner();
+                                                        }
+                                                    });
                                                 }
                                             });
                                         }}
@@ -3295,6 +3329,60 @@ export default function Dashboard() {
                         </DropdownMenu>
                     </div>
                 </div>
+
+                                                {/* Collapsible Milestone Card */}
+                <div 
+                    onClick={() => setIsMilestoneExpanded(!isMilestoneExpanded)} 
+                    className="shrink-0 bg-white p-4 border-b border-slate-100 flex flex-col gap-2 cursor-pointer hover:bg-slate-50 transition-all select-none"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">{
+                                startup.funding_stage === "Bootstrapping" ? "🏠" : 
+                                startup.funding_stage === "Angel Investment" ? "🚀" : 
+                                startup.funding_stage === "Seed Round" ? "📈" : "🏢"
+                            }</span>
+                            <div>
+                                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest leading-none">Current Milestone</p>
+                                <p className="text-sm font-black text-slate-900 mt-0.5">
+                                    {startup.funding_stage === "Bootstrapping" ? "Garage" : 
+                                     startup.funding_stage === "Angel Investment" ? "Traction" : 
+                                     startup.funding_stage === "Seed Round" ? "PMF" : "Scaling"} 
+                                    <span className="text-slate-300 font-medium text-[9px] ml-1">
+                                        → Next: {
+                                            startup.funding_stage === "Bootstrapping" ? "Traction" : 
+                                            startup.funding_stage === "Angel Investment" ? "PMF" : 
+                                            startup.funding_stage === "Seed Round" ? "Scaling" : "Exit / IPO 🦄"
+                                        }
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-500 rounded-full" style={{ 
+                                    width: startup.funding_stage === "Bootstrapping" ? "25%" : 
+                                           startup.funding_stage === "Angel Investment" ? "50%" : 
+                                           startup.funding_stage === "Seed Round" ? "75%" : "100%" 
+                                }} />
+                            </div>
+                            <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isMilestoneExpanded ? "rotate-180" : "")} />
+                        </div>
+                    </div>
+                    {isMilestoneExpanded && (
+                        <div className="bg-slate-50 rounded-xl p-3 mt-1">
+                            <p className="text-[10px] text-slate-600 font-medium leading-normal">
+                                {
+                                    startup.funding_stage === "Bootstrapping" ? "You are building the foundation in your garage. Validate your idea, build the MVP, and gather initial organic users to prove demand." : 
+                                    startup.funding_stage === "Angel Investment" ? "You've got initial validation. Now test channels, expand user onboarding streams, and prepare to scale server operations." : 
+                                    startup.funding_stage === "Seed Round" ? "Institutional backing setup. Accelerate growth rates, expand active marketing departments, and scale structural hires." : 
+                                    "Scale aggressively, optimize unit economics, and prepare for market domination or exit opportunities."
+                                }
+                            </p>
+                        </div>
+                    )}
+                </div>
+
 
                 {/* FOCUS HEADER & CORE STATS */}
                 <div className="shrink-0 flex flex-col">
@@ -3367,7 +3455,7 @@ export default function Dashboard() {
                 )}
 
                 {/* LOGS FEED — BitLife Style: events grouped by month */}
-                <div className="flex-1 overflow-y-auto px-3 pt-3 pb-32">
+                <div className="flex-1 flex flex-col-reverse overflow-y-auto px-3 pt-3 pb-5">
                     {eventsTimeline.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center py-8">
                             <div className="text-4xl mb-3">⚡</div>
@@ -3393,13 +3481,13 @@ export default function Dashboard() {
                             return { strip: "#6366f1", bg: "#eef2ff", label: "Event" };
                         };
 
-                        return sortedMonths.map(monthNum => {
+                        const items = sortedMonths.map(monthNum => {
                             const events = byMonth[monthNum];
                             const isCurrentMonth = monthNum === month;
                             return (
                                 <div key={monthNum} className="mb-4">
                                     {/* Month Header — BitLife style */}
-                                    <div className={`flex items-center gap-2 mb-2 sticky top-0 py-1 ${isCurrentMonth ? "" : ""}`}>
+                                    <div className={`flex items-center gap-2 mb-2 py-1 ${isCurrentMonth ? "" : ""}`}>
                                         <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isCurrentMonth ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200" : "bg-slate-200 text-slate-600"}`}>
                                             Month {monthNum}{isCurrentMonth ? " · Now" : ""}
                                         </div>
@@ -3427,6 +3515,7 @@ export default function Dashboard() {
                                 </div>
                             );
                         });
+                        return items;
                     })()}
                 </div>
 
@@ -3540,7 +3629,7 @@ export default function Dashboard() {
                     )}
                 </AnimatePresence>
 
-                <EventModal event={activeEvent} onResolve={handleEventResolution} onClose={() => setActiveEvent(null)} />
+                <EventModal event={activeEvent} onResolve={handleEventResolution} onClose={() => setActiveEvent(null)} multiplier={startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1} />
 
 
                 {isChadModalOpen && chadAdvice && (
@@ -3681,28 +3770,28 @@ export default function Dashboard() {
                                 </div>
                             </div>
                             <DialogDescription className="text-xs font-bold text-slate-500 uppercase">
-                                {startup.phase === "Scaling" ? "Cohort of 10 " : startup.phase === "Growth" ? "Pod of 3 " : ""}
-                                {pendingCandidate?.level} {getDisplayRoleName(pendingCandidate?.role || "", true)} · {pendingCandidate?.experience}Y exp
+                                
+                                {pendingCandidate?.level} {getDisplayRoleName(pendingCandidate?.role || "", false)} · {pendingCandidate?.experience}Y exp
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-2">
                             {(() => {
-                                const cohortSize = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
+                                const cohortSize = 1;
                                 return (
                                     <>
                                         <div>
                                             <div className="flex justify-between mb-1">
-                                                <label className="text-xs font-black uppercase text-slate-400">Monthly Salary {cohortSize > 1 ? `(×${cohortSize})` : ""}</label>
+                                                <label className="text-xs font-black uppercase text-slate-400">Monthly Salary</label>
                                                 <span className="text-sm font-black text-indigo-600">{formatMoney(Math.floor(hiringOffer.salary * cohortSize / 12))}/mo</span>
                                             </div>
-                                            <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 1.6 / 12)} step={100} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
+                                            <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 1.6 / 12)} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
                                         </div>
                                         <div>
                                             <div className="flex justify-between mb-1">
-                                                <label className="text-xs font-black uppercase text-slate-400">Equity Grant {cohortSize > 1 ? `(×${cohortSize})` : ""}</label>
+                                                <label className="text-xs font-black uppercase text-slate-400">Equity Grant</label>
                                                 <span className="text-sm font-black text-indigo-600">{(hiringOffer.equity * cohortSize).toFixed(1)}%</span>
                                             </div>
-                                            <input type="range" min={0} max={5} step={0.1} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
+                                            <input type="range" min={0} max={cohortSize > 1 ? (10 / cohortSize) : 5.0} step={0.1} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
                                         </div>
                                     </>
                                 );
@@ -3710,9 +3799,24 @@ export default function Dashboard() {
                         </div>
                         {pendingCandidate && (() => {
                             let score = 50;
-                            const EQUITY_VALUE = 10000;
-                            const expectedTotalComp = pendingCandidate.expectedSalary + (pendingCandidate.expectedEquity * EQUITY_VALUE);
-                            const offeredTotalComp = hiringOffer.salary + (hiringOffer.equity * EQUITY_VALUE);
+                            const EQUITY_VALUE = startup.valuation * 0.01;
+
+                            let salaryWeight = 1.0;
+                            let equityWeight = 1.0;
+
+                            if (pendingCandidate.personality === "Stable") {
+                                salaryWeight = 1.3;
+                                equityWeight = 0.5;
+                            } else if (pendingCandidate.personality === "Ambitious") {
+                                salaryWeight = 0.7;
+                                equityWeight = 1.5;
+                            } else if (pendingCandidate.personality === "Creative") {
+                                salaryWeight = 0.9;
+                                equityWeight = 1.1;
+                            }
+
+                            const expectedTotalComp = (pendingCandidate.expectedSalary * salaryWeight) + (pendingCandidate.expectedEquity * EQUITY_VALUE * equityWeight);
+                            const offeredTotalComp = (hiringOffer.salary * salaryWeight) + (hiringOffer.equity * EQUITY_VALUE * equityWeight);
                             const compRatio = offeredTotalComp / expectedTotalComp;
                             if (compRatio >= 1.2) score += 40;
                             else if (compRatio >= 1) score += 20;
@@ -3723,11 +3827,11 @@ export default function Dashboard() {
 
                             let sentimentText = "";
                             let sentimentColor = "";
-                            if (score >= 80) { sentimentText = "Very High Chance"; sentimentColor = "text-emerald-700 bg-emerald-50 border-emerald-200"; }
-                            else if (score >= 60) { sentimentText = "Good Chance"; sentimentColor = "text-green-700 bg-green-50 border-green-200"; }
-                            else if (score >= 40) { sentimentText = "Fair Chance"; sentimentColor = "text-amber-700 bg-amber-50 border-amber-200"; }
-                            else if (score >= 20) { sentimentText = "Low Chance"; sentimentColor = "text-orange-700 bg-orange-50 border-orange-200"; }
-                            else { sentimentText = "Very Low Chance"; sentimentColor = "text-rose-700 bg-rose-50 border-rose-200"; }
+                            if (score >= 80) { sentimentText = `Very High Chance (${Math.round(score)}%)`; sentimentColor = "text-emerald-700 bg-emerald-50 border-emerald-200"; }
+                            else if (score >= 60) { sentimentText = `Good Chance (${Math.round(score)}%)`; sentimentColor = "text-green-700 bg-green-50 border-green-200"; }
+                            else if (score >= 40) { sentimentText = `Fair Chance (${Math.round(score)}%)`; sentimentColor = "text-amber-700 bg-amber-50 border-amber-200"; }
+                            else if (score >= 20) { sentimentText = `Low Chance (${Math.round(score)}%)`; sentimentColor = "text-orange-700 bg-orange-50 border-orange-200"; }
+                            else { sentimentText = `Very Low Chance (${Math.round(score)}%)`; sentimentColor = "text-rose-700 bg-rose-50 border-rose-200"; }
 
                             return (
                                 <>
@@ -3737,8 +3841,7 @@ export default function Dashboard() {
                                     </div>
 
                                     {(() => {
-                                        const cohortSize = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
-                                        const required = hiringOffer.equity * cohortSize;
+                                        const required = hiringOffer.equity;
                                         const available = startup.metrics.option_pool || 0;
                                         if (available < required) {
                                             return (
@@ -3760,6 +3863,14 @@ export default function Dashboard() {
                                         }
                                         return null;
                                     })()}
+
+                                    {/* ── Vesting Disclaimer Note ── */}
+                                    <div className="mt-4 bg-indigo-50/50 border border-indigo-100 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                                        <span className="text-sm">💡</span>
+                                        <p className="text-[8px] font-medium text-slate-600 leading-tight">
+                                            <span className="font-bold text-indigo-700">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
+                                        </p>
+                                    </div>
                                 </>
                             );
                         })()}
@@ -3925,11 +4036,11 @@ export default function Dashboard() {
                 </Dialog>
 
                 {/* TEAM MODAL - REDESIGNED */}
-                <Dialog open={isTeamOpen} onOpenChange={(open) => { setIsTeamOpen(open); if (!open) { setTeamSearch(""); setTeamDeptFilter("all"); } }}>
+                <Dialog open={isTeamOpen} onOpenChange={(open) => { setIsTeamOpen(open); if (!open) { setTeamSearch(""); setTeamDeptFilter("cxo"); } }}>
                     <DialogContent className="sm:max-w-md bg-white border-emerald-500 border-4 rounded-[2rem] p-0 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
                         <DialogHeader className="p-6 pb-0">
                             <DialogTitle className="text-xl font-black text-slate-900 uppercase italic flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Core Team</span>
+                                <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
                                 <div className="flex gap-2">
                                     <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
                                         😊 Morale: {Math.round(startup.metrics.team_morale)}%
@@ -3937,10 +4048,16 @@ export default function Dashboard() {
                                     <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                         ESOP: {(startup.metrics.option_pool || 0).toFixed(1)}%
                                     </span>
+                                    {((startup.metrics as any).former_employee_equity || 0) > 0 && (
+                                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                                            Alumni: {((startup.metrics as any).former_employee_equity as number).toFixed(1)}%
+                                        </span>
+                                    )}
                                 </div>
                             </DialogTitle>
                         </DialogHeader>
 
+                        {/* Filters */}
                         {/* Filters */}
                         <div className="p-4 space-y-3 bg-slate-50/50 border-y border-slate-100 mt-4">
                             <div className="relative">
@@ -3950,18 +4067,19 @@ export default function Dashboard() {
                                     value={teamSearch}
                                     onChange={(e) => setTeamSearch(e.target.value)}
                                     className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                                // className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                                 />
                                 <Menu className="absolute left-3 top-2.5 size-4 text-slate-400" />
                             </div>
-                            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                                {["all", "engineer", "marketer", "sales"].map((dept) => {
-                                    const label = dept === "all" ? "Everyone" : getDisplayRoleName(dept, true);
+                            <div className="flex flex-wrap gap-1.5 pb-1">
+                                {["cxo", "engineer", "marketer", "sales"].map((dept) => {
+                                    const label = dept === "cxo" ? "CXOs" : getDisplayRoleName(dept, true);
                                     return (
                                         <button
                                             key={dept}
                                             onClick={() => setTeamDeptFilter(dept)}
                                             className={cn(
-                                                "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all whitespace-nowrap border",
+                                                "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
                                                 teamDeptFilter === dept
                                                     ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
                                                     : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
@@ -3976,9 +4094,33 @@ export default function Dashboard() {
 
                         <ScrollArea className="flex-1 px-4 py-2">
                             {(() => {
-                                const filtered = (startup.employees || []).filter(e => {
+                                const cxoConfig = [
+                                    { role: "CTO", name: "CTO (Executive)", salary: 18000 },
+                                    { role: "CMO", name: "CMO (Executive)", salary: 15000 },
+                                    { role: "COO", name: "COO (Executive)", salary: 16000 },
+                                    { role: "CFO", name: "CFO (Executive)", salary: 14000 },
+                                    { role: "CPO", name: "CPO (Executive)", salary: 15000 },
+                                    { role: "EA", name: "Executive Assistant", salary: 8000 },
+                                ];
+
+                                const activeCxos = cxoConfig.filter(cxo => (startup as any).cxoTeam?.[cxo.role]);
+                                const synthesizedCxos = activeCxos.filter(cxo => !(startup.employees || []).some(e => e.id === `cxo_${cxo.role.toLowerCase()}`)).map(cxo => ({
+                                    id: `cxo_${cxo.role.toLowerCase()}`,
+                                    name: cxo.name,
+                                    role: cxo.role.toLowerCase(),
+                                    salary: cxo.salary * 12,
+                                    performance: 95,
+                                    skills: { technical: 85, marketing: 85, sales: 85 },
+                                    isCXO: true,
+                                    morale: 95,
+                                    joined_at: 1
+                                }));
+
+                                const allEmployees = [...(startup.employees || []), ...synthesizedCxos];
+
+                                const filtered = allEmployees.filter(e => {
                                     const matchesSearch = e.name.toLowerCase().includes(teamSearch.toLowerCase());
-                                    const matchesDept = teamDeptFilter === "all" || e.role === teamDeptFilter;
+                                    const matchesDept = teamDeptFilter === "cxo" ? e.isCXO : e.role === teamDeptFilter;
                                     return matchesSearch && matchesDept;
                                 });
 
@@ -3990,108 +4132,221 @@ export default function Dashboard() {
                                     );
                                 }
 
-                                return (
-                                    <div className="space-y-3 pb-6">
-                                        {filtered.map((emp) => {
-                                            const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
-                                            const isExpanded = selectedEmpIdx === startup.employees.findIndex(original => original.id === emp.id);
-                                            const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
-                                            const isDissatisfied = monthsSinceRaise > 12;
+                                const cxos = filtered.filter(e => e.isCXO);
+                                const staff = filtered.filter(e => !e.isCXO);
 
-                                            return (
-                                                <div key={emp.id} className={cn(
-                                                    "rounded-2xl border-2 transition-all overflow-hidden",
-                                                    isExpanded ? "border-emerald-200 shadow-md transform scale-[1.01]" : "border-slate-50 bg-white hover:border-slate-100"
+                                const renderCXOCard = (emp: any) => {
+                                    const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                    const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
+                                    const isDissatisfied = monthsSinceRaise > 12;
+                                    const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
+
+                                    return (
+                                        <div key={emp.id} className="rounded-2xl border-2 border-emerald-100 bg-white p-3 flex flex-col gap-2 relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-transparent">
+                                            {/* Header */}
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl shrink-0 outline outline-2 outline-white shadow-sm",
+                                                    emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
                                                 )}>
-                                                    <div
-                                                        onClick={() => setSelectedEmpIdx(isExpanded ? -1 : startup.employees.findIndex(original => original.id === emp.id))}
-                                                        className="p-3 cursor-pointer flex items-center gap-3"
-                                                    >
-                                                        <div className={cn(
-                                                            "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
-                                                            emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
-                                                        )}>
-                                                            {emp.name.charAt(0)}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-black text-slate-900 text-sm truncate uppercase">{emp.name}</p>
-                                                                <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
-                                                                    {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
-                                                                </span>
-                                                                {isDissatisfied && <span className="text-[8px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE DUE</span>}
-                                                            </div>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                                {emp.level} {getDisplayRoleName(emp.role, false)} · {formatMoney(Math.floor(emp.salary / 12))}/mo
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right shrink-0">
-                                                            <p className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
-                                                            <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
-                                                                {emp.performance}%
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <AnimatePresence>
-                                                        {isExpanded && (
-                                                            <motion.div
-                                                                initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-                                                                className="px-3 pb-3 pt-1 border-t border-slate-50 bg-slate-50/30"
-                                                            >
-                                                                <div className="grid grid-cols-4 gap-2 mb-3 mt-2">
-                                                                    <div className="bg-white rounded-xl p-2 border border-slate-100">
-                                                                        <p className="text-[8px] font-black text-slate-400 uppercase">Skill</p>
-                                                                        <p className="text-sm font-black text-indigo-600">{skillVal}%</p>
-                                                                    </div>
-                                                                    <div className="bg-white rounded-xl p-2 border border-slate-100">
-                                                                        <p className="text-[8px] font-black text-slate-400 uppercase">Morale</p>
-                                                                        <p className={cn("text-sm font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
-                                                                            {Math.round(emp.morale || 70)}%
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="bg-white rounded-xl p-2 border border-slate-100">
-                                                                        <p className="text-[8px] font-black text-slate-400 uppercase">Equity</p>
-                                                                        <p className="text-sm font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
-                                                                    </div>
-                                                                    <div className="bg-white rounded-xl p-2 border border-slate-100">
-                                                                        <p className="text-[8px] font-black text-slate-400 uppercase">Tenure</p>
-                                                                        <p className="text-sm font-black text-slate-600">{month - emp.joined_at}mo</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="grid grid-cols-2 gap-2">
-                                                                    <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[9px] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
-                                                                    <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[9px] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
-                                                                    <button
-                                                                        onClick={() => handleIncrementSalary(emp.id)}
-                                                                        className={cn(
-                                                                            "py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all",
-                                                                            isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-50 hover:bg-emerald-50"
-                                                                        )}
-                                                                    >
-                                                                        +15% Salary
-                                                                    </button>
-                                                                    <DropdownMenu>
-                                                                        <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[9px] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
-                                                                            Manage <Plus className="size-3" />
-                                                                        </DropdownMenuTrigger>
-                                                                        <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
-                                                                            <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
-                                                                            <DropdownMenuSeparator />
-                                                                            <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
-                                                                        </DropdownMenuContent>
-                                                                    </DropdownMenu>
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
+                                                    {emp.name.charAt(0)}
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <p className="font-black text-slate-900 text-xs truncate uppercase">{emp.name}</p>
+                                                        <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
+                                                            {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                                                        👑 {getDisplayRoleName(emp.role, false).replace(" Specialist", " (EXEC)")}
+                                                    </p>
+                                                    <p className="text-[8px] font-bold text-slate-400 mt-0.5">{formatMoney(Math.floor(emp.salary / 12))}/mo</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Perf</p>
+                                                    <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
+                                                        {emp.performance}%
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Metrics Grid */}
+                                            <div className="grid grid-cols-4 gap-1.5 mt-1 border-t border-dashed border-slate-100 pt-2">
+                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Skill</p>
+                                                    <p className="text-[11px] font-black text-indigo-600">{skillVal}%</p>
+                                                </div>
+                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Morale</p>
+                                                    <p className={cn("text-[11px] font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
+                                                        {Math.round(emp.morale || 70)}%
+                                                    </p>
+                                                </div>
+                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Equity</p>
+                                                    <p className="text-[11px] font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
+                                                </div>
+                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Tenure</p>
+                                                    <p className="text-[11px] font-black text-slate-600">{tenure}mo</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="grid grid-cols-2 gap-1 mt-1 border-t border-dashed border-slate-100 pt-2">
+                                                <button onClick={() => handleTrainEmployee(emp.id)} className="py-1 rounded-lg bg-white text-indigo-600 text-[8px] font-black uppercase border border-indigo-100 hover:bg-indigo-50 transition-all">Train</button>
+                                                <button onClick={() => handlePromoteEmployee(emp.id)} className="py-1 rounded-lg bg-white text-amber-600 text-[8px] font-black uppercase border border-amber-100 hover:bg-amber-50 transition-all">Promote</button>
+                                                <button
+                                                    onClick={() => handleIncrementSalary(emp.id)}
+                                                    className={cn(
+                                                        "py-1 rounded-lg text-[8px] font-black uppercase border transition-all",
+                                                        isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-100 hover:bg-emerald-50"
+                                                    )}
+                                                >
+                                                    +15% Pay
+                                                </button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger className="py-1 px-2 rounded-lg bg-white text-slate-500 text-[8px] font-black uppercase border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                        Manage <Plus className="size-3" />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
+                                                        <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </div>
+                                    );
+                                };
+
+                                const renderStaffCard = (emp: any) => {
+                                    const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                    const isExpanded = selectedEmpIdx === startup.employees.findIndex(original => original.id === emp.id);
+                                    const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
+                                    const isDissatisfied = monthsSinceRaise > 12;
+                                    const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
+
+                                    return (
+                                        <div key={emp.id} className={cn(
+                                            "rounded-2xl border-2 transition-all overflow-hidden mb-2",
+                                            isExpanded ? "border-emerald-200 shadow-md transform scale-[1.01]" : "border-slate-50 bg-white hover:border-slate-100"
+                                        )}>
+                                            <button
+                                                onClick={() => setSelectedEmpIdx(isExpanded ? -1 : startup.employees.findIndex(original => original.id === emp.id))}
+                                                className="w-full text-left p-3 cursor-pointer flex items-center gap-3 bg-white"
+                                            >
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
+                                                    emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
+                                                )}>
+                                                    {emp.name.charAt(0)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-black text-slate-900 text-sm truncate uppercase">{emp.name}</p>
+                                                        <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
+                                                            {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
+                                                        </span>
+                                                        {isDissatisfied && <span className="text-[8px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE</span>}
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                        {emp.level} {getDisplayRoleName(emp.role, false)} · {formatMoney(Math.floor(emp.salary / 12))}/mo
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
+                                                    <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
+                                                        {emp.performance}%
+                                                    </p>
+                                                </div>
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {isExpanded && (
+                                                    <motion.div
+                                                        initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+                                                        className="px-3 pb-3 pt-1 border-t border-slate-50 bg-slate-50/30"
+                                                    >
+                                                        <div className="grid grid-cols-4 gap-2 mb-3 mt-2">
+                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Skill</p>
+                                                                <p className="text-sm font-black text-indigo-600">{skillVal}%</p>
+                                                            </div>
+                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Morale</p>
+                                                                <p className={cn("text-sm font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
+                                                                    {Math.round(emp.morale || 70)}%
+                                                                </p>
+                                                            </div>
+                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Equity</p>
+                                                                <p className="text-sm font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
+                                                            </div>
+                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Tenure</p>
+                                                                <p className="text-sm font-black text-slate-600">{tenure}mo</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[9px] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
+                                                            <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[9px] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
+                                                            <button
+                                                                onClick={() => handleIncrementSalary(emp.id)}
+                                                                className={cn(
+                                                                    "py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all",
+                                                                    isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-50 hover:bg-emerald-50"
+                                                                )}
+                                                            >
+                                                                +15% Salary
+                                                            </button>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[9px] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                                    Manage <Plus className="size-3" />
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
+                                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                };
+
+                                return (
+                                    <div className="space-y-4 pb-6">
+                                        {cxos.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 flex items-center gap-1">
+                                                    👑 Core Team (CXOs)
+                                                </p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                    {cxos.map(renderCXOCard)}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {staff.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 mt-4 flex items-center gap-1">
+                                                    👥 General Staff
+                                                </p>
+                                                <div className="space-y-2">
+                                                    {staff.map(renderStaffCard)}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()}
+
                         </ScrollArea>
                     </DialogContent>
                 </Dialog>

@@ -25,9 +25,28 @@ interface EventModalProps {
     event: GameEvent | null;
     onResolve: (choice: EventChoice) => void;
     onClose?: () => void;
+    multiplier?: number;
 }
 
-export function EventModal({ event, onResolve, onClose }: EventModalProps) {
+export const generateImpactSentence = (choiceText: string, effects: Record<string, number>, multiplier: number = 1) => {
+    const changes: string[] = [];
+    Object.entries(effects).forEach(([key, val]) => {
+        let adjustedVal = val * multiplier;
+        if (adjustedVal === 0) return;
+
+        const isMoney = ['cash', 'burn_rate', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase());
+        const displayVal = isMoney ? formatMoney(Math.abs(adjustedVal)) : Math.abs(adjustedVal).toString();
+        
+        if (key === 'team_morale') changes.push(`morale ${adjustedVal > 0 ? 'improved' : 'dropped'}`);
+        else if (key === 'product_quality') changes.push(`product quality ${adjustedVal > 0 ? 'grew' : 'sank'}`);
+        else if (isMoney) changes.push(`${key.split('_').join(' ').toUpperCase()} ${adjustedVal > 0 ? 'gained' : 'spent'} ${displayVal}`);
+        else changes.push(`${key.split('_').join(' ')} ${adjustedVal > 0 ? 'rose' : 'fell'}`);
+    });
+    const impactText = changes.length > 0 ? `. This resulted in: ${changes.join(', ')}` : '';
+    return `You decided to ${choiceText}${impactText}.`;
+};
+
+export function EventModal({ event, onResolve, onClose, multiplier = 1 }: EventModalProps) {
     const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
 
     // Reset state when event changes
@@ -76,7 +95,7 @@ export function EventModal({ event, onResolve, onClose }: EventModalProps) {
                             <Button
                                 key={index}
                                 variant="outline"
-                                className="w-full justify-start h-auto min-h-[4rem] py-4 px-6 bg-white border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left rounded-2xl transition-all active:scale-[0.98] group shadow-sm flex items-center"
+                                className="w-full justify-start h-auto min-h-[4rem] py-4 px-6 bg-white border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left rounded-2xl transition-all active:scale-[0.98] group shadow-sm flex items-center whitespace-normal"
                                 onClick={() => handleChoiceClick(choice)}
                             >
                                 <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 whitespace-normal block leading-snug">{choice.text}</span>
@@ -85,22 +104,10 @@ export function EventModal({ event, onResolve, onClose }: EventModalProps) {
                     ) : (
                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Impact on Startup</p>
-                                {Object.entries(resolvedChoice.effects).map(([key, val]) => {
-                                    const isPositive = val > 0;
-                                    const isMoney = ['cash', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase());
-                                    const displayVal = isMoney ? formatMoney(Math.abs(val)) : Math.abs(val).toString();
-
-                                    return (
-                                        <div key={key} className="flex justify-between items-center py-1">
-                                            <span className="text-sm font-bold text-slate-700">{formatEffectKey(key)}</span>
-                                            <span className={`text-sm font-black flex items-center gap-1 ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                                                {isPositive ? '+' : '-'}{displayVal}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Impact on Startup</p>
+                                <p className="text-sm font-bold text-slate-700 leading-snug">
+                                    {generateImpactSentence(resolvedChoice.text, resolvedChoice.effects, multiplier)}
+                                </p>
                             </div>
 
                             <Button

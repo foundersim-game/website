@@ -68,10 +68,24 @@ export function generateCandidate(role: string, startupStage: string, forcedDeta
 
 export function calculateHiringSuccess(candidate: Candidate, offer: { salary: number, equity: number }, startup: Startup, founder: Founder): { success: boolean, reason: string } {
     let score = 50;
-    // Dynamic value: 1% of company. For a $1M company, 1% = $10k. For $100M, 1% = $1M.
     const EQUITY_VALUE_OF_ONE_PERCENT = startup.valuation * 0.01;
-    const expectedTotalComp = candidate.expectedSalary + (candidate.expectedEquity * EQUITY_VALUE_OF_ONE_PERCENT);
-    const offeredTotalComp = offer.salary + (offer.equity * EQUITY_VALUE_OF_ONE_PERCENT);
+
+    let salaryWeight = 1.0;
+    let equityWeight = 1.0;
+
+    if (candidate.personality === "Stable") {
+        salaryWeight = 1.3;
+        equityWeight = 0.5;
+    } else if (candidate.personality === "Ambitious") {
+        salaryWeight = 0.7;
+        equityWeight = 1.5;
+    } else if (candidate.personality === "Creative") {
+        salaryWeight = 0.9;
+        equityWeight = 1.1;
+    }
+
+    const expectedTotalComp = (candidate.expectedSalary * salaryWeight) + (candidate.expectedEquity * EQUITY_VALUE_OF_ONE_PERCENT * equityWeight);
+    const offeredTotalComp = (offer.salary * salaryWeight) + (offer.equity * EQUITY_VALUE_OF_ONE_PERCENT * equityWeight);
     const compRatio = offeredTotalComp / expectedTotalComp;
 
     if (compRatio >= 1.2) score += 40;

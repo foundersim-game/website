@@ -385,6 +385,24 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     employees.forEach(emp => {
         if (Math.random() < turnoverRisk) {
+            const monthsPassed = startup.history?.length || 0;
+            const monthsEmployed = Math.max(0, monthsPassed - (emp.joined_at || 0));
+            
+            let vestedEquity = 0;
+            if (monthsEmployed >= 12) { // 1-year cliff
+                vestedEquity = Math.min(emp.equity || 0, (monthsEmployed / 48) * (emp.equity || 0));
+            }
+            
+            const returnedEquity = Math.max(0, (emp.equity || 0) - vestedEquity);
+            if (returnedEquity > 0) {
+                metrics.option_pool = (metrics.option_pool || 0) + returnedEquity;
+            }
+            if (vestedEquity > 0) {
+                metrics.former_employee_equity = (metrics.former_employee_equity || 0) + vestedEquity;
+            }
+
+            notices.push(`🚨 ${emp.name} (${emp.role}) resigned due to low team morale. ${returnedEquity > 0 ? `${returnedEquity.toFixed(2)}% unvested equity returned to pool.` : ""}`);
+
             if (emp.role === "engineer") metrics.engineers = Math.max(0, metrics.engineers - 1);
             if (emp.role === "marketer") metrics.marketers = Math.max(0, metrics.marketers - 1);
             if (emp.role === "sales") metrics.sales = Math.max(0, metrics.sales - 1);
