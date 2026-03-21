@@ -301,34 +301,75 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     switch (action) {
         case "build_mvp_features":
-            if (industry === "AI Startup") { techBoost = 7; metrics.innovation += 4; metrics.burn_rate += 1500; metrics.technical_debt += 15; }
-            else if (industry === "E-commerce Brand") { techBoost = 5; metrics.innovation += 3; metrics.cash -= 5000; metrics.technical_debt += 8; }
+            if (industry === "AI Platform") { techBoost = 7; metrics.innovation += 4; metrics.burn_rate += 1500; metrics.technical_debt += 15; }
+            else if (industry === "Mobile Game") { techBoost = 5; metrics.innovation += 3; metrics.cash -= 3000; metrics.technical_debt += 8; }
+            else if (industry === "SaaS Platform") { techBoost = 10; metrics.technical_debt += 12; metrics.burn_rate += 800; }
+            else if (industry === "Dev Tools") { techBoost = 12; metrics.technical_debt += 10; metrics.innovation += 2; metrics.burn_rate += 600; }
+            else if (industry === "FinTech App") { techBoost = 8; metrics.technical_debt += 14; metrics.burn_rate += 1000; } // Compliance overhead
+            else if (industry === "EdTech") { techBoost = 7; metrics.technical_debt += 8; metrics.burn_rate += 500; }
+            else if (industry === "OTT / Streaming") { techBoost = 6; metrics.technical_debt += 10; metrics.burn_rate += 1200; } // CDN infra costs
+            else if (industry === "Marketplace") { techBoost = 8; metrics.technical_debt += 11; metrics.burn_rate += 700; }
             else { techBoost = 10; metrics.technical_debt += 12; metrics.burn_rate += 800; }
             break;
+
         case "refactor_core":
-            if (industry === "AI Startup") { techBoost = 5; metrics.burn_rate -= 300; metrics.innovation += 5; debtReduction = 5; }
-            else if (industry === "E-commerce Brand") { metrics.burn_rate -= 200; reliabilityBoost = 10; debtReduction = 5; }
+            if (industry === "AI Platform") { techBoost = 5; metrics.burn_rate -= 300; metrics.innovation += 5; debtReduction = 5; }
+            else if (industry === "Dev Tools") { metrics.burn_rate -= 200; reliabilityBoost = 10; debtReduction = 5; }
+            else if (industry === "SaaS Platform") { techBoost = 5; debtReduction = 10; reliabilityBoost = 5; metrics.burn_rate += 400; }
+            else if (industry === "FinTech App") { debtReduction = 12; reliabilityBoost = 12; metrics.burn_rate += 200; } // Compliance-grade refactor has real upside
+            else if (industry === "Mobile Game") { debtReduction = 8; reliabilityBoost = 6; metrics.burn_rate += 300; }
+            else if (industry === "EdTech") { debtReduction = 9; reliabilityBoost = 7; metrics.burn_rate += 350; }
+            else if (industry === "OTT / Streaming") { debtReduction = 7; reliabilityBoost = 8; metrics.burn_rate -= 100; } // CDN optimization reduces costs
+            else if (industry === "Marketplace") { debtReduction = 10; reliabilityBoost = 6; metrics.burn_rate += 400; }
             else { techBoost = 5; debtReduction = 10; reliabilityBoost = 5; metrics.burn_rate += 400; }
             break;
+
         case "fix_bugs":
             debtReduction = 20; reliabilityBoost = 15;
-            if (industry === "AI Startup") attrs.reputation += 2;
-            else if (industry === "E-commerce Brand") metrics.team_morale += 5;
+            if (industry === "AI Platform") { attrs.reputation += 2; debtReduction = 18; }
+            else if (industry === "Dev Tools") { metrics.team_morale += 5; reliabilityBoost = 18; } // Dev Tools users are power users who care deeply
+            else if (industry === "FinTech App") { reliabilityBoost = 20; attrs.reputation += 3; } // Bugs in FinTech = trust disaster
+            else if (industry === "SaaS Platform") { metrics.team_morale += 3; }
+            else if (industry === "Mobile Game") { metrics.team_morale += 2; debtReduction = 15; } // Gamers churn fast on bugs
+            else if (industry === "EdTech") { attrs.reputation += 1; debtReduction = 18; }
+            else if (industry === "OTT / Streaming") { reliabilityBoost = 18; attrs.reputation += 1; } // Buffering = instant churn
+            else if (industry === "Marketplace") { metrics.team_morale += 2; reliabilityBoost = 16; }
             break;
+
         case "organic_social":
-            if (industry === "E-commerce Brand") marketingBoost = 15;
-            else if (industry === "AI Startup") marketingBoost = 10;
-            else marketingBoost = 10;
+            if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness += 3; } // Content is viral
+            else if (industry === "AI Platform") { marketingBoost = 10; metrics.innovation += 1; }
+            else if (industry === "Mobile Game") { marketingBoost = 18; } // Clips + memes = massive viral reach
+            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation += 1; } // Testimonials and learning wins
+            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness += 2; }
+            else if (industry === "SaaS Platform") { marketingBoost = 10; }
+            else if (industry === "Dev Tools") { marketingBoost = 14; } // Dev social (Twitter/X, HN, Reddit) is high ROI
+            else if (industry === "FinTech App") { marketingBoost = 9; attrs.reputation += 1; } // Trust-driven word of mouth
+            else { marketingBoost = 10; }
             metrics.cash -= 500; explicitMarketingSpend += 500;
             break;
+
         case "paid_acquisition":
-            if (industry === "E-commerce Brand") { marketingBoost = 25; metrics.cash -= 4000; explicitMarketingSpend += 4000; }
-            else if (industry === "AI Startup") { marketingBoost = 12; metrics.cash -= 8000; explicitMarketingSpend += 8000; }
+            if (industry === "Marketplace") { marketingBoost = 25; metrics.cash -= 4000; explicitMarketingSpend += 4000; }
+            else if (industry === "AI Platform") { marketingBoost = 12; metrics.cash -= 8000; explicitMarketingSpend += 8000; } // High CPC in AI space
+            else if (industry === "Mobile Game") { marketingBoost = 22; metrics.cash -= 6000; explicitMarketingSpend += 6000; } // App install ads are effective
+            else if (industry === "OTT / Streaming") { marketingBoost = 20; metrics.cash -= 7000; explicitMarketingSpend += 7000; }
+            else if (industry === "EdTech") { marketingBoost = 16; metrics.cash -= 4500; explicitMarketingSpend += 4500; }
+            else if (industry === "SaaS Platform") { marketingBoost = 18; metrics.cash -= 5000; explicitMarketingSpend += 5000; }
+            else if (industry === "Dev Tools") { marketingBoost = 14; metrics.cash -= 3000; explicitMarketingSpend += 3000; } // Dev-targeted ads are cheaper
+            else if (industry === "FinTech App") { marketingBoost = 15; metrics.cash -= 5500; explicitMarketingSpend += 5500; } // Referral + performance ads
             else { marketingBoost = 18; metrics.cash -= 5000; explicitMarketingSpend += 5000; }
             break;
+
         case "pr_influencer":
-            if (industry === "AI Startup") { innovationBoost = 8; attrs.reputation += 3; metrics.cash -= 5000; explicitMarketingSpend += 5000; }
-            else if (industry === "E-commerce Brand") { marketingBoost = 15; metrics.brand_awareness += 10; metrics.cash -= 6000; explicitMarketingSpend += 6000; }
+            if (industry === "AI Platform") { innovationBoost = 8; attrs.reputation += 3; metrics.cash -= 5000; explicitMarketingSpend += 5000; }
+            else if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness += 10; metrics.cash -= 6000; explicitMarketingSpend += 6000; }
+            else if (industry === "Mobile Game") { marketingBoost = 18; metrics.brand_awareness += 8; metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Streamers & gaming influencers
+            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation += 2; metrics.cash -= 3500; explicitMarketingSpend += 3500; } // Educator influencers
+            else if (industry === "SaaS Platform") { marketingBoost = 10; attrs.reputation += 1; metrics.cash -= 3000; explicitMarketingSpend += 3000; }
+            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness += 5; metrics.cash -= 3500; explicitMarketingSpend += 3500; }
+            else if (industry === "Dev Tools") { marketingBoost = 11; attrs.reputation += 2; metrics.cash -= 2500; explicitMarketingSpend += 2500; } // Dev evangelists are cheap & trusted
+            else if (industry === "FinTech App") { marketingBoost = 10; attrs.reputation += 2; metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Finance YouTubers
             else { marketingBoost = 10; attrs.reputation += 1; metrics.cash -= 3000; explicitMarketingSpend += 3000; }
             break;
         case "hire_engineer": metrics.engineers += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
@@ -578,30 +619,46 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // --- OVERHAULED INDUSTRY MONETIZATION ---
     if (isSLG) {
         // All SLG models are straightforward: Active Contracts * Contract Size
+        metrics.paid_users = metrics.users;
         monthlyRevenue = metrics.users * metrics.pricing;
-        monthlyCogs = monthlyRevenue * (industry === "AI Platform" || industry === "AI Startup" ? 0.30 : 0.10);
+        monthlyCogs = monthlyRevenue * (industry === "AI Platform" ? 0.30 : 0.10);
     } else {
         // PLG models have specialized revenue mappings based on their unit types
         if (industry === "Mobile Game") {
             const adsFreq = (metrics as any).ad_intensity || 0;
             const adRevenue = metrics.users * (adsFreq / 100) * 0.15;
             const iapRevenue = metrics.users * 0.03 * metrics.pricing;
+            metrics.paid_users = Math.floor(metrics.users * 0.03); // IAP payers
             monthlyRevenue = adRevenue + iapRevenue;
             monthlyCogs = monthlyRevenue * 0.05; 
-        } else if (industry === "AI Platform" || industry === "AI Startup") {
-            monthlyRevenue = metrics.users * metrics.pricing * 2; // Assuming 20k tokens a month avg usage
+        } else if (industry === "AI Platform") {
+            metrics.paid_users = metrics.users; // Assume seat pricing for simplicity or tokens
+            monthlyRevenue = metrics.users * metrics.pricing * 2; 
             monthlyCogs = monthlyRevenue * 0.35; 
-        } else if (industry === "FinTech" || industry === "FinTech App") {
+        } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
+            metrics.paid_users = metrics.users; // Transaction users
             const txVolume = metrics.users * 200; 
             monthlyRevenue = txVolume * (metrics.pricing / 100); 
             monthlyCogs = monthlyRevenue * 0.20;
         } else if (industry === "Marketplace") {
+            metrics.paid_users = metrics.users;
             const gmv = metrics.users * 150; 
             monthlyRevenue = gmv * (metrics.pricing / 100);
             monthlyCogs = monthlyRevenue * 0.15;
         } else {
-            // Default PLG SaaS
-            monthlyRevenue = metrics.users * metrics.pricing;
+            // Default PLG SaaS (Dynamic Freemium: scales with Quality, PMF, and Price)
+            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50); 
+            const qualityFactor = Math.max(0.2, (metrics.product_quality || 10) / 50);
+            
+            const maxPrice = activeConfig?.maxPrice || 300;
+            const priceRatio = Math.min(1, Math.max(0.01, metrics.pricing / maxPrice));
+            const priceFactor = Math.max(0.1, 1.2 - (priceRatio * 0.9)); // penalize heavy pricing index
+
+            const paidRate = Math.min(0.25, Math.max(0.005, 0.04 * pmfFactor * qualityFactor * priceFactor));
+            const paidUsers = Math.floor(metrics.users * paidRate);
+            
+            metrics.paid_users = paidUsers;
+            monthlyRevenue = paidUsers * metrics.pricing;
             monthlyCogs = monthlyRevenue * 0.15;
         }
     }
@@ -864,7 +921,7 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
 
     return {
         amount,
-        proposed_month: 0, // Should be set by caller
+        proposed_month: startup.history?.length ?? 0,
         status: approved ? "approved" : "rejected",
         votes
     };

@@ -145,6 +145,7 @@ export type Startup = {
         product_quality: number;
         feature_completion: number;
         users: number; // For E-com, represents "Total Customers"
+        paid_users?: number;
         growth_rate: number;
         brand_awareness: number;
         employees: number;

@@ -32,6 +32,7 @@ export type StatEffect = Partial<{
     pmf_score: number;
     culture_score: number;
     innovation: number;
+    leads: number; // for B2B/SLG leads increments
 }>;
 
 export type SituationalContext =
@@ -373,7 +374,7 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         emoji: "😴",
         category: "health",
         tier: "immediate",
-        energyCost: 0,
+        energyCost: 4,
         description: "Let your body recover",
         impact: "+5 Health, −15 Burnout",
         cooldownMonthly: 4,
@@ -401,7 +402,7 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         emoji: "🏖️",
         category: "burnout",
         tier: "immediate",
-        energyCost: 0,
+        energyCost: 15,
         description: "2-3 days away completely offline",
         impact: "−30 Burnout (uses a month-queue slot)",
         cooldownMonthly: 1,
@@ -426,7 +427,7 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         emoji: "🎮",
         category: "burnout",
         tier: "immediate",
-        energyCost: 1,
+        energyCost: 3,
         description: "Play games, watch a film, relax",
         impact: "−10 Burnout",
         cooldownMonthly: 8,
@@ -542,10 +543,10 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         category: "marketing_skill",
         tier: "immediate",
         energyCost: 20,
-        description: "High-value blog posts and tutorials",
+        description: "High-value blog posts and tutorials ($200)",
         impact: "+1 Brand, +1 PMF",
         cooldownMonthly: 4,
-        baseEffects: {  brand_awareness: 1  , pmf_score: 1 },
+        baseEffects: {  cash: -200, brand_awareness: 1  , pmf_score: 1 },
     },
     {
         id: "seo_growth",
@@ -554,10 +555,10 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         category: "marketing_skill",
         tier: "immediate",
         energyCost: 25,
-        description: "Technical SEO and keyword optimization",
+        description: "Technical SEO and keyword optimization ($300)",
         impact: "+1 Brand, +30 Users, +1 PMF",
         cooldownMonthly: 2,
-        baseEffects: {  brand_awareness: 1, users: 30  , pmf_score: 1 },
+        baseEffects: {  cash: -300, brand_awareness: 1, users: 30  , pmf_score: 1 },
     },
     {
         id: "paid_acquisition",

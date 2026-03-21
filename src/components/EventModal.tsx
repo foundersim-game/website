@@ -28,7 +28,7 @@ interface EventModalProps {
     multiplier?: number;
 }
 
-export const generateImpactSentence = (choiceText: string, effects: Record<string, number>, multiplier: number = 1) => {
+export const generateImpactSentence = (choiceText: string, effects: Record<string, number>, multiplier: number = 1, eventTitle?: string) => {
     const changes: string[] = [];
     Object.entries(effects).forEach(([key, val]) => {
         let adjustedVal = val * multiplier;
@@ -43,7 +43,8 @@ export const generateImpactSentence = (choiceText: string, effects: Record<strin
         else changes.push(`${key.split('_').join(' ')} ${adjustedVal > 0 ? 'rose' : 'fell'}`);
     });
     const impactText = changes.length > 0 ? `. This resulted in: ${changes.join(', ')}` : '';
-    return `You decided to ${choiceText}${impactText}.`;
+    const prefix = eventTitle ? `${eventTitle}: ` : '';
+    return `${prefix}You decided to "${choiceText}"${impactText}.`;
 };
 
 export function EventModal({ event, onResolve, onClose, multiplier = 1 }: EventModalProps) {

@@ -32,7 +32,7 @@ class AdService {
         try {
             await AdMob.initialize({
                 testingDevices: [],
-                initializeForTesting: true,
+                initializeForTesting: false,
             });
             this.initialized = true;
             console.log('AdMob Initialized');
@@ -45,17 +45,23 @@ class AdService {
         if (!this.initialized) await this.initialize();
         if (!this.isNative) return;
 
-        const options: BannerAdOptions = {
-            adId: BANNER_ID,
-            adSize: BannerAdSize.ADAPTIVE_BANNER,
-            position: BannerAdPosition.BOTTOM_CENTER,
-            margin: 0,
-            isTesting: true
-        };
         try {
-            await AdMob.showBanner(options);
+            // Try resuming first in case it was hidden when navigating
+            await AdMob.resumeBanner();
         } catch (e) {
-            console.error('Banner failed', e);
+            // If resume fails (e.g., first time or not loaded yet), recreate/show
+            const options: BannerAdOptions = {
+                adId: BANNER_ID,
+                adSize: BannerAdSize.ADAPTIVE_BANNER,
+                position: BannerAdPosition.BOTTOM_CENTER,
+                margin: 0,
+                isTesting: false
+            };
+            try {
+                await AdMob.showBanner(options);
+            } catch (innerE) {
+                console.error('Banner failed on showBanner', innerE);
+            }
         }
     }
 
@@ -74,7 +80,7 @@ class AdService {
 
         const options: AdOptions = {
             adId: INTERSTITIAL_ID,
-            isTesting: true
+            isTesting: false
         };
         try {
             await AdMob.prepareInterstitial(options);
@@ -96,18 +102,14 @@ class AdService {
         if (!this.initialized) await this.initialize();
         
         if (!this.isNative) {
-            // Web Fallback: Simulate an ad delay for testing
-            toast.info("Simulating ad for web...");
-            setTimeout(() => {
-                onReward();
-                toast.success("Reward earned!");
-            }, 2000);
+            // Web: Ads not supported outside native platform — reward not granted
+            toast.info("Ads available on the mobile app only.", { description: "Download the app to earn rewards via ads." });
             return;
         }
 
         const options: RewardAdOptions = {
             adId: adUnitId || REWARDED_ID,
-            isTesting: true
+            isTesting: false
         };
 
         try {

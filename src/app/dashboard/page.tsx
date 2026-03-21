@@ -31,11 +31,13 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
 import { adService, REWARDED_CASH_ID } from "@/lib/services/adService";
 import { iapService } from "@/lib/services/iapService";
+import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook";
+import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatSaveDate(dateStr: string) {
@@ -334,8 +336,11 @@ type ActionSheetProps = {
     currentTime: number;
     cashGrants: number[];
     setCashGrants: React.Dispatch<React.SetStateAction<number[]>>;
+    energyRefills: number[];
+    setEnergyRefills: React.Dispatch<React.SetStateAction<number[]>>;
     setConfirmDialog: (d: any) => void;
     isOnline: boolean;
+    rejectedCandidates: string[];
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -344,7 +349,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, setConfirmDialog, isOnline }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates }: ActionSheetProps) {
 
     const employees = startup.employees || [];
     const safeIdx = Math.min(selectedEmpIdx, Math.max(0, employees.length - 1));
@@ -383,13 +388,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         // Format the dynamic label
                         const dynamicImpact = Object.entries(scaledEffects)
-                            .filter(([k, v]) => v && v !== 0) // Unhide debt for dynamic layouts
-                            .slice(0, 3)
+                            .filter(([k, v]) => v && v !== 0 && k !== "cash")
+                            .slice(0, 4)
                             .map(([k, v]) => {
                                 const val = v as number;
                                 const sign = val > 0 ? "+" : "";
                                 let key = k.replace(/_/g, " ");
-                                if (key === "cash") return `${val < 0 ? "-" : "+"}$${Math.abs(val / 1000).toFixed(1)}k ${(startup.metrics.net_profit ?? 0) >= 0 ? "Cash" : "Burn"}`;
                                 return `${sign}${val} ${key}`;
                             }).join(", ");
 
@@ -400,7 +404,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{action.label}</p>
-                                    <p className="text-[9px] text-slate-400 font-medium">{dynamicImpact || action.impact}</p>
+                                    <p className="text-[9px] text-slate-400 font-medium">
+                                        {dynamicImpact || action.impact}
+                                        {scaledEffects.cash && (
+                                            <span className="font-bold text-rose-600"> (Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
+                                        )}
+                                    </p>
                                 </div>
                                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                                     {scaledEffects.technical_debt && scaledEffects.technical_debt < 0 && (
@@ -511,13 +520,36 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         );
                     })()}
 
-                    <div className="w-full mt-3 px-1">
-                        {startup.gtm_motion === "PLG" ? (
-                            <p className="text-[7px] text-slate-400 text-center italic">Best for low price & mass adoption. Higher conversion & lower tech debt growth.</p>
-                        ) : (
-                            <p className="text-[7px] text-slate-400 text-center italic">Best for high-ticket sales. Unlocks B2B pipeline & win-rate bonuses.</p>
-                        )}
-                    </div>
+                    {/* Dynamic Pricing Insights */}
+                    {(() => {
+                        const ind = startup.industry || "SaaS Platform";
+                        const isPLG = startup.gtm_motion === "PLG";
+                        const cfgBase = INDUSTRY_PRICING_CONFIG[ind] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+                        const cfg = isPLG ? cfgBase.PLG : cfgBase.SLG;
+                        const ratio = m.pricing / cfg.maxPrice;
+                        
+                        let label = "⚖️ Balanced Pricing";
+                        let pros = "Solid margins with steady, predictable growth.";
+                        let cons = "Standard competition levels apply.";
+                        
+                        if (ratio < 0.25) {
+                            label = "🚀 Growth Pricing (Under-priced)";
+                            pros = "Accelerated virality & high user conversion.";
+                            cons = "Low cash revenue per user limits burn capacity.";
+                        } else if (ratio > 0.75) {
+                            label = "💎 Premium Pricing (Over-priced)";
+                            pros = "Maximizes cash revenue and contract sizes.";
+                            cons = "Slows down organic virality & yields higher churn.";
+                        }
+
+                        return (
+                            <div className="w-full mt-3 px-2 py-1.5 bg-indigo-50/50 border border-indigo-100/60 rounded-xl">
+                                <p className="text-[8px] font-black text-indigo-700 uppercase tracking-wide">{label}</p>
+                                <p className="text-[8px] text-emerald-600 mt-0.5"><span className="font-bold">Pro:</span> {pros}</p>
+                                <p className="text-[8px] text-rose-500"><span className="font-bold">Con:</span> {cons}</p>
+                            </div>
+                        );
+                    })()}
 
                     <div
                         onClick={() => setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, annual_billing: !s.metrics.annual_billing } }))}
@@ -527,6 +559,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {m.annual_billing ? "💸 Annual Billing (Upfront Cash)" : "📅 Monthly Billing (Default)"}
                     </div>
                 </div>
+
+                {/* Strategy Playbook Card */}
+                {(() => {
+                    const key = `${startup.industry}_${startup.gtm_motion}`;
+                    const pb = STRATEGY_PLAYBOOK[key];
+                    if (!pb) return null;
+                    return (
+                        <div className="mt-3 bg-slate-800 rounded-2xl p-4">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">📖 Strategy Playbook — {pb.model}</p>
+                            <div className="space-y-2">
+                                <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Your Customers</p><p className="text-[10px] text-slate-200 leading-tight">{pb.customers}</p></div></div>
+                                <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><div><p className="text-[8px] font-black text-slate-400 uppercase">MRR Formula</p><p className="text-[10px] text-emerald-300 font-bold leading-tight">{pb.mrrFormula}</p></div></div>
+                                <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Growth Lever</p><p className="text-[10px] text-slate-200 leading-tight">{pb.growthLever}</p></div></div>
+                                <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Main Risk</p><p className="text-[10px] text-rose-300 leading-tight">{pb.mainRisk}</p></div></div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {m.pricing > 199 && m.b2b_pipeline && (
                     <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-3 space-y-1">
@@ -564,7 +614,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ── Marketing Stats Panel ── */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2.5 text-center">
-                        <p className="text-lg font-black text-emerald-700 leading-none">{founder.attributes.marketing_skill}</p>
+                        <p className="text-lg font-black text-emerald-700 leading-none">{Math.round(founder.attributes.marketing_skill || 10)}</p>
                         <p className="text-[8px] font-black text-emerald-500 uppercase tracking-wide mt-0.5">Mkt Skill</p>
                     </div>
                     <div className="bg-pink-50 border border-pink-100 rounded-2xl p-2.5 text-center">
@@ -598,12 +648,36 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
                 </div>
 
+                {/* Marketing Strategy Context */}
+                {(() => {
+                    const key = `${startup.industry}_${startup.gtm_motion}`;
+                    const pb = STRATEGY_PLAYBOOK[key];
+                    if (!pb) return null;
+                    return (
+                        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                            <p className="text-[8px] font-black text-emerald-700 uppercase tracking-widest mb-1.5">🎯 Your Growth Playbook</p>
+                            <p className="text-[10px] text-emerald-800 leading-tight font-semibold mb-1">{pb.growthLever}</p>
+                            <p className="text-[9px] text-emerald-600 leading-tight">{pb.marketingTip}</p>
+                        </div>
+                    );
+                })()}
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Instant Action (Costs Energy)</p>
                 <div className="space-y-1.5">
                     {actions.map(action => {
                         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
                         const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.5;
-                        const uIdx = Math.min(usedCount, 4);
+                        
+                        const ctx = { month, startup, founder, m: startup.metrics };
+                        const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, ctx);
+                        const dynamicImpact = Object.entries(scaledEffects)
+                            .filter(([k, v]) => v && v !== 0 && k !== "cash")
+                            .map(([k, v]) => {
+                                const val = v as number;
+                                let key = k.replace(/_/g, " ");
+                                if (key === "leads") return `${val > 0 ? "+" : ""}${val} Leads`;
+                                return `${val > 0 ? "+" : ""}${val} ${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                            }).join(", ");
+
                         return (
                             <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
                                 className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
@@ -611,10 +685,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{action.label}</p>
-                                    <p className="text-[9px] text-slate-400">{action.description}</p>
+                                    <p className="text-[9px] text-slate-400">
+                                        {action.description.replace(/\s*\(\$\d+(?:,\d+)?\)/i, "")}
+                                        {scaledEffects.cash && (
+                                            <span className="font-bold text-rose-600"> (Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
+                                        )}
+                                    </p>
                                 </div>
                                 <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                    <p className="text-[9px] font-black text-emerald-600 tracking-tighter">{action.impact}</p>
+                                    <p className="text-[9px] font-black text-emerald-600 tracking-tighter">{dynamicImpact}</p>
                                     <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full opacity-90">⚡{action.energyCost}h</span>
                                 </div>
                             </div>
@@ -637,8 +716,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 {(() => {
                                     const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
                                     const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
+                                    const isSLG = startup.gtm_motion === "SLG";
+                                    const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
                                     return (
-                                        <p className="text-[9px] text-slate-400">{prog.description}{costLabel}</p>
+                                        <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
                                     );
                                 })()}
                             </div>
@@ -678,6 +759,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         return (
             <div>
                 {sheetHeader("👥", "Hiring Pipeline", `${employees.length} on team · ${m.team_morale || 0}% morale`)}
+                {/* Hiring Strategy Context */}
+                {(() => {
+                    const key = `${startup.industry}_${startup.gtm_motion}`;
+                    const pb = STRATEGY_PLAYBOOK[key];
+                    if (!pb) return null;
+                    return (
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-2xl">
+                            <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">🎯 Hiring Priority for {pb.model}</p>
+                            <p className="text-[10px] text-blue-800 font-semibold leading-tight">{pb.hiringPriority}</p>
+                        </div>
+                    );
+                })()}
 
                 {/* === OPTION POOL MANAGEMENT === */}
                 <div className="mb-4 bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-3">
@@ -805,6 +898,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{roleDef.emoji} {roleDef.label} — Choose a Candidate</p>
                         <div className="space-y-2">
                             {SKILL_TIERS.map((tier, ti) => {
+                                const candId = `${ri}-${ti}`;
+                                if (rejectedCandidates.includes(candId)) return null;
+
                                 const nameIdx = (seed + ri * 3 + ti) % CANDIDATE_NAMES.length;
                                 const skillVariance = ((seed + ri + ti) % 15) - 7;
                                 const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
@@ -818,15 +914,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         onClick={() => {
                                             if (isOver) return;
 
-                                            // Construct candidate object from UI stats to ensure consistency
                                             const candidate: Candidate = {
                                                 name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
                                                 role: roleDef.role,
                                                 level: tier.label as any,
                                                 experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
                                                 expectedSalary: salary * 12,
-                                                expectedEquity: 0.5, // Default for non-negotiated display
-                                                personality: "Ambitious" // Static for UI display
+                                                expectedEquity: 0.5,
+                                                personality: "Ambitious",
+                                                candId: candId
                                             };
 
                                             handleActionClick(candidateAction as any, candidate);
@@ -891,7 +987,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-[9px] text-slate-400">{prog.description} · {label}</p>
+                                <p className="text-[9px] text-slate-400">
+                                    {prog.description.replace(/Users/g, startup.gtm_motion === "SLG" ? "Leads" : "Users")} · {label}
+                                </p>
                             </div>
                             {active && streak > 0 && <span className="text-[10px] font-black text-indigo-600">🔥{streak} ×{mult.toFixed(0)}</span>}
                             <div className={cn("w-10 h-5 rounded-full relative", active ? "bg-indigo-500" : "bg-slate-200")}>
@@ -1407,7 +1505,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className="text-2xl">{prog.emoji}</span>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-slate-800 truncate">{prog.label}</p>
-                                <p className="text-[9px] text-slate-500 truncate mb-1.5">{prog.description}</p>
+                                <p className="text-[9px] text-slate-500 truncate mb-1.5">{prog.description.replace(/Users/g, startup.gtm_motion === "SLG" ? "Leads" : "Users")}</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {prog.monthlyCost > 0 && <span className="bg-rose-50 border border-rose-100 text-rose-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">-{formatMoney(prog.monthlyCost * Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000))))}/mo</span>}
                                     <span className="bg-amber-50 border border-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">⚡ {prog.monthlyEnergy}h/mo</span>
@@ -1440,6 +1538,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                     Tap any card or label for a plain-english explanation
                 </p>
+                {/* Revenue model context */}
+                {(() => {
+                    const key = `${startup.industry}_${startup.gtm_motion}`;
+                    const pb = STRATEGY_PLAYBOOK[key];
+                    if (!pb) return null;
+                    return (
+                        <div className="mb-4 p-3 bg-violet-50 border border-violet-100 rounded-2xl">
+                            <p className="text-[8px] font-black text-violet-600 uppercase tracking-widest mb-1">💵 Your Revenue Model — {pb.model}</p>
+                            <p className="text-[10px] font-bold text-violet-800 mb-1">{pb.mrrFormula}</p>
+                            <p className="text-[9px] text-violet-600 leading-tight">{pb.statFocus}</p>
+                        </div>
+                    );
+                })()}
 
                 <div className="flex items-center gap-4 mb-4 text-[8px] font-black uppercase tracking-widest text-slate-400">
                     <span>Legend:</span>
@@ -1488,12 +1599,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 </div>
 
                 <div className="bg-white rounded-2xl border border-slate-100 p-3 mb-3">
-                    <StatRow label="Users" value={m.users.toLocaleString()} color="text-indigo-600"
-                        explanation="Number of active users. The primary driver of MRR and valuation in PLG models."
+                    <StatRow label={startup.gtm_motion === "SLG" ? "Deals Closed" : "Users"} value={m.users.toLocaleString()} color="text-indigo-600"
+                        explanation={startup.gtm_motion === "SLG" ? "Number of active enterprise contracts or licenses." : "Number of active users. The primary driver of MRR and valuation in PLG models."}
                         isExpanded={expandedMetric === "users"} onToggle={() => toggle("users")}
                     />
-                    <StatRow label="MRR" value={formatMoney(m.users * (m.pricing || 0))} color="text-emerald-600"
-                        explanation="Monthly Recurring Revenue. The lifeblood of SaaS. Calculated as Users × Pricing."
+                    {startup.gtm_motion === "PLG" && (
+                        <StatRow label="Paid Users" value={(m.paid_users || 0).toLocaleString()} color="text-violet-600"
+                            explanation="Number of users who have converted from free to paid tiers (e.g. 5% Freemium conversion rate)."
+                            isExpanded={expandedMetric === "paid_users"} onToggle={() => toggle("paid_users")}
+                        />
+                    )}
+                    <StatRow label="MRR" value={formatMoney(m.revenue || 0)} color="text-emerald-600"
+                        explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : "Monthly Recurring Revenue. Calculated as Paid Users × Pricing."}
                         isExpanded={expandedMetric === "mrr"} onToggle={() => toggle("mrr")}
                     />
                     <StatRow label="Growth Rate" value={`${((m.growth_rate || 0) * 100).toFixed(0)}%/mo`} color="text-teal-600"
@@ -1581,21 +1698,32 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest">⚡ Monthly Focus Energy</p>
                             <span className={cn("text-[10px] font-black", energyPct > 80 ? "text-rose-600" : "text-slate-600")}>{focusHoursUsed}h / {maxHours}h</span>
                         </div>
-                        {focusHoursUsed > 0 && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 border-rose-200 text-rose-600 hover:bg-rose-200"
-                                onClick={() => {
-                                    adService.showRewardedAd(() => {
-                                        setFocusHoursUsed(0);
-                                        toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                    });
-                                }}
-                            >
-                                Refill Energy (Ads)
-                            </Button>
-                        )}
+                        {focusHoursUsed > 0 && (() => {
+                                const hourAgo = Date.now() - 3600_000;
+                                const validRefills = (energyRefills || []).filter((t: number) => t > hourAgo);
+                                const isRefillLimited = validRefills.length >= 1;
+                                return (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 border-rose-200 text-rose-600 hover:bg-rose-200"
+                                        disabled={isRefillLimited}
+                                        onClick={() => {
+                                            if (isRefillLimited) {
+                                                toast.error("Refill Limit Reached", { description: "You can refill energy once per hour." });
+                                                return;
+                                            }
+                                            adService.showRewardedAd(() => {
+                                                setFocusHoursUsed(0);
+                                                setEnergyRefills([...validRefills, Date.now()]);
+                                                toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
+                                            });
+                                        }}
+                                    >
+                                        {isRefillLimited ? "Cooldown (1/hr)" : "Refill Energy (Ads)"}
+                                    </Button>
+                                );
+                            })()}
                     </div>
                     <div className="h-2 bg-rose-100 rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full transition-all", energyPct > 80 ? "bg-rose-500" : "bg-rose-400")} style={{ width: `${energyPct}%` }} />
@@ -1678,6 +1806,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <HBar label="Leadership" v={attrs.leadership} color="bg-violet-500" />
                     <HBar label="Networking" v={attrs.networking} color="bg-cyan-500" />
                     <HBar label="Marketing" v={attrs.marketing_skill} color="bg-pink-500" />
+                    <HBar label="Reputation" v={attrs.reputation ?? 50} color="bg-amber-500" />
                     <div className="mt-2 pt-2 border-t border-slate-50 space-y-0.5">
                         <HBar label="Health" v={health} color={health < 40 ? "bg-rose-500 animate-pulse" : "bg-emerald-500"} />
                         <HBar label="Burnout" v={burnout} color={burnout > 60 ? "bg-rose-500 animate-pulse" : "bg-amber-500"} />
@@ -1737,8 +1866,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     {(() => {
                                         const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
                                         const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
+                                        const isSLG = startup.gtm_motion === "SLG";
+                                        const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
                                         return (
-                                            <p className="text-[9px] text-slate-400">{prog.description}{costLabel}</p>
+                                            <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
                                         );
                                     })()}
                                 </div>
@@ -1804,9 +1935,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         {(() => {
                                                             const effectsList = Object.entries(scaledEffects)
                                                                 .map(([key, val]) => {
-                                                                    if (!val) return null;
+                                                                    if (!val || key === "cash") return null;
                                                                     const sign = val > 0 ? "+" : "";
-                                                                    if (key === "cash") return `${formatMoney(val)}`;
                                                                     const label = key.replace(/_/g, " ")
                                                                         .replace("intelligence", "Int")
                                                                         .replace("technical skill", "Tech")
@@ -1861,8 +1991,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     {(() => {
                                         const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
                                         const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
+                                        const isSLG = startup.gtm_motion === "SLG";
+                                        const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
                                         return (
-                                            <p className="text-[9px] text-slate-400">{prog.description}{costLabel}</p>
+                                            <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
                                         );
                                     })()}
                                 </div>
@@ -2078,6 +2210,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
     const router = useRouter();
     const [startup, setStartup] = useState<Startup>(STARTUP_BASE as unknown as Startup);
@@ -2097,6 +2230,7 @@ export default function Dashboard() {
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
     const [samConsults, setSamConsults] = useState<number[]>([]);
     const [cashGrants, setCashGrants] = useState<number[]>([]); // Cash Grant rate limits
+    const [energyRefills, setEnergyRefills] = useState<number[]>([]); // Energy Refill rate limits
     const [isChadModalOpen, setIsChadModalOpen] = useState(false);
     const [chadAdvice, setChadAdvice] = useState<{ title: string; message: string; buttonText: string } | null>(null);
     const [selectedAction, setSelectedAction] = useState<StartupAction>("none");
@@ -2112,6 +2246,7 @@ export default function Dashboard() {
     const [actionCategory, setActionCategory] = useState<SheetCategory | null>(null);
     const [monthSummary, setMonthSummary] = useState<any | null>(null);
     const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
+    const [rejectedCandidates, setRejectedCandidates] = useState<string[]>([]);
     const [hiringOffer, setHiringOffer] = useState({ salary: 0, equity: 0 });
     const [isMilestoneExpanded, setIsMilestoneExpanded] = useState(false);
     const [pendingInvestor, setPendingInvestor] = useState<Investor | null>(null);
@@ -2128,6 +2263,8 @@ export default function Dashboard() {
         onConfirm: () => void;
         type?: "delete" | "fire" | "exit" | "warning" | "offline" | "premium";
     }>({ open: false, title: "", description: "", onConfirm: () => { } });
+    const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => !isAudioMuted());
+
     const [isPremium, setIsPremium] = useState<boolean>(() => {
         if (typeof window !== "undefined") {
             return localStorage.getItem("founder_sim_premium") === "true";
@@ -2192,6 +2329,18 @@ export default function Dashboard() {
             window.removeEventListener("online", handleOnline);
             window.removeEventListener("offline", handleOffline);
         };
+    }, []);
+
+    // Global Interaction Sound Effects Listener
+    useEffect(() => {
+        const handleGlobalInteraction = (e: PointerEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("button") || target.closest("[role='menuitem']") || target.closest(".cursor-pointer")) {
+                playSound("click");
+            }
+        };
+        document.addEventListener("pointerdown", handleGlobalInteraction, { capture: true });
+        return () => document.removeEventListener("pointerdown", handleGlobalInteraction, { capture: true });
     }, []);
     const handlePurchaseAsset = (asset: Omit<LuxuryAsset, "id" | "purchasePrice" | "currentValue">, price: number) => {
         if (founder.personal_wealth < price) {
@@ -2272,10 +2421,22 @@ export default function Dashboard() {
 
         // AdMob Initialization (Serves mock on web)
         const initAds = async () => {
-            await adService.initialize();
-            if (!isPremium) {
-                if (!isPremium) await adService.showBanner();
-                await adService.prepareInterstitial();
+            try {
+                await adService.initialize();
+                if (!isPremium) {
+                    try {
+                        await adService.showBanner();
+                    } catch (e) {
+                        console.warn("showBanner failed on load", e);
+                    }
+                    try {
+                        await adService.prepareInterstitial();
+                    } catch (e) {
+                        console.warn("prepareInterstitial failed on load", e);
+                    }
+                }
+            } catch (e) {
+                console.error("AdMob initialization failed", e);
             }
         };
         initAds();
@@ -2309,6 +2470,12 @@ export default function Dashboard() {
             try {
                 const d = JSON.parse(fullState);
                 if (d.startup) {
+                    // Retroactive sync for SLG: ensure closed_won matches users if it is 0
+                    if (d.startup.gtm_motion === "SLG" && d.startup.metrics?.b2b_pipeline) {
+                        if ((d.startup.metrics.b2b_pipeline.closed_won || 0) === 0 && d.startup.metrics.users > 0) {
+                            d.startup.metrics.b2b_pipeline.closed_won = d.startup.metrics.users;
+                        }
+                    }
                     setStartup({
                         ...d.startup,
                         pricing_tier: d.startup.pricing_tier || "starter",
@@ -2337,6 +2504,8 @@ export default function Dashboard() {
                 if (d.startup && d.startup.metrics) setSalaryInput(d.startup.metrics.founder_salary?.toString() || "0");
                 if (d.month) setMonth(d.month);
                 if (d.eventsTimeline) setEventsTimeline(d.eventsTimeline);
+                if (d.focusHoursUsed !== undefined) setFocusHoursUsed(d.focusHoursUsed);
+                if (d.actionUsageLog) setActionUsageLog(d.actionUsageLog);
                 if (d.competitors) setCompetitors(d.competitors);
                 if (d.unlockedAchievements) setUnlockedAchievements(d.unlockedAchievements);
                 if (d.seenEventIds) setSeenEventIds(d.seenEventIds);
@@ -2428,7 +2597,7 @@ export default function Dashboard() {
                                 innovation: mods.innovation ?? s.metrics.innovation,
                                 pmf_score: mods.pmf ?? s.metrics.pmf_score,
                                 pricing: isSLG ? 250 : 29,
-                                b2b_pipeline: isSLG ? { leads: initialLeads, active_deals: 1, closed_won: 0 } : s.metrics.b2b_pipeline,
+                                b2b_pipeline: isSLG ? { leads: initialLeads, active_deals: 1, closed_won: s.metrics.users } : s.metrics.b2b_pipeline,
                                 sleep_quality: 100,
                                 founder_salary: 0,
                             }
@@ -2475,7 +2644,8 @@ export default function Dashboard() {
                 ongoingPrograms,
                 seenEventIds,
                 founderMeta,
-                focusHoursUsed
+                focusHoursUsed,
+                actionUsageLog
             }));
         }
     }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded]);
@@ -2501,7 +2671,7 @@ export default function Dashboard() {
 
     const handleSaveAndQuit = () => {
         if (startup.name !== "New Startup") {
-            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds }));
+            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog }));
         }
         router.push("/");
     };
@@ -2530,7 +2700,7 @@ export default function Dashboard() {
             valuation: startup.valuation || 0,
             brandColor: founderMeta.brandColor,
             logo: founderMeta.logo,
-            data: { startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds }
+            data: { startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog }
         };
 
         const existingSavesRaw = localStorage.getItem("founder_sim_saves");
@@ -2563,7 +2733,11 @@ export default function Dashboard() {
         const { scaledEffects, multiplier, hints } = calcDynamicImpact(def, actionUsageLog, ctx);
         const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
         const newHoursUsed = focusHoursUsed + def.energyCost;
-        if (newHoursUsed > maxHours * 1.3) toast.warning("⚡ Over capacity!", { description: "Burnout will spike." });
+        
+        if (newHoursUsed > maxHours) {
+            toast.error("Not enough focus energy!", { description: "You cannot exceed maximum focus hours." });
+            return;
+        }
         const { startup: ns, founder: nf } = applyEffectsToState(scaledEffects, startup, founder);
         if (newHoursUsed > maxHours) {
             ns.metrics.founder_burnout = Math.min(100, (ns.metrics.founder_burnout || 0) + (newHoursUsed - maxHours) * 0.3);
@@ -2579,7 +2753,7 @@ export default function Dashboard() {
             .map(([k, v]) => `${(v as number) > 0 ? '+' : ''}${v} ${k.replace(/_/g, ' ')}`).join(' · ');
         const feedbackText = `${def.emoji} ${def.label}  ·  ${parts}${hint ? `  ·  ${hint}` : ''}`;
         setImmediateActionFeedback({ text: feedbackText, color: multiplier >= 1 ? '#16a34a' : multiplier >= 0.5 ? '#d97706' : '#dc2626' });
-        addTimelineEvent(`${def.emoji} ${def.label}${multPct < 80 ? ` (×${multPct}%)` : ''}`);
+        addTimelineEvent(`${def.emoji} ${def.label}: ${def.description}. Result: ${parts}`);
         setTimeout(() => setImmediateActionFeedback(null), 3000);
     };
 
@@ -2662,6 +2836,12 @@ export default function Dashboard() {
         const handleHiringConfirm = () => {
             if (!pendingCandidate) return;
 
+            // Energy check so they don't go into negative hours
+            if (focusHoursUsed + 10 > maxHours * 1.5) {
+                toast.error("Not enough focus energy!", { description: "You cannot exceed your maximum focus hours buffer." });
+                return;
+            }
+
             const cohortSize = 1;
             const totalEquity = hiringOffer.equity * cohortSize;
             if ((startup.metrics.option_pool || 0) < totalEquity) {
@@ -2711,6 +2891,7 @@ export default function Dashboard() {
                 const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
                 addTimelineEvent(`Personnel: ${`${pendingCandidate.name} as ${displayRole}`} joined.`);
                 setFocusHoursUsed(curr => curr + 20);
+                if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
                 setSelectedAction("none");
                 setPendingCandidate(null);
                 setHiringOffer({ salary: 0, equity: 0 });
@@ -2719,6 +2900,7 @@ export default function Dashboard() {
                 const displayRole = getDisplayRoleName(pendingCandidate.role, false);
                 addTimelineEvent(`Personnel: Failed to hire ${displayRole}.`);
                 setFocusHoursUsed(curr => curr + 10);
+                if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
                 setSelectedAction("none");
                 setPendingCandidate(null);
             }
@@ -2914,6 +3096,7 @@ export default function Dashboard() {
             }
 
             setIsProcessing(true);
+            setRejectedCandidates([]);
             try {
                 const nextMonth = month + 1;
 
@@ -2948,6 +3131,7 @@ export default function Dashboard() {
                     addTimelineEvent(IPO_MESSAGES[newStartup.ipo_stage], nextMonth);
 
                     if (newStartup.ipo_stage === 4) {
+                        playSound("success");
                         newStartup.outcome = "ipo";
                         const pts = recordExit(newStartup, founder.name);
                         toast.success(`MARKET CAP EXPLOSION! +${pts} Legacy XP earned.`);
@@ -2976,12 +3160,14 @@ export default function Dashboard() {
                     const samAlert = getEducationalAdvice(newStartup, founder);
                     if (samAlert) {
                         setSamAdvice(samAlert);
+                        playSound("popup");
                         setIsSamModalOpen(true);
                     }
                 }
 
                 // Burnout game-over
                 if ((newStartup.metrics.founder_burnout || 0) >= 100) {
+                    playSound("fail");
                     newStartup.outcome = "burnout";
                     setStartup(newStartup);
                     const pts = recordExit(newStartup, founder.name);
@@ -2995,6 +3181,7 @@ export default function Dashboard() {
 
                 const endgame = checkEndgame(newStartup);
                 if (endgame) {
+                    playSound(endgame === "acquired" ? "success" : "fail");
                     newStartup.outcome = endgame === "bankrupt" ? "bankrupt" : "other";
                     setStartup(newStartup);
                     const pts = recordExit(newStartup, founder.name);
@@ -3009,7 +3196,7 @@ export default function Dashboard() {
                 // Random events (AI First, Fallback to Predefined)
                 let ev: GameEvent | null = null;
                 if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
-                    const aiEvent = await generateAIEvent(newStartup, founder);
+                    const aiEvent = await generateAIEvent(newStartup, founder, seenEventIds);
                     if (aiEvent) ev = aiEvent as GameEvent;
                 }
 
@@ -3018,14 +3205,19 @@ export default function Dashboard() {
                 }
 
                 if (ev) {
+                    playSound("popup");
                     setActiveEvent(ev);
                     if (ev.event_id) setSeenEventIds(prev => [...prev, ev.event_id!]);
+                    else if (ev.title) setSeenEventIds(prev => [...prev, ev.title]);
                 }
 
                 // Competitors
                 const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users);
                 setCompetitors(updated);
                 news.forEach(n => addTimelineEvent(n, nextMonth));
+                
+                let nextFounder = { ...founder, attributes: { ...founder.attributes } };
+                
                 rivalActions.forEach(({ action, competitorName }) => {
                     if (competitorName.toLowerCase().includes("chadly")) {
                         setChadAdvice({
@@ -3033,12 +3225,64 @@ export default function Dashboard() {
                             message: `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
                             buttonText: "I'LL CRUSH HIM"
                         });
+                        playSound("popup");
                         setIsChadModalOpen(true);
                     }
 
-                    if (action.impactUser !== 0) newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * (1 + action.impactUser)));
-                    if (action.impactMorale !== 0) newStartup.metrics.team_morale = Math.max(0, Math.min(100, newStartup.metrics.team_morale + action.impactMorale));
-                    if (action.impactBrand !== 0) newStartup.metrics.brand_awareness = Math.max(0, Math.min(100, (newStartup.metrics.brand_awareness || 0) + action.impactBrand));
+                    // Specific handlers for comprehensive rival actions
+                    if (action.type === "vulture_talent" && newStartup.employees.length > 0) {
+                        const targetIndex = Math.floor(Math.random() * newStartup.employees.length);
+                        const poached = newStartup.employees[targetIndex];
+                        newStartup.employees = newStartup.employees.filter((_, i) => i !== targetIndex);
+                        
+                        toast.error(`💔 Poached! ${poached.name} was hired by ${competitorName}`, {
+                            description: "You lost a valuable team member."
+                        });
+                        addTimelineEvent(`💔 Staff Poached: ${poached.name} left to join ${competitorName}`, nextMonth);
+                    } else if (action.type === "price_cut") {
+                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                            const lostDeals = Math.max(1, Math.floor((newStartup.metrics.b2b_pipeline.closed_won || 0) * 0.05));
+                            newStartup.metrics.b2b_pipeline.closed_won = Math.max(0, (newStartup.metrics.b2b_pipeline.closed_won || 0) - lostDeals);
+                            toast.error(`💸 Lost ${lostDeals} Deals to ${competitorName}'s price cuts!`);
+                            addTimelineEvent(`💸 Lost ${lostDeals} Enterprise Deals to ${competitorName} (Price Cut)`, nextMonth);
+                        } else {
+                            newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.96)); // 4% churn
+                        }
+                        newStartup.metrics.pricing = Math.max(5, Math.floor(newStartup.metrics.pricing * 0.95)); // Pricing pressure
+                    } else if (action.type === "massive_marketing") {
+                        newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 10);
+                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                            newStartup.metrics.b2b_pipeline.leads = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.leads || 0) * 0.8));
+                            toast.error(`📉 Lead Pipeline drained by ${competitorName}'s ad blitz!`);
+                        } else {
+                            newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // 6% churn
+                        }
+                    } else if (action.type === "feature_launch") {
+                        newStartup.metrics.product_quality = Math.max(0, (newStartup.metrics.product_quality || 10) - 5);
+                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 5);
+                    } else if (action.type === "ai_pivot") {
+                        newStartup.metrics.innovation = Math.max(0, (newStartup.metrics.innovation || 10) - 8);
+                        newStartup.metrics.technical_debt = Math.min(100, (newStartup.metrics.technical_debt || 0) + 5);
+                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 8);
+                    } else if (action.type === "press_attack") {
+                        newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 15);
+                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 10);
+                        if (nextFounder.attributes) {
+                            nextFounder.attributes.reputation = Math.max(0, (nextFounder.attributes.reputation || 50) - 5);
+                        }
+                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                             newStartup.metrics.b2b_pipeline.active_deals = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.active_deals || 0) * 0.9));
+                        } else {
+                             newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.95));
+                        }
+                    }
+
+                    // Fallback generic multipliers (if any new actions are added without specific handlers)
+                    if (!["price_cut", "massive_marketing", "feature_launch", "ai_pivot", "press_attack", "vulture_talent"].includes(action.type)) {
+                        if (action.impactUser !== 0) newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * (1 + action.impactUser)));
+                        if (action.impactMorale !== 0) newStartup.metrics.team_morale = Math.max(0, Math.min(100, newStartup.metrics.team_morale + action.impactMorale));
+                        if (action.impactBrand !== 0) newStartup.metrics.brand_awareness = Math.max(0, Math.min(100, (newStartup.metrics.brand_awareness || 0) + action.impactBrand));
+                    }
 
                     // Real-time feedback for rival moves
                     toast.error(`⚔️ Rival Move: ${competitorName}`, {
@@ -3049,7 +3293,6 @@ export default function Dashboard() {
                 });
 
                 // --- LIFESTYLE & ASSETS ---
-                const nextFounder = { ...founder };
 
                 // 1. Lifestyle Toggles (Costs & Impacts)
                 let totalLifestyleCost = 0;
@@ -3143,14 +3386,20 @@ export default function Dashboard() {
 
         const handleEventResolution = (choice: EventChoice) => {
             const multiplier = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
-            const impactString = generateImpactSentence(choice.text, choice.effects, multiplier);
+            const impactString = generateImpactSentence(choice.text, choice.effects, multiplier, activeEvent?.title);
 
             // Use functional updates to ensure we have the absolute latest state
             setStartup(prevStartup => {
                 const metrics = { ...prevStartup.metrics };
 
                 Object.entries(choice.effects).forEach(([key, val]) => {
-                    let adjustedVal = val;
+                    const numVal = Number(val);
+                    if (isNaN(numVal)) {
+                        console.warn(`[handleEventResolution] Skipping invalid effect value for ${key}:`, val);
+                        return;
+                    }
+                    
+                    let adjustedVal = numVal;
                     if (['cash', 'burn_rate', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase())) {
                         adjustedVal *= multiplier;
                     }
@@ -3175,7 +3424,10 @@ export default function Dashboard() {
             setFounder(prevFounder => {
                 const attrs = { ...prevFounder.attributes };
                 Object.entries(choice.effects).forEach(([key, val]) => {
-                    if (key in attrs) (attrs as any)[key] += val;
+                    const numVal = Number(val);
+                    if (!isNaN(numVal) && key in attrs) {
+                        (attrs as any)[key] += numVal;
+                    }
                 });
                 // Every attribute is [0, 100]
                 Object.keys(attrs).forEach(k => {
@@ -3192,7 +3444,7 @@ export default function Dashboard() {
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
         return (
-            <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden" style={{ backgroundColor: '#f7f8fc' }}>
+            <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-10 sm:pt-4" style={{ backgroundColor: '#f7f8fc' }}>
 
                 {/* HEADER */}
                 <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '12px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
@@ -3322,6 +3574,15 @@ export default function Dashboard() {
                                     <RefreshCw className="mr-2 h-4 w-4" /> New Game
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-slate-50 focus:text-slate-800 font-bold transition-colors" onClick={(e) => {
+                                    e.preventDefault();
+                                    const newMute = toggleAudioMute();
+                                    setSfxEnabled(!newMute);
+                                    if (!newMute) playSound("click");
+                                }}>
+                                    {sfxEnabled ? <Volume2 className="mr-2 h-4 w-4" /> : <VolumeX className="mr-2 h-4 w-4" />} Sound Effects: {sfxEnabled ? "ON" : "OFF"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-emerald-50 focus:text-emerald-600 font-bold transition-colors" onClick={() => setIsHowToPlayOpen(true)}>
                                     <HelpCircle className="mr-2 h-4 w-4" /> How To Play
                                 </DropdownMenuItem>
@@ -3410,21 +3671,32 @@ export default function Dashboard() {
                                 </span>
                                 <span className="text-sm font-bold text-indigo-400">/ {maxHours}</span>
                             </div>
-                            {focusHoursUsed > 0 && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
-                                    onClick={() => {
-                                        adService.showRewardedAd(() => {
-                                            setFocusHoursUsed(0);
-                                            toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                        });
-                                    }}
-                                >
-                                    Refill ⚡
-                                </Button>
-                            )}
+                            {focusHoursUsed > 0 && (() => {
+                                    const hourAgo = Date.now() - 3600_000;
+                                    const validRefills = (energyRefills || []).filter(t => t > hourAgo);
+                                    const isRefillLimited = validRefills.length >= 1;
+                                    return (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
+                                            disabled={isRefillLimited}
+                                            onClick={() => {
+                                                if (isRefillLimited) {
+                                                    toast.error("Refill Limit Reached", { description: "You can refill energy once per hour." });
+                                                    return;
+                                                }
+                                                adService.showRewardedAd(() => {
+                                                    setFocusHoursUsed(0);
+                                                    setEnergyRefills([...validRefills, Date.now()]);
+                                                    toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
+                                                });
+                                            }}
+                                        >
+                                            {isRefillLimited ? "Cooldown (1/hr)" : "Refill ⚡"}
+                                        </Button>
+                                    );
+                                })()}
                         </div>
                     </div>
 
@@ -3580,6 +3852,7 @@ export default function Dashboard() {
                                         founder={founder}
                                         m={m}
                                         selectedAction={selectedAction}
+                                        rejectedCandidates={rejectedCandidates}
                                         setSelectedAction={(action) => {
                                             handleActionClick(action as any);
                                             const c = actionCategory || "";
@@ -3620,6 +3893,8 @@ export default function Dashboard() {
                                         currentTime={currentTime}
                                         cashGrants={cashGrants}
                                         setCashGrants={setCashGrants}
+                                        energyRefills={energyRefills}
+                                        setEnergyRefills={setEnergyRefills}
                                         setConfirmDialog={setConfirmDialog}
                                         isOnline={isOnline}
                                     />
@@ -3818,12 +4093,13 @@ export default function Dashboard() {
                             const expectedTotalComp = (pendingCandidate.expectedSalary * salaryWeight) + (pendingCandidate.expectedEquity * EQUITY_VALUE * equityWeight);
                             const offeredTotalComp = (hiringOffer.salary * salaryWeight) + (hiringOffer.equity * EQUITY_VALUE * equityWeight);
                             const compRatio = offeredTotalComp / expectedTotalComp;
-                            if (compRatio >= 1.2) score += 40;
-                            else if (compRatio >= 1) score += 20;
-                            else if (compRatio >= 0.8) score -= 10;
-                            else if (compRatio >= 0.6) score -= 30;
-                            else score -= 60;
+                            if (compRatio >= 1) {
+                                score += 20 + Math.min(20, (compRatio - 1) * 100);
+                            } else {
+                                score += 20 - Math.min(80, (1 - compRatio) * 200);
+                            }
                             score += ((founder.attributes.reputation || 50) - 50) / 2;
+                            score = Math.min(100, Math.max(0, score));
 
                             let sentimentText = "";
                             let sentimentColor = "";
@@ -3876,7 +4152,7 @@ export default function Dashboard() {
                         })()}
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setPendingCandidate(null)}>Withdraw</Button>
-                            <Button className="flex-1 rounded-xl h-12 font-black bg-indigo-600 hover:bg-indigo-700 uppercase" onClick={handleHiringConfirm}>Extend Offer</Button>
+                            <Button className="flex-1 rounded-xl h-12 font-black bg-indigo-600 hover:bg-indigo-700 uppercase" onClick={handleHiringConfirm}>Extend Offer (⚡10-20h)</Button>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -4612,7 +4888,7 @@ export default function Dashboard() {
                     );
                 })()}
 
-                <Toaster position="bottom-center" duration={3000} toastOptions={{ className: 'font-sans' }} />
+                <Toaster position="top-center" duration={3000} style={{ marginTop: '60px' }} toastOptions={{ className: 'font-sans shadow-xl' }} />
                 {/* HOW TO PLAY MODAL */}
                 <Dialog open={isHowToPlayOpen} onOpenChange={setIsHowToPlayOpen}>
                     <DialogContent className="sm:max-w-2xl bg-white border-slate-200 border-4 rounded-[2rem] p-0 shadow-2xl max-h-[85vh] overflow-hidden flex flex-col items-stretch [&>button]:hidden">

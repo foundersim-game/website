@@ -211,6 +211,14 @@ export function calcDynamicImpact(
             (scaledEffects as any)[key] = Math.round(v * costMult);
         } else {
             const isUsers = key.toLowerCase() === 'users';
+            
+            // SLG Mode conversion: users -> leads
+            if (isUsers && ctx.startup.gtm_motion === 'SLG') {
+                const leadsGained = Math.max(1, Math.round(v / 25 * multiplier));
+                (scaledEffects as any)['leads'] = leadsGained;
+                continue; // skip adding into the 'users' key
+            }
+
             const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
             const applyRewardScale = isGrowthMetric || key.toLowerCase() === 'revenue';
             
@@ -295,16 +303,33 @@ export function applyEffectsToState(
         if (val === undefined || val === 0) continue;
         if (key === "cash") {
             newStartup.metrics.cash = Math.max(0, (newStartup.metrics.cash || 0) + val);
+        } else if (key === "leads") {
+            if (!newStartup.metrics.b2b_pipeline) {
+                newStartup.metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
+            }
+            newStartup.metrics.b2b_pipeline.leads = Math.max(0, (newStartup.metrics.b2b_pipeline.leads || 0) + val);
+        } else if (key === "users" && newStartup.gtm_motion === "SLG") {
+            if (!newStartup.metrics.b2b_pipeline) {
+                newStartup.metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
+            }
+            newStartup.metrics.b2b_pipeline.leads = Math.max(0, (newStartup.metrics.b2b_pipeline.leads || 0) + val);
         } else if (ATTR_KEYS.includes(key)) {
             const cur = (newFounder.attributes as any)[key] || 50;
             (newFounder.attributes as any)[key] = Math.min(100, Math.max(0, cur + val));
         } else if (METRIC_KEYS.includes(key)) {
-            const cur = (newStartup.metrics as any)[key] || 0;
-            (newStartup.metrics as any)[key] = key === "founder_burnout"
-                ? Math.min(100, Math.max(0, cur + val))
-                : key === "founder_health"
-                    ? Math.min(100, Math.max(0, cur + val))
-                    : Math.max(0, cur + val);
+            const isTopLevel = ["pmf_score", "culture_score"].includes(key);
+            const cur = isTopLevel ? (newStartup as any)[key] || 0 : (newStartup.metrics as any)[key] || 0;
+            
+            let newVal = Math.max(0, cur + val);
+            if (key === "founder_burnout" || key === "founder_health") {
+                newVal = Math.min(100, newVal);
+            }
+
+            if (isTopLevel) {
+                (newStartup as any)[key] = newVal;
+            } else {
+                (newStartup.metrics as any)[key] = newVal;
+            }
 
             if (key === "team_morale" && newStartup.employees) {
                 newStartup.employees = newStartup.employees.map((emp: any) => ({

@@ -20,7 +20,7 @@ export type CompetitorAction = {
 };
 
 const NAMES = ["Hooli", "Aviato", "Endframe", "Gavin Belson Corp", "Bachmanity", "Sliceline", "Raviga", "Pied Piper"];
-const INDUSTRIES = ["Tech SaaS", "AI Startup", "E-commerce Brand", "FinTech", "EdTech", "Dev Tools", "Mobile Game", "OTT / Streaming"];
+const INDUSTRIES = ["SaaS Platform", "AI Platform", "Marketplace", "FinTech App", "EdTech", "Dev Tools", "Mobile Game", "OTT / Streaming"];
 
 export const RIVAL_BANTER = [
     "Sam is too soft. I'm here to crush you.",
@@ -134,20 +134,33 @@ export function simulateCompetitors(
         const isChadly = comp.id === "chadly";
         const actionChance = isChadly ? 0.35 : 0.15; // Chadly is more aggressive
         
+        // ⚔️ Rival Defeat Condition: If player beats them 2x in scale
+        if (playerUsers > newComp.users * 2 && Math.random() < 0.15 && newComp.status === "active") {
+            newComp.status = "failed";
+            news.push(`💼 RIVAL DEFEAT: ${newComp.name} couldn't match your hyper-growth and has capitulated!`);
+        }
+        
         // Attack earlier (at 10 users instead of 50)
         if (playerUsers > 10 && Math.random() < actionChance && newComp.status === "active") {
             const rivalAction = COMPETITOR_ACTIONS[Math.floor(Math.random() * COMPETITOR_ACTIONS.length)];
             newComp.last_action = rivalAction.type;
             
-            if (isChadly) {
-                const banter = RIVAL_BANTER[Math.floor(Math.random() * RIVAL_BANTER.length)];
-                (newComp as any).banter = banter;
-                news.push(`⚔️ CHADLY ATTACK: "${banter}" — ${newComp.name} ${rivalAction.description}`);
+            // 🎲 Real-Player Backfire Simulation (Mistakes)
+            const isBackfire = Math.random() < 0.20; // 20% mistake chance
+            if (isBackfire) {
+                const valuationHit = Math.floor(newComp.valuation * 0.15);
+                newComp.valuation -= valuationHit;
+                news.push(`⚠️ RIVAL MISTAKE: ${newComp.name}'s attempt to ${rivalAction.type} over-leveraged their roadmap, costing them valuation.`);
             } else {
-                news.push(`⚔️ RIVAL MOVE: ${newComp.name} ${rivalAction.description}`);
+                if (isChadly) {
+                    const banter = RIVAL_BANTER[Math.floor(Math.random() * RIVAL_BANTER.length)];
+                    (newComp as any).banter = banter;
+                    news.push(`⚔️ CHADLY ATTACK: "${banter}" — ${newComp.name} ${rivalAction.description}`);
+                } else {
+                    news.push(`⚔️ RIVAL MOVE: ${newComp.name} ${rivalAction.description}`);
+                }
+                rivalActions.push({ action: rivalAction, competitorName: newComp.name });
             }
-            
-            rivalActions.push({ action: rivalAction, competitorName: newComp.name });
         }
 
         return newComp;

@@ -22,14 +22,22 @@ const BACKGROUNDS = [
 ];
 
 const INDUSTRIES = [
-    { id: "SaaS Platform", label: "SaaS Platform", emoji: "☁️", diff: "Medium", capital: "Low", desc: "Subscription software solving B2B or B2C pain" },
-    { id: "AI Platform", label: "AI Platform", emoji: "🤖", diff: "Hard", capital: "High", desc: "Machine learning APIs, copilots, or AI-native tools" },
-    { id: "OTT / Streaming", label: "OTT / Streaming", emoji: "📺", diff: "Hard", capital: "Very High", desc: "Video streaming or content subscription platform" },
-    { id: "Mobile Game", label: "Mobile Game", emoji: "🎮", diff: "Medium", capital: "Medium", desc: "F2P mobile game with in-app purchases & ads" },
-    { id: "FinTech", label: "FinTech App", emoji: "💳", diff: "Hard", capital: "High", desc: "Payments, banking, or investment platform" },
-    { id: "EdTech", label: "EdTech Platform", emoji: "📚", diff: "Medium", capital: "Low", desc: "Online learning, tutoring, or skill development" },
-    { id: "Dev Tools", label: "Developer Tools", emoji: "⚡", diff: "Hard", capital: "Low", desc: "Infrastructure, APIs, or SDKs for developers" },
-    { id: "Marketplace", label: "Marketplace", emoji: "🌐", diff: "Medium", capital: "Medium", desc: "Two-sided marketplace connecting buyers and sellers" },
+    { id: "SaaS Platform", label: "SaaS Platform", emoji: "☁️", diff: "Medium", capital: "Low", desc: "Subscription software solving B2B or B2C pain",
+      detail: { what: "Web/mobile software product solving a recurring pain point.", who: "PLG: SMBs & professionals. SLG: mid-large companies.", revenue: "Subscriptions — small payers (PLG) or large contracts (SLG).", cogs: "Low (15%) — Standard hosting & support costs.", opex: "Balanced — Engineering & marketing drive burn.", growth: "PLG: free trials & virality. SLG: outbound demos.", risk: "PLG: churn risk. SLG: long sales cycles." } },
+    { id: "AI Platform", label: "AI Platform", emoji: "🤖", diff: "Hard", capital: "High", desc: "Machine learning APIs, copilots, or AI-native tools",
+      detail: { what: "AI models or tools automating knowledge work.", who: "PLG: developers. SLG: enterprise CIOs.", revenue: "PLG: usage billing. SLG: fixed enterprise contracts.", cogs: "High (35%) — Heavy GPU compute levels eat margins.", opex: "Technical-Heavy — Model R&D & engineering.", growth: "PLG: dev community. SLG: enterprise sales.", risk: "PLG: high direct cost rate. SLG: long procurement." } },
+    { id: "OTT / Streaming", label: "OTT / Streaming", emoji: "📺", diff: "Hard", capital: "Very High", desc: "Video streaming or content subscription platform",
+      detail: { what: "Content streaming platform or media delivery infrastructure.", who: "PLG: individual subscribers. SLG: platforms buying licenses.", revenue: "PLG: user subs. SLG: content licensing deals.", cogs: "Medium (15%) — CDN bandwidth fees.", opex: "Heavy — Massive upfront content investment.", growth: "PLG: viral content. SLG: B2B partnerships.", risk: "PLG: massive content spend. SLG: capped upside." } },
+    { id: "Mobile Game", label: "Mobile Game", emoji: "🎮", diff: "Medium", capital: "Medium", desc: "F2P mobile game with in-app purchases & ads",
+      detail: { what: "Mobile game monetized through IAPs and ads.", who: "PLG: casual gamers. SLG: studios licensing your engine.", revenue: "PLG: ad revenue + 3% whale IAPs. SLG: engine licensing fees.", cogs: "Very Low (5%) — Low server overhead per player.", opex: "Creative-Heavy — Design, art, and ad spend.", growth: "PLG: app store, viral loops. SLG: brand deals.", risk: "PLG: hits-driven. SLG: royalties cut margin." } },
+    { id: "FinTech", label: "FinTech App", emoji: "💳", diff: "Hard", capital: "High", desc: "Payments, banking, or investment platform",
+      detail: { what: "Financial tooling — payments or infrastructure.", who: "PLG: consumers & freelancers. SLG: B2B platforms.", revenue: "PLG: interchange fees. SLG: monthly infra sub.", cogs: "Medium (20%) — Payment rail Interchange fees.", opex: "Heavy — Regulatory compliance & fraud audits.", growth: "PLG: referral bonuses. SLG: B2B integrations.", risk: "PLG: low margins. SLG: long legal reviews." } },
+    { id: "EdTech", label: "EdTech Platform", emoji: "📚", diff: "Medium", capital: "Low", desc: "Online learning, tutoring, or skill development",
+      detail: { what: "Online learning platform for courses or tutoring.", who: "PLG: individual learners. SLG: schools & HR deps.", revenue: "PLG: course sales. SLG: per-seat annual contracts.", cogs: "Low (15%) — Course hosting & bandwidth.", opex: "Ops-Heavy — Instructor payouts, content SEO.", growth: "PLG: SEO & organic previews. SLG: institutional teams.", risk: "PLG: high CAC. SLG: slow procurement." } },
+    { id: "Dev Tools", label: "Developer Tools", emoji: "⚡", diff: "Hard", capital: "Low", desc: "Infrastructure, APIs, or SDKs for developers",
+      detail: { what: "Tools helping devs write, ship, or monitor software.", who: "PLG: individual devs. SLG: enterprise engineering orgs.", revenue: "PLG: hosting sub. SLG: enterprise contracts.", cogs: "Low (15%) — Managed cloud server overhead.", opex: "Tech-Heavy — Product depth is the biggest cost.", growth: "PLG: GitHub, Hacker News. SLG: outbound sales.", risk: "PLG: hard to monetize free users. SLG: stalled roadmap." } },
+    { id: "Marketplace", label: "Marketplace", emoji: "🌐", diff: "Medium", capital: "Medium", desc: "Two-sided marketplace connecting buyers and sellers",
+      detail: { what: "Platform connecting service providers with buyers.", who: "PLG: organic buyers/sellers. SLG: verified vendors.", revenue: "PLG: take-rate % on GMV. SLG: monthly suppliers fee.", cogs: "Low (15%) — Transaction & verification costs.", opex: "Ops-Heavy — Support & manual vendor vetting.", growth: "PLG: SEO, Supply growth. SLG: direct onboarding.", risk: "PLG: cold-start gap. SLG: ops heavy." } },
 ];
 
 /*
@@ -115,7 +123,7 @@ export default function CreateFounder() {
         gtmMotion: "PLG",
         scenario: "classic" as ScenarioId,
         startupName: "",
-        logo: "🚀",
+        logo: "⚡",
         brandColor: "#6366f1",
         perks: [] as string[],
     });
@@ -292,35 +300,51 @@ export default function CreateFounder() {
                         {step === 3 && (
                             <div className="space-y-2.5">
                                 {INDUSTRIES.map(ind => (
-                                    <button
-                                        key={ind.id}
-                                        onClick={() => {
-                                            setFormData({ ...formData, industry: ind.id, logo: ind.emoji });
-                                        }}
-                                        className={cn(
-                                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
-                                            formData.industry === ind.id
-                                                ? "border-indigo-300 bg-indigo-50"
-                                                : "bg-white border-slate-100 hover:border-slate-200"
-                                        )}
-                                    >
-                                        <span className="text-2xl w-10 text-center shrink-0">{ind.emoji}</span>
-                                        <div className="flex-1">
-                                            <p className={cn("font-black text-sm uppercase italic", formData.industry === ind.id ? "text-indigo-700" : "text-slate-800")}>{ind.label}</p>
-                                            <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
-                                            <div className="flex gap-2 mt-1.5">
-                                                <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase", ind.diff === "Hard" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
-                                                    {ind.diff} Difficulty
-                                                </span>
-                                                <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100">{ind.capital} Capital</span>
+                                    <div key={ind.id}>
+                                        <button
+                                            onClick={() => {
+                                                setFormData({ ...formData, industry: ind.id });
+                                            }}
+                                            className={cn(
+                                                "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
+                                                formData.industry === ind.id
+                                                    ? "border-indigo-300 bg-indigo-50"
+                                                    : "bg-white border-slate-100 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <span className="text-2xl w-10 text-center shrink-0">{ind.emoji}</span>
+                                            <div className="flex-1">
+                                                <p className={cn("font-black text-sm uppercase italic", formData.industry === ind.id ? "text-indigo-700" : "text-slate-800")}>{ind.label}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
+                                                <div className="flex gap-2 mt-1.5">
+                                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase", ind.diff === "Hard" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
+                                                        {ind.diff} Difficulty
+                                                    </span>
+                                                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100">{ind.capital} Capital</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        {formData.industry === ind.id && (
-                                            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
-                                                <ChevronRight className="size-3 text-white" />
+                                            {formData.industry === ind.id && (
+                                                <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                                                    <ChevronRight className="size-3 text-white" />
+                                                </div>
+                                            )}
+                                        </button>
+                                        {formData.industry === ind.id && (ind as any).detail && (
+                                            <div className="mx-1 p-3.5 bg-indigo-600 rounded-b-2xl border-x-2 border-b-2 border-indigo-400 -mt-2 pt-5">
+                                                <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest mb-2">📋 What You're Building</p>
+                                                <div className="space-y-2">
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏗️</span><p className="text-[10px] text-white font-semibold leading-tight">{(ind as any).detail.what}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.who}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.revenue}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💸</span><p className="text-[10px] text-indigo-100 leading-tight"><span className="text-indigo-300 font-black">COGS:</span> {(ind as any).detail.cogs}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏢</span><p className="text-[10px] text-indigo-100 leading-tight"><span className="text-indigo-300 font-black">OPEX:</span> {(ind as any).detail.opex}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.growth}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><p className="text-[10px] text-rose-200 leading-tight">{(ind as any).detail.risk}</p></div>
+                                                </div>
+                                                <p className="text-[8px] text-indigo-300 mt-2.5 text-right font-bold italic">Next → pick your go-to-market strategy</p>
                                             </div>
                                         )}
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         )}

@@ -9,6 +9,7 @@ export type Candidate = {
     expectedSalary: number;
     expectedEquity: number;
     personality: "Ambitious" | "Stable" | "Workaholic" | "Creative";
+    candId?: string;
 };
 
 export const CANDIDATE_NAMES = [
