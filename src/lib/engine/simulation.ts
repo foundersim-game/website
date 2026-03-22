@@ -16,6 +16,13 @@ export type IndustryConfig = {
     SLG: PricingConfigNode;
 };
 
+export function getPricingScale(industry: string, gtm_motion: "PLG" | "SLG"): number {
+    const config = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+    const modeConfig = config[gtm_motion] || config.PLG;
+    const price = modeConfig.maxPrice > 0 ? modeConfig.maxPrice : 3;
+    return 30 / price;
+}
+
 export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     "SaaS Platform": {
         PLG: {
@@ -233,6 +240,7 @@ export type StartupAction =
     | "hire_sales"
     // Funding
     | "pitch_investors"
+    | "negotiate_round"
     | "rest_and_recharge"
     | "none";
 
@@ -376,10 +384,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         case "hire_marketer": metrics.marketers += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
         case "hire_sales": metrics.sales += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
         case "pitch_investors":
-            innovationBoost = -10;
-            metrics.investor_pipeline.leads += Math.floor(10 + (attrs.networking / 5));
-            metrics.burn_rate += 1000;
-            metrics.founder_burnout = Math.min(100, (metrics.founder_burnout || 0) + 5);
+            // Pitching is now handled as an instant action in page.tsx 
             break;
         case "rest_and_recharge":
             metrics.founder_burnout = Math.max(0, (metrics.founder_burnout || 0) - 40);
@@ -828,6 +833,21 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             }
         };
     });
+    
+    // --- INVESTOR PIPELINE PROGRESSION ---
+    const pipeline = metrics.investor_pipeline;
+    if (pipeline) {
+        if (pipeline.leads > 0) {
+            const toMeetings = Math.max(0, Math.floor(pipeline.leads * 0.2 * (attrs.networking / 100)));
+            pipeline.leads -= toMeetings;
+            pipeline.meetings += toMeetings;
+        }
+        if (pipeline.meetings > 0) {
+            const toTermSheets = Math.max(0, Math.floor(pipeline.meetings * 0.15 * (attrs.marketing_skill / 100)));
+            pipeline.meetings -= toTermSheets;
+            pipeline.term_sheets += toTermSheets;
+        }
+    }
 
     return { newStartup, notices };
 }

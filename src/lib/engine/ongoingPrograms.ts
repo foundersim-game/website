@@ -4,6 +4,7 @@
 
 import { OngoingProgramDef, StatEffect, getOngoingProgramDef } from "./actions";
 import { applyEffectsToState } from "./dynamicImpact";
+import { getPricingScale } from "./simulation";
 
 export interface ActiveProgram {
     id: string;
@@ -65,7 +66,12 @@ export function processOngoingPrograms(
             const applyPhaseScale = isGrowthMetric || key.toLowerCase() === 'revenue';
 
             let finalMultiplier = multiplier;
-            if (isGrowthMetric) finalMultiplier *= growthMult;
+            if (isGrowthMetric) {
+                finalMultiplier *= growthMult;
+                if (isUsers && startup.industry && startup.gtm_motion) {
+                    finalMultiplier *= getPricingScale(startup.industry, startup.gtm_motion);
+                }
+            }
 
             const scaledVal = val > 0
                 ? Math.max(1, Math.round((val as number) * finalMultiplier))

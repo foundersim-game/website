@@ -213,6 +213,7 @@ export type Startup = {
         lastConsults: string[]; // ISO timestamps
         lastGrants: string[];   // ISO timestamps
     };
+    hasRateRewardClaimed?: boolean;
 };
 
 export type GameSession = {

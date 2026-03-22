@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast, Toaster } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { processMonth, StartupAction, evaluateSalaryProposal, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode } from "@/lib/engine/simulation";
+import { processMonth, StartupAction, evaluateSalaryProposal, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
 import { getNextFundingStage, getFundingPhase, generateFundingTerms, checkEndgame } from "@/lib/engine/funding";
 import { recordExit, SCENARIOS, ScenarioId, getLegacyData } from "@/lib/engine/legacy";
 import { generateAcquisitionOffer } from "@/lib/engine/manda";
@@ -31,7 +31,8 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star } from "lucide-react";
+import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
 import { adService, REWARDED_CASH_ID } from "@/lib/services/adService";
@@ -341,6 +342,7 @@ type ActionSheetProps = {
     setConfirmDialog: (d: any) => void;
     isOnline: boolean;
     rejectedCandidates: string[];
+    allEmployees: any[];
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -349,9 +351,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates, allEmployees }: ActionSheetProps) {
 
-    const employees = startup.employees || [];
+    const employees = allEmployees;
+    const liveRevenue = m.users * (m.pricing || 0);
+    const liveNetProfit = liveRevenue - (m.cogs || 0) - (m.opex || 0);
+    const profitable = liveNetProfit >= 0;
+
     const safeIdx = Math.min(selectedEmpIdx, Math.max(0, employees.length - 1));
     const emp = employees[safeIdx];
 
@@ -367,6 +373,55 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         </div>
     );
 
+    const renderOngoingProgramUI = (prog: any, mult: number) => {
+        const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
+        const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
+        const isSLG = startup.gtm_motion === "SLG";
+
+        const pmf = startup.metrics.pmf_score || 10;
+        const qual = startup.metrics.product_quality || 10;
+        const growthMult = (0.5 + pmf / 100) * (0.5 + qual / 100);
+
+        const effectsList = Object.entries(prog.baseMonthlyEffect)
+            .map(([key, val]) => {
+                if (val === undefined || key === "cash") return null;
+                const isUsers = key.toLowerCase() === 'users';
+                const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
+                const applyPhaseScale = isGrowthMetric || key.toLowerCase() === 'revenue';
+
+                let finalMult = mult;
+                if (isGrowthMetric) {
+                    finalMult *= growthMult;
+                    if (isUsers && startup.industry && startup.gtm_motion) {
+                        finalMult *= getPricingScale(startup.industry, startup.gtm_motion);
+                    }
+                }
+                
+                let scaleVal = (val as number) > 0 ? Math.max(1, Math.round((val as number) * finalMult)) : Math.min(-1, Math.round((val as number) * finalMult));
+                scaleVal *= (applyPhaseScale ? phaseMult : 1);
+                
+                let uiKey = key;
+                if (isUsers && isSLG) uiKey = "leads";
+                
+                const sign = scaleVal > 0 ? "+" : "";
+                const label = uiKey.replace(/_/g, " ")
+                    .replace("brand awareness", "Brand")
+                    .replace("reputation", "Rep")
+                    .replace("technical debt", "Debt")
+                    .replace("product quality", "Quality");
+                return `${sign}${scaleVal} ${label.replace(/\b\w/g, c => c.toUpperCase())}`;
+            })
+            .filter(Boolean)
+            .join(" · ");
+
+        return (
+            <div>
+                <p className="text-[9px] text-slate-500 font-bold mb-0.5">{prog.description}</p>
+                <p className="text-[9px] text-indigo-600 font-black">{effectsList}{costLabel}</p>
+            </div>
+        );
+    };
+
     // ── PRODUCT ────────────────────────────────────────────────────────────────
     if (category === "product") {
         const actions = IMMEDIATE_ACTIONS.filter(a => a.category === "product");
@@ -380,7 +435,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="space-y-1.5 mb-6">
                     {actions.map(action => {
                         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.5;
+                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.2;
 
                         // Calculate dynamic impact for the label
                         const ctx = { month, startup, founder, m: startup.metrics };
@@ -405,7 +460,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{action.label}</p>
                                     <p className="text-[9px] text-slate-400 font-medium">
-                                        {dynamicImpact || action.impact}
+                                        {dynamicImpact}
                                         {scaledEffects.cash && (
                                             <span className="font-bold text-rose-600"> (Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
                                         )}
@@ -665,7 +720,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="space-y-1.5">
                     {actions.map(action => {
                         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.5;
+                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.2;
                         
                         const ctx = { month, startup, founder, m: startup.metrics };
                         const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, ctx);
@@ -713,15 +768,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className="text-xl">{prog.emoji}</span>
                             <div className="flex-1">
                                 <p className="text-sm font-bold text-slate-800">{prog.label}</p>
-                                {(() => {
-                                    const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
-                                    const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
-                                    const isSLG = startup.gtm_motion === "SLG";
-                                    const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
-                                    return (
-                                        <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
-                                    );
-                                })()}
+                                {renderOngoingProgramUI(prog, mult)}
                             </div>
                             {active && streak > 0 && <span className="text-[10px] font-black text-emerald-600">🔥{streak}mo ×{mult.toFixed(0)}</span>}
                             <div className={cn("w-10 h-5 rounded-full transition-all relative", active ? "bg-emerald-500" : "bg-slate-200")}>
@@ -736,7 +783,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     // ── HIRING ──────────────────────────────────────────────────────────────────────────────
     if (category === "hiring") {
-        const employees = startup.employees || [];
+        const employees = allEmployees;
         const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
 
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
@@ -751,9 +798,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
         const seed = (startup.name.length + (employees?.length || 0) + (m?.users || 0)); // deterministic-ish seed
         const SKILL_TIERS = [
-            { label: "Senior", skillBase: 75, salaryBase: 7500, cultureFit: 85 },
-            { label: "Mid", skillBase: 55, salaryBase: 5000, cultureFit: 72 },
-            { label: "Junior", skillBase: 35, salaryBase: 3000, cultureFit: 65 },
+            { label: "Senior", skillBase: 75, salaryBase: 10000, cultureFit: 85 },
+            { label: "Mid", skillBase: 55, salaryBase: 7000, cultureFit: 72 },
+            { label: "Junior", skillBase: 35, salaryBase: 4000, cultureFit: 65 },
         ];
 
         return (
@@ -906,7 +953,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
                                 const salary = tier.salaryBase + ((seed + ti) % 500);
                                 const cultureFit = Math.max(50, Math.min(99, tier.cultureFit + ((seed + ri) % 15) - 7));
-                                const isOver = focusHoursUsed + 20 > maxHours * 1.5;
+                                const isOver = focusHoursUsed + 20 > maxHours * 1.2;
                                 const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : "hire_sales";
                                 return (
                                     <div
@@ -914,14 +961,28 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         onClick={() => {
                                             if (isOver) return;
 
+                                            const basePct = tier.label === "Lead" ? 0.8 : tier.label === "Senior" ? 0.4 : tier.label === "Mid" ? 0.2 : 0.1;
+                                            const vScale = Math.sqrt(Math.max(1, startup.valuation / 1000000));
+                                            let expectedPct = basePct / vScale;
+
+                                            // Cap the total dollar value of the equity grant (4-year package)
+                                            // This provides a baseline expectation that can be traded for salary.
+                                            const maxValue = tier.label === "Lead" ? 600000 : tier.label === "Senior" ? 350000 : tier.label === "Mid" ? 150000 : 75000;
+                                            const currentValue = (expectedPct / 100) * startup.valuation;
+                                            if (currentValue > maxValue) {
+                                                expectedPct = (maxValue / startup.valuation) * 100;
+                                            }
+
+                                            const personalities: ("Stable" | "Ambitious" | "Creative")[] = ["Stable", "Ambitious", "Creative"];
+
                                             const candidate: Candidate = {
                                                 name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
                                                 role: roleDef.role,
                                                 level: tier.label as any,
                                                 experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
                                                 expectedSalary: salary * 12,
-                                                expectedEquity: 0.5,
-                                                personality: "Ambitious",
+                                                expectedEquity: parseFloat(Math.max(0.001, expectedPct).toFixed(3)),
+                                                personality: personalities[(seed + ri + ti) % personalities.length],
                                                 candId: candId
                                             };
 
@@ -987,9 +1048,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-[9px] text-slate-400">
-                                    {prog.description.replace(/Users/g, startup.gtm_motion === "SLG" ? "Leads" : "Users")} · {label}
-                                </p>
+                                {renderOngoingProgramUI(prog, mult)}
                             </div>
                             {active && streak > 0 && <span className="text-[10px] font-black text-indigo-600">🔥{streak} ×{mult.toFixed(0)}</span>}
                             <div className={cn("w-10 h-5 rounded-full relative", active ? "bg-indigo-500" : "bg-slate-200")}>
@@ -1114,24 +1173,51 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── FUNDING ────────────────────────────────────────────────────────────────
     if (category === "funding") {
         const stage = startup.funding_stage;
-        const stageOrder = ["Bootstrapping", "Angel Investment", "Seed Round", "Series A", "Series B"];
-        const stageIdx = stageOrder.indexOf(stage);
-        const canAngelFund = stageIdx === 0;
-        const canSeed = stageIdx === 1;
-        const canSeriesA = stageIdx === 2;
-        const canSeriesB = stageIdx === 3;
-        const maxed = stageIdx >= 4;
-
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
-        const fundCost = 40;
         const capTable = startup.capTable || [{ name: "Founder", equity: 100, type: "Founder" }];
         const founderEquity = capTable.find((e: any) => e.type === "Founder")?.equity || 100;
 
+        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const fundCost = 40;
+
+        let nextRound = getNextFundingStage(stage);
+        
+        // Smart Repair: Fix corrupted sequencing or "IPO Ready" overrides.
+        const raisedRounds = capTable.filter((e: any) => e.type !== "Founder").length;
+        if (stage === "IPO Ready" || stage === "Late Stage Round" || nextRound === "Late Stage Round") {
+            if (raisedRounds === 0) nextRound = "Angel Investment";
+            else if (raisedRounds === 1) nextRound = "Seed Round";
+            else if (raisedRounds === 2) nextRound = "Series A";
+            else if (raisedRounds === 3) nextRound = "Series B";
+            else if (raisedRounds === 4) nextRound = "Series C";
+            else if (raisedRounds === 5) nextRound = "Series D";
+            else if (raisedRounds === 6) nextRound = "Series E";
+            else nextRound = "Series F";
+        }
+
         const pitchActions = [];
-        if (canAngelFund) pitchActions.push({ action: "pitch_investors", emoji: "👼", label: "Find Angel Investors", sub: "$50K–$500K · 5–15% equity" });
-        if (canSeed) pitchActions.push({ action: "pitch_investors", emoji: "🌱", label: "Pitch Seed Round", sub: "$500K–$2M · 15–25% equity" });
-        if (canSeriesA) pitchActions.push({ action: "pitch_investors", emoji: "⚡", label: "Pitch Series A", sub: "$2M–$15M · 20–30% equity" });
-        if (canSeriesB) pitchActions.push({ action: "pitch_investors", emoji: "📈", label: "Pitch Series B", sub: "$15M–$50M · 15–25% equity" });
+        if (nextRound && founderEquity > 5) {
+            let emoji = "📈";
+            let sub = "Late Stage Growth Capital";
+            
+            if (nextRound.includes("Angel")) { emoji = "👼"; sub = "$50K–$500K · 5–15% equity"; }
+            else if (nextRound.includes("Seed")) { emoji = "🌱"; sub = "$500K–$2M · 15–25% equity"; }
+            else if (nextRound === "Series A") { emoji = "⚡"; sub = "$2M–$15M · 20–30% equity"; }
+            else if (nextRound === "Series B") { emoji = "📈"; sub = "$15M–$150M · 15–25% equity"; }
+            else if (nextRound === "Series C") { emoji = "💎"; sub = "$150M–$500M · 10–20% equity"; }
+            else if (nextRound.includes("Series") || nextRound.includes("Round")) {
+                emoji = "🏛️";
+                sub = "Institutional Scaling Capital · 5-10% equity";
+            }
+            
+            pitchActions.push({ 
+                action: "pitch_investors", 
+                emoji, 
+                label: `Pitch ${nextRound}`, 
+                sub: `${sub} · Dynamic Leads (Net, Rep, Inno)` 
+            });
+        }
+        
+        const maxed = !nextRound && founderEquity < 5;
 
         return (
             <div>
@@ -1213,7 +1299,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Instant Action (Costs Energy)</p>
                         {pitchActions.map((pa, idx) => {
-                            const isOver = focusHoursUsed + fundCost > maxHours * 1.5;
+                            const isOver = focusHoursUsed + fundCost > maxHours * 1.2;
                             return (
                                 <div key={idx} onClick={() => isOver ? null : setSelectedAction("pitch_investors")}
                                     className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
@@ -1224,7 +1310,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <p className="text-[9px] text-slate-400 truncate">{pa.sub}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                        <p className="text-[9px] font-black text-amber-600 tracking-tighter">-10 Tech Boost</p>
+                                        <p className="text-[9px] font-black text-amber-600 tracking-tighter">-10 Innovation</p>
                                         <span className="text-[8px] font-black bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded-full opacity-90">⚡{fundCost}h</span>
                                     </div>
                                 </div>
@@ -1270,42 +1356,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                     </div>
                     <p className="text-[8px] text-amber-600 leading-tight">Pitch investors to grow your pipeline. Term sheets take 2-4 months to generate.</p>
+                    
+                    {/* Access point to the negotiation game from the pipeline */}
+                    {(m.investor_pipeline?.term_sheets || 0) > 0 && (
+                        <button
+                            onClick={() => handleActionClick("negotiate_round")}
+                            className="w-full mt-3 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 animate-pulse"
+                        >
+                            🤝 Negotiate Term Sheet ({m.investor_pipeline.term_sheets})
+                        </button>
+                    )}
                 </div>
 
-                {/* Close Round if Term Sheet available */}
-                {(m.investor_pipeline?.term_sheets || 0) > 0 && (
-                    <div className="mt-3 p-3 bg-emerald-50 border-2 border-emerald-300 rounded-2xl">
-                        <p className="text-xs font-black text-emerald-800">🎉 Term Sheet Ready!</p>
-                        <p className="text-[9px] text-emerald-600 mt-1 mb-3">Raise $1.5M at {formatMoney(startup.valuation)} valuation. Dilution: 20% + 10% Option Pool.</p>
-                        <button
-                            onClick={() => {
-                                const raiseAmount = 1500000;
-                                const newCap = (startup.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => ({
-                                    ...e,
-                                    equity: parseFloat((e.equity * 0.80).toFixed(1))
-                                }));
-                                const founderEntry = newCap.find((e: any) => e.type === "Founder");
-                                if (founderEntry) founderEntry.equity = parseFloat((founderEntry.equity - 10).toFixed(1));
-                                newCap.push({ name: `VC — Seed Round`, equity: 20, type: "Investor" });
-                                setStartup((s: any) => ({
-                                    ...s,
-                                    capTable: newCap,
-                                    funding_stage: "Seed Round",
-                                    metrics: {
-                                        ...s.metrics,
-                                        cash: s.metrics.cash + raiseAmount,
-                                        option_pool: (s.metrics.option_pool || 0) + 10,
-                                        investor_pipeline: { ...s.metrics.investor_pipeline, term_sheets: s.metrics.investor_pipeline.term_sheets - 1 }
-                                    }
-                                }));
-                                addTimelineEvent(`💰 Closed Seed Round! Raised $1.5M. 20% dilution + 10% Option Pool created.`);
-                            }}
-                            className="w-full py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-700 transition active:scale-[0.98]"
-                        >
-                            Accept &amp; Close Seed Round →
-                        </button>
-                    </div>
-                )}
 
                 {/* ── M&A ACQUISITION OFFERS ── */}
                 {(startup.acquisition_offers?.length ?? 0) > 0 && (
@@ -1418,9 +1480,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* ── IPO READINESS ── */}
                 {(() => {
-                    const arrNow = (m.revenue ?? 0) * 12;
+                    const liveArr = (m.users * (m.pricing || 0)) * 12;
                     const ipoChecks = [
-                        { label: "$50M ARR", pass: arrNow >= 50_000_000 },
+                        { label: "$50M ARR", pass: liveArr >= 50_000_000 },
                         { label: "10K+ Users", pass: m.users >= 10_000 },
                         { label: "PMF Score ≥ 60", pass: (m.pmf_score ?? 0) >= 60 },
                         { label: "Tech Debt < 40%", pass: (m.technical_debt ?? 0) < 40 },
@@ -1455,8 +1517,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         setStartup((s: any) => ({
                                             ...s,
                                             ipo_stage: 1,
-                                            ipo_attempt_month: currentMonth,
-                                            funding_stage: "IPO Ready"
+                                            ipo_attempt_month: currentMonth
                                         }));
                                         addTimelineEvent(`🏛️ IPO Process Started! Filed intent with underwriters. 5-month journey begins.`);
                                     }}
@@ -1498,6 +1559,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {ONGOING_PROGRAMS.filter(p => p.category_ui === "Funding").map(prog => {
                     const active = ongoingPrograms.some(p => p.id === prog.id);
+                    const ap = ongoingPrograms.find(p => p.id === prog.id);
                     return (
                         <div key={prog.id} onClick={() => handleToggleOngoingProgram(prog.id)}
                             className={cn("flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer mb-2 transition-all active:scale-[0.98]",
@@ -1505,7 +1567,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className="text-2xl">{prog.emoji}</span>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-slate-800 truncate">{prog.label}</p>
-                                <p className="text-[9px] text-slate-500 truncate mb-1.5">{prog.description.replace(/Users/g, startup.gtm_motion === "SLG" ? "Leads" : "Users")}</p>
+                                {renderOngoingProgramUI(prog, getStreakMultiplier(prog, ap?.streakMonths || 0))}
                                 <div className="flex flex-wrap gap-1.5">
                                     {prog.monthlyCost > 0 && <span className="bg-rose-50 border border-rose-100 text-rose-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">-{formatMoney(prog.monthlyCost * Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000))))}/mo</span>}
                                     <span className="bg-amber-50 border border-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">⚡ {prog.monthlyEnergy}h/mo</span>
@@ -1526,7 +1588,6 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     // ── STATS ─────────────────────────────────────────────────────────────────
     if (category === "stats") {
-        const profitable = (m.net_profit || 0) > 0;
         const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
 
         return (
@@ -1577,9 +1638,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     />
                     <BigMetric
                         label={profitable ? "Net Profit" : "Monthly Burn"}
-                        value={formatMoney(Math.abs(m.net_profit || 0))}
-                        color={profitable ? "bg-green-50 border-green-100" : ((m.net_profit ?? 0) < 0 ? "bg-rose-50 border-rose-100" : "bg-slate-50 border-slate-100")}
-                        icon={profitable ? "📈" : ((m.net_profit ?? 0) < 0 ? "🔥" : "⚖️")}
+                        value={formatMoney(Math.abs(liveNetProfit || 0))}
+                        color={profitable ? "bg-green-50 border-green-100" : (liveNetProfit < 0 ? "bg-rose-50 border-rose-100" : "bg-slate-50 border-slate-100")}
+                        icon={profitable ? "📈" : (liveNetProfit < 0 ? "🔥" : "⚖️")}
                         explanation="Monthly Profit/Loss. Positive means you are gaining cash; negative (Burn) means you are losing it. Hire a CFO to optimize expenses."
                         isExpanded={expandedMetric === "burn"}
                         onToggle={() => toggle("burn")}
@@ -1609,7 +1670,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             isExpanded={expandedMetric === "paid_users"} onToggle={() => toggle("paid_users")}
                         />
                     )}
-                    <StatRow label="MRR" value={formatMoney(m.revenue || 0)} color="text-emerald-600"
+                    <StatRow label="MRR" value={formatMoney(liveRevenue || 0)} color="text-emerald-600"
                         explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : "Monthly Recurring Revenue. Calculated as Paid Users × Pricing."}
                         isExpanded={expandedMetric === "mrr"} onToggle={() => toggle("mrr")}
                     />
@@ -1685,7 +1746,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
         // State for collapsed groups — stored in parent via a mini local map
         const [collapsedGroups, setCollapsedGroups] = [startup._collapsedFounderGroups || {}, (g: Record<string, boolean>) => setStartup((s: any) => ({ ...s, _collapsedFounderGroups: g }))];
-        const toggleGroup = (key: string) => setCollapsedGroups({ ...collapsedGroups, [key]: !collapsedGroups[key] });
+        const toggleGroup = (key: string) => setCollapsedGroups(collapsedGroups[key] === false ? {} : { [key]: false });
 
         return (
             <div>
@@ -1863,15 +1924,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-xl">{prog.emoji}</span>
                                 <div className="flex-1">
                                     <p className="text-sm font-bold text-slate-800">{prog.label}</p>
-                                    {(() => {
-                                        const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
-                                        const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
-                                        const isSLG = startup.gtm_motion === "SLG";
-                                        const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
-                                        return (
-                                            <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
-                                        );
-                                    })()}
+                                    {renderOngoingProgramUI(prog, mult)}
                                 </div>
                                 {streak > 0 && <span className="text-[10px] font-black text-violet-600">🔥{streak}m ×{mult.toFixed(0)}</span>}
                                 <div className="w-10 h-5 rounded-full relative bg-violet-500">
@@ -1988,15 +2041,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-xl">{prog.emoji}</span>
                                 <div className="flex-1">
                                     <p className="text-sm font-bold text-slate-700">{prog.label}</p>
-                                    {(() => {
-                                        const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
-                                        const costLabel = prog.monthlyCost > 0 ? ` · ${formatMoney(prog.monthlyCost * phaseMult)}/mo` : "";
-                                        const isSLG = startup.gtm_motion === "SLG";
-                                        const desc = prog.description.replace(/Users/g, isSLG ? "Leads" : "Users");
-                                        return (
-                                            <p className="text-[9px] text-slate-400">{desc}{costLabel}</p>
-                                        );
-                                    })()}
+                                    {renderOngoingProgramUI(prog, 1)}
                                 </div>
                                 <div className="w-10 h-5 rounded-full relative bg-slate-200">
                                     <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow" />
@@ -2281,6 +2326,31 @@ export default function Dashboard() {
         });
     }, []);
 
+    const allEmployees = useMemo(() => {
+        const baseEmployees = startup.employees || [];
+        const cxoConfig = [
+            { role: "CTO", name: "CTO (Executive)", salary: 18000 },
+            { role: "CMO", name: "CMO (Executive)", salary: 15000 },
+            { role: "COO", name: "COO (Executive)", salary: 16000 },
+            { role: "CFO", name: "CFO (Executive)", salary: 14000 },
+            { role: "CPO", name: "CPO (Executive)", salary: 15000 },
+            { role: "EA", name: "Executive Assistant", salary: 8000 },
+        ];
+        const activeCxos = cxoConfig.filter(cxo => (startup as any).cxoTeam?.[cxo.role]);
+        const synthesizedCxos = activeCxos.filter(cxo => !baseEmployees.some(e => e.id === `cxo_${cxo.role.toLowerCase()}`)).map(cxo => ({
+            id: `cxo_${cxo.role.toLowerCase()}`,
+            name: cxo.name,
+            role: cxo.role.toLowerCase(),
+            salary: cxo.salary * 12,
+            performance: 95,
+            skills: { technical: 85, marketing: 85, sales: 85 },
+            isCXO: true,
+            morale: 95,
+            joined_at: 1
+        }));
+        return [...baseEmployees, ...synthesizedCxos];
+    }, [startup.employees, (startup as any).cxoTeam]);
+
     const getDisplayRoleName = (role: string, plural: boolean = false) => {
         if (role !== "sales") return plural ? role + "s" : role;
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
@@ -2401,6 +2471,7 @@ export default function Dashboard() {
     const [financialTab, setFinancialTab] = useState<"summary" | "pnl" | "captable">("summary");
     const [founderMeta, setFounderMeta] = useState({ logo: "⚡", brandColor: "#a855f7" });
     const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
+    const [isRoadmapOpen, setIsRoadmapOpen] = useState(false);
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [availableSaves, setAvailableSaves] = useState<SaveSlot[]>([]);
 
@@ -2665,6 +2736,46 @@ export default function Dashboard() {
         });
     };
 
+    const handleRateAndClaim = () => {
+        if (!startup.hasRateRewardClaimed) {
+            setStartup(prev => ({
+                ...prev,
+                hasRateRewardClaimed: true,
+                metrics: {
+                    ...prev.metrics,
+                    cash: prev.metrics.cash + 50000,
+                    pmf_score: Math.min(100, (prev.metrics.pmf_score || 0) + 5)
+                }
+            }));
+
+            // Focus Boost: Give back 50 hours of focus
+            const newFocusUsed = Math.max(0, focusHoursUsed - 50);
+            setFocusHoursUsed(newFocusUsed);
+
+            toast.success("Support Applied!", { 
+                description: "Gained $50k Cash, +50h focus refill, and +5 PMF for supporting the devs!" 
+            });
+            playSound("success");
+            
+            // Record to persistent storage immediately
+            const updatedStartup = { ...startup, hasRateRewardClaimed: true };
+            localStorage.setItem("founder_sim_state", JSON.stringify({ 
+                startup: updatedStartup, 
+                founder, 
+                month, 
+                eventsTimeline, 
+                competitors, 
+                unlockedAchievements, 
+                ongoingPrograms, 
+                seenEventIds, 
+                founderMeta, 
+                focusHoursUsed: newFocusUsed, 
+                actionUsageLog 
+            }));
+        }
+        openStoreListing();
+    };
+
     const addTimelineEvent = (text: string, monthOverride?: number) => {
         setEventsTimeline(prev => [...prev, { month: monthOverride ?? month, text }]);
     };
@@ -2788,8 +2899,56 @@ export default function Dashboard() {
             const role = action.split("_")[1];
             const candidate = forcedCandidate || generateCandidate(role, startup.funding_stage);
             setPendingCandidate(candidate);
-            setHiringOffer({ salary: candidate.expectedSalary, equity: candidate.expectedEquity });
+            // Initialize with expectation, but clamp to pool if needed (or just start at 0 if no pool)
+            const initialEquity = Math.min(startup.metrics.option_pool || 0, candidate.expectedEquity);
+            setHiringOffer({ salary: candidate.expectedSalary, equity: initialEquity });
         } else if (action === "pitch_investors") {
+            const nextStage = getNextFundingStage(startup.funding_stage);
+            if (!nextStage) { toast.error("Maximum funding reached!"); return; }
+
+            const fundCost = 40;
+            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+            if (focusHoursUsed + fundCost > maxHours * 1.1) {
+                toast.error("Not enough energy!", { description: "You need 40 focus hours to prep the deck and pitch." });
+                return;
+            }
+
+            // Dynamic Lead Calculation
+            const baseLeads = 5;
+            const networkingBonus = (founder.attributes.networking || 50) / 10;
+            const reputationBonus = (founder.attributes.reputation || 50) / 20;
+            const marketingBonus = (founder.attributes.marketing_skill || 50) / 25;
+            const innovationValue = startup.metrics.innovation || 0;
+            const innovationBonus = Math.min(10, innovationValue / 10);
+
+            const timesThisMonth = actionUsageLog.thisMonth["pitch_investors"] || 0;
+            const diminish = Math.pow(0.7, timesThisMonth);
+
+            const newLeads = Math.max(1, Math.floor((baseLeads + networkingBonus + reputationBonus + marketingBonus + innovationBonus) * diminish));
+
+            setFocusHoursUsed(prev => prev + fundCost);
+            setStartup((s: any) => ({
+                ...s,
+                metrics: {
+                    ...s.metrics,
+                    innovation: Math.max(0, (s.metrics.innovation || 0) - 10),
+                    investor_pipeline: {
+                        ...(s.metrics.investor_pipeline || { leads: 0, meetings: 0, term_sheets: 0 }),
+                        leads: (s.metrics.investor_pipeline?.leads || 0) + newLeads
+                    }
+                }
+            }));
+
+            setActionUsageLog(prev => ({
+                ...prev,
+                thisMonth: { ...prev.thisMonth, pitch_investors: (prev.thisMonth.pitch_investors || 0) + 1 }
+            }));
+
+            toast.success("Pitching Started!", { 
+                description: `Added ${newLeads} leads to your pipeline. (Based on Networking, Rep, and Innovation)`,
+                duration: 5000 
+            });
+        } else if (action === "negotiate_round") {
             const nextStage = getNextFundingStage(startup.funding_stage);
             if (!nextStage) { toast.error("Maximum funding reached!"); return; }
 
@@ -2800,6 +2959,7 @@ export default function Dashboard() {
             setFundingOffer({ valuation: mktTerms.valuation, equity: mktTerms.equityGiven });
             setInvestorMessage(null);
             setPendingCounterOffer(null);
+
         } else {
             setSelectedAction(action);
         }
@@ -2837,15 +2997,18 @@ export default function Dashboard() {
             if (!pendingCandidate) return;
 
             // Energy check so they don't go into negative hours
-            if (focusHoursUsed + 10 > maxHours * 1.5) {
-                toast.error("Not enough focus energy!", { description: "You cannot exceed your maximum focus hours buffer." });
+            // Energy check: hiring is intense, can't be done if already burned out
+            if (focusHoursUsed + 10 > maxHours * 1.1) {
+                toast.error("Not enough focus energy!", { description: "You are too burned out to manage new hires. Advance to next month to refill energy." });
                 return;
             }
 
             const cohortSize = 1;
             const totalEquity = hiringOffer.equity * cohortSize;
-            if ((startup.metrics.option_pool || 0) < totalEquity) {
-                toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity}% but only have ${(startup.metrics.option_pool || 0).toFixed(1)}%` });
+            const poolAvailable = startup.metrics.option_pool || 0;
+            // Epsilon check: if they offer effectively 0%, don't block them
+            if (totalEquity > 0.001 && poolAvailable < totalEquity) {
+                toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity.toFixed(3)}% but only have ${poolAvailable.toFixed(3)}%` });
                 return;
             }
 
@@ -2930,12 +3093,15 @@ export default function Dashboard() {
                     ns.capTable = [
                         { name: "Founder", equity: parseInt(founderDiluted.toFixed(0)), type: "Founder" },
                         ...existingEntries,
-                        { name: `${nextStage} Investor`, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
+                        { name: pendingInvestor.name, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
                     ];
+                    if (ns.metrics?.investor_pipeline) {
+                        ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
+                    }
                     return ns;
                 });
 
-                addTimelineEvent(`Raised ${nextStage}: ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
+                addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name}: ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
                 toast.success(`Raised ${formatMoney(raised)}!`, { description: `Post-money valuation: ${formatMoney(postMoney)}` });
 
                 setFocusHoursUsed(curr => curr + 40);
@@ -2970,12 +3136,15 @@ export default function Dashboard() {
                 ns.capTable = [
                     { name: "Founder", equity: parseInt(founderDiluted.toFixed(0)), type: "Founder" },
                     ...existingEntries,
-                    { name: `${nextStage} Investor`, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
+                    { name: pendingInvestor.name, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
                 ];
+                if (ns.metrics?.investor_pipeline) {
+                    ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
+                }
                 return ns;
             });
 
-            addTimelineEvent(`Raised ${nextStage} (Counter Accepted): ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
+            addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name} (Counter Accepted): ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
             toast.success(`Deal Closed!`, { description: `Raised ${formatMoney(raised)}` });
 
             setFocusHoursUsed(curr => curr + 30);
@@ -3440,6 +3609,9 @@ export default function Dashboard() {
         };
 
         const m = startup.metrics;
+        const liveRevenue = m.users * (m.pricing || 0);
+        const liveNetProfit = liveRevenue - (m.cogs || 0) - (m.opex || 0);
+        const profitable = liveNetProfit >= 0;
         const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
@@ -3585,6 +3757,12 @@ export default function Dashboard() {
                                 <DropdownMenuSeparator className="bg-slate-100" />
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-emerald-50 focus:text-emerald-600 font-bold transition-colors" onClick={() => setIsHowToPlayOpen(true)}>
                                     <HelpCircle className="mr-2 h-4 w-4" /> How To Play
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-amber-50 focus:text-amber-600 font-bold transition-colors" onClick={handleRateAndClaim}>
+                                    <Star className="mr-2 h-4 w-4" /> Rate & Support {!startup.hasRateRewardClaimed && "🎁"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
+                                    <Rocket className="mr-2 h-4 w-4" /> V2 Roadmap (Coming Soon)
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -3851,6 +4029,7 @@ export default function Dashboard() {
                                         startup={startup}
                                         founder={founder}
                                         m={m}
+                                        allEmployees={allEmployees}
                                         selectedAction={selectedAction}
                                         rejectedCandidates={rejectedCandidates}
                                         setSelectedAction={(action) => {
@@ -4059,14 +4238,14 @@ export default function Dashboard() {
                                                 <label className="text-xs font-black uppercase text-slate-400">Monthly Salary</label>
                                                 <span className="text-sm font-black text-indigo-600">{formatMoney(Math.floor(hiringOffer.salary * cohortSize / 12))}/mo</span>
                                             </div>
-                                            <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 1.6 / 12)} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
+                                            <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 4.0 / 12)} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
                                         </div>
                                         <div>
                                             <div className="flex justify-between mb-1">
                                                 <label className="text-xs font-black uppercase text-slate-400">Equity Grant</label>
                                                 <span className="text-sm font-black text-indigo-600">{(hiringOffer.equity * cohortSize).toFixed(1)}%</span>
                                             </div>
-                                            <input type="range" min={0} max={cohortSize > 1 ? (10 / cohortSize) : 5.0} step={0.1} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
+                                            <input type="range" min={0} max={cohortSize > 1 ? (10 / cohortSize) : 5.0} step={0.01} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
                                         </div>
                                     </>
                                 );
@@ -4076,29 +4255,51 @@ export default function Dashboard() {
                             let score = 50;
                             const EQUITY_VALUE = startup.valuation * 0.01;
 
-                            let salaryWeight = 1.0;
-                            let equityWeight = 1.0;
+                            let salaryWeight = 1.2;
+                            let equityWeight = 0.8;
 
                             if (pendingCandidate.personality === "Stable") {
-                                salaryWeight = 1.3;
-                                equityWeight = 0.5;
+                                salaryWeight = 1.5;
+                                equityWeight = 0.3;
                             } else if (pendingCandidate.personality === "Ambitious") {
-                                salaryWeight = 0.7;
-                                equityWeight = 1.5;
+                                salaryWeight = 0.8;
+                                equityWeight = 1.2;
                             } else if (pendingCandidate.personality === "Creative") {
-                                salaryWeight = 0.9;
-                                equityWeight = 1.1;
+                                salaryWeight = 1.0;
+                                equityWeight = 1.0;
                             }
 
-                            const expectedTotalComp = (pendingCandidate.expectedSalary * salaryWeight) + (pendingCandidate.expectedEquity * EQUITY_VALUE * equityWeight);
-                            const offeredTotalComp = (hiringOffer.salary * salaryWeight) + (hiringOffer.equity * EQUITY_VALUE * equityWeight);
-                            const compRatio = offeredTotalComp / expectedTotalComp;
-                            if (compRatio >= 1) {
-                                score += 20 + Math.min(20, (compRatio - 1) * 100);
-                            } else {
-                                score += 20 - Math.min(80, (1 - compRatio) * 200);
-                            }
-                            score += ((founder.attributes.reputation || 50) - 50) / 2;
+                            // Calculate independent ratios
+                            // Calculate independent ratios
+                            const salaryRatio = hiringOffer.salary / pendingCandidate.expectedSalary;
+                            const equityRatio = (pendingCandidate.expectedEquity || 0) > 0 
+                                ? hiringOffer.equity / pendingCandidate.expectedEquity
+                                : 1.0;
+
+                            // Salary Score: Match (1.0x) = 70. Premium (2.0x) = 100.
+                            const salaryScore = salaryRatio >= 1 
+                                ? 70 + Math.min(30, (salaryRatio - 1) * 30)
+                                : 70 * Math.pow(salaryRatio, 1.5);
+
+                            // Equity Score: Relative to expectation
+                            const equityScore = equityRatio >= 1
+                                ? 70 + Math.min(30, (equityRatio - 1) * 30)
+                                : 70 * equityRatio;
+
+                            // Weights based on personality
+                            let sw = 1.0, ew = 1.0;
+                            if (pendingCandidate.personality === "Stable") { sw = 1.5; ew = 0.5; }
+                            else if (pendingCandidate.personality === "Ambitious") { sw = 0.7; ew = 1.3; }
+
+                            let combinedScore = (salaryScore * sw + equityScore * ew) / (sw + ew);
+
+                            // Compensation Trade-off floors
+                            if (salaryRatio >= 2.0) combinedScore = Math.max(combinedScore, 95);
+                            else if (salaryRatio >= 1.5) combinedScore = Math.max(combinedScore, 80);
+                            else if (salaryRatio >= 1.2) combinedScore = Math.max(combinedScore, 65);
+                            else if (salaryRatio >= 1.0 && (hiringOffer.equity || 0) <= 0.001) combinedScore = Math.max(combinedScore, 45); // Floor for matching salary with 0% equity
+
+                            score = combinedScore + ((founder.attributes.reputation || 50) - 50) / 2;
                             score = Math.min(100, Math.max(0, score));
 
                             let sentimentText = "";
@@ -4119,7 +4320,8 @@ export default function Dashboard() {
                                     {(() => {
                                         const required = hiringOffer.equity;
                                         const available = startup.metrics.option_pool || 0;
-                                        if (available < required) {
+                                        // Epsilon check to hide "Insufficient" banner if offer is 0%
+                                        if (required > 0.001 && available < required) {
                                             return (
                                                 <div className="mt-4 p-3 bg-rose-50 border-2 border-rose-200 rounded-2xl animate-in zoom-in-95 duration-200">
                                                     <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
@@ -4240,7 +4442,10 @@ export default function Dashboard() {
 
                             {/* CTA Buttons */}
                             <div className="flex gap-3">
-                                <button onClick={() => setPendingInvestor(null)} className="flex-1 h-13 py-3 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm uppercase tracking-wide active:scale-95 transition-all">Walk Away</button>
+                                <button onClick={() => {
+                                    setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, investor_pipeline: { ...(s.metrics.investor_pipeline || {}), term_sheets: Math.max(0, (s.metrics.investor_pipeline?.term_sheets || 0) - 1) } } }));
+                                    setPendingInvestor(null);
+                                }} className="flex-1 h-13 py-3 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm uppercase tracking-wide active:scale-95 transition-all">Walk Away</button>
                                 <button onClick={handleFundingConfirm} className="flex-1 h-13 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-black text-sm uppercase tracking-wide shadow-lg shadow-violet-200 active:scale-95 transition-all">Submit Pitch</button>
                             </div>
                         </div>
@@ -4313,7 +4518,7 @@ export default function Dashboard() {
 
                 {/* TEAM MODAL - REDESIGNED */}
                 <Dialog open={isTeamOpen} onOpenChange={(open) => { setIsTeamOpen(open); if (!open) { setTeamSearch(""); setTeamDeptFilter("cxo"); } }}>
-                    <DialogContent className="sm:max-w-md bg-white border-emerald-500 border-4 rounded-[2rem] p-0 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <DialogContent className="sm:max-w-md bg-white border-emerald-500 border-4 rounded-[2rem] p-0 shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[85vh] min-h-0">
                         <DialogHeader className="p-6 pb-0">
                             <DialogTitle className="text-xl font-black text-slate-900 uppercase italic flex items-center justify-between">
                                 <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
@@ -4368,33 +4573,11 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <ScrollArea className="flex-1 px-4 py-2">
+                        <ScrollArea className="flex-1 px-4 py-2 min-h-0">
                             {(() => {
-                                const cxoConfig = [
-                                    { role: "CTO", name: "CTO (Executive)", salary: 18000 },
-                                    { role: "CMO", name: "CMO (Executive)", salary: 15000 },
-                                    { role: "COO", name: "COO (Executive)", salary: 16000 },
-                                    { role: "CFO", name: "CFO (Executive)", salary: 14000 },
-                                    { role: "CPO", name: "CPO (Executive)", salary: 15000 },
-                                    { role: "EA", name: "Executive Assistant", salary: 8000 },
-                                ];
+                                const allEmployeesForRoster = allEmployees;
 
-                                const activeCxos = cxoConfig.filter(cxo => (startup as any).cxoTeam?.[cxo.role]);
-                                const synthesizedCxos = activeCxos.filter(cxo => !(startup.employees || []).some(e => e.id === `cxo_${cxo.role.toLowerCase()}`)).map(cxo => ({
-                                    id: `cxo_${cxo.role.toLowerCase()}`,
-                                    name: cxo.name,
-                                    role: cxo.role.toLowerCase(),
-                                    salary: cxo.salary * 12,
-                                    performance: 95,
-                                    skills: { technical: 85, marketing: 85, sales: 85 },
-                                    isCXO: true,
-                                    morale: 95,
-                                    joined_at: 1
-                                }));
-
-                                const allEmployees = [...(startup.employees || []), ...synthesizedCxos];
-
-                                const filtered = allEmployees.filter(e => {
+                                const filtered = allEmployeesForRoster.filter((e: any) => {
                                     const matchesSearch = e.name.toLowerCase().includes(teamSearch.toLowerCase());
                                     const matchesDept = teamDeptFilter === "cxo" ? e.isCXO : e.role === teamDeptFilter;
                                     return matchesSearch && matchesDept;
@@ -4408,8 +4591,8 @@ export default function Dashboard() {
                                     );
                                 }
 
-                                const cxos = filtered.filter(e => e.isCXO);
-                                const staff = filtered.filter(e => !e.isCXO);
+                                const cxos = filtered.filter((e: any) => e.isCXO);
+                                const staff = filtered.filter((e: any) => !e.isCXO);
 
                                 const renderCXOCard = (emp: any) => {
                                     const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
@@ -4697,13 +4880,13 @@ export default function Dashboard() {
                                             const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
                                             return (
                                                 <>
-                                                    <StatRow label="Gross Margin" value={m.cogs ? `${Math.round(((m.users * m.pricing - m.cogs) / (m.users * m.pricing + 1)) * 100)}%` : "—"} color="text-emerald-600"
+                                                    <StatRow label="Gross Margin" value={m.cogs ? `${Math.round(((liveRevenue - m.cogs) / (liveRevenue + 1)) * 100)}%` : "—"} color="text-emerald-600"
                                                         explanation="Revenue minus direct costs (COGS). Higher is better." isExpanded={expandedMetric === "gm"} onToggle={() => toggle("gm")} />
                                                     <StatRow label="COGS" value={formatMoney(m.cogs || 0)} color="text-rose-500"
                                                         explanation="Cost of Goods Sold. Direct expenses like server costs and API fees." isExpanded={expandedMetric === "cogs"} onToggle={() => toggle("cogs")} />
                                                     <StatRow label="OpEx" value={formatMoney(m.opex || 0)} color="text-rose-400"
                                                         explanation="Operating Expenses. Indirect costs like office rent and software." isExpanded={expandedMetric === "opex"} onToggle={() => toggle("opex")} />
-                                                    <StatRow label={"Net " + ((m.net_profit ?? 0) > 0 ? "Profit" : ((m.net_profit ?? 0) < 0 ? "Loss" : "Income"))} value={formatMoney(m.net_profit || 0)} color={(m.net_profit ?? 0) > 0 ? "text-emerald-600" : ((m.net_profit ?? 0) < 0 ? "text-rose-600" : "text-slate-500")}
+                                                    <StatRow label={"Net " + (liveNetProfit > 0 ? "Profit" : (liveNetProfit < 0 ? "Loss" : "Income"))} value={formatMoney(liveNetProfit || 0)} color={liveNetProfit > 0 ? "text-emerald-600" : (liveNetProfit < 0 ? "text-rose-600" : "text-slate-500")}
                                                         explanation="Total monthly profit or loss after all expenses." isExpanded={expandedMetric === "net"} onToggle={() => toggle("net")} />
                                                     <StatRow label="CAC" value={m.cac ? formatMoney(m.cac) : "N/A"} color="text-slate-500"
                                                         explanation="Customer Acquisition Cost. Marketing spend per new user." isExpanded={expandedMetric === "cac"} onToggle={() => toggle("cac")} />
@@ -4817,7 +5000,7 @@ export default function Dashboard() {
                                             <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Users</p>
                                         </div>
                                         <div className="bg-slate-50 rounded-2xl p-3 text-center">
-                                            <p className="text-sm font-black text-slate-800">{startup.employees?.length ?? 0}</p>
+                                            <p className="text-sm font-black text-slate-800">{allEmployees.length}</p>
                                             <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Team Size</p>
                                         </div>
                                     </div>
@@ -4902,6 +5085,78 @@ export default function Dashboard() {
 
                         <div className="px-6 py-4 bg-white border-t border-slate-100 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                             <Button className="rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 h-12 w-full sm:w-auto px-10 shadow-lg shadow-indigo-600/20" onClick={() => setIsHowToPlayOpen(false)}>GOT IT, LET'S BUILD</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* V2 ROADMAP MODAL */}
+                <Dialog open={isRoadmapOpen} onOpenChange={setIsRoadmapOpen}>
+                    <DialogContent className="sm:max-w-xl bg-white border-slate-200 border-4 rounded-[2.5rem] p-0 shadow-2xl overflow-hidden [&>button]:hidden font-sans">
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-8 py-10 relative overflow-hidden">
+                            {/* Decorative background element */}
+                            <div className="absolute -top-10 -right-10 text-[12rem] font-black text-white/10 select-none pointer-events-none italic">V2</div>
+                            
+                            <div className="absolute top-6 right-6 text-white/50 hover:text-white cursor-pointer select-none bg-black/10 rounded-full p-2 transition-colors" onClick={() => setIsRoadmapOpen(false)}>
+                                <X className="size-5" />
+                            </div>
+
+                            <div className="relative z-10">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
+                                    <Rocket className="size-3" /> Upcoming Expansion
+                                </div>
+                                <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
+                                <p className="text-indigo-100 text-sm font-medium max-w-md">We're transforming Founder Sim into a global empire tycoon. Here's what's landing in your garage soon.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-slate-50 space-y-5 max-h-[55vh] overflow-y-auto custom-scrollbar">
+                            <div className="group bg-white p-5 rounded-3xl border-2 border-slate-100 hover:border-indigo-300 transition-all duration-300 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
+                                <div className="flex gap-4">
+                                    <div className="size-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
+                                    <div>
+                                        <p className="text-base font-black text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">The Talent Roster Update</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">Unique executive traits, legendary hires, and internal politics. Will you hire the toxic genius who builds 10x faster but destroys your team's soul?</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="group bg-white p-5 rounded-3xl border-2 border-slate-100 hover:border-purple-300 transition-all duration-300 shadow-sm relative overflow-hidden">
+                                <div className="flex gap-4">
+                                    <div className="size-12 rounded-2xl bg-purple-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🏛️</div>
+                                    <div>
+                                        <p className="text-base font-black text-slate-800 mb-1 group-hover:text-purple-600 transition-colors">The Empire Expansion</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate tasks to VPs, engage in hostile takeovers, lobby the government, and lead your company to a public offering.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="group bg-white p-5 rounded-3xl border-2 border-slate-100 hover:border-rose-300 transition-all duration-300 shadow-sm relative overflow-hidden">
+                                <div className="flex gap-4">
+                                    <div className="size-12 rounded-2xl bg-rose-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
+                                    <div>
+                                        <p className="text-base font-black text-slate-800 mb-1 group-hover:text-rose-600 transition-colors">Dynamic Crisis Engine</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">CEO burnout meltdowns, viral PR nightmares, and aggressive competitor espionage. Your choices now carry permanent weight.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="group bg-white p-5 rounded-3xl border-2 border-slate-100 hover:border-emerald-300 transition-all duration-300 shadow-sm relative overflow-hidden">
+                                <div className="flex gap-4">
+                                    <div className="size-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
+                                    <div>
+                                        <p className="text-base font-black text-slate-800 mb-1 group-hover:text-emerald-600 transition-colors">Founder Skill Web</p>
+                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">A massive RPG-style skill tree. Spec into "Growth Hacking", "Product Visionary", or "Cold-Blooded Dealmaker" to unlock unique perks.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-8 py-6 bg-white border-t border-slate-100 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">Targeting Q2 2026 Drop</p>
+                            <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
+                                LET'S SCALE →
+                            </Button>
                         </div>
                     </DialogContent>
                 </Dialog>

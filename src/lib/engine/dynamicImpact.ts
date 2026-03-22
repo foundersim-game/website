@@ -6,6 +6,7 @@
  */
 
 import { ActionDef, StatEffect, SituationalContext } from "./actions";
+import { getPricingScale } from "./simulation";
 
 export interface ActionUsageLog {
     /** action id → count used this month */
@@ -225,6 +226,9 @@ export function calcDynamicImpact(
             let finalMult = multiplier;
             if (isGrowthMetric) {
                 finalMult *= growthMult;
+                if (isUsers && ctx.startup.industry && ctx.startup.gtm_motion) {
+                    finalMult *= getPricingScale(ctx.startup.industry, ctx.startup.gtm_motion);
+                }
                 if (isUsers && growthMult > 1.2) hints.push(`📈 PMF/Quality Boost (+${((growthMult - 1) * 100).toFixed(0)}%)`);
                 if (isUsers && growthMult < 0.8) hints.push(`⚠️ Low PMF/Quality Penalty (-${((1 - growthMult) * 100).toFixed(0)}%)`);
             }
