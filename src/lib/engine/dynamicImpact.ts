@@ -221,7 +221,8 @@ export function calcDynamicImpact(
             }
 
             const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
-            const applyRewardScale = isGrowthMetric || key.toLowerCase() === 'revenue';
+            const isPercentageMetric = ['brand_awareness', 'reputation', 'product_quality', 'reliability', 'pmf_score', 'culture_score', 'innovation', 'marketing_skill', 'technical_skill', 'leadership', 'sales_skill', 'founder_health', 'founder_burnout', 'team_morale'].includes(key.toLowerCase());
+            const applyRewardScale = (isGrowthMetric || key.toLowerCase() === 'revenue') && !isPercentageMetric;
             
             let finalMult = multiplier;
             if (isGrowthMetric) {
@@ -325,7 +326,13 @@ export function applyEffectsToState(
             const cur = isTopLevel ? (newStartup as any)[key] || 0 : (newStartup.metrics as any)[key] || 0;
             
             let newVal = Math.max(0, cur + val);
-            if (key === "founder_burnout" || key === "founder_health") {
+            
+            const PERCENTAGE_METRICS = [
+                "brand_awareness", "reputation", "product_quality", "reliability", 
+                "pmf_score", "culture_score", "innovation", "founder_burnout", 
+                "founder_health", "team_morale"
+            ];
+            if (PERCENTAGE_METRICS.includes(key)) {
                 newVal = Math.min(100, newVal);
             }
 

@@ -42,14 +42,21 @@ class AdService {
     }
 
     async showBanner() {
-        if (!this.initialized) await this.initialize();
-        if (!this.isNative) return;
+        console.log('adService: showBanner requested');
+        if (!this.initialized) {
+            console.log('adService: showBanner waiting for initialization');
+            await this.initialize();
+        }
+        if (!this.isNative) {
+            console.log('adService: showBanner skipped (not native)');
+            return;
+        }
 
         try {
-            // Try resuming first in case it was hidden when navigating
+            console.log('adService: attempting resumeBanner');
             await AdMob.resumeBanner();
         } catch (e) {
-            // If resume fails (e.g., first time or not loaded yet), recreate/show
+            console.log('adService: resumeBanner failed, creating new banner', e);
             const options: BannerAdOptions = {
                 adId: BANNER_ID,
                 adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -59,8 +66,9 @@ class AdService {
             };
             try {
                 await AdMob.showBanner(options);
+                console.log('adService: showBanner success');
             } catch (innerE) {
-                console.error('Banner failed on showBanner', innerE);
+                console.error('adService: showBanner failed definitively', innerE);
             }
         }
     }

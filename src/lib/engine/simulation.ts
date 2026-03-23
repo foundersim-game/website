@@ -309,19 +309,19 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     switch (action) {
         case "build_mvp_features":
-            if (industry === "AI Platform") { techBoost = 7; metrics.innovation += 4; metrics.burn_rate += 1500; metrics.technical_debt += 15; }
-            else if (industry === "Mobile Game") { techBoost = 5; metrics.innovation += 3; metrics.cash -= 3000; metrics.technical_debt += 8; }
-            else if (industry === "SaaS Platform") { techBoost = 10; metrics.technical_debt += 12; metrics.burn_rate += 800; }
-            else if (industry === "Dev Tools") { techBoost = 12; metrics.technical_debt += 10; metrics.innovation += 2; metrics.burn_rate += 600; }
-            else if (industry === "FinTech App") { techBoost = 8; metrics.technical_debt += 14; metrics.burn_rate += 1000; } // Compliance overhead
-            else if (industry === "EdTech") { techBoost = 7; metrics.technical_debt += 8; metrics.burn_rate += 500; }
-            else if (industry === "OTT / Streaming") { techBoost = 6; metrics.technical_debt += 10; metrics.burn_rate += 1200; } // CDN infra costs
-            else if (industry === "Marketplace") { techBoost = 8; metrics.technical_debt += 11; metrics.burn_rate += 700; }
-            else { techBoost = 10; metrics.technical_debt += 12; metrics.burn_rate += 800; }
+            if (industry === "AI Platform") { techBoost = 7; metrics.innovation = Math.min(100, (metrics.innovation || 0) + 4); metrics.burn_rate += 1500; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 15); }
+            else if (industry === "Mobile Game") { techBoost = 5; metrics.innovation = Math.min(100, (metrics.innovation || 0) + 3); metrics.cash -= 3000; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 8); }
+            else if (industry === "SaaS Platform") { techBoost = 10; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 12); metrics.burn_rate += 800; }
+            else if (industry === "Dev Tools") { techBoost = 12; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 10); metrics.innovation = Math.min(100, (metrics.innovation || 0) + 2); metrics.burn_rate += 600; }
+            else if (industry === "FinTech App") { techBoost = 8; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 14); metrics.burn_rate += 1000; } // Compliance overhead
+            else if (industry === "EdTech") { techBoost = 7; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 8); metrics.burn_rate += 500; }
+            else if (industry === "OTT / Streaming") { techBoost = 6; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 10); metrics.burn_rate += 1200; } // CDN infra costs
+            else if (industry === "Marketplace") { techBoost = 8; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 11); metrics.burn_rate += 700; }
+            else { techBoost = 10; metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 12); metrics.burn_rate += 800; }
             break;
 
         case "refactor_core":
-            if (industry === "AI Platform") { techBoost = 5; metrics.burn_rate -= 300; metrics.innovation += 5; debtReduction = 5; }
+            if (industry === "AI Platform") { techBoost = 5; metrics.burn_rate -= 300; metrics.innovation = Math.min(100, (metrics.innovation || 0) + 5); debtReduction = 5; }
             else if (industry === "Dev Tools") { metrics.burn_rate -= 200; reliabilityBoost = 10; debtReduction = 5; }
             else if (industry === "SaaS Platform") { techBoost = 5; debtReduction = 10; reliabilityBoost = 5; metrics.burn_rate += 400; }
             else if (industry === "FinTech App") { debtReduction = 12; reliabilityBoost = 12; metrics.burn_rate += 200; } // Compliance-grade refactor has real upside
@@ -334,25 +334,25 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
         case "fix_bugs":
             debtReduction = 20; reliabilityBoost = 15;
-            if (industry === "AI Platform") { attrs.reputation += 2; debtReduction = 18; }
-            else if (industry === "Dev Tools") { metrics.team_morale += 5; reliabilityBoost = 18; } // Dev Tools users are power users who care deeply
-            else if (industry === "FinTech App") { reliabilityBoost = 20; attrs.reputation += 3; } // Bugs in FinTech = trust disaster
-            else if (industry === "SaaS Platform") { metrics.team_morale += 3; }
-            else if (industry === "Mobile Game") { metrics.team_morale += 2; debtReduction = 15; } // Gamers churn fast on bugs
-            else if (industry === "EdTech") { attrs.reputation += 1; debtReduction = 18; }
-            else if (industry === "OTT / Streaming") { reliabilityBoost = 18; attrs.reputation += 1; } // Buffering = instant churn
-            else if (industry === "Marketplace") { metrics.team_morale += 2; reliabilityBoost = 16; }
+            if (industry === "AI Platform") { attrs.reputation = Math.min(100, (attrs.reputation || 0) + 2); debtReduction = 18; }
+            else if (industry === "Dev Tools") { metrics.team_morale = Math.min(100, (metrics.team_morale || 0) + 5); reliabilityBoost = 18; } // Dev Tools users are power users who care deeply
+            else if (industry === "FinTech App") { reliabilityBoost = 20; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 3); } // Bugs in FinTech = trust disaster
+            else if (industry === "SaaS Platform") { metrics.team_morale = Math.min(100, (metrics.team_morale || 0) + 3); }
+            else if (industry === "Mobile Game") { metrics.team_morale = Math.min(100, (metrics.team_morale || 0) + 2); debtReduction = 15; } // Gamers churn fast on bugs
+            else if (industry === "EdTech") { attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); debtReduction = 18; }
+            else if (industry === "OTT / Streaming") { reliabilityBoost = 18; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); } // Buffering = instant churn
+            else if (industry === "Marketplace") { metrics.team_morale = Math.min(100, (metrics.team_morale || 0) + 2); reliabilityBoost = 16; }
             break;
 
         case "organic_social":
-            if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness += 3; } // Content is viral
-            else if (industry === "AI Platform") { marketingBoost = 10; metrics.innovation += 1; }
+            if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 3); } // Content is viral
+            else if (industry === "AI Platform") { marketingBoost = 10; metrics.innovation = Math.min(100, (metrics.innovation || 0) + 1); }
             else if (industry === "Mobile Game") { marketingBoost = 18; } // Clips + memes = massive viral reach
-            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation += 1; } // Testimonials and learning wins
-            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness += 2; }
+            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); } // Testimonials and learning wins
+            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 2); }
             else if (industry === "SaaS Platform") { marketingBoost = 10; }
             else if (industry === "Dev Tools") { marketingBoost = 14; } // Dev social (Twitter/X, HN, Reddit) is high ROI
-            else if (industry === "FinTech App") { marketingBoost = 9; attrs.reputation += 1; } // Trust-driven word of mouth
+            else if (industry === "FinTech App") { marketingBoost = 9; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); } // Trust-driven word of mouth
             else { marketingBoost = 10; }
             metrics.cash -= 500; explicitMarketingSpend += 500;
             break;
@@ -370,19 +370,19 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             break;
 
         case "pr_influencer":
-            if (industry === "AI Platform") { innovationBoost = 8; attrs.reputation += 3; metrics.cash -= 5000; explicitMarketingSpend += 5000; }
-            else if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness += 10; metrics.cash -= 6000; explicitMarketingSpend += 6000; }
-            else if (industry === "Mobile Game") { marketingBoost = 18; metrics.brand_awareness += 8; metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Streamers & gaming influencers
-            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation += 2; metrics.cash -= 3500; explicitMarketingSpend += 3500; } // Educator influencers
-            else if (industry === "SaaS Platform") { marketingBoost = 10; attrs.reputation += 1; metrics.cash -= 3000; explicitMarketingSpend += 3000; }
-            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness += 5; metrics.cash -= 3500; explicitMarketingSpend += 3500; }
-            else if (industry === "Dev Tools") { marketingBoost = 11; attrs.reputation += 2; metrics.cash -= 2500; explicitMarketingSpend += 2500; } // Dev evangelists are cheap & trusted
-            else if (industry === "FinTech App") { marketingBoost = 10; attrs.reputation += 2; metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Finance YouTubers
-            else { marketingBoost = 10; attrs.reputation += 1; metrics.cash -= 3000; explicitMarketingSpend += 3000; }
+            if (industry === "AI Platform") { innovationBoost = 8; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 3); metrics.cash -= 5000; explicitMarketingSpend += 5000; }
+            else if (industry === "OTT / Streaming") { marketingBoost = 15; metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 10); metrics.cash -= 6000; explicitMarketingSpend += 6000; }
+            else if (industry === "Mobile Game") { marketingBoost = 18; metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 8); metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Streamers & gaming influencers
+            else if (industry === "EdTech") { marketingBoost = 12; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 2); metrics.cash -= 3500; explicitMarketingSpend += 3500; } // Educator influencers
+            else if (industry === "SaaS Platform") { marketingBoost = 10; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); metrics.cash -= 3000; explicitMarketingSpend += 3000; }
+            else if (industry === "Marketplace") { marketingBoost = 13; metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 5); metrics.cash -= 3500; explicitMarketingSpend += 3500; }
+            else if (industry === "Dev Tools") { marketingBoost = 11; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 2); metrics.cash -= 2500; explicitMarketingSpend += 2500; } // Dev evangelists are cheap & trusted
+            else if (industry === "FinTech App") { marketingBoost = 10; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 2); metrics.cash -= 4000; explicitMarketingSpend += 4000; } // Finance YouTubers
+            else { marketingBoost = 10; attrs.reputation = Math.min(100, (attrs.reputation || 0) + 1); metrics.cash -= 3000; explicitMarketingSpend += 3000; }
             break;
-        case "hire_engineer": metrics.engineers += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
-        case "hire_marketer": metrics.marketers += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
-        case "hire_sales": metrics.sales += 1; metrics.employees += 1; metrics.team_morale -= 5; break;
+        case "hire_engineer": metrics.engineers += 1; metrics.employees += 1; metrics.team_morale = Math.max(0, (metrics.team_morale || 0) - 5); break;
+        case "hire_marketer": metrics.marketers += 1; metrics.employees += 1; metrics.team_morale = Math.max(0, (metrics.team_morale || 0) - 5); break;
+        case "hire_sales": metrics.sales += 1; metrics.employees += 1; metrics.team_morale = Math.max(0, (metrics.team_morale || 0) - 5); break;
         case "pitch_investors":
             // Pitching is now handled as an instant action in page.tsx 
             break;
@@ -700,7 +700,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // --- PRODUCT DEBT GROWTH (SCENARIO) ---
     if (scenarioRules.techDebtGrowthMultiplier && (action === "build_mvp_features")) {
         // Additional debt from aggressive building in AI Rush etc.
-        metrics.technical_debt += (10 * (scenarioRules.techDebtGrowthMultiplier - 1));
+        if (scenarioRules.techDebtGrowthMultiplier > 1) {
+            metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + (10 * (scenarioRules.techDebtGrowthMultiplier - 1)));
+        }
     }
 
     // --- FOUNDER STATS ---

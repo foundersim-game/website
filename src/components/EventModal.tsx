@@ -77,7 +77,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1 }: EventM
 
     return (
         <Dialog open={!!event} onOpenChange={() => { }}>
-            <DialogContent className="sm:max-w-md bg-white border-slate-200 border-4 rounded-[2rem] p-6 shadow-2xl [&>button]:hidden">
+            <DialogContent className="sm:max-w-md bg-white border-slate-200 border-4 rounded-[2rem] p-6 shadow-2xl [&>button]:hidden max-h-[90vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
                 <DialogHeader className="space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-2">
                         <Zap className="size-6 fill-current" />
@@ -90,7 +90,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1 }: EventM
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-3 py-6">
+                <div className="flex flex-col gap-3 py-4">
                     {!resolvedChoice ? (
                         event.choices.map((choice, index) => (
                             <Button

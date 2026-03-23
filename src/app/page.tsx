@@ -166,7 +166,7 @@ export default function Home() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-indigo-100/50 blur-[40px] -z-10" />
 
       {/* Main Content */}
-      <div className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 pt-6 pb-2.5 relative z-10">
+      <div className="w-full max-w-sm mx-auto flex flex-col min-h-[100dvh] px-6 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] relative z-10">
 
         {/* Logo & Title */}
         <motion.div
@@ -213,7 +213,7 @@ export default function Home() {
              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 text-center flex items-center justify-center gap-2 shrink-0">
                <History className="size-3" /> Hall of Fame
              </p>
-             <div className="space-y-1.5 overflow-y-auto max-h-[120px] custom-scrollbar pr-0.5 min-h-0">
+             <div className="space-y-1.5 overflow-y-auto max-h-[100px] custom-scrollbar pr-0.5 min-h-0">
                {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition').length > 0 ? (
                  legacyData.hallOfFame
                    .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition')
@@ -236,7 +236,7 @@ export default function Home() {
           </div>
 
           {/* Feature tags */}
-          <div className="mt-5 flex flex-wrap gap-1.5 justify-center shrink-0">
+          <div className="mt-4 flex flex-wrap gap-1.5 justify-center shrink-0">
             {["🏢 Real Unit Economics", "📈 100+ Events", "🎯 Sales Pipeline", "🤝 Co-Founders"].map(tag => (
               <span key={tag} className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5">{tag}</span>
             ))}
@@ -248,7 +248,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.6 }}
-          className="flex flex-col gap-2 mt-6 mb-4 shrink-0"
+          className="flex flex-col gap-2 mt-4 mb-2 shrink-0"
         >
           {hasActiveGame && (
             <button

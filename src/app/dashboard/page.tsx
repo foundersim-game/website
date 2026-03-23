@@ -387,7 +387,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 if (val === undefined || key === "cash") return null;
                 const isUsers = key.toLowerCase() === 'users';
                 const isGrowthMetric = isUsers || ['brand_awareness', 'reputation'].includes(key.toLowerCase());
-                const applyPhaseScale = isGrowthMetric || key.toLowerCase() === 'revenue';
+                const isPercentageMetric = ['brand_awareness', 'reputation', 'product_quality', 'reliability', 'pmf_score', 'culture_score', 'innovation', 'marketing_skill', 'technical_skill', 'leadership', 'sales_skill', 'founder_health', 'founder_burnout', 'team_morale'].includes(key.toLowerCase());
+                const applyPhaseScale = (isGrowthMetric || key.toLowerCase() === 'revenue') && !isPercentageMetric;
 
                 let finalMult = mult;
                 if (isGrowthMetric) {
@@ -2495,16 +2496,10 @@ export default function Dashboard() {
             try {
                 await adService.initialize();
                 if (!isPremium) {
-                    try {
-                        await adService.showBanner();
-                    } catch (e) {
-                        console.warn("showBanner failed on load", e);
-                    }
-                    try {
-                        await adService.prepareInterstitial();
-                    } catch (e) {
-                        console.warn("prepareInterstitial failed on load", e);
-                    }
+                    await adService.showBanner();
+                    await adService.prepareInterstitial();
+                } else {
+                    await adService.hideBanner();
                 }
             } catch (e) {
                 console.error("AdMob initialization failed", e);
@@ -2516,6 +2511,15 @@ export default function Dashboard() {
             adService.hideBanner();
         };
     }, []);
+
+    // Watch for premium changes to hide ads immediately
+    useEffect(() => {
+        if (isPremium) {
+            adService.hideBanner();
+        } else if (isLoaded) {
+            adService.showBanner();
+        }
+    }, [isPremium, isLoaded]);
     const [saveConfirmOverwrite, setSaveConfirmOverwrite] = useState<string | null>(null);
 
 
@@ -3616,10 +3620,10 @@ export default function Dashboard() {
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
         return (
-            <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-10 sm:pt-4" style={{ backgroundColor: '#f7f8fc' }}>
+            <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0" style={{ backgroundColor: '#f7f8fc' }}>
 
                 {/* HEADER */}
-                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '12px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
@@ -3826,7 +3830,7 @@ export default function Dashboard() {
                 {/* FOCUS HEADER & CORE STATS */}
                 <div className="shrink-0 flex flex-col">
                     {/* Dedicated Focus Hours Bar */}
-                    <div className="px-4 py-3 bg-indigo-50 flex items-center justify-between border-b border-indigo-100">
+                    <div className="px-4 py-2 bg-indigo-50 flex items-center justify-between border-b border-indigo-100">
                         <div
                             className="flex items-center gap-3 cursor-pointer hover:bg-indigo-100/50 transition-colors rounded-xl p-1 -m-1"
                             onClick={() => setIsFocusBreakdownOpen(true)}
@@ -3879,7 +3883,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Core Stats Overview */}
-                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 py-2 bg-slate-50 border-b border-slate-100">
                         {[
                             { icon: '👤', label: formatNumber(m.users), sub: 'Users', color: 'text-slate-800' },
                             { icon: '💵', label: formatMoney(m.users * m.pricing), sub: 'MRR', color: 'text-emerald-700' },
@@ -3988,7 +3992,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* ACTION GRID */}
-                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+60px)]">
+                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+50px)]">
                     <div className="grid grid-cols-4 gap-2">
                         {([
                             { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
@@ -4969,15 +4973,16 @@ export default function Dashboard() {
 
                     return (
                         <div className="fixed inset-0 z-[100] bg-black/90 flex items-end justify-center sm:items-center p-4">
-                            <div className="bg-white rounded-3xl w-full max-w-sm max-h-[92vh] overflow-y-auto shadow-2xl">
-                                {/* Header */}
-                                <div className={`${meta.bg} rounded-t-3xl p-5 text-center`}>
+                            <div className="bg-white rounded-[2.5rem] w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border-4 border-slate-100">
+                                {/* Header - fixed height */}
+                                <div className={`${meta.bg} shrink-0 p-5 text-center`}>
                                     <p className="text-5xl mb-2">{meta.emoji}</p>
                                     <p className="text-white font-black text-xl uppercase tracking-wide">{meta.label}</p>
                                     <p className="text-white/80 text-sm mt-1">{startup.name} · Month {monthsPlayed}</p>
                                 </div>
 
-                                <div className="p-5 space-y-4">
+                                {/* Content - scrollable */}
+                                <div className="p-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
                                     {/* Founder Take */}
                                     {founderTake > 0 && (
                                         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
@@ -5048,23 +5053,24 @@ export default function Dashboard() {
                                             <p className="text-xs text-slate-600 leading-relaxed">{endgameStory}</p>
                                         </div>
                                     )}
+                                </div>
 
-                                    <div className="space-y-2">
-                                        {startup.outcome !== "ipo" && startup.outcome !== "acquired" && (
-                                            <button
-                                                onClick={() => { setIsEndgameOpen(false); setDismissedEndgame(true); }}
-                                                className="w-full py-3.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-sm hover:bg-slate-50 transition active:scale-[0.98]"
-                                            >
-                                                Explore My Startup (Sandbox)
-                                            </button>
-                                        )}
+                                {/* Footer buttons - fixed bottom with safe area */}
+                                <div className="p-5 border-t border-slate-100 space-y-2 shrink-0 bg-white pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+                                    {(outcome === "ipo" || outcome === "acquired") && (
                                         <button
-                                            onClick={handleResetGame}
-                                            className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
+                                            onClick={() => { setIsEndgameOpen(false); setDismissedEndgame(true); }}
+                                            className="w-full py-3.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-sm hover:bg-slate-50 transition active:scale-[0.98]"
                                         >
-                                            Start New Game →
+                                            Explore My Startup (Sandbox)
                                         </button>
-                                    </div>
+                                    )}
+                                    <button
+                                        onClick={handleResetGame}
+                                        className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
+                                    >
+                                        Start New Game →
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -5091,8 +5097,8 @@ export default function Dashboard() {
 
                 {/* V2 ROADMAP MODAL */}
                 <Dialog open={isRoadmapOpen} onOpenChange={setIsRoadmapOpen}>
-                    <DialogContent className="sm:max-w-xl bg-white border-slate-200 border-4 rounded-[2.5rem] p-0 shadow-2xl overflow-hidden [&>button]:hidden font-sans">
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-8 py-10 relative overflow-hidden">
+                    <DialogContent className="sm:max-w-xl bg-white border-slate-200 border-4 rounded-[2.5rem] p-0 shadow-2xl overflow-hidden [&>button]:hidden font-sans max-h-[92vh] flex flex-col">
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-8 py-10 relative overflow-hidden shrink-0">
                             {/* Decorative background element */}
                             <div className="absolute -top-10 -right-10 text-[12rem] font-black text-white/10 select-none pointer-events-none italic">V2</div>
                             
@@ -5109,7 +5115,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="p-8 bg-slate-50 space-y-5 max-h-[55vh] overflow-y-auto custom-scrollbar">
+                        <div className="p-8 bg-slate-50 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
                             <div className="group bg-white p-5 rounded-3xl border-2 border-slate-100 hover:border-indigo-300 transition-all duration-300 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
                                 <div className="flex gap-4">
@@ -5152,7 +5158,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="px-8 py-6 bg-white border-t border-slate-100 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
+                        <div className="px-8 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] bg-white border-t border-slate-100 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0">
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">Targeting Q2 2026 Drop</p>
                             <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
                                 LET'S SCALE →
