@@ -7,6 +7,10 @@ const config: CapacitorConfig = {
     server: {
         androidScheme: 'https'
     },
+    ios: {
+        contentInset: 'automatic',
+        backgroundColor: '#f7f8fc'
+    },
     plugins: {
         AdMob: {
             initializeOnInApp: true,

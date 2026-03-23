@@ -3629,7 +3629,7 @@ export default function Dashboard() {
             <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0" style={{ backgroundColor: '#f7f8fc' }}>
 
                 {/* HEADER */}
-                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isIOS ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
+                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isIOS ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
@@ -3998,7 +3998,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* ACTION GRID */}
-                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2" style={{ paddingBottom: isIOS ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)' : '1rem' }}>
+                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2" style={{ paddingBottom: isIOS ? 'calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px)' : '1rem' }}>
                     <div className="grid grid-cols-4 gap-2">
                         {([
                             { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
