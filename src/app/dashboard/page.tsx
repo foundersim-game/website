@@ -2478,17 +2478,20 @@ export default function Dashboard() {
     const [availableSaves, setAvailableSaves] = useState<SaveSlot[]>([]);
 
     useEffect(() => {
-        // Fullscreen for mobile + detect iOS
+        // iOS: make statusbar transparent overlay instead of hiding.
+        // Hiding zeroes out env(safe-area-inset-top), breaking safe area layout.
         const enableFullscreen = async () => {
             const { Capacitor } = await import('@capacitor/core');
             const platform = Capacitor.getPlatform();
             if (platform === 'ios') setIsIOS(true);
             if (Capacitor.isNativePlatform()) {
-                const { StatusBar } = await import('@capacitor/status-bar');
+                const { StatusBar, Style } = await import('@capacitor/status-bar');
                 try {
-                    await StatusBar.hide();
+                    await StatusBar.setOverlaysWebView({ overlay: true });
+                    await StatusBar.setBackgroundColor({ color: '#00000000' });
+                    await StatusBar.setStyle({ style: Style.Dark });
                 } catch (e) {
-                    console.warn("StatusBar hide failed", e);
+                    console.warn("StatusBar setup failed", e);
                 }
             }
         };
