@@ -18,6 +18,8 @@ import { getRandomEvent } from "@/lib/engine/events";
 import { generateAIEvent, generateFounderStory } from "@/lib/engine/ai";
 import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
 import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
+import { CharacterDialog } from "@/components/CharacterDialog";
+import { getStorylineDialog, StorylineState, StorylineDialog } from "@/lib/engine/storyline";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
 import { calcDynamicImpact, applyEffectsToState, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS } from "@/lib/engine/actions";
@@ -2267,6 +2269,16 @@ export default function Dashboard() {
     const [isSamModalOpen, setIsSamModalOpen] = useState(false);
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
 
+    // --- CHARACTER DIALOG (Sam & Chad storyline) ---
+    const [characterDialog, setCharacterDialog] = useState<StorylineDialog | null>(null);
+    const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
+    const [storyState, setStoryState] = useState<StorylineState>({
+        seenTriggers: [],
+        chadMustRespondNext: false,
+        lastChadMonth: -1,
+        act: 1,
+    });
+
     // --- LIVE COUNTDOWN TIMER ---
     const [currentTime, setCurrentTime] = useState(Date.now());
     useEffect(() => {
@@ -3334,14 +3346,41 @@ export default function Dashboard() {
                     toast.warning("⚡ Low Runway", { description: `${runway} months remaining.` });
                 }
 
-                // Sam Mentor Advice Trigger
+                // Sam Mentor Advice Trigger (legacy educational advice only)
                 if (isOnline) {
                     const samAlert = getEducationalAdvice(newStartup, founder);
-                    if (samAlert) {
+                    if (samAlert && !storyState.seenTriggers.includes(samAlert.trigger ?? "")) {
                         setSamAdvice(samAlert);
                         playSound("popup");
                         setIsSamModalOpen(true);
                     }
+                }
+
+                // ── SAM & CHAD STORYLINE ENGINE ──
+                const justFundraised = ((newStartup as any).funding_rounds?.length ?? 0) > ((startup as any).funding_rounds?.length ?? 0);
+                const storyDialog = getStorylineDialog(
+                    nextMonth,
+                    {
+                        valuation: newStartup.valuation ?? 0,
+                        users: newStartup.metrics.users ?? 0,
+                        cash: newStartup.metrics.cash ?? 0,
+                        runway: newStartup.metrics.runway ?? 0,
+                        burnout: newStartup.metrics.founder_burnout ?? 0,
+                    },
+                    competitors,
+                    storyState,
+                    justFundraised
+                );
+                if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
+                    setTimeout(() => {
+                        setCharacterDialog(storyDialog);
+                        setIsCharacterDialogOpen(true);
+                        playSound("popup");
+                        // If Sam dialog just fired, reset chadMustRespondNext
+                        if (storyDialog.character === "sam") {
+                            setStoryState(prev => ({ ...prev, chadMustRespondNext: false }));
+                        }
+                    }, 800); // slight delay so month-end summary settles first
                 }
 
                 // Burnout game-over
@@ -4093,63 +4132,72 @@ export default function Dashboard() {
                     )}
                 </AnimatePresence>
 
-                <EventModal event={activeEvent} onResolve={handleEventResolution} onClose={() => setActiveEvent(null)} multiplier={startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1} />
-
-
-                {isChadModalOpen && chadAdvice && (
-                    <Dialog open={isChadModalOpen} onOpenChange={setIsChadModalOpen}>
-                        <DialogContent className="sm:max-w-[425px] rounded-3xl p-6 border-indigo-600 border-4 shadow-xl shadow-indigo-100/50">
-                            <DialogHeader>
-                                <div className="flex justify-center mb-4">
-                                    <div className="w-16 h-16 rounded-full border-2 border-indigo-400 overflow-hidden bg-indigo-50 shadow-sm flex items-center justify-center">
-                                        <img src="/characters/chad_rival.png" alt="Chad" className="object-cover h-full" />
-                                    </div>
-                                </div>
-                                <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">{chadAdvice.title}</DialogTitle>
-                                <DialogDescription className="mt-2 text-slate-600 font-medium whitespace-pre-line text-sm min-h-[80px]">
-                                    <TypewriterText text={chadAdvice.message} />
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4 flex flex-col gap-2">
-                                <Button className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-2xl" onClick={() => setIsChadModalOpen(false)}>
-                                    {chadAdvice.buttonText}
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
-
-                {isSamModalOpen && samAdvice && (
-                    <Dialog open={isSamModalOpen} onOpenChange={setIsSamModalOpen}>
-                        <DialogContent className="sm:max-w-[425px] rounded-3xl p-6">
-                            <DialogHeader>
-                                <div className="flex justify-center mb-4">
-                                    <div className="w-16 h-16 rounded-full border-2 border-indigo-500 overflow-hidden bg-indigo-50 shadow-sm flex item-center justify-center">
-                                        <img src="/characters/sam_mentor.png" alt="Sam" className="object-cover h-full" />
-                                    </div>
-                                </div>
-                                <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">{samAdvice.title.replace(/{name}/g, founder.name || "Founder")}</DialogTitle>
-                                <DialogDescription className="mt-2 text-slate-600 font-medium whitespace-pre-line text-sm min-h-[80px]">
-                                    <TypewriterText text={samAdvice.message.replace(/{name}/g, founder.name || "Founder")} />
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4 flex flex-col gap-2">
-                                <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl" onClick={() => {
-                                    setIsSamModalOpen(false);
-                                    if (month === 1) {
-                                        setChadAdvice({
-                                            title: "⚔️ A RIVAL APPEARS!",
-                                            message: `I heard you're trying to build in my space, ${founder.name}. Big mistake. I've got more capital, more hustle, and zero respect for 'burnout'. See you at the finish line—if you make it that far.`,
-                                            buttonText: "BRING IT ON"
-                                        });
-                                        setIsChadModalOpen(true);
+                {/* SAM & CHAD CHARACTER DIALOG */}
+                {(() => {
+                    if (!isCharacterDialogOpen || !characterDialog) return null;
+                    const isChadDialog = characterDialog.character === "chad";
+                    return (
+                        <CharacterDialog
+                            isOpen={isCharacterDialogOpen}
+                            character={characterDialog.character}
+                            title={characterDialog.title.replace(/{name}/g, founder.name || "Founder")}
+                            message={characterDialog.message.replace(/{name}/g, founder.name || "Founder")}
+                            buttonText={characterDialog.buttonText}
+                            choiceA={characterDialog.hasChoices && characterDialog.choiceALabel ? {
+                                label: characterDialog.choiceALabel,
+                                description: characterDialog.choiceADescription || "",
+                                onSelect: () => {
+                                    if (characterDialog.choiceAActionId) {
+                                        setSelectedAction(characterDialog.choiceAActionId as any);
                                     }
-                                }}>
-                                    {samAdvice.buttonText}
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                                    setStoryState(prev => ({
+                                        ...prev,
+                                        seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                        chadMustRespondNext: isChadDialog,
+                                        lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                    }));
+                                }
+                            } : undefined}
+                            choiceB={characterDialog.hasChoices && characterDialog.choiceBLabel ? {
+                                label: characterDialog.choiceBLabel,
+                                description: characterDialog.choiceBDescription || "",
+                                onSelect: () => {
+                                    if (characterDialog.choiceBActionId) {
+                                        setSelectedAction(characterDialog.choiceBActionId as any);
+                                    }
+                                    setStoryState(prev => ({
+                                        ...prev,
+                                        seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                        chadMustRespondNext: isChadDialog,
+                                        lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                    }));
+                                }
+                            } : undefined}
+                            onDismiss={() => {
+                                setIsCharacterDialogOpen(false);
+                                setStoryState(prev => ({
+                                    ...prev,
+                                    seenTriggers: prev.seenTriggers.includes(characterDialog.trigger)
+                                        ? prev.seenTriggers
+                                        : [...prev.seenTriggers, characterDialog.trigger],
+                                    chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
+                                    lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                }));
+                            }}
+                        />
+                    );
+                })()}
+
+                {/* SAM INTRO DIALOG (month 1) — uses legacy modal until fully migrated */}
+                {isSamModalOpen && samAdvice && (
+                    <CharacterDialog
+                        isOpen={isSamModalOpen}
+                        character="sam"
+                        title={samAdvice.title.replace(/{name}/g, founder.name || "Founder")}
+                        message={samAdvice.message.replace(/{name}/g, founder.name || "Founder")}
+                        buttonText={samAdvice.buttonText}
+                        onDismiss={() => setIsSamModalOpen(false)}
+                    />
                 )}
 
                 {/* FOCUS BREAKDOWN MODAL */}
