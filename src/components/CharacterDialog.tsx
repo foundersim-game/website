@@ -127,8 +127,50 @@ function playDismissSound() {
     } catch { }
 }
 
+// Shared AudioContext for typing ticks (avoids spawning one per character)
+let _typeCtx: AudioContext | null = null;
+function getTypeCtx(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    try {
+        if (!_typeCtx || _typeCtx.state === "closed") {
+            _typeCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        return _typeCtx;
+    } catch { return null; }
+}
+
+// Soft mechanical key-tap: white noise burst + very short sine click
+function playTypeKey(character: "sam" | "chad") {
+    if (typeof window === "undefined") return;
+    const isMuted = localStorage.getItem("foundersim_sfx_muted") === "true";
+    if (isMuted) return;
+    const ctx = getTypeCtx();
+    if (!ctx) return;
+    try {
+        // Noise click — 5ms burst
+        const bufLen = Math.floor(ctx.sampleRate * 0.005);
+        const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+        }
+        const noise = ctx.createBufferSource();
+        const filter = ctx.createBiquadFilter();
+        const ng = ctx.createGain();
+        filter.type = "bandpass";
+        filter.frequency.value = character === "chad" ? 2200 : 3000;
+        filter.Q.value = 0.8;
+        ng.gain.value = 0.045; // very subtle
+        noise.buffer = buf;
+        noise.connect(filter);
+        filter.connect(ng);
+        ng.connect(ctx.destination);
+        noise.start(ctx.currentTime);
+    } catch { }
+}
+
 // ── Typewriter hook ───────────────────────────────────────────────────────────
-function useTypewriter(text: string, isActive: boolean, speed = 22) {
+function useTypewriter(text: string, isActive: boolean, character: "sam" | "chad", speed = 20) {
     const [displayed, setDisplayed] = useState("");
     const [done, setDone] = useState(false);
     const idx = useRef(0);
@@ -149,7 +191,12 @@ function useTypewriter(text: string, isActive: boolean, speed = 22) {
 
         const tick = () => {
             idx.current++;
+            const ch = text[idx.current - 1];
             setDisplayed(text.slice(0, idx.current));
+            // Tick sound for visible characters only (skip spaces & newlines)
+            if (ch && ch !== " " && ch !== "\n") {
+                playTypeKey(character);
+            }
             if (idx.current < text.length) {
                 timer.current = setTimeout(tick, speed);
             } else {
@@ -159,7 +206,7 @@ function useTypewriter(text: string, isActive: boolean, speed = 22) {
         // Small initial delay so card animation settles first
         timer.current = setTimeout(tick, 420);
         return () => { if (timer.current) clearTimeout(timer.current); };
-    }, [text, isActive, speed, reset]);
+    }, [text, isActive, speed, reset, character]);
 
     // Skip to end on tap
     const skip = useCallback(() => {
@@ -188,7 +235,7 @@ export function CharacterDialog({
     const [isExiting, setIsExiting] = useState(false);
 
     // Typewriter for message only (title pops in instantly)
-    const { displayed: displayedMsg, done: msgDone, skip } = useTypewriter(message, isOpen, 20);
+    const { displayed: displayedMsg, done: msgDone, skip } = useTypewriter(message, isOpen, character, 20);
 
     // Play entrance sound on open
     useEffect(() => {
