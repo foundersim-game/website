@@ -244,6 +244,82 @@ export type StartupAction =
     | "rest_and_recharge"
     | "none";
 
+export function calculateFinancials(
+    startup: Startup,
+    founder: Founder,
+    overrides?: {
+        users?: number,
+        pricing?: number
+    }
+): { monthlyRevenue: number, monthlyCogs: number, monthlyOpex: number, paidUsers: number } {
+    const metrics = startup.metrics;
+    const users = overrides?.users ?? metrics.users;
+    const pricing = overrides?.pricing ?? metrics.pricing ?? 0;
+    const industry = startup.industry;
+    const isSLG = startup.gtm_motion === "SLG";
+
+    // 1. OPEX
+    const totalSalaries = (startup.employees || []).reduce((sum, e) => sum + (e.salary / 12), 0);
+    const benefitsBudget = totalSalaries * 0.15;
+    const monthsPassed = startup.history?.length || 0;
+    const baseLivingCost = 3500;
+    const founderLivingCost = baseLivingCost + (monthsPassed * 75) + ((metrics.revenue || 0) * 0.02);
+    const userInfraCost = users * 0.75;
+    const scalingOverheadMult = 1 + (Math.floor((startup.employees?.length || 0) / 10) * 0.02);
+    const cxoTeam: Record<string, boolean> = (startup as any).cxoTeam || {};
+    let opex = (totalSalaries + benefitsBudget + (metrics.burn_rate * 0.5) + founderLivingCost + userInfraCost + (metrics.founder_salary || 0)) * scalingOverheadMult;
+    
+    // Legacy Perk: Efficient Operations
+    if (startup.unlocked_perks?.includes("efficient_ops")) {
+        opex *= 0.85;
+    }
+    const scenario = SCENARIOS[(startup.scenario as ScenarioId) || "classic"];
+    if (scenario?.rules?.burnMultiplier) opex *= scenario.rules.burnMultiplier;
+    if (cxoTeam["CFO"]) opex *= 0.9;
+
+    // 2. REVENUE & COGS
+    let revenue = 0, cogs = 0, paidUsers = 0;
+    const configRef = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+    const activeConfig = isSLG ? configRef.SLG : configRef.PLG;
+
+    if (isSLG) {
+        paidUsers = users;
+        revenue = users * pricing;
+        cogs = revenue * (industry === "AI Platform" ? 0.30 : 0.10);
+    } else {
+        if (industry === "Mobile Game") {
+            const adsFreq = (metrics as any).ad_intensity || 0;
+            revenue = (users * (adsFreq / 100) * 0.15) + (users * 0.03 * pricing);
+            paidUsers = Math.floor(users * 0.03);
+            cogs = revenue * 0.05; 
+        } else if (industry === "AI Platform") {
+            paidUsers = users;
+            revenue = users * pricing * 2; 
+            cogs = revenue * 0.35; 
+        } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
+            paidUsers = users;
+            revenue = users * 200 * (pricing / 100); 
+            cogs = revenue * 0.20;
+        } else if (industry === "Marketplace") {
+            paidUsers = users;
+            revenue = users * 150 * (pricing / 100);
+            cogs = revenue * 0.15;
+        } else {
+            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50); 
+            const qualityFactor = Math.max(0.2, (metrics.product_quality || 10) / 50);
+            const maxPrice = activeConfig?.maxPrice || 300;
+            const priceRatio = Math.min(1, Math.max(0.01, pricing / maxPrice));
+            const priceFactor = Math.max(0.1, 1.2 - (priceRatio * 0.9));
+
+            paidUsers = Math.floor(users * Math.min(0.25, Math.max(0.005, 0.04 * pmfFactor * qualityFactor * priceFactor)));
+            revenue = paidUsers * pricing;
+            cogs = revenue * 0.15;
+        }
+    }
+
+    return { monthlyRevenue: revenue, monthlyCogs: cogs, monthlyOpex: opex, paidUsers };
+}
+
 export function processMonth(founder: Founder, startup: Startup, action: StartupAction): { newStartup: Startup, notices: string[] } {
     const newStartup = {
         ...startup,
@@ -518,27 +594,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const scenarioRules = scenario?.rules || {};
 
     // --- FINANCIALS & HARD MODE BALANCE ---
-    const monthsPassed = startup.history?.length || 0;
-    // Dynamic Living Cost: scales with age and company growth (lifestyle creep) - REBALANCED
-    const baseLivingCost = 3500;
-    const ageAdjustment = monthsPassed * 75;
-    const growthAdjustment = (startup.metrics.revenue || 0) * 0.02; // 2% of PREVIOUS month revenue as lifestyle spend
-    const founderLivingCost = baseLivingCost + ageAdjustment + growthAdjustment;
-
-    const userInfraCost = metrics.users * 0.75;
-    const benefitsBudget = totalSalaries * 0.15;
-    const scalingOverheadMult = 1 + (Math.floor((newStartup.employees?.length || 0) / 10) * 0.02);
-    const salary = metrics.founder_salary || 0;
-    let monthlyOpex = (totalSalaries + benefitsBudget + (metrics.burn_rate * 0.5) + founderLivingCost + userInfraCost + salary) * scalingOverheadMult;
-    if (scenarioRules.burnMultiplier) monthlyOpex *= scenarioRules.burnMultiplier;
-    if (cxoTeam["CFO"]) monthlyOpex *= 0.9;
-    
-    // Legacy Perk: Efficient Operations
-    if (startup.unlocked_perks?.includes("efficient_ops")) {
-        monthlyOpex *= 0.85;
-    }
-
-    // --- GROWTH & CONVERSION ENGINE ---
+    // Fetch real math from config for Growth Engine Rate calculations
     const isPLG = startup.gtm_motion === "PLG";
     const isSLG = startup.gtm_motion === "SLG";
 
@@ -548,7 +604,6 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const currentPrice = metrics.pricing ?? (isPLG ? activeConfig.maxPrice * 0.1 : activeConfig.maxPrice * 0.5);
     metrics.pricing = Math.min(currentPrice, activeConfig.maxPrice);
 
-    // Fetch real math from config
     const { conversion: configConversion, churn: configChurn, loopPower } = activeConfig.calc(metrics.pricing, metrics);
 
     // Div by 2 to match original balance format where ~2.5 was standard PLG multiplier
@@ -563,11 +618,12 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const qualityGrowthMult = metrics.product_quality < 20 ? 0.3 : metrics.product_quality < 40 ? 0.7 : 1.0;
 
     const burnoutGrowthPenalty = metrics.founder_burnout > 50 ? (metrics.founder_burnout - 50) / 100 : 0;
+    const monthsPassed = startup.history?.length || 0;
     // --- MARKET DYNAMICS ---
     const marketCycle = Math.sin(monthsPassed / 3); 
     const marketSentiment = 0.85 + (marketCycle * 0.1); 
     
-    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.5 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * marketSentiment;
+    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.4 + (metrics.brand_awareness || 0) * 0.2 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * marketSentiment;
     
     if (startup.unlocked_perks?.includes("growth_hacker")) {
         growthRate *= 1.10;
@@ -620,53 +676,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         }
     }
 
-    let monthlyRevenue = 0, monthlyCogs = 0;
-    // --- OVERHAULED INDUSTRY MONETIZATION ---
-    if (isSLG) {
-        // All SLG models are straightforward: Active Contracts * Contract Size
-        metrics.paid_users = metrics.users;
-        monthlyRevenue = metrics.users * metrics.pricing;
-        monthlyCogs = monthlyRevenue * (industry === "AI Platform" ? 0.30 : 0.10);
-    } else {
-        // PLG models have specialized revenue mappings based on their unit types
-        if (industry === "Mobile Game") {
-            const adsFreq = (metrics as any).ad_intensity || 0;
-            const adRevenue = metrics.users * (adsFreq / 100) * 0.15;
-            const iapRevenue = metrics.users * 0.03 * metrics.pricing;
-            metrics.paid_users = Math.floor(metrics.users * 0.03); // IAP payers
-            monthlyRevenue = adRevenue + iapRevenue;
-            monthlyCogs = monthlyRevenue * 0.05; 
-        } else if (industry === "AI Platform") {
-            metrics.paid_users = metrics.users; // Assume seat pricing for simplicity or tokens
-            monthlyRevenue = metrics.users * metrics.pricing * 2; 
-            monthlyCogs = monthlyRevenue * 0.35; 
-        } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
-            metrics.paid_users = metrics.users; // Transaction users
-            const txVolume = metrics.users * 200; 
-            monthlyRevenue = txVolume * (metrics.pricing / 100); 
-            monthlyCogs = monthlyRevenue * 0.20;
-        } else if (industry === "Marketplace") {
-            metrics.paid_users = metrics.users;
-            const gmv = metrics.users * 150; 
-            monthlyRevenue = gmv * (metrics.pricing / 100);
-            monthlyCogs = monthlyRevenue * 0.15;
-        } else {
-            // Default PLG SaaS (Dynamic Freemium: scales with Quality, PMF, and Price)
-            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50); 
-            const qualityFactor = Math.max(0.2, (metrics.product_quality || 10) / 50);
-            
-            const maxPrice = activeConfig?.maxPrice || 300;
-            const priceRatio = Math.min(1, Math.max(0.01, metrics.pricing / maxPrice));
-            const priceFactor = Math.max(0.1, 1.2 - (priceRatio * 0.9)); // penalize heavy pricing index
-
-            const paidRate = Math.min(0.25, Math.max(0.005, 0.04 * pmfFactor * qualityFactor * priceFactor));
-            const paidUsers = Math.floor(metrics.users * paidRate);
-            
-            metrics.paid_users = paidUsers;
-            monthlyRevenue = paidUsers * metrics.pricing;
-            monthlyCogs = monthlyRevenue * 0.15;
-        }
-    }
+    const { monthlyRevenue, monthlyCogs, monthlyOpex, paidUsers } = calculateFinancials(newStartup, founder, { users: metrics.users, pricing: metrics.pricing });
+    metrics.paid_users = paidUsers;
+    const monthlyOpexResult = monthlyOpex;
 
     metrics.revenue = monthlyRevenue;
     metrics.cogs = monthlyCogs;

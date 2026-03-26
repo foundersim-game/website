@@ -12,6 +12,7 @@ export type CharacterDialogProps = {
     choiceA?: { label: string; description: string; onSelect: () => void };
     choiceB?: { label: string; description: string; onSelect: () => void };
     onDismiss: () => void;
+    isPremium?: boolean;
 };
 
 const CHARACTER_CONFIG = {
@@ -57,30 +58,62 @@ function playChadEntrance() {
     if (isMuted) return;
     try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        // Sharp downward sawtooth sweep — intimidating rival entrance
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(320, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.35);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.4);
-        // Short impact click
-        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+        const now = ctx.currentTime;
+
+        // ── Layer 1: Deep bass thud (55Hz kick-style) ──
+        const bass = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bass.connect(bassGain);
+        bassGain.connect(ctx.destination);
+        bass.type = "sine";
+        bass.frequency.setValueAtTime(90, now);
+        bass.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+        bassGain.gain.setValueAtTime(0.55, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        bass.start(now);
+        bass.stop(now + 0.5);
+
+        // ── Layer 2: Metallic mid sting (adds the "threat" edge) ──
+        const sting = ctx.createOscillator();
+        const stingGain = ctx.createGain();
+        const stingFilter = ctx.createBiquadFilter();
+        sting.connect(stingFilter);
+        stingFilter.connect(stingGain);
+        stingGain.connect(ctx.destination);
+        sting.type = "sawtooth";
+        sting.frequency.setValueAtTime(220, now);
+        sting.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+        stingFilter.type = "bandpass";
+        stingFilter.frequency.value = 800;
+        stingFilter.Q.value = 2;
+        stingGain.gain.setValueAtTime(0.22, now);
+        stingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        sting.start(now);
+        sting.stop(now + 0.35);
+
+        // ── Layer 3: Dark rising whoosh (noise filtered upward) ──
+        const bufLen = ctx.sampleRate * 0.4;
+        const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
         const data = buf.getChannelData(0);
-        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-        const noise = ctx.createBufferSource();
-        const ng = ctx.createGain();
-        noise.buffer = buf;
-        noise.connect(ng);
-        ng.connect(ctx.destination);
-        ng.gain.value = 0.12;
-        noise.start(ctx.currentTime);
-    } catch { /* silently ignore on browsers that block AudioContext */ }
+        for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+        const whoosh = ctx.createBufferSource();
+        const whooshFilter = ctx.createBiquadFilter();
+        const whooshGain = ctx.createGain();
+        whoosh.buffer = buf;
+        whoosh.connect(whooshFilter);
+        whooshFilter.connect(whooshGain);
+        whooshGain.connect(ctx.destination);
+        whooshFilter.type = "bandpass";
+        whooshFilter.frequency.setValueAtTime(200, now);
+        whooshFilter.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+        whooshFilter.Q.value = 1.5;
+        whooshGain.gain.setValueAtTime(0.0, now);
+        whooshGain.gain.linearRampToValueAtTime(0.14, now + 0.05);
+        whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        whoosh.start(now);
+        whoosh.stop(now + 0.42);
+
+    } catch { }
 }
 
 function playSamEntrance() {
@@ -193,8 +226,8 @@ function useTypewriter(text: string, isActive: boolean, character: "sam" | "chad
             idx.current++;
             const ch = text[idx.current - 1];
             setDisplayed(text.slice(0, idx.current));
-            // Tick sound for visible characters only (skip spaces & newlines)
-            if (ch && ch !== " " && ch !== "\n") {
+            // Play sound every 3rd visible character — avoids buzzing at fast speed
+            if (ch && ch !== " " && ch !== "\n" && idx.current % 3 === 0) {
                 playTypeKey(character);
             }
             if (idx.current < text.length) {
@@ -229,6 +262,7 @@ export function CharacterDialog({
     choiceA,
     choiceB,
     onDismiss,
+    isPremium = false,
 }: CharacterDialogProps) {
     const cfg = CHARACTER_CONFIG[character];
     const hasChoices = !!(choiceA && choiceB);
@@ -247,7 +281,6 @@ export function CharacterDialog({
 
     const handleDismiss = useCallback(() => {
         if (!msgDone) { skip(); return; } // First tap: skip typewriter
-        playDismissSound();
         setIsExiting(true);
         setTimeout(() => {
             setIsExiting(false);
@@ -256,7 +289,6 @@ export function CharacterDialog({
     }, [msgDone, skip, onDismiss]);
 
     const handleChoice = useCallback((fn: () => void) => {
-        playDismissSound();
         fn();
         setIsExiting(true);
         setTimeout(() => { setIsExiting(false); onDismiss(); }, 300);
@@ -279,7 +311,7 @@ export function CharacterDialog({
         <AnimatePresence>
             {isOpen && !isExiting && (
                 <>
-                    {/* Backdrop */}
+                    {/* Backdrop — no click-to-dismiss; only buttons close the dialog */}
                     <motion.div
                         key="backdrop"
                         initial={{ opacity: 0 }}
@@ -291,7 +323,6 @@ export function CharacterDialog({
                             background: "rgba(0,0,0,0.75)",
                             backdropFilter: "blur(5px)",
                         }}
-                        onClick={handleDismiss}
                     />
 
                     {/* Card */}
@@ -398,7 +429,10 @@ export function CharacterDialog({
                         </div>
 
                         {/* ── Content panel ── */}
-                        <div style={{ background: "#ffffff", padding: "14px 20px 24px" }}>
+                        <div style={{ 
+                            background: "#ffffff", 
+                            padding: `14px 20px ${isPremium ? '24px' : 'calc(24px + var(--sab, 0px) + 70px)'}`,
+                        }}>
 
                             {/* Title — pops in with scale */}
                             <motion.p

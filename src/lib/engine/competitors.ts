@@ -9,6 +9,10 @@ export type Competitor = {
     status: "active" | "failed" | "acquired" | "ipo";
     growth_rate: number;
     last_action?: string;
+    // Extended stats for "Boss" UI
+    aggression?: number; // 0-100
+    velocity?: "stagnant" | "steady" | "accelerating" | "hyper-growth";
+    sentiment?: "friendly" | "neutral" | "threatened" | "panicking" | "merciless";
 };
 
 export type CompetitorAction = {
@@ -97,6 +101,9 @@ export function generateInitialCompetitors(count: number, playerIndustry?: strin
         users: 120,
         status: "active",
         growth_rate: 1.15, // Chadly grows fast
+        aggression: 85,
+        velocity: "hyper-growth",
+        sentiment: "merciless",
     });
 
     return comps;
@@ -104,7 +111,8 @@ export function generateInitialCompetitors(count: number, playerIndustry?: strin
 
 export function simulateCompetitors(
     competitors: Competitor[],
-    playerUsers: number = 0
+    playerUsers: number = 0,
+    playerValuation: number = 0
 ): { updated: Competitor[], news: string[], rivalActions: { action: CompetitorAction; competitorName: string }[] } {
     const news: string[] = [];
     const rivalActions: { action: CompetitorAction; competitorName: string }[] = [];
@@ -113,6 +121,20 @@ export function simulateCompetitors(
         if (comp.status !== "active") return comp;
 
         const newComp = { ...comp };
+        
+        // 🚨 CHADLY PANIC MODE: If player is catching up
+        const isChadly = comp.id === "chadly";
+        if (isChadly && playerValuation > newComp.valuation * 0.8 && newComp.sentiment !== "panicking") {
+            newComp.growth_rate += 0.08; 
+            newComp.sentiment = "panicking";
+            newComp.velocity = "hyper-growth";
+            news.push(`📈 RIVAL PANIC: Chadly is terrified of your growth! He's burning his reserve capital to maintain the lead.`);
+        } else if (isChadly && playerValuation < newComp.valuation * 0.5 && newComp.sentiment === "panicking") {
+            newComp.growth_rate -= 0.08;
+            newComp.sentiment = "merciless";
+            newComp.velocity = "steady";
+        }
+
         newComp.users = Math.floor(newComp.users * newComp.growth_rate);
         newComp.valuation = Math.floor(newComp.valuation * (1 + (newComp.growth_rate - 1) * 0.5));
 
@@ -131,7 +153,6 @@ export function simulateCompetitors(
         }
 
         // Rival action (competitive move against the player)
-        const isChadly = comp.id === "chadly";
         const actionChance = isChadly ? 0.35 : 0.15; // Chadly is more aggressive
         
         // ⚔️ Rival Defeat Condition: If player beats them 2x in scale

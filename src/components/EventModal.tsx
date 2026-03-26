@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Zap, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, ArrowRight, TrendingUp, TrendingDown, Target, Users, Landmark, Activity, Heart, Briefcase } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 
 export type EventChoice = {
     text: string;
+    subtext?: string;
     effects: Record<string, number>;
 };
 
@@ -26,6 +26,7 @@ interface EventModalProps {
     onResolve: (choice: EventChoice) => void;
     onClose?: () => void;
     multiplier?: number;
+    isPremium?: boolean;
 }
 
 export const generateImpactSentence = (choiceText: string, effects: Record<string, number>, multiplier: number = 1, eventTitle?: string) => {
@@ -47,80 +48,385 @@ export const generateImpactSentence = (choiceText: string, effects: Record<strin
     return `${prefix}You decided to "${choiceText}"${impactText}.`;
 };
 
-export function EventModal({ event, onResolve, onClose, multiplier = 1 }: EventModalProps) {
-    const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
+const THEME = {
+    panelFrom: "#1e1b4b", // Midnight Indigo
+    panelTo: "#312e81",   // Indigo
+    accent: "#6366f1",    // Bright Indigo
+    badgeBg: "#4338ca",   // Darker Indigo
+    badgeText: "#e0e7ff", // Lightest Indigo
+    glowColor: "rgba(99,102,241,0.35)",
+    borderColor: "rgba(99,102,241,0.25)",
+    decorCircle1: "rgba(99,102,241,0.06)",
+    decorCircle2: "rgba(139,92,246,0.08)",
+};
 
-    // Reset state when event changes
+// --- Typewriter Hook ---
+function useTypewriter(text: string, isActive: boolean, speed = 15) {
+    const [displayed, setDisplayed] = useState("");
+    const [done, setDone] = useState(false);
+    const idx = useRef(0);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const reset = useCallback(() => {
+        if (timer.current) clearTimeout(timer.current);
+        idx.current = 0;
+        setDisplayed("");
+        setDone(false);
+    }, []);
+
+    useEffect(() => {
+        if (!isActive) { reset(); return; }
+        idx.current = 0;
+        setDisplayed("");
+        setDone(false);
+
+        const tick = () => {
+            idx.current++;
+            setDisplayed(text.slice(0, idx.current));
+            if (idx.current < text.length) {
+                timer.current = setTimeout(tick, speed);
+            } else {
+                setDone(true);
+            }
+        };
+        timer.current = setTimeout(tick, 350);
+        return () => { if (timer.current) clearTimeout(timer.current); };
+    }, [text, isActive, speed, reset]);
+
+    const skip = useCallback(() => {
+        if (timer.current) clearTimeout(timer.current);
+        setDisplayed(text);
+        setDone(true);
+        idx.current = text.length;
+    }, [text]);
+
+    return { displayed, done, skip };
+}
+
+// --- Impact Icon Helper ---
+const MetricIcon = ({ metric, className = "size-4" }: { metric: string; className?: string }) => {
+    const m = metric.toLowerCase();
+    if (m === 'cash' || m === 'revenue') return <Landmark className={className} />;
+    if (m === 'users') return <Users className={className} />;
+    if (m === 'pmf_score' || m === 'product_quality') return <Target className={className} />;
+    if (m === 'team_morale' || m === 'burnout') return <Heart className={className} />;
+    if (m === 'brand_awareness' || m === 'reputation') return <Activity className={className} />;
+    return <Briefcase className={className} />;
+};
+
+export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremium = false }: EventModalProps) {
+    const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
+    const [isExiting, setIsExiting] = useState(false);
+    
+    // Typewriter for the event description
+    const { displayed: displayedDesc, done: descDone, skip } = useTypewriter(event?.description || "", !!event && !resolvedChoice);
+
     useEffect(() => {
         if (event) {
             setResolvedChoice(null);
+            setIsExiting(false);
         }
     }, [event]);
 
-    if (!event || !event.choices) return null;
+    if (!event) return null;
 
     const handleChoiceClick = (choice: EventChoice) => {
-        // Apply the outcome in the engine
         onResolve(choice);
-        // Show the results UI
         setResolvedChoice(choice);
     };
 
     const handleClose = () => {
-        if (onClose) onClose();
+        setIsExiting(true);
+        setTimeout(() => {
+            if (onClose) onClose();
+            setIsExiting(false);
+        }, 300);
     };
 
-    const formatEffectKey = (key: string) => {
-        // e.g. "team_morale" -> "Team Morale"
-        return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const cardVariants = {
+        hidden: { y: "100%", opacity: 0 },
+        visible: {
+            y: 0, opacity: 1,
+            transition: { type: "spring" as const, damping: 28, stiffness: 280 }
+        },
+        exit: {
+            y: "110%", opacity: 0,
+            transition: { type: "spring" as const, damping: 30, stiffness: 320, duration: 0.28 }
+        },
     };
 
     return (
-        <Dialog open={!!event} onOpenChange={() => { }}>
-            <DialogContent className="sm:max-w-md bg-white border-slate-200 border-4 rounded-[2rem] p-6 shadow-2xl [&>button]:hidden max-h-[90vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                <DialogHeader className="space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-2">
-                        <Zap className="size-6 fill-current" />
-                    </div>
-                    <DialogTitle className="text-2xl font-black tracking-tight text-slate-800 leading-tight">
-                        {resolvedChoice ? "Outcome" : event.title}
-                    </DialogTitle>
-                    <DialogDescription className="text-slate-500 font-medium text-sm leading-relaxed">
-                        {resolvedChoice ? `You chose: "${resolvedChoice.text}"` : event.description}
-                    </DialogDescription>
-                </DialogHeader>
+        <AnimatePresence>
+            {event && !isExiting && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: "fixed", inset: 0, zIndex: 1000,
+                            background: "rgba(0,0,0,0.8)",
+                            backdropFilter: "blur(8px)",
+                        }}
+                    />
 
-                <div className="flex flex-col gap-3 py-4">
-                    {!resolvedChoice ? (
-                        event.choices.map((choice, index) => (
-                            <Button
-                                key={index}
-                                variant="outline"
-                                className="w-full justify-start h-auto min-h-[4rem] py-4 px-6 bg-white border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left rounded-2xl transition-all active:scale-[0.98] group shadow-sm flex items-center whitespace-normal"
-                                onClick={() => handleChoiceClick(choice)}
-                            >
-                                <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 whitespace-normal block leading-snug">{choice.text}</span>
-                            </Button>
-                        ))
-                    ) : (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Impact on Startup</p>
-                                <p className="text-sm font-bold text-slate-700 leading-snug">
-                                    {generateImpactSentence(resolvedChoice.text, resolvedChoice.effects, multiplier)}
-                                </p>
+                    {/* Modal Container */}
+                    <motion.div
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        style={{
+                            position: "fixed",
+                            bottom: 0, left: 0, right: 0,
+                            zIndex: 1001,
+                            maxWidth: 480,
+                            margin: "0 auto",
+                            borderRadius: "32px 32px 0 0",
+                            overflow: "hidden",
+                            background: "#fff",
+                            boxShadow: `0 -12px 60px ${THEME.glowColor}`,
+                        }}
+                    >
+                        {/* --- TOP PANEL (The Visual Area) --- */}
+                        <div style={{
+                            position: "relative",
+                            height: 180,
+                            background: `linear-gradient(165deg, ${THEME.panelFrom} 0%, ${THEME.panelTo} 100%)`,
+                            overflow: "hidden",
+                        }}>
+                            {/* Decorative Elements */}
+                            <div style={{
+                                position: "absolute", top: -40, right: -40,
+                                width: 180, height: 180, borderRadius: "50%",
+                                background: THEME.decorCircle2,
+                            }} />
+                            <div style={{
+                                position: "absolute", bottom: 20, left: "10%",
+                                width: 120, height: 120, borderRadius: "50%",
+                                background: THEME.decorCircle1,
+                            }} />
+
+                            {/* Accent Glow */}
+                            <div style={{
+                                position: "absolute", top: 0, left: 0, right: 0, height: 3,
+                                background: `linear-gradient(90deg, transparent, ${THEME.accent}, transparent)`,
+                                opacity: 0.8,
+                            }} />
+
+                            {/* Centered Main Icon Container */}
+                            <div style={{
+                                position: "absolute",
+                                top: "50%", left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                display: "flex", flexDirection: "column", alignItems: "center", gap: 12
+                            }}>
+                                <motion.div
+                                    initial={{ scale: 0, rotate: -45 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    transition={{ type: "spring", delay: 0.2 }}
+                                    style={{
+                                        width: 80, height: 80,
+                                        borderRadius: "24px",
+                                        background: "rgba(255,255,255,0.1)",
+                                        backdropFilter: "blur(10px)",
+                                        border: "1px solid rgba(255,255,255,0.2)",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                                    }}
+                                >
+                                    <Zap style={{ width: 40, height: 40, color: "#fff", fill: "#fff" }} />
+                                </motion.div>
+                                
+                                <span style={{
+                                    background: THEME.badgeBg,
+                                    color: THEME.badgeText,
+                                    fontSize: 10, fontWeight: 900,
+                                    letterSpacing: "0.15em", textTransform: "uppercase",
+                                    padding: "4px 14px", borderRadius: 99,
+                                    boxShadow: `0 4px 16px rgba(0,0,0,0.2)`,
+                                }}>
+                                    Dynamic Event
+                                </span>
                             </div>
 
-                            <Button
-                                className="w-full py-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg mt-2 transition-all active:scale-[0.98]"
-                                onClick={handleClose}
-                            >
-                                Continue <ArrowRight className="w-5 h-5 ml-2" />
-                            </Button>
+                            {/* Bottom Page Fade */}
+                            <div style={{
+                                position: "absolute", bottom: 0, left: 0, right: 0, height: 40,
+                                background: "linear-gradient(to bottom, transparent, #ffffff)",
+                            }} />
                         </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+
+                        {/* --- CONTENT PANEL --- */}
+                        <div style={{ 
+                            background: "#ffffff", 
+                            padding: `16px 24px ${isPremium ? '32px' : 'calc(32px + var(--sab, 0px) + 70px)'}`
+                        }}>
+                            {!resolvedChoice ? (
+                                <>
+                                    <motion.h2
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        style={{
+                                            fontSize: 22, fontWeight: 900,
+                                            color: "#0f172a",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "-0.01em",
+                                            marginBottom: 8,
+                                            lineHeight: 1.1
+                                        }}
+                                    >
+                                        {event.title}
+                                    </motion.h2>
+
+                                    <div 
+                                        onClick={skip}
+                                        style={{ cursor: descDone ? "default" : "pointer", marginBottom: 24 }}
+                                    >
+                                        <p style={{
+                                            fontSize: 14, color: "#475569",
+                                            lineHeight: 1.6, minHeight: 60,
+                                        }}>
+                                            {displayedDesc}
+                                            {!descDone && (
+                                                <motion.span
+                                                    animate={{ opacity: [1, 0, 1] }}
+                                                    transition={{ repeat: Infinity, duration: 0.7 }}
+                                                    style={{
+                                                        display: "inline-block",
+                                                        width: 2, height: 14,
+                                                        background: THEME.accent,
+                                                        marginLeft: 2,
+                                                        verticalAlign: "middle"
+                                                    }}
+                                                />
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    {/* Choice Buttons */}
+                                    <AnimatePresence>
+                                        {descDone && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                                            >
+                                                {event.choices.map((choice, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleChoiceClick(choice)}
+                                                        style={{
+                                                            width: "100%", textAlign: "left",
+                                                            padding: "16px 20px", borderRadius: 20,
+                                                            border: "2px solid #e2e8f0",
+                                                            background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
+                                                            cursor: "pointer",
+                                                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                                                            display: "flex", alignItems: "center", gap: 16,
+                                                            position: "relative", overflow: "hidden"
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.borderColor = THEME.accent;
+                                                            e.currentTarget.style.transform = "translateY(-2px)";
+                                                            e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.borderColor = "#e2e8f0";
+                                                            e.currentTarget.style.transform = "translateY(0)";
+                                                            e.currentTarget.style.boxShadow = "none";
+                                                        }}
+                                                    >
+                                                        <div style={{ flex: 1 }}>
+                                                            <p style={{ fontSize: 13, fontWeight: 900, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                                                                {choice.text}
+                                                            </p>
+                                                            {choice.subtext && (
+                                                                <p style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{choice.subtext}</p>
+                                                            )}
+                                                        </div>
+                                                        <ArrowRight className="size-5 text-slate-300" />
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </>
+                            ) : (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    style={{ display: "flex", flexDirection: "column", gap: 20 }}
+                                >
+                                    <div>
+                                        <p style={{ fontSize: 11, fontWeight: 900, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
+                                            Analysis Complete
+                                        </p>
+                                        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", marginBottom: 12 }}>
+                                            The Outcome
+                                        </h2>
+                                        <div style={{ 
+                                            background: "#f8fafc", 
+                                            border: "1px solid #e2e8f0",
+                                            borderRadius: 24,
+                                            padding: 20,
+                                            display: "flex", flexDirection: "column", gap: 12
+                                        }}>
+                                            {Object.entries(resolvedChoice.effects).map(([metric, val], idx) => {
+                                                const amount = val * multiplier;
+                                                if (amount === 0) return null;
+                                                const isPositive = amount > 0;
+                                                const color = isPositive ? "#10b981" : "#ef4444";
+                                                
+                                                return (
+                                                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                        <div style={{ 
+                                                            width: 32, height: 32, borderRadius: 10, 
+                                                            background: `${color}15`, color: color,
+                                                            display: "flex", alignItems: "center", justifyContent: "center"
+                                                        }}>
+                                                            <MetricIcon metric={metric} />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>
+                                                                {metric.replace('_', ' ')}
+                                                            </p>
+                                                            <p style={{ fontSize: 15, fontWeight: 900, color: "#1e293b" }}>
+                                                                {isPositive ? "+" : ""}{metric.toLowerCase().includes('cash') || metric.toLowerCase().includes('revenue') ? formatMoney(amount) : amount}
+                                                            </p>
+                                                        </div>
+                                                        {isPositive ? <TrendingUp className="size-5 text-emerald-500" /> : <TrendingDown className="size-5 text-red-500" />}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handleClose}
+                                        style={{
+                                            width: "100%", height: 56,
+                                            borderRadius: 20, border: "none",
+                                            background: `linear-gradient(135deg, ${THEME.accent} 0%, ${THEME.panelTo} 100%)`,
+                                            color: "#fff",
+                                            fontSize: 14, fontWeight: 900,
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.1em",
+                                            cursor: "pointer",
+                                            boxShadow: `0 8px 24px ${THEME.glowColor}`,
+                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 10
+                                        }}
+                                    >
+                                        Acknowledged <ArrowRight className="size-5" />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
     );
 }
+

@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast, Toaster } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { processMonth, StartupAction, evaluateSalaryProposal, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
+import { processMonth, calculateFinancials, StartupAction, evaluateSalaryProposal, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
 import { getNextFundingStage, getFundingPhase, generateFundingTerms, checkEndgame } from "@/lib/engine/funding";
 import { recordExit, SCENARIOS, ScenarioId, getLegacyData } from "@/lib/engine/legacy";
 import { generateAcquisitionOffer } from "@/lib/engine/manda";
@@ -19,7 +19,7 @@ import { generateAIEvent, generateFounderStory } from "@/lib/engine/ai";
 import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
 import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
 import { CharacterDialog } from "@/components/CharacterDialog";
-import { getStorylineDialog, StorylineState, StorylineDialog } from "@/lib/engine/storyline";
+import { getStorylineDialog, StorylineState, StorylineDialog, getSamConsultDialog, TUTORIAL_STEPS } from "@/lib/engine/storyline";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
 import { calcDynamicImpact, applyEffectsToState, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS } from "@/lib/engine/actions";
@@ -58,6 +58,93 @@ const STAGE_COLORS: Record<string, string> = {
     "Series C": "bg-violet-50 text-violet-700 border-violet-200",
     "IPO Ready": "bg-rose-50 text-rose-700 border-rose-200 shadow-sm",
 };
+
+type RivalryAction = {
+    id: string;
+    label: string;
+    emoji: string;
+    description: string;
+    energyCost: number;
+    cashCost: number;
+    successRate: number; // 0.0 to 1.0 (hidden from UI)
+    effect: (ctx: { startup: Startup, founder: Founder, chadly: Competitor }) => { newStartup: Startup, newFounder: Founder, newChadly: Competitor, message: string };
+    onFailure: (ctx: { startup: Startup, founder: Founder, chadly: Competitor }) => { newStartup: Startup, newFounder: Founder, newChadly: Competitor, message: string };
+};
+
+const RIVALRY_ACTIONS: RivalryAction[] = [
+    {
+        id: "analyze_rival_stack",
+        label: "Analyze Stack",
+        emoji: "🔎",
+        description: "Find technical weaknesses in Chadly's product.",
+        energyCost: 10,
+        cashCost: 0,
+        successRate: 0.35,
+        effect: ({ startup, founder, chadly }) => {
+            const newChadly = { ...chadly, valuation: Math.floor(chadly.valuation * 0.94) };
+            const newFounder = { ...founder, attributes: { ...founder.attributes, technical_skill: Math.min(100, (founder.attributes.technical_skill || 0) + 3) } };
+            return { newStartup: startup, newFounder, newChadly, message: "CRITICAL FIND: You exposed a recursive dependency flaw in Chadly's stack! His valuation dropped 6%." };
+        },
+        onFailure: ({ startup, founder, chadly }) => {
+            const newStartup = { ...startup, metrics: { ...startup.metrics, founder_burnout: Math.min(100, (startup.metrics.founder_burnout || 0) + 5), brand_awareness: Math.max(0, (startup.metrics.brand_awareness || 0) - 5) } };
+            return { newStartup, newFounder: founder, newChadly: chadly, message: "EXPOSED: Chadly's security team caught you probing their infra! You're hit with a cease-and-desist and a brand hit." };
+        }
+    },
+    {
+        id: "poach_rival_talent",
+        label: "Poach Talent",
+        emoji: "🎣",
+        description: "Convince a key engineer to jump ship.",
+        energyCost: 20,
+        cashCost: 5000,
+        successRate: 0.25,
+        effect: ({ startup, founder, chadly }) => {
+            const newChadly = { ...chadly, growth_rate: Math.max(1.01, (chadly.growth_rate || 1.15) - 0.05) };
+            const newStartup = { ...startup, metrics: { ...startup.metrics, engineers: (startup.metrics.engineers || 0) + 1, employees: (startup.metrics.employees || 0) + 1 } };
+            return { newStartup, newFounder: founder, newChadly, message: "HEIST SUCCESS: Chadly's Lead Architect just joined your team! Their growth slowed by 5%." };
+        },
+        onFailure: ({ startup, founder, chadly }) => {
+            const newFounder = { ...founder, attributes: { ...founder.attributes, reputation: Math.max(0, (founder.attributes.reputation || 0) - 10) } };
+            return { newStartup: startup, newFounder, newChadly: chadly, message: "SCANDAL: The engineer leaked your poaching attempt to the press. Your reputation took a major hit." };
+        }
+    },
+    {
+        id: "product_shadowing",
+        label: "Feature Shadow",
+        emoji: "👥",
+        description: "Implement Chadly's best features with your own twist.",
+        energyCost: 12,
+        cashCost: 0,
+        successRate: 0.45,
+        effect: ({ startup, founder, chadly }) => {
+            const newStartup = { ...startup, metrics: { ...startup.metrics, product_quality: Math.min(100, (startup.metrics.product_quality || 0) + 4), pmf_score: Math.min(100, (startup.metrics.pmf_score || 0) + 2) } };
+            return { newStartup, newFounder: founder, newChadly: chadly, message: "SHADOW SUCCESS: You shipped a 'Chadly-Killer' feature. Quality & PMF increased." };
+        },
+        onFailure: ({ startup, founder, chadly }) => {
+            const newStartup = { ...startup, metrics: { ...startup.metrics, product_quality: Math.max(0, (startup.metrics.product_quality || 0) - 5) } };
+            const newFounder = { ...founder, attributes: { ...founder.attributes, reputation: Math.max(0, (founder.attributes.reputation || 0) - 5) } };
+            return { newStartup, newFounder, newChadly: chadly, message: "COPYCAT FAIL: Users mocked your low-quality clone of Chadly's UI. Quality and Reputation dropped." };
+        }
+    },
+    {
+        id: "counter_pr",
+        label: "Neutralize PR",
+        emoji: "🛡️",
+        description: "Clean up the mess after a rival's hit piece.",
+        energyCost: 8,
+        cashCost: 2000,
+        successRate: 0.60,
+        effect: ({ startup, founder, chadly }) => {
+            const newFounder = { ...founder, attributes: { ...founder.attributes, reputation: Math.min(100, (founder.attributes.reputation || 0) + 5) } };
+            const newStartup = { ...startup, metrics: { ...startup.metrics, brand_awareness: Math.min(100, (startup.metrics.brand_awareness || 0) + 5) } };
+            return { newStartup, newFounder, newChadly: chadly, message: "PR RECOVERY: You successfully flipped the narrative. Reputation restored." };
+        },
+        onFailure: ({ startup, founder, chadly }) => {
+            const newFounder = { ...founder, attributes: { ...founder.attributes, reputation: Math.max(0, (founder.attributes.reputation || 0) - 10) } };
+            return { newStartup: startup, newFounder, newChadly: chadly, message: "PR BACKFIRE: Your attempt to counter-narrative looked desperate. Reputation hit -10." };
+        }
+    }
+];
 
 const MAX_SLOTS = 6;
 
@@ -345,6 +432,7 @@ type ActionSheetProps = {
     isOnline: boolean;
     rejectedCandidates: string[];
     allEmployees: any[];
+    handleRivalryAction: (action: RivalryAction) => void;
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -353,7 +441,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates, allEmployees }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates, allEmployees, handleRivalryAction }: ActionSheetProps) {
 
     const employees = allEmployees;
     const liveRevenue = m.users * (m.pricing || 0);
@@ -651,7 +739,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <StatRow label="Quality" value={`${Math.round(m.product_quality || 0)}%`} color="text-indigo-600" />
                     <StatRow label="Reliability" value={`${Math.round(m.reliability || 0)}%`} color="text-cyan-600" />
                     <StatRow label="Tech Debt" value={`${Math.round(m.technical_debt || 0)}%`} color={m.technical_debt > 50 ? "text-rose-600" : "text-slate-700"} />
-                    <StatRow label="PMF Score" value={`${Math.round(startup.pmf_score || 10)}`} color="text-violet-600" />
+                    <StatRow label="PMF Score" value={`${Math.round(m.pmf_score || 0)}`} color="text-violet-600" />
                 </div>
             </div>
         );
@@ -701,8 +789,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
                     <div className="w-px h-6 bg-slate-200" />
                     <div className="text-center">
-                        <p className="text-[8px] font-black text-slate-400 uppercase">PMF Score</p>
-                        <p className={cn("text-xs font-black", (startup.pmf_score || 0) < 30 ? "text-rose-600" : (startup.pmf_score || 0) < 60 ? "text-amber-600" : "text-emerald-600")}>{Math.round(startup.pmf_score || 0)}</p>
+                        <p className={cn("text-xs font-black", (m.pmf_score || 0) < 30 ? "text-rose-600" : (m.pmf_score || 0) < 60 ? "text-amber-600" : "text-emerald-600")}>{Math.round(m.pmf_score || 0)}</p>
                     </div>
                 </div>
 
@@ -1591,7 +1678,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     // ── STATS ─────────────────────────────────────────────────────────────────
     if (category === "stats") {
-        const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
+        const toggle = (metricName: string) => setExpandedMetric(expandedMetric === metricName ? null : metricName);
+        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex } = calculateFinancials(startup, founder);
+        const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
+        const profitable = liveNetProfit >= 0;
+        const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
+        const liveRunway = liveBurn > 0 ? Math.floor(m.cash / liveBurn) : Infinity;
 
         return (
             <div>
@@ -1655,7 +1747,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         onToggle={() => toggle("valuation")}
                     />
                     <BigMetric
-                        label="Runway" value={profitable ? "∞" : `${m.runway}mo`} color="bg-blue-50 border-blue-100" icon="⏱️"
+                        label="Runway" value={profitable ? "∞" : `${liveRunway === Infinity ? "∞" : liveRunway}mo`} color="bg-blue-50 border-blue-100" icon="⏱️"
                         explanation="How many months you can survive at current burn before running out of cash. ∞ means you are profitable."
                         isExpanded={expandedMetric === "runway"}
                         onToggle={() => toggle("runway")}
@@ -1701,7 +1793,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         explanation="Happy employees are more productive. Low morale reduces Department output."
                         isExpanded={expandedMetric === "morale"} onToggle={() => toggle("morale")}
                     />
-                    <StatRow label="PMF Score" value={`${Math.round(startup.pmf_score || 10)}`} color="text-violet-600"
+                    <StatRow label="PMF Score" value={`${Math.round(startup.metrics.pmf_score || 0)}`} color="text-violet-600"
                         explanation="Product-Market Fit. Scales from 0-100. High scores unlock faster organic growth."
                         isExpanded={expandedMetric === "pmf"} onToggle={() => toggle("pmf")}
                     />
@@ -2070,9 +2162,103 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                     )}
                     {competitors.map(comp => {
+                        const isChadly = comp.id === 'chadly';
                         const isActive = comp.status === "active";
                         const isIPO = comp.status === "ipo";
                         const isFailed = comp.status === "failed";
+
+                        if (isChadly) {
+                            return (
+                                <div key={comp.id} className="p-4 rounded-[2rem] border-2 border-indigo-200 bg-gradient-to-br from-indigo-50/50 via-white to-white shadow-xl shadow-indigo-100/20 relative overflow-hidden group mb-4">
+                                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
+                                    
+                                    <div className="flex items-start justify-between mb-4 relative z-10">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative">
+                                                <div className="w-14 h-14 rounded-full border-4 border-white overflow-hidden bg-indigo-100 shadow-md ring-2 ring-indigo-400/20">
+                                                    <img src="/characters/chad_rival.png" alt="Chad" className="object-cover w-full h-full" />
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white rounded-full p-1 shadow-lg border-2 border-white">
+                                                    <Zap className="w-3 h-3 fill-current" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-black text-slate-900 tracking-tight">{comp.name}</p>
+
+                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{comp.industry}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight">
+                                                {comp.status}
+                                            </div>
+                                            <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Sentiment: <span className={cn("font-black", comp.sentiment === 'panicking' ? "text-rose-600 animate-pulse" : "text-slate-600 uppercase")}>{comp.sentiment || 'merciless'}</span></p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-3 mb-4 relative z-10">
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 shadow-sm">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5 leading-none">Valuation</p>
+                                            <p className="text-sm font-black text-slate-800">{formatMoney(comp.valuation)}</p>
+                                        </div>
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 shadow-sm">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5 leading-none">Reach</p>
+                                            <p className="text-sm font-black text-slate-800">{formatNumber(comp.users)}</p>
+                                        </div>
+                                        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 shadow-sm">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5 leading-none">Velocity</p>
+                                            <p className={cn("text-[10px] font-black uppercase tracking-tight", comp.velocity === 'hyper-growth' ? "text-indigo-600" : "text-emerald-600")}>{comp.velocity || 'Hyper-Growth'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-indigo-100 relative z-10">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                            <Shield className="w-3 h-3" /> Battle Actions
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {RIVALRY_ACTIONS.map(action => {
+                                                const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+                                                const isDisabled = (focusHoursUsed + action.energyCost > maxHours * 1.1) || (startup.metrics.cash < action.cashCost);
+                                                
+                                                return (
+                                                    <button
+                                                        key={action.id}
+                                                        onClick={() => handleRivalryAction(action)}
+                                                        disabled={isDisabled}
+                                                        className="group flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-white text-left"
+                                                    >
+                                                        <span className="text-lg grayscale group-hover:grayscale-0 transition-all">{action.emoji}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[9px] font-black text-slate-800 uppercase leading-none truncate mb-1">{action.label}</p>
+                                                            <div className="flex items-center gap-1.5 leading-none">
+                                                                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-0.5">
+                                                                    <Zap className="w-2 h-2 fill-slate-400" /> {action.energyCost}h
+                                                                </span>
+                                                                {action.cashCost > 0 && (
+                                                                    <span className="text-[8px] font-bold text-indigo-400 flex items-center gap-0.5">
+                                                                        <DollarSign className="w-2 h-2" /> {formatMoney(action.cashCost)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    
+                                    {comp.last_action && (
+                                        <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-slate-100/50 rounded-full border border-slate-200/50">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase">Last Intel:</span>
+                                            <span className="text-[9px] font-bold text-indigo-600 italic">{(comp.last_action as string).replace(/_/g, " ")} success</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
                         return (
                             <div key={comp.id} className={cn(
                                 "p-3 rounded-2xl border-2 transition-all",
@@ -2082,13 +2268,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             )}>
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        {comp.id === 'chadly' ? (
-                                            <div className="w-9 h-9 rounded-full border-2 border-indigo-400 overflow-hidden bg-indigo-100 shadow-sm flex-shrink-0">
-                                                <img src="/characters/chad_rival.png" alt="Chad" className="object-cover w-full h-full" />
-                                            </div>
-                                        ) : (
-                                            <span className="text-lg">{isFailed ? "💀" : isIPO ? "🚀" : "🏢"}</span>
-                                        )}
+                                        <span className="text-lg">{isFailed ? "💀" : isIPO ? "🚀" : "🏢"}</span>
                                         <div>
                                             <p className="text-xs font-black text-slate-800">{comp.name}</p>
                                             <p className="text-[8px] font-bold text-slate-400 uppercase">{comp.industry}</p>
@@ -2277,14 +2457,14 @@ export default function Dashboard() {
         chadMustRespondNext: false,
         lastChadMonth: -1,
         act: 1,
+        tutorialStep: 0,
+        samGoneToIsland: false,
     });
+
+    const [isLoaded, setIsLoaded] = useState(false);
 
     // --- LIVE COUNTDOWN TIMER ---
     const [currentTime, setCurrentTime] = useState(Date.now());
-    useEffect(() => {
-        const i = setInterval(() => setCurrentTime(Date.now()), 1000);
-        return () => clearInterval(i);
-    }, []);
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
     const [samConsults, setSamConsults] = useState<number[]>([]);
     const [cashGrants, setCashGrants] = useState<number[]>([]); // Cash Grant rate limits
@@ -2300,7 +2480,6 @@ export default function Dashboard() {
     const [competitors, setCompetitors] = useState<Competitor[]>([]);
     const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
     const [seenEventIds, setSeenEventIds] = useState<string[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
     const [actionCategory, setActionCategory] = useState<SheetCategory | null>(null);
     const [monthSummary, setMonthSummary] = useState<any | null>(null);
     const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
@@ -2331,6 +2510,51 @@ export default function Dashboard() {
     });
     const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
 
+    // ── Tutorial: fire active step on game load/reload ──────────────────────────
+    useEffect(() => {
+        if (!isLoaded || month !== 1 || storyState.tutorialStep < 0 || storyState.tutorialStep >= TUTORIAL_STEPS.length) return;
+        
+        const dialog = TUTORIAL_STEPS[storyState.tutorialStep];
+        // Only trigger if not already open or if the step changed
+        if (!isCharacterDialogOpen || (characterDialog?.trigger !== dialog.trigger)) {
+            const t = setTimeout(() => {
+                setCharacterDialog(dialog);
+                setIsCharacterDialogOpen(true);
+            }, 1000);
+            return () => clearTimeout(t);
+        }
+    }, [isLoaded, month, storyState.tutorialStep, isCharacterDialogOpen]);
+
+    // ── Monthly Storyline: ensure events trigger on load/reload ──────────────────
+    useEffect(() => {
+        if (!isLoaded || month <= 1 || isCharacterDialogOpen || isProcessing) return;
+
+        const storyDialog = getStorylineDialog(
+            month,
+            {
+                valuation: startup.valuation ?? 0,
+                users: startup.metrics.users ?? 0,
+                cash: startup.metrics.cash ?? 0,
+                runway: startup.metrics.runway ?? 0,
+                burnout: startup.metrics.founder_burnout ?? 0,
+            },
+            competitors,
+            storyState,
+            false // reactive 'justFundraised' handled via handleAdvanceMonth
+        );
+
+        if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
+            const t = setTimeout(() => {
+                setCharacterDialog(storyDialog);
+                setIsCharacterDialogOpen(true);
+            }, 1200);
+            return () => clearTimeout(t);
+        }
+    }, [isLoaded, month, storyState.seenTriggers, competitors, isCharacterDialogOpen, isProcessing]);
+
+    // Tutorial advance is button-driven (Next Step button), no auto-timers
+
+
     useEffect(() => {
         iapService.initialize().then(() => {
             iapService.checkPremiumStatus().then(premium => {
@@ -2338,6 +2562,16 @@ export default function Dashboard() {
             });
         });
     }, []);
+
+    const eventMultiplier = useMemo(() => {
+        const p = startup.phase?.toLowerCase();
+        if (p === "idea phase") return 1;
+        if (p === "early startup") return 1.5;
+        if (p === "traction") return 2.5;
+        if (p === "growth") return 5.0;
+        if (p === "scaling") return 12.0;
+        return 1.0;
+    }, [startup.phase]);
 
     const allEmployees = useMemo(() => {
         const baseEmployees = startup.employees || [];
@@ -2613,6 +2847,7 @@ export default function Dashboard() {
                     }
                 }
                 if (d.founderMeta) setFounderMeta(d.founderMeta);
+                if (d.storyState) setStoryState(d.storyState);
 
                 // If loading into a dead/won state, immediately force the endgame modal open
                 if (d.startup && d.startup.outcome && d.startup.outcome !== "active") {
@@ -2738,10 +2973,11 @@ export default function Dashboard() {
                 seenEventIds,
                 founderMeta,
                 focusHoursUsed,
-                actionUsageLog
+                actionUsageLog,
+                storyState
             }));
         }
-    }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded]);
+    }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded, storyState]);
 
     const handleResetGame = () => {
         setConfirmDialog({
@@ -2792,7 +3028,8 @@ export default function Dashboard() {
                 seenEventIds, 
                 founderMeta, 
                 focusHoursUsed: newFocusUsed, 
-                actionUsageLog 
+                actionUsageLog,
+                storyState
             }));
         }
         openStoreListing();
@@ -2804,7 +3041,7 @@ export default function Dashboard() {
 
     const handleSaveAndQuit = () => {
         if (startup.name !== "New Startup") {
-            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog }));
+            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState }));
         }
         router.push("/");
     };
@@ -2833,7 +3070,7 @@ export default function Dashboard() {
             valuation: startup.valuation || 0,
             brandColor: founderMeta.brandColor,
             logo: founderMeta.logo,
-            data: { startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog }
+            data: { startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState }
         };
 
         const existingSavesRaw = localStorage.getItem("founder_sim_saves");
@@ -2859,15 +3096,16 @@ export default function Dashboard() {
     };
 
     // ── Immediate Action Handler ───────────────────────────────────────────────
-    const handleImmediateAction = (actionId: string) => {
+    const handleImmediateAction = (actionId: string, forceFree: boolean = false) => {
         const def = getActionDef(actionId);
         if (!def) return;
         const ctx: GameContext = { month, startup, founder, m: startup.metrics };
         const { scaledEffects, multiplier, hints } = calcDynamicImpact(def, actionUsageLog, ctx);
         const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
-        const newHoursUsed = focusHoursUsed + def.energyCost;
+        const energyCost = forceFree ? 0 : def.energyCost;
+        const newHoursUsed = focusHoursUsed + energyCost;
         
-        if (newHoursUsed > maxHours) {
+        if (!forceFree && newHoursUsed > maxHours) {
             toast.error("Not enough focus energy!", { description: "You cannot exceed maximum focus hours." });
             return;
         }
@@ -3278,6 +3516,47 @@ export default function Dashboard() {
         };
 
         // ── Next Month ─────────────────────────────────────────────────────────────
+        const handleRivalryAction = (action: RivalryAction) => {
+            const chadly = competitors.find(c => c.id === 'chadly');
+            if (!chadly) return;
+
+            if (startup.metrics.cash < action.cashCost) {
+                toast.error("Not enough cash!");
+                return;
+            }
+
+            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+            if (focusHoursUsed + action.energyCost > maxHours * 1.1) {
+                toast.error("Not enough focus energy!", { description: "You are too burned out. Advance to next month to refill energy." });
+                return;
+            }
+
+            // Roll for Success
+            const dice = Math.random();
+            const isSuccess = dice < action.successRate;
+
+            const outcome = isSuccess 
+                ? action.effect({ startup, founder, chadly })
+                : action.onFailure({ startup, founder, chadly });
+
+            const { newStartup, newFounder, newChadly, message } = outcome;
+
+            setStartup(newStartup);
+            setFounder(newFounder);
+            setFocusHoursUsed(prev => prev + action.energyCost);
+            setCompetitors(prev => prev.map(c => c.id === 'chadly' ? newChadly : c));
+            
+            addTimelineEvent(`⚔️ RIVALRY: ${message}`, month);
+            
+            if (isSuccess) {
+                toast.success(message);
+                playSound('success');
+            } else {
+                toast.error(message, { description: "The attempt backfired." });
+                playSound('fail');
+            }
+        };
+
         const handleNextMonth = async () => {
             if (isProcessing) return;
             if (startup.outcome && startup.outcome !== "active" && !dismissedEndgame) {
@@ -3372,6 +3651,12 @@ export default function Dashboard() {
                     justFundraised
                 );
                 if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
+                    // Log the storyline encounter to the timeline
+                    const encounterText = storyDialog.character === "chad" 
+                        ? `⚔️ Rival Encounter: Chadly ${storyDialog.title || "challenged you"}.`
+                        : `💡 Mentor Guidance: Sam ${storyDialog.title || "shared some advice"}.`;
+                    addTimelineEvent(encounterText, nextMonth);
+
                     setTimeout(() => {
                         setCharacterDialog(storyDialog);
                         setIsCharacterDialogOpen(true);
@@ -3412,14 +3697,17 @@ export default function Dashboard() {
                 }
 
                 // Random events (AI First, Fallback to Predefined)
+                // Mutex: Don't trigger random events if a storyline dialog is currently being shown
                 let ev: GameEvent | null = null;
-                if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
-                    const aiEvent = await generateAIEvent(newStartup, founder, seenEventIds);
-                    if (aiEvent) ev = aiEvent as GameEvent;
-                }
+                if (!storyDialog) {
+                    if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
+                        const aiEvent = await generateAIEvent(newStartup, founder, seenEventIds);
+                        if (aiEvent) ev = aiEvent as GameEvent;
+                    }
 
-                if (!ev) {
-                    ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
+                    if (!ev) {
+                        ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
+                    }
                 }
 
                 if (ev) {
@@ -3430,7 +3718,7 @@ export default function Dashboard() {
                 }
 
                 // Competitors
-                const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users);
+                const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users, newStartup.valuation);
                 setCompetitors(updated);
                 news.forEach(n => addTimelineEvent(n, nextMonth));
                 
@@ -3603,7 +3891,7 @@ export default function Dashboard() {
         };
 
         const handleEventResolution = (choice: EventChoice) => {
-            const multiplier = startup.phase === "Scaling" ? 10 : startup.phase === "Growth" ? 3 : 1;
+            const multiplier = eventMultiplier;
             const impactString = generateImpactSentence(choice.text, choice.effects, multiplier, activeEvent?.title);
 
             // Use functional updates to ensure we have the absolute latest state
@@ -3658,17 +3946,21 @@ export default function Dashboard() {
         };
 
         const m = startup.metrics;
-        const liveRevenue = m.users * (m.pricing || 0);
-        const liveNetProfit = liveRevenue - (m.cogs || 0) - (m.opex || 0);
+        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex } = calculateFinancials(startup, founder);
+        const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
         const profitable = liveNetProfit >= 0;
+        const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
+        const liveRunway = liveBurn > 0 ? Math.floor(m.cash / liveBurn) : Infinity;
         const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
         return (
             <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0" style={{ backgroundColor: '#f7f8fc' }}>
 
-                {/* HEADER */}
-                <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
+                {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
+                <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
+                    {/* HEADER */}
+                    <div className="shrink-0 bg-white border-b border-slate-100 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
@@ -3730,8 +4022,13 @@ export default function Dashboard() {
                                         const consultAction = () => {
                                             setSamConsults([...validConsults, now]);
                                             const advice = getConsultationAdvice(startup);
-                                            setSamAdvice(advice);
-                                            setIsSamModalOpen(true);
+                                            const dialog = getSamConsultDialog({
+                                                title: advice.title,
+                                                message: advice.message,
+                                                buttonText: advice.buttonText || "THANKS, SAM 🏄",
+                                            });
+                                            setCharacterDialog(dialog);
+                                            setIsCharacterDialogOpen(true);
                                         };
 
                                         if (isPremium) {
@@ -3944,6 +4241,7 @@ export default function Dashboard() {
                         ))}
                     </div>
                 </div>
+                </div>
 
 
                 {/* IMMEDIATE ACTION FEEDBACK BANNER */}
@@ -3968,7 +4266,10 @@ export default function Dashboard() {
                             if (!byMonth[ev.month]) byMonth[ev.month] = [];
                             byMonth[ev.month].push(ev);
                         });
-                        const sortedMonths = Object.keys(byMonth).map(Number).sort((a, b) => b - a);
+                        
+                        // Ensure every month from 1 to current appears in the timeline even if empty
+                        const allMonths = Array.from({ length: month }, (_, i) => i + 1);
+                        const sortedMonths = [...new Set([...allMonths, ...Object.keys(byMonth).map(Number)])].sort((a, b) => b - a);
 
                         const getEventStyle = (text: string) => {
                             if (text.includes("Raised") || text.includes("Funding") || text.includes("Series")) return { strip: "#7c3aed", bg: "#faf5ff", label: "Funding" };
@@ -3981,7 +4282,7 @@ export default function Dashboard() {
                         };
 
                         const items = sortedMonths.map(monthNum => {
-                            const events = byMonth[monthNum];
+                            const events = byMonth[monthNum] || [];
                             const isCurrentMonth = monthNum === month;
                             return (
                                 <div key={monthNum} className="mb-4">
@@ -4018,9 +4319,23 @@ export default function Dashboard() {
                     })()}
                 </div>
 
-                {/* PROCEED BUTTON */}
-                <div className="shrink-0 px-3 py-2 bg-white border-t border-slate-100">
-                    {selectedAction !== "none" && (
+                {/* Tutorial lock overlay — blocks all taps on game content above */}
+                {storyState.tutorialStep >= 0 && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 40,
+                            background: "rgba(15,23,42,0.45)",
+                            backdropFilter: "blur(1px)",
+                            pointerEvents: "all",
+                        }}
+                    />
+                )}
+
+                {/* PROCEED / NEXT STEP BUTTON */}
+                <div className="shrink-0 px-3 py-2 bg-white border-t border-slate-100" style={{ position: "relative", zIndex: 50 }}>
+                    {selectedAction !== "none" && storyState.tutorialStep < 0 && (
                         <div className="flex items-center justify-center mb-1.5">
                             <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
@@ -4029,15 +4344,51 @@ export default function Dashboard() {
                             </div>
                         </div>
                     )}
-                    <button onClick={handleNextMonth} disabled={isProcessing}
-                        className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
-                        style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
-                        {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
-                    </button>
+                    {storyState.tutorialStep >= 0 ? (
+                        /* ── Tutorial: Next Step button ── */
+                        <button
+                            onClick={() => {
+                                const next = storyState.tutorialStep + 1;
+                                if (next >= TUTORIAL_STEPS.length) {
+                                    // Tutorial done — unlock game
+                                    setStoryState(prev => ({ ...prev, tutorialStep: -1 }));
+                                    setIsCharacterDialogOpen(false);
+                                } else {
+                                    // Mark current step seen, advance
+                                    setStoryState(prev => ({
+                                        ...prev,
+                                        tutorialStep: next,
+                                        seenTriggers: [...prev.seenTriggers, TUTORIAL_STEPS[prev.tutorialStep].trigger],
+                                    }));
+                                    setCharacterDialog(TUTORIAL_STEPS[next]);
+                                    setIsCharacterDialogOpen(true);
+                                }
+                            }}
+                            className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                            style={{
+                                background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                                boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
+                                position: "relative",
+                                zIndex: 50,
+                            }}
+                        >
+                            {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
+                                ? `NEXT STEP (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
+                                : "START THE GAME 🚀"
+                            }
+                        </button>
+                    ) : (
+                        /* ── Normal: Advance Month button ── */
+                        <button onClick={handleNextMonth} disabled={isProcessing}
+                            className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                            style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
+                            {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
+                        </button>
+                    )}
                 </div>
 
                 {/* ACTION GRID */}
-                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2" style={{ paddingBottom: isNative ? 'calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px)' : '1rem' }}>
+                <div className="shrink-0 bg-white border-t border-slate-100 px-3 pt-2" style={{ position: "relative", zIndex: storyState.tutorialStep >= 2 ? 50 : 1, paddingBottom: isNative ? 'calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px)' : '1rem' }}>
                     <div className="grid grid-cols-4 gap-2">
                         {([
                             { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
@@ -4064,10 +4415,10 @@ export default function Dashboard() {
                     {actionCategory !== null && (
                         <>
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-40" />
+                                onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-[55]" />
                             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                                 transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                                className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl border-t border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+60px)]"
+                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl shadow-2xl border-t border-slate-200 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+60px)]"
                                 style={{ maxHeight: '85vh' }}>
                                 <div className="flex justify-center pt-2.5 pb-1">
                                     <div className="w-10 h-1 rounded-full bg-slate-200" />
@@ -4125,6 +4476,7 @@ export default function Dashboard() {
                                         setEnergyRefills={setEnergyRefills}
                                         setConfirmDialog={setConfirmDialog}
                                         isOnline={isOnline}
+                                        handleRivalryAction={handleRivalryAction}
                                     />
                                 </div>
                             </motion.div>
@@ -4148,7 +4500,7 @@ export default function Dashboard() {
                                 description: characterDialog.choiceADescription || "",
                                 onSelect: () => {
                                     if (characterDialog.choiceAActionId) {
-                                        setSelectedAction(characterDialog.choiceAActionId as any);
+                                        handleImmediateAction(characterDialog.choiceAActionId, true);
                                     }
                                     setStoryState(prev => ({
                                         ...prev,
@@ -4163,7 +4515,7 @@ export default function Dashboard() {
                                 description: characterDialog.choiceBDescription || "",
                                 onSelect: () => {
                                     if (characterDialog.choiceBActionId) {
-                                        setSelectedAction(characterDialog.choiceBActionId as any);
+                                        handleImmediateAction(characterDialog.choiceBActionId, true);
                                     }
                                     setStoryState(prev => ({
                                         ...prev,
@@ -4175,30 +4527,23 @@ export default function Dashboard() {
                             } : undefined}
                             onDismiss={() => {
                                 setIsCharacterDialogOpen(false);
-                                setStoryState(prev => ({
-                                    ...prev,
-                                    seenTriggers: prev.seenTriggers.includes(characterDialog.trigger)
-                                        ? prev.seenTriggers
-                                        : [...prev.seenTriggers, characterDialog.trigger],
-                                    chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
-                                    lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
-                                }));
+                                setStoryState(prev => {
+                                    const isIslandFarewell = characterDialog.trigger === "sam_island_farewell";
+                                    return {
+                                        ...prev,
+                                        samGoneToIsland: isIslandFarewell ? true : prev.samGoneToIsland,
+                                        seenTriggers: prev.seenTriggers.includes(characterDialog.trigger)
+                                            ? prev.seenTriggers
+                                            : [...prev.seenTriggers, characterDialog.trigger],
+                                        chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
+                                        lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                    };
+                                });
                             }}
+                            isPremium={isPremium}
                         />
                     );
                 })()}
-
-                {/* SAM INTRO DIALOG (month 1) — uses legacy modal until fully migrated */}
-                {isSamModalOpen && samAdvice && (
-                    <CharacterDialog
-                        isOpen={isSamModalOpen}
-                        character="sam"
-                        title={samAdvice.title.replace(/{name}/g, founder.name || "Founder")}
-                        message={samAdvice.message.replace(/{name}/g, founder.name || "Founder")}
-                        buttonText={samAdvice.buttonText}
-                        onDismiss={() => setIsSamModalOpen(false)}
-                    />
-                )}
 
                 {/* FOCUS BREAKDOWN MODAL */}
                 <Dialog open={isFocusBreakdownOpen} onOpenChange={setIsFocusBreakdownOpen}>
@@ -5327,6 +5672,16 @@ export default function Dashboard() {
                     type={confirmDialog.type}
                     onConfirm={confirmDialog.onConfirm}
                 />
+
+                {!isCharacterDialogOpen && (
+                    <EventModal
+                        event={activeEvent}
+                        onResolve={handleEventResolution}
+                        onClose={() => setActiveEvent(null)}
+                        multiplier={eventMultiplier}
+                        isPremium={isPremium}
+                    />
+                )}
             </div>
         );
     }

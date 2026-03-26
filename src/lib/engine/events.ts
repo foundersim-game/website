@@ -1274,20 +1274,37 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
 ];
 
 export function getRandomEvent(stage: string, seenIds: string[] = [], scenarioId?: string): GameEvent | null {
-    // 50% chance to trigger an event per month
-    if (Math.random() > 0.50) return null;
+    // 70% chance to trigger an event per month (up from 50%)
+    if (Math.random() > 0.70) return null;
 
+    // Map game phases to event stages
+    const mappedStage = (stage || "").toLowerCase();
+    
     const validEvents = PREDEFINED_EVENTS.filter(e => {
         // Exclude if already seen and not repeatable
         if (e.event_id && seenIds.includes(e.event_id) && !e.repeatable) return false;
 
         // If event has a scenario requirement, it must match
         if (e.scenario && e.scenario !== scenarioId) return false;
+        
         // If no scenario required, check stage
-        if (!e.scenario && e.stage && e.stage !== stage && stage !== "any") {
-            // Some backward compatibility for stages
-            if (stage === "growth_stage" && e.stage === "early_startup") return true;
-            if (e.stage === "mvp") return true;
+        if (!e.scenario && e.stage) {
+            const eventStage = e.stage.toLowerCase();
+            
+            // Exact match
+            if (eventStage === mappedStage) return true;
+            
+            // Logical mapping
+            if (mappedStage === "idea phase" && eventStage === "mvp") return true;
+            if (mappedStage === "early startup" && eventStage === "early_startup") return true;
+            if (mappedStage === "traction" && eventStage === "early_startup") return true;
+            if (mappedStage === "growth" && eventStage === "growth_stage") return true;
+            if (mappedStage === "scaling" && eventStage === "growth_stage") return true;
+            
+            // Fallbacks for any/wildcard
+            if (mappedStage === "any" || eventStage === "any") return true;
+            if (eventStage === "early_startup" && (mappedStage === "growth" || mappedStage === "scaling")) return true; // Growth can still have early problems
+            
             return false;
         }
         return true;
