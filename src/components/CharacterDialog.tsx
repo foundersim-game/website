@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type CharacterDialogProps = {
@@ -9,7 +9,6 @@ export type CharacterDialogProps = {
     title: string;
     message: string;
     buttonText?: string;
-    /** If provided, shows a second choice button (Sam's Way / Chad's Way mechanic) */
     choiceA?: { label: string; description: string; onSelect: () => void };
     choiceB?: { label: string; description: string; onSelect: () => void };
     onDismiss: () => void;
@@ -20,26 +19,160 @@ const CHARACTER_CONFIG = {
         name: "Sam",
         role: "Startup Mentor",
         image: "/sam.png",
-        accent: "#3b82f6",       // blue
-        panelGradient: "linear-gradient(160deg, #1e3a5f 0%, #1e293b 100%)",
-        badge: "bg-blue-600",
-        glow: "shadow-[0_0_24px_rgba(59,130,246,0.35)]",
-        border: "border-blue-500/30",
-        pulse: false,
+        panelFrom: "#0f172a",
+        panelTo: "#1e3a5f",
+        accent: "#3b82f6",
+        badgeBg: "#1d4ed8",
+        badgeText: "#bfdbfe",
+        glowColor: "rgba(59,130,246,0.45)",
+        borderColor: "rgba(59,130,246,0.3)",
+        decorCircle1: "rgba(59,130,246,0.08)",
+        decorCircle2: "rgba(99,102,241,0.12)",
+        imageOffsetX: "-8px",
+        // Sam: warm chime (play popup.wav at normal pitch)
+        soundType: "sam" as const,
     },
     chad: {
         name: "Chad",
-        role: "Core AI Rival",
+        role: "Core AI — Your Rival",
         image: "/chad.png",
-        accent: "#f97316",       // orange
-        panelGradient: "linear-gradient(160deg, #431407 0%, #1c0a00 100%)",
-        badge: "bg-orange-600",
-        glow: "shadow-[0_0_28px_rgba(249,115,22,0.45)]",
-        border: "border-orange-500/30",
-        pulse: true,
+        panelFrom: "#0a0a0a",
+        panelTo: "#1a1a2e",
+        accent: "#f97316",
+        badgeBg: "#c2410c",
+        badgeText: "#fed7aa",
+        glowColor: "rgba(249,115,22,0.5)",
+        borderColor: "rgba(249,115,22,0.35)",
+        decorCircle1: "rgba(249,115,22,0.07)",
+        decorCircle2: "rgba(239,68,68,0.1)",
+        imageOffsetX: "-4px",
+        soundType: "chad" as const,
     },
 };
 
+// ── Sound synthesis ───────────────────────────────────────────────────────────
+function playChadEntrance() {
+    if (typeof window === "undefined") return;
+    const isMuted = localStorage.getItem("foundersim_sfx_muted") === "true";
+    if (isMuted) return;
+    try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // Sharp downward sawtooth sweep — intimidating rival entrance
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+        // Short impact click
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        const noise = ctx.createBufferSource();
+        const ng = ctx.createGain();
+        noise.buffer = buf;
+        noise.connect(ng);
+        ng.connect(ctx.destination);
+        ng.gain.value = 0.12;
+        noise.start(ctx.currentTime);
+    } catch { /* silently ignore on browsers that block AudioContext */ }
+}
+
+function playSamEntrance() {
+    if (typeof window === "undefined") return;
+    const isMuted = localStorage.getItem("foundersim_sfx_muted") === "true";
+    if (isMuted) return;
+    try {
+        // Use popup.wav if available, else synthesize a warm chime
+        const audio = new Audio("/popup.wav");
+        audio.volume = 0.55;
+        audio.play().catch(() => {
+            // Fallback: synthesized warm tone
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        });
+    } catch { }
+}
+
+function playDismissSound() {
+    if (typeof window === "undefined") return;
+    const isMuted = localStorage.getItem("foundersim_sfx_muted") === "true";
+    if (isMuted) return;
+    try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(500, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+    } catch { }
+}
+
+// ── Typewriter hook ───────────────────────────────────────────────────────────
+function useTypewriter(text: string, isActive: boolean, speed = 22) {
+    const [displayed, setDisplayed] = useState("");
+    const [done, setDone] = useState(false);
+    const idx = useRef(0);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const reset = useCallback(() => {
+        if (timer.current) clearTimeout(timer.current);
+        idx.current = 0;
+        setDisplayed("");
+        setDone(false);
+    }, []);
+
+    useEffect(() => {
+        if (!isActive) { reset(); return; }
+        idx.current = 0;
+        setDisplayed("");
+        setDone(false);
+
+        const tick = () => {
+            idx.current++;
+            setDisplayed(text.slice(0, idx.current));
+            if (idx.current < text.length) {
+                timer.current = setTimeout(tick, speed);
+            } else {
+                setDone(true);
+            }
+        };
+        // Small initial delay so card animation settles first
+        timer.current = setTimeout(tick, 420);
+        return () => { if (timer.current) clearTimeout(timer.current); };
+    }, [text, isActive, speed, reset]);
+
+    // Skip to end on tap
+    const skip = useCallback(() => {
+        if (timer.current) clearTimeout(timer.current);
+        setDisplayed(text);
+        setDone(true);
+        idx.current = text.length;
+    }, [text]);
+
+    return { displayed, done, skip };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export function CharacterDialog({
     isOpen,
     character,
@@ -51,20 +184,53 @@ export function CharacterDialog({
     onDismiss,
 }: CharacterDialogProps) {
     const cfg = CHARACTER_CONFIG[character];
-    const [pulsing, setPulsing] = useState(false);
+    const hasChoices = !!(choiceA && choiceB);
+    const [isExiting, setIsExiting] = useState(false);
 
-    // Trigger entrance pulse for Chad
+    // Typewriter for message only (title pops in instantly)
+    const { displayed: displayedMsg, done: msgDone, skip } = useTypewriter(message, isOpen, 20);
+
+    // Play entrance sound on open
     useEffect(() => {
-        if (isOpen && cfg.pulse) {
-            setPulsing(true);
-            const t = setTimeout(() => setPulsing(false), 600);
-            return () => clearTimeout(t);
+        if (isOpen) {
+            if (character === "chad") playChadEntrance();
+            else playSamEntrance();
         }
-    }, [isOpen, cfg.pulse]);
+    }, [isOpen, character]);
+
+    const handleDismiss = useCallback(() => {
+        if (!msgDone) { skip(); return; } // First tap: skip typewriter
+        playDismissSound();
+        setIsExiting(true);
+        setTimeout(() => {
+            setIsExiting(false);
+            onDismiss();
+        }, 300);
+    }, [msgDone, skip, onDismiss]);
+
+    const handleChoice = useCallback((fn: () => void) => {
+        playDismissSound();
+        fn();
+        setIsExiting(true);
+        setTimeout(() => { setIsExiting(false); onDismiss(); }, 300);
+    }, [onDismiss]);
+
+    // Card exit spring
+    const cardVariants = {
+        hidden: { y: "100%", opacity: 0 },
+        visible: {
+            y: 0, opacity: 1,
+            transition: { type: "spring" as const, damping: 28, stiffness: 280 }
+        },
+        exit: {
+            y: "110%", opacity: 0,
+            transition: { type: "spring" as const, damping: 30, stiffness: 320, duration: 0.28 }
+        },
+    };
 
     return (
         <AnimatePresence>
-            {isOpen && (
+            {isOpen && !isExiting && (
                 <>
                     {/* Backdrop */}
                     <motion.div
@@ -72,87 +238,235 @@ export function CharacterDialog({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm"
-                        onClick={onDismiss}
+                        transition={{ duration: 0.22 }}
+                        style={{
+                            position: "fixed", inset: 0, zIndex: 200,
+                            background: "rgba(0,0,0,0.75)",
+                            backdropFilter: "blur(5px)",
+                        }}
+                        onClick={handleDismiss}
                     />
 
-                    {/* Dialog card — slides up */}
+                    {/* Card */}
                     <motion.div
-                        key="dialog"
-                        initial={{ y: "100%", opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: "100%", opacity: 0 }}
-                        transition={{ type: "spring", damping: 26, stiffness: 300 }}
-                        className={`fixed bottom-0 left-0 right-0 z-[201] mx-auto max-w-md rounded-t-3xl overflow-hidden border ${cfg.border} ${cfg.glow} ${pulsing ? "animate-[pulse_0.3s_ease-in-out_2]" : ""}`}
-                        style={{ backgroundColor: "#ffffff" }}
+                        key={`card-${character}`}
+                        variants={cardVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        style={{
+                            position: "fixed",
+                            bottom: 0, left: 0, right: 0,
+                            zIndex: 201,
+                            maxWidth: 480,
+                            margin: "0 auto",
+                            borderRadius: "28px 28px 0 0",
+                            overflow: "hidden",
+                            border: `1px solid ${cfg.borderColor}`,
+                            boxShadow: `0 -12px 60px ${cfg.glowColor}, 0 0 0 1px ${cfg.borderColor}`,
+                        }}
                     >
-                        {/* Top character panel */}
-                        <div
-                            className="relative h-[200px] flex items-end overflow-hidden"
-                            style={{ background: cfg.panelGradient }}
-                        >
-                            {/* Character image — anchored bottom-left */}
-                            <img
+                        {/* ── Character panel ── */}
+                        <div style={{
+                            position: "relative",
+                            height: 220,
+                            background: `linear-gradient(165deg, ${cfg.panelFrom} 0%, ${cfg.panelTo} 100%)`,
+                            overflow: "hidden",
+                        }}>
+                            {/* Decorative circles */}
+                            <div style={{
+                                position: "absolute", top: -60, right: -60,
+                                width: 220, height: 220, borderRadius: "50%",
+                                background: cfg.decorCircle2,
+                            }} />
+                            <div style={{
+                                position: "absolute", bottom: 20, left: "42%",
+                                width: 160, height: 160, borderRadius: "50%",
+                                background: cfg.decorCircle1,
+                            }} />
+
+                            {/* Accent top line */}
+                            <div style={{
+                                position: "absolute", top: 0, left: 0, right: 0, height: 3,
+                                background: `linear-gradient(90deg, transparent, ${cfg.accent}, transparent)`,
+                                opacity: 0.85,
+                            }} />
+
+                            {/* Character image — slides up from below */}
+                            <motion.img
                                 src={cfg.image}
                                 alt={cfg.name}
-                                className="absolute bottom-0 left-0 h-[220px] w-auto object-contain select-none"
+                                initial={{ y: 50, opacity: 0, scale: 0.92 }}
+                                animate={{ y: 0, opacity: 1, scale: 1.05 }}
+                                transition={{ delay: 0.1, type: "spring", damping: 20, stiffness: 180 }}
+                                style={{
+                                    position: "absolute",
+                                    bottom: -10,
+                                    left: cfg.imageOffsetX,
+                                    height: 245,
+                                    width: "auto",
+                                    objectFit: "contain",
+                                    transformOrigin: "bottom left",
+                                    pointerEvents: "none",
+                                    userSelect: "none",
+                                    filter: `drop-shadow(0 8px 28px ${cfg.glowColor})`,
+                                }}
                                 draggable={false}
                             />
 
-                            {/* Name badge top-right */}
-                            <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
-                                <span className={`${cfg.badge} text-white text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full`}>
+                            {/* Name badge — slides in from right */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 24 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2, type: "spring", damping: 22 }}
+                                style={{
+                                    position: "absolute", top: 16, right: 16,
+                                    display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4,
+                                }}
+                            >
+                                <span style={{
+                                    background: cfg.badgeBg,
+                                    color: cfg.badgeText,
+                                    fontSize: 10, fontWeight: 900,
+                                    letterSpacing: "0.12em", textTransform: "uppercase",
+                                    padding: "4px 12px", borderRadius: 99,
+                                    boxShadow: `0 2px 16px ${cfg.glowColor}`,
+                                }}>
                                     {cfg.name}
                                 </span>
-                                <span className="text-white/60 text-[10px] font-medium uppercase tracking-wider">
+                                <span style={{
+                                    color: "rgba(255,255,255,0.5)",
+                                    fontSize: 9, fontWeight: 600,
+                                    letterSpacing: "0.1em", textTransform: "uppercase",
+                                }}>
                                     {cfg.role}
                                 </span>
-                            </div>
+                            </motion.div>
 
-                            {/* Gradient fade at the bottom so text panel blends in */}
-                            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent" />
+                            {/* Bottom fade to white */}
+                            <div style={{
+                                position: "absolute", bottom: 0, left: 0, right: 0, height: 64,
+                                background: "linear-gradient(to bottom, transparent, #ffffff)",
+                            }} />
                         </div>
 
-                        {/* Content panel */}
-                        <div className="bg-white px-5 pb-6 pt-3">
-                            {/* Title */}
-                            <p className="text-sm font-black text-slate-900 uppercase tracking-wide mb-2">
+                        {/* ── Content panel ── */}
+                        <div style={{ background: "#ffffff", padding: "14px 20px 24px" }}>
+
+                            {/* Title — pops in with scale */}
+                            <motion.p
+                                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ delay: 0.22, type: "spring", damping: 18 }}
+                                style={{
+                                    fontSize: 13, fontWeight: 900,
+                                    color: "#0f172a",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.06em",
+                                    marginBottom: 8,
+                                }}
+                            >
                                 {title}
-                            </p>
+                            </motion.p>
 
-                            {/* Message */}
-                            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line mb-4">
-                                {message}
-                            </p>
+                            {/* Message — typewriter */}
+                            <div
+                                onClick={skip}
+                                style={{ cursor: msgDone ? "default" : "pointer", marginBottom: 16 }}
+                            >
+                                <p style={{
+                                    fontSize: 13, color: "#475569",
+                                    lineHeight: 1.65, whiteSpace: "pre-line",
+                                    minHeight: 52,
+                                }}>
+                                    {displayedMsg}
+                                    {/* Blinking cursor while typing */}
+                                    {!msgDone && (
+                                        <motion.span
+                                            animate={{ opacity: [1, 0, 1] }}
+                                            transition={{ repeat: Infinity, duration: 0.7 }}
+                                            style={{
+                                                display: "inline-block",
+                                                width: 2, height: 13,
+                                                background: cfg.accent,
+                                                marginLeft: 2,
+                                                borderRadius: 1,
+                                                verticalAlign: "middle",
+                                            }}
+                                        />
+                                    )}
+                                </p>
+                                {!msgDone && (
+                                    <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, letterSpacing: "0.06em" }}>
+                                        TAP TO SKIP
+                                    </p>
+                                )}
+                            </div>
 
-                            {/* Choices (Reply to Chad / Sam mechanics) */}
-                            {choiceA && choiceB ? (
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        onClick={() => { choiceA.onSelect(); onDismiss(); }}
-                                        className="w-full rounded-2xl border-2 border-blue-500 bg-blue-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+                            {/* Choices / dismiss — fade in after typing done */}
+                            <AnimatePresence>
+                                {msgDone && (
+                                    <motion.div
+                                        key="actions"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ type: "spring", damping: 22, stiffness: 240 }}
                                     >
-                                        <p className="text-xs font-black text-blue-700 uppercase tracking-wide">{choiceA.label}</p>
-                                        <p className="text-xs text-blue-500 mt-0.5">{choiceA.description}</p>
-                                    </button>
-                                    <button
-                                        onClick={() => { choiceB.onSelect(); onDismiss(); }}
-                                        className="w-full rounded-2xl border-2 border-orange-500 bg-orange-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
-                                    >
-                                        <p className="text-xs font-black text-orange-700 uppercase tracking-wide">{choiceB.label}</p>
-                                        <p className="text-xs text-orange-500 mt-0.5">{choiceB.description}</p>
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={onDismiss}
-                                    className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-transform"
-                                    style={{ background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)` }}
-                                >
-                                    {buttonText}
-                                </button>
-                            )}
+                                        {hasChoices ? (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                <button
+                                                    onClick={() => handleChoice(choiceA!.onSelect)}
+                                                    style={{
+                                                        width: "100%", textAlign: "left",
+                                                        padding: "12px 16px", borderRadius: 16,
+                                                        border: "2px solid #3b82f6",
+                                                        background: "linear-gradient(135deg, #eff6ff, #dbeafe)",
+                                                        cursor: "pointer",
+                                                    }}
+                                                >
+                                                    <p style={{ fontSize: 11, fontWeight: 900, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
+                                                        {choiceA!.label}
+                                                    </p>
+                                                    <p style={{ fontSize: 11, color: "#3b82f6" }}>{choiceA!.description}</p>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleChoice(choiceB!.onSelect)}
+                                                    style={{
+                                                        width: "100%", textAlign: "left",
+                                                        padding: "12px 16px", borderRadius: 16,
+                                                        border: "2px solid #f97316",
+                                                        background: "linear-gradient(135deg, #fff7ed, #fed7aa)",
+                                                        cursor: "pointer",
+                                                    }}
+                                                >
+                                                    <p style={{ fontSize: 11, fontWeight: 900, color: "#9a3412", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
+                                                        {choiceB!.label}
+                                                    </p>
+                                                    <p style={{ fontSize: 11, color: "#ea580c" }}>{choiceB!.description}</p>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={handleDismiss}
+                                                style={{
+                                                    width: "100%", height: 50,
+                                                    borderRadius: 16, border: "none",
+                                                    background: `linear-gradient(135deg, ${cfg.accent} 0%, ${cfg.accent}bb 100%)`,
+                                                    color: "#fff",
+                                                    fontSize: 12, fontWeight: 900,
+                                                    textTransform: "uppercase",
+                                                    letterSpacing: "0.1em",
+                                                    cursor: "pointer",
+                                                    boxShadow: `0 4px 20px ${cfg.glowColor}`,
+                                                }}
+                                            >
+                                                {buttonText}
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </motion.div>
                 </>
