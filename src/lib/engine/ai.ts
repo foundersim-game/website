@@ -138,3 +138,46 @@ export async function generateFounderStory(founderName: string, startupName: str
     }
 }
 
+
+export async function generateChadBanter(startup: Startup, founder: Founder, competitor: any) {
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === "dummy") {
+        return null;
+    }
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are Chad, the ruthless AI rival and ex-boss in a startup simulation game.
+You are hyper-aggressive, arrogant, and obsessed with growth. 
+Based on the player's current metrics and your own startup "Chadly", generate a brief, stinging taunt (1-2 sentences) and a unique attack description.
+
+Your character traits:
+- Always talks about "multiples" and "hyper-growth".
+- Mocks the player for "caring about burnout" or "being slow".
+- Uses startup jargon (Series B, blitzscaling, burn rate).
+
+Return ONLY valid JSON:
+{
+  "banter": "Your burn rate is looking like a bonfire, {name}. I'm scaling Chadly at 3x while you're still choosing font colors.",
+  "attackDescription": "just flooded your niche with a $2M subsidy to zero out your margins."
+}`
+                },
+                {
+                    role: "user",
+                    content: `Player Startup: ${startup.name}. Metrics: Cash ${startup.metrics.cash}, Users ${startup.metrics.users}, Burnout ${startup.metrics.founder_burnout}%. 
+Chadly Valuation: ${competitor.valuation}. Chadly Users: ${competitor.users}.`
+                }
+            ],
+            response_format: { type: "json_object" }
+        });
+
+        const content = JSON.parse(response.choices[0].message.content || "null");
+        return content;
+    } catch (e) {
+        console.warn("Chad Banter generation failed:", e);
+        return null;
+    }
+}

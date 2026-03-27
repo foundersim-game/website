@@ -16,7 +16,7 @@ import { getNextFundingStage, getFundingPhase, generateFundingTerms, checkEndgam
 import { recordExit, SCENARIOS, ScenarioId, getLegacyData } from "@/lib/engine/legacy";
 import { generateAcquisitionOffer } from "@/lib/engine/manda";
 import { getRandomEvent } from "@/lib/engine/events";
-import { generateAIEvent, generateFounderStory } from "@/lib/engine/ai";
+import { generateAIEvent, generateFounderStory, generateChadBanter } from "@/lib/engine/ai";
 import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
 import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
 import { CharacterDialog } from "@/components/CharacterDialog";
@@ -34,7 +34,7 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2 } from "lucide-react";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
@@ -441,6 +441,7 @@ type ActionSheetProps = {
     setEnergyRefills: React.Dispatch<React.SetStateAction<number[]>>;
     setConfirmDialog: (d: any) => void;
     isOnline: boolean;
+    isPremium: boolean;
     rejectedCandidates: string[];
     allEmployees: any[];
     handleRivalryAction: (action: RivalryAction) => void;
@@ -453,7 +454,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory }: ActionSheetProps) {
 
     const employees = allEmployees;
     const liveRevenue = m.users * (m.pricing || 0);
@@ -1361,10 +1362,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={!isOnline}
-                                        className={`h-6 text-[8px] font-black uppercase tracking-widest ${!isOnline ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
+                                        disabled={!isOnline && !isPremium}
+                                        className={`h-6 text-[8px] font-black uppercase tracking-widest ${(!isOnline && !isPremium) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
                                         onClick={() => {
-                                            if (!isOnline) {
+                                            if (!isOnline && !isPremium) {
                                                 setConfirmDialog({
                                                     open: true,
                                                     title: "Action Unavailable",
@@ -1885,9 +1886,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70"
-                                        disabled={isRefillLimited}
+                                        className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline && !isPremium) && "grayscale opacity-50")}
+                                        disabled={isRefillLimited || (!isOnline && !isPremium)}
                                         onClick={() => {
+                                            if (!isOnline && !isPremium) {
+                                                setConfirmDialog({
+                                                    open: true,
+                                                    title: "Access Denied",
+                                                    description: "Energy Refills require an active internet connection to load ad-rewards. Connect and push through!",
+                                                    confirmText: "UNDERSTOOD",
+                                                    type: "offline",
+                                                    onConfirm: () => { }
+                                                });
+                                                return;
+                                            }
                                             if (isRefillLimited) {
                                                 const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
                                                 toast.error("Refill Limit Reached", { description: `You can refill energy 2 times per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
@@ -2468,6 +2480,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 export default function Dashboard() {
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
+
+    // 1. ALL STATES FIRST
+    const [isPremium, setIsPremium] = useState<boolean>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("founder_sim_premium") === "true";
+        }
+        return false;
+    });
+    const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
+    const [interstitialAdOwed, setInterstitialAdOwed] = useState<boolean>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("founder_sim_ad_owed") === "true";
+        }
+        return false;
+    });
+    const [isLoaded, setIsLoaded] = useState(false);
     const [startup, setStartup] = useState<Startup>(STARTUP_BASE as unknown as Startup);
     const [founder, setFounder] = useState<Founder>(FOUNDER_BASE as unknown as Founder);
     const [month, setMonth] = useState(1);
@@ -2475,8 +2503,6 @@ export default function Dashboard() {
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
     const [isSamModalOpen, setIsSamModalOpen] = useState(false);
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
-
-    // --- CHARACTER DIALOG (Sam & Chad storyline) ---
     const [characterDialog, setCharacterDialog] = useState<StorylineDialog | null>(null);
     const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
     const [storyState, setStoryState] = useState<StorylineState>({
@@ -2488,21 +2514,11 @@ export default function Dashboard() {
         samGoneToIsland: false,
         hasConsultedSam: false,
     });
-
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    // --- LIVE COUNTDOWN TIMER ---
     const [currentTime, setCurrentTime] = useState(Date.now());
-    
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
     const [samConsults, setSamConsults] = useState<number[]>([]);
-    const [cashGrants, setCashGrants] = useState<number[]>([]); // Cash Grant rate limits
-    const [energyRefills, setEnergyRefills] = useState<number[]>([]); // Energy Refill rate limits
+    const [cashGrants, setCashGrants] = useState<number[]>([]);
+    const [energyRefills, setEnergyRefills] = useState<number[]>([]);
     const [isChadModalOpen, setIsChadModalOpen] = useState(false);
     const [chadAdvice, setChadAdvice] = useState<{ title: string; message: string; buttonText: string } | null>(null);
     const [selectedAction, setSelectedAction] = useState<StartupAction>("none");
@@ -2536,13 +2552,49 @@ export default function Dashboard() {
     }>({ open: false, title: "", description: "", onConfirm: () => { } });
     const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => !isAudioMuted());
 
-    const [isPremium, setIsPremium] = useState<boolean>(() => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("founder_sim_premium") === "true";
+    // 2. ALL EFFECTS SECOND
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOnline(true);
+            if (!isPremium) {
+                adService.initialize().then(() => {
+                    adService.showBanner();
+                    adService.prepareInterstitial();
+                });
+            }
+        };
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("offline", handleOffline);
+        return () => {
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("offline", handleOffline);
+        };
+    }, [isPremium]);
+
+    useEffect(() => {
+        if (isOnline && interstitialAdOwed && !isPremium && isLoaded) {
+            const timer = setTimeout(async () => {
+                await adService.showInterstitial();
+                setInterstitialAdOwed(false);
+                adService.prepareInterstitial();
+                toast.info("Connection Restored", { description: "Simulation synced and ready." });
+            }, 2000);
+            return () => clearTimeout(timer);
         }
-        return false;
-    });
-    const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
+    }, [isOnline, interstitialAdOwed, isPremium, isLoaded]);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("founder_sim_ad_owed", interstitialAdOwed.toString());
+        }
+    }, [interstitialAdOwed]);
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
 
     // ── Tutorial: fire active step on game load/reload ──────────────────────────
     useEffect(() => {
@@ -2981,6 +3033,18 @@ export default function Dashboard() {
         }
     }, []);
 
+    // --- ENDGAME STORY GENERATION (CENTRALIZED) ---
+    useEffect(() => {
+        if (isEndgameOpen && !endgameStory) {
+            const generateStory = async () => {
+                const timelineText = eventsTimeline.map(e => `Month ${e.month}: ${e.text}`);
+                const story = await generateFounderStory(founder.name, startup.name, timelineText);
+                setEndgameStory(story);
+            };
+            generateStory();
+        }
+    }, [isEndgameOpen, endgameStory, founder.name, startup.name, eventsTimeline]);
+
     // --- SAM INTRO MENTOR SETUP (AUTO-TRIGGER) ---
     useEffect(() => {
         if (isLoaded && month === 1 && startup.id && (!startup.history || startup.history.length === 0) && !isSamModalOpen) {
@@ -3013,18 +3077,25 @@ export default function Dashboard() {
         }
     }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded, storyState]);
 
-    const handleResetGame = () => {
+    const handleResetGame = (skipConfirm = false) => {
+        const performReset = () => {
+            localStorage.removeItem("founder_sim_state");
+            localStorage.removeItem("founder_data");
+            router.push("/");
+        };
+
+        if (skipConfirm) {
+            performReset();
+            return;
+        }
+
         setConfirmDialog({
             open: true,
             title: "Reset Progress?",
             description: "This will permanently delete your current startup and founder data. This cannot be undone.",
             confirmText: "RESET EVERYTHING",
             type: "delete",
-            onConfirm: () => {
-                localStorage.removeItem("founder_sim_state");
-                localStorage.removeItem("founder_data");
-                router.push("/");
-            }
+            onConfirm: performReset
         });
     };
 
@@ -3711,8 +3782,7 @@ export default function Dashboard() {
                     const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: Founder burned out completely. +${pts} XP earned.` }];
                     setEventsTimeline(finalTimeline);
                     toast("Game Over — Burnout", { description: `You worked yourself to the ground. Earned ${pts} XP.` });
-                    const story = isOnline ? await generateFounderStory(founder.name, newStartup.name, finalTimeline.map(e => `Month ${e.month}: ${e.text}`)) : null;
-                    setEndgameStory(story); setIsEndgameOpen(true); setIsProcessing(false);
+                    setIsEndgameOpen(true); setIsProcessing(false);
                     return;
                 }
 
@@ -3725,8 +3795,7 @@ export default function Dashboard() {
                     const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: ${endgame.toUpperCase()}! +${pts} XP earned.` }];
                     setEventsTimeline(finalTimeline);
                     toast("Game Over - " + endgame.toUpperCase(), { description: `Generating your founder story... Earned ${pts} XP.` });
-                    const story = isOnline ? await generateFounderStory(founder.name, newStartup.name, finalTimeline.map(e => `Month ${e.month}: ${e.text}`)) : null;
-                    setEndgameStory(story); setIsEndgameOpen(true); setIsProcessing(false);
+                    setIsEndgameOpen(true); setIsProcessing(false);
                     return;
                 }
 
@@ -3756,13 +3825,24 @@ export default function Dashboard() {
                 setCompetitors(updated);
                 news.forEach(n => addTimelineEvent(n, nextMonth));
                 
+                const chadlyComp = updated.find(c => c.id === "chadly");
+                let aiBanter: any = null;
+                if (isOnline && chadlyComp) {
+                    // Pre-generate banter for potential UI use
+                    try {
+                        aiBanter = await generateChadBanter(newStartup, founder, chadlyComp);
+                    } catch (e) { console.warn("AI Banter failed", e); }
+                }
+
                 let nextFounder = { ...founder, attributes: { ...founder.attributes } };
                 
                 rivalActions.forEach(({ action, competitorName }) => {
                     if (competitorName.toLowerCase().includes("chadly")) {
                         setChadAdvice({
                             title: "⚔️ CHADLY ATTACKS!",
-                            message: `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
+                            message: aiBanter?.banter 
+                                ? `"${aiBanter.banter}"\n\nChadly ${aiBanter.attackDescription || action.description}`
+                                : `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
                             buttonText: "I'LL CRUSH HIM"
                         });
                         playSound("popup");
@@ -3898,8 +3978,14 @@ export default function Dashboard() {
                 setActionUsageLog(prev => ({ thisMonth: {}, lastUsedMonth: prev.lastUsedMonth }));
 
                 if (month % 3 === 0 && !isPremium) {
-                    await adService.showInterstitial();
-                    adService.prepareInterstitial();
+                    if (isOnline) {
+                        await adService.showInterstitial();
+                        adService.prepareInterstitial();
+                    } else {
+                        // Offline bypass attempt: queue the ad for when they reconnect
+                        setInterstitialAdOwed(true);
+                        toast.info("Offline Mode", { description: "Mandatory check-in queued for next connection." });
+                    }
                 }
 
                 setMonth(nextMonth);
@@ -4130,7 +4216,7 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={handleSaveAndQuit}>
                                     <Menu className="mr-2 h-4 w-4" /> Save & Return to Title
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={handleResetGame}>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={() => handleResetGame()}>
                                     <RefreshCw className="mr-2 h-4 w-4" /> New Game
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-100" />
@@ -4534,6 +4620,7 @@ export default function Dashboard() {
                                         setEnergyRefills={setEnergyRefills}
                                         setConfirmDialog={setConfirmDialog}
                                         isOnline={isOnline}
+                                        isPremium={isPremium}
                                         handleRivalryAction={handleRivalryAction}
                                     />
                                 </div>
@@ -5511,12 +5598,21 @@ export default function Dashboard() {
                                     </div>
 
                                     {/* Founder Story */}
-                                    {endgameStory && (
-                                        <div className="bg-white border border-slate-100 rounded-2xl p-4">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">📖 Your Story</p>
-                                            <p className="text-xs text-slate-600 leading-relaxed">{endgameStory}</p>
-                                        </div>
-                                    )}
+                                    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
+                                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                            📖 Your Story
+                                            {!endgameStory && <Loader2 className="h-3 w-3 animate-spin text-indigo-400" />}
+                                        </p>
+                                        {endgameStory ? (
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{endgameStory}</p>
+                                        ) : (
+                                            <div className="space-y-2 mt-2">
+                                                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
+                                                <div className="h-2 w-5/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
+                                                <div className="h-2 w-4/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Footer buttons - fixed bottom with safe area */}
@@ -5530,7 +5626,7 @@ export default function Dashboard() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={handleResetGame}
+                                        onClick={() => handleResetGame(true)}
                                         className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
                                     >
                                         Start New Game →
