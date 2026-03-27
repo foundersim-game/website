@@ -194,14 +194,18 @@ export default function Home() {
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
-        className="fixed top-4 right-4 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-90"
+        className="fixed z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-90"
+        style={{ top: 'calc(var(--sat, 0px) + 16px)', right: '16px' }}
         aria-label="Toggle theme"
       >
         {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
 
       {/* Main Content - Compact & Zero-Scroll */}
-      <div className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] relative z-10 overflow-hidden">
+      <div 
+        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] relative z-10 overflow-hidden"
+        style={{ paddingTop: 'calc(var(--sat, 0px) + 16px)' }}
+      >
 
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}

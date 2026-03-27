@@ -39,6 +39,7 @@ export type StorylineState = {
     act: 1 | 2 | 3;
     tutorialStep: number;    // 0-4 during tutorial, -1 when done
     samGoneToIsland: boolean;
+    hasConsultedSam?: boolean;
 };
 
 // ─── Month 1 Tutorial Sequence ────────────────────────────────────────────────
@@ -120,13 +121,18 @@ export const SAM_ISLAND_FAREWELL: StorylineDialog = {
 // ─── Sam's Consult Return (called from Consult Sam button) ───────────────────
 
 export function getSamConsultDialog(
-    advice: { title: string; message: string; buttonText: string }
+    advice: { title: string; message: string; buttonText: string },
+    hasConsultedSam?: boolean
 ): StorylineDialog {
+    const intro = hasConsultedSam
+        ? ""
+        : "Pulled me off the beach for this? Fine — I was getting a bit too tan anyway.\n\n";
+
     return {
         character: "sam",
         trigger: `consult_${Date.now()}`,
         title: advice.title,
-        message: `Pulled me off the beach for this? Fine — I was getting a bit too tan anyway.\n\n${advice.message}`,
+        message: `${intro}${advice.message}`,
         buttonText: advice.buttonText || "THANKS, SAM 🏄",
     };
 }

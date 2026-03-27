@@ -50,6 +50,13 @@ function formatSaveDate(dateStr: string) {
         " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+function formatCooldown(nextAvail: number, currentTime: number) {
+    const diff = Math.max(0, nextAvail - currentTime);
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 const STAGE_COLORS: Record<string, string> = {
     "Bootstrapping": "bg-slate-100 text-slate-600",
     "Angel Investment": "bg-amber-50 text-amber-700 border-amber-200",
@@ -1369,7 +1376,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 return;
                                             }
                                             if (isLimited) {
-                                                toast.error("Grant Limit Reached", { description: "You can claim 2 grants per hour maximum!" });
+                                                const nextAvail = Math.min(...validGrants) + 60 * 60 * 1000;
+                                                toast.error("Grant Limit Reached", { description: `You can claim 2 grants per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
                                                 return;
                                             }
 
@@ -1388,7 +1396,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         }}
                                     >
                                         {isLimited ? (
-                                            <span className="text-rose-600 font-bold">{countdownStr}</span>
+                                            <span className="text-rose-600 font-bold">{formatCooldown(validGrants[0] + 60 * 60 * 1000, currentTime)}</span>
                                         ) : "Claim (Ads)"}
                                     </Button>
                                 );
@@ -1872,7 +1880,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {focusHoursUsed > 0 && (() => {
                                 const hourAgo = Date.now() - 3600_000;
                                 const validRefills = (energyRefills || []).filter((t: number) => t > hourAgo);
-                                const isRefillLimited = validRefills.length >= 1;
+                                const isRefillLimited = validRefills.length >= 2;
                                 return (
                                     <Button
                                         variant="outline"
@@ -1881,7 +1889,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         disabled={isRefillLimited}
                                         onClick={() => {
                                             if (isRefillLimited) {
-                                                toast.error("Refill Limit Reached", { description: "You can refill energy once per hour." });
+                                                const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
+                                                toast.error("Refill Limit Reached", { description: `You can refill energy 2 times per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
                                                 return;
                                             }
                                             adService.showRewardedAd(() => {
@@ -1891,7 +1900,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             });
                                         }}
                                     >
-                                        {isRefillLimited ? "Cooldown (1/hr)" : "Refill Energy (Ads)"}
+                                        {isRefillLimited ? (
+                                            <span className="font-bold">{formatCooldown(validRefills[0] + 60 * 60 * 1000, currentTime)}</span>
+                                        ) : "Refill Energy (Ads)"}
                                     </Button>
                                 );
                             })()}
@@ -2475,12 +2486,19 @@ export default function Dashboard() {
         act: 1,
         tutorialStep: 0,
         samGoneToIsland: false,
+        hasConsultedSam: false,
     });
 
     const [isLoaded, setIsLoaded] = useState(false);
 
     // --- LIVE COUNTDOWN TIMER ---
     const [currentTime, setCurrentTime] = useState(Date.now());
+    
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
     const [samConsults, setSamConsults] = useState<number[]>([]);
     const [cashGrants, setCashGrants] = useState<number[]>([]); // Cash Grant rate limits
@@ -3993,15 +4011,6 @@ export default function Dashboard() {
                             const validConsults = (samConsults || []).filter(t => t > hourAgo);
                             const isLimited = validConsults.length >= 2;
 
-                            let countdownStr = "";
-                            if (isLimited) {
-                                const nextAvail = validConsults[0] + 60 * 60 * 1000;
-                                const msLeft = Math.max(0, nextAvail - currentTime);
-                                const mins = Math.floor(msLeft / 60000);
-                                const secs = Math.floor((msLeft % 60000) / 1000);
-                                countdownStr = `${mins}:${String(secs).padStart(2, '0')}`;
-                            }
-
                             return (
                                 <Button
                                     size="sm"
@@ -4025,10 +4034,11 @@ export default function Dashboard() {
                                         const validConsults = samConsults.filter(t => t > hourAgo);
 
                                         if (validConsults.length >= 2) {
+                                            const nextAvail = Math.min(...validConsults) + 60 * 60 * 1000;
                                             setConfirmDialog({
                                                 open: true,
                                                 title: "🧠 Sam is Processing...",
-                                                description: "Even a super-mentor needs a break! Sam is currently synthesizing market data from your last session. Check back in a bit.",
+                                                description: `Even a super-mentor needs a break! Sam is synthesizing market data. Check back in ${formatCooldown(nextAvail, currentTime)}.`,
                                                 confirmText: "LET HIM COOK",
                                                 onConfirm: () => { }
                                             });
@@ -4037,12 +4047,13 @@ export default function Dashboard() {
 
                                         const consultAction = () => {
                                             setSamConsults([...validConsults, now]);
+                                            setStoryState(prev => ({ ...prev, hasConsultedSam: true }));
                                             const advice = getConsultationAdvice(startup);
                                             const dialog = getSamConsultDialog({
                                                 title: advice.title,
                                                 message: advice.message,
                                                 buttonText: advice.buttonText || "THANKS, SAM 🏄",
-                                            });
+                                            }, storyState.hasConsultedSam);
                                             setCharacterDialog(dialog);
                                             setIsCharacterDialogOpen(true);
                                         };
@@ -4058,7 +4069,7 @@ export default function Dashboard() {
                                         <img src="/characters/sam_mentor.png" alt="Sam" className="w-full h-full object-cover scale-125" />
                                     </div>
                                     {isLimited ? (
-                                        <span className="text-rose-600 font-bold ml-0.5">{countdownStr}</span>
+                                        <span className="text-white font-bold ml-0.5">{formatCooldown(validConsults[0] + 60 * 60 * 1000, currentTime)}</span>
                                     ) : (
                                         <span className="ml-0.5">CONSULT SAM</span>
                                     )}
