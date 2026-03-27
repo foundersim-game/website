@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, ArrowRight, TrendingUp, TrendingDown, Target, Users, Landmark, Activity, Heart, Briefcase } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 export type EventChoice = {
     text: string;
@@ -115,6 +116,7 @@ const MetricIcon = ({ metric, className = "size-4" }: { metric: string; classNam
 };
 
 export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremium = false }: EventModalProps) {
+    const { isDark } = useTheme();
     const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
     const [isExiting, setIsExiting] = useState(false);
     
@@ -185,8 +187,8 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                             margin: "0 auto",
                             borderRadius: "32px 32px 0 0",
                             overflow: "hidden",
-                            background: "#fff",
-                            boxShadow: `0 -12px 60px ${THEME.glowColor}`,
+                            background: isDark ? "#0f172a" : "#fff",
+                            boxShadow: `0 -12px 60px ${isDark ? "rgba(0,0,0,0.5)" : THEME.glowColor}`,
                         }}
                     >
                         {/* --- TOP PANEL (The Visual Area) --- */}
@@ -254,13 +256,13 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                             {/* Bottom Page Fade */}
                             <div style={{
                                 position: "absolute", bottom: 0, left: 0, right: 0, height: 40,
-                                background: "linear-gradient(to bottom, transparent, #ffffff)",
+                                background: isDark ? "linear-gradient(to bottom, transparent, #0f172a)" : "linear-gradient(to bottom, transparent, #ffffff)",
                             }} />
                         </div>
 
                         {/* --- CONTENT PANEL --- */}
                         <div style={{ 
-                            background: "#ffffff", 
+                            background: isDark ? "#0f172a" : "#ffffff", 
                             padding: `16px 24px ${isPremium ? '32px' : 'calc(32px + var(--sab, 0px) + 70px)'}`
                         }}>
                             {!resolvedChoice ? (
@@ -270,7 +272,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                         animate={{ opacity: 1, y: 0 }}
                                         style={{
                                             fontSize: 22, fontWeight: 900,
-                                            color: "#0f172a",
+                                            color: isDark ? "#f1f5f9" : "#0f172a",
                                             textTransform: "uppercase",
                                             letterSpacing: "-0.01em",
                                             marginBottom: 8,
@@ -280,12 +282,12 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                         {event.title}
                                     </motion.h2>
 
-                                    <div 
+                                     <div 
                                         onClick={skip}
                                         style={{ cursor: descDone ? "default" : "pointer", marginBottom: 24 }}
-                                    >
+                                     >
                                         <p style={{
-                                            fontSize: 14, color: "#475569",
+                                            fontSize: 14, color: isDark ? "#94a3b8" : "#475569",
                                             lineHeight: 1.6, minHeight: 60,
                                         }}>
                                             {displayedDesc}
@@ -320,8 +322,8 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                                         style={{
                                                             width: "100%", textAlign: "left",
                                                             padding: "16px 20px", borderRadius: 20,
-                                                            border: "2px solid #e2e8f0",
-                                                            background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
+                                                            border: isDark ? "2px solid #1e293b" : "2px solid #e2e8f0",
+                                                            background: isDark ? "linear-gradient(135deg, #1e293b, #0f172a)" : "linear-gradient(135deg, #f8fafc, #f1f5f9)",
                                                             cursor: "pointer",
                                                             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                                                             display: "flex", alignItems: "center", gap: 16,
@@ -330,20 +332,20 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                                         onMouseEnter={(e) => {
                                                             e.currentTarget.style.borderColor = THEME.accent;
                                                             e.currentTarget.style.transform = "translateY(-2px)";
-                                                            e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                                                            e.currentTarget.style.boxShadow = isDark ? "0 8px 20px rgba(0,0,0,0.4)" : "0 8px 20px rgba(0,0,0,0.05)";
                                                         }}
                                                         onMouseLeave={(e) => {
-                                                            e.currentTarget.style.borderColor = "#e2e8f0";
+                                                            e.currentTarget.style.borderColor = isDark ? "#1e293b" : "#e2e8f0";
                                                             e.currentTarget.style.transform = "translateY(0)";
                                                             e.currentTarget.style.boxShadow = "none";
                                                         }}
                                                     >
                                                         <div style={{ flex: 1 }}>
-                                                            <p style={{ fontSize: 13, fontWeight: 900, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                                                            <p style={{ fontSize: 13, fontWeight: 900, color: isDark ? "#f1f5f9" : "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
                                                                 {choice.text}
                                                             </p>
                                                             {choice.subtext && (
-                                                                <p style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{choice.subtext}</p>
+                                                                <p style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b", marginTop: 2 }}>{choice.subtext}</p>
                                                             )}
                                                         </div>
                                                         <ArrowRight className="size-5 text-slate-300" />
@@ -363,12 +365,12 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                         <p style={{ fontSize: 11, fontWeight: 900, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
                                             Analysis Complete
                                         </p>
-                                        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", marginBottom: 12 }}>
+                                        <h2 style={{ fontSize: 24, fontWeight: 900, color: isDark ? "#f1f5f9" : "#0f172a", marginBottom: 12 }}>
                                             The Outcome
                                         </h2>
                                         <div style={{ 
-                                            background: "#f8fafc", 
-                                            border: "1px solid #e2e8f0",
+                                            background: isDark ? "#1e293b" : "#f8fafc", 
+                                            border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
                                             borderRadius: 24,
                                             padding: 20,
                                             display: "flex", flexDirection: "column", gap: 12
@@ -389,10 +391,10 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                                             <MetricIcon metric={metric} />
                                                         </div>
                                                         <div style={{ flex: 1 }}>
-                                                            <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase" }}>
+                                                            <p style={{ fontSize: 10, fontWeight: 800, color: isDark ? "#64748b" : "#94a3b8", textTransform: "uppercase" }}>
                                                                 {metric.replace('_', ' ')}
                                                             </p>
-                                                            <p style={{ fontSize: 15, fontWeight: 900, color: "#1e293b" }}>
+                                                            <p style={{ fontSize: 15, fontWeight: 900, color: isDark ? "#f1f5f9" : "#1e293b" }}>
                                                                 {isPositive ? "+" : ""}{metric.toLowerCase().includes('cash') || metric.toLowerCase().includes('revenue') ? formatMoney(amount) : amount}
                                                             </p>
                                                         </div>

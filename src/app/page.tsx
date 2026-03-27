@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Plus, FolderOpen, Trash2, HelpCircle, Award, History, Trophy } from "lucide-react";
+import { Zap, Plus, FolderOpen, Trash2, HelpCircle, Award, History, Trophy, Sun, Moon } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { getLegacyData, LegacyData, PERKS, Perk, buyPerk } from "@/lib/engine/le
 import { toast, Toaster } from "sonner";
 import { DollarSign, ShieldCheck, Zap as ZapIcon, Rocket as RocketIcon, Settings } from "lucide-react";
 import { adService } from "@/lib/services/adService";
+import { useTheme } from "@/components/ThemeProvider";
 
 export type SaveSlot = {
   id: string;
@@ -49,8 +50,8 @@ export default function Home() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [legacyData, setLegacyData] = useState<LegacyData | null>(null);
-
   const [hasActiveGame, setHasActiveGame] = useState(false);
+  const { toggleTheme, isDark } = useTheme();
 
 
   useEffect(() => {
@@ -122,8 +123,8 @@ export default function Home() {
 
   const stageColor = (stage: string) => STAGE_COLORS[stage] || "bg-slate-100 text-slate-600";
 
-  return (
-    <main className="min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden relative bg-white select-none">
+    return (
+    <main className="min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden relative bg-slate-50 dark:bg-slate-950 select-none">
 
       {/* Splash Screen */}
       <AnimatePresence>
@@ -133,7 +134,7 @@ export default function Home() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -141,16 +142,13 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center"
             >
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-2xl shadow-indigo-200 mb-6">
-                <Zap className="size-10 text-white fill-white" />
+              <div className="w-32 h-32 rounded-[2rem] shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-900/50 mb-6 overflow-hidden bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
               </div>
-              <h1 className="text-5xl font-black tracking-tighter text-slate-900">
-                FOUNDER<span className="text-indigo-500 italic">SIM</span>
-              </h1>
               <motion.p
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="mt-4 text-[10px] font-bold uppercase tracking-[0.4em] text-slate-400"
+                className="mt-4 text-[10px] font-bold uppercase tracking-[0.4em] text-indigo-500 dark:text-indigo-400"
               >
                 Loading...
               </motion.p>
@@ -159,151 +157,251 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Background decorations */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-indigo-50 to-transparent -z-10" />
-      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-violet-100/70 blur-[60px] -z-10" />
-      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-sky-100/70 blur-[60px] -z-10" />
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-indigo-100/50 blur-[40px] -z-10" />
+      {/* Background decorations - Immersive & Premium */}
+      <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-indigo-100/40 dark:from-indigo-950/40 to-transparent" />
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] aspect-square rounded-full bg-violet-400/20 dark:bg-violet-600/10 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[60%] aspect-square rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px]" />
+        
+        {/* Animated Floating Elements */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ 
+              x: Math.random() * 100 + "%", 
+              y: Math.random() * 100 + "%", 
+              opacity: 0,
+              rotate: 0 
+            }}
+            animate={{ 
+              y: [null, "-20%", "20%", null],
+              opacity: [0, 0.4, 0],
+              rotate: [0, 180, 360]
+            }}
+            transition={{ 
+              duration: 15 + Math.random() * 10, 
+              repeat: Infinity, 
+              delay: i * 2,
+              ease: "linear"
+            }}
+            className="absolute text-2xl select-none grayscale-[0.5] opacity-20 dark:opacity-10 pointer-events-none"
+          >
+            {i % 3 === 0 ? "🚀" : i % 3 === 1 ? "💰" : "✨"}
+          </motion.div>
+        ))}
+      </div>
 
-      {/* Main Content */}
-      <div className="w-full max-w-sm mx-auto flex flex-col min-h-[100dvh] px-6 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] relative z-10">
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-90"
+        aria-label="Toggle theme"
+      >
+        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </button>
 
-        {/* Logo & Title */}
+      {/* Main Content - Compact & Zero-Scroll */}
+      <div className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] relative z-10 overflow-hidden">
+
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className="flex flex-col items-center flex-1 justify-center gap-1.5 min-h-0"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.8 }}
+          className="flex flex-col items-center flex-1 justify-center gap-1 min-h-0"
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-200 mb-2">
-            <Zap className="size-8 text-white fill-white" />
+          {/* Simple Premium Logo */}
+          <div className="relative group mb-2">
+            <div className="absolute inset-0 bg-indigo-500/10 blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500 rounded-full" />
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="w-36 h-36 rounded-[2.5rem] shadow-xl shadow-indigo-500/10 dark:shadow-indigo-950/40 overflow-hidden relative z-10"
+            >
+              <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
+            </motion.div>
           </div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-900 text-center leading-tight">
-            FOUNDER<span className="text-indigo-500 italic">SIM</span>
-          </h1>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.25em] mt-1">
+
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mb-3">
             Build · Grow · Exit
           </p>
 
-          {/* Version tag */}
-          <div className="mt-4 flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-            <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">v2.1 · Founder's Legacy</span>
+          {/* Version tag - Refined v1.6 */}
+          <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5">
+            <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 1.6</span>
           </div>
 
-          {/* Legacy Stats */}
+          {/* Career Stats - Compact Glassmorphic Cards */}
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 grid grid-cols-2 gap-3 w-full"
+            transition={{ delay: 0.3 }}
+            className="mt-6 grid grid-cols-2 gap-3 w-full"
           >
-            <div className="bg-white border-2 border-slate-100 rounded-2xl p-2.5 flex flex-col items-center shadow-sm">
-              <Trophy className="size-3.5 text-amber-500 mb-0.5" />
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Exits</p>
-              <p className="text-lg font-black text-slate-900 leading-tight">{legacyData?.totalExits || 0}</p>
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-3 flex flex-col items-center shadow-sm relative group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
+              <div className="size-8 rounded-xl bg-amber-500 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+                <Trophy className="size-4" />
+              </div>
+              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Exits</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-xl font-black text-slate-900 dark:text-white leading-tight">{legacyData?.totalExits || 0}</p>
+                <span className="text-[8px] font-bold text-slate-400 uppercase">Wins</span>
+              </div>
             </div>
-            <div className="bg-white border-2 border-slate-100 rounded-2xl p-2.5 flex flex-col items-center shadow-sm">
-              <Award className="size-3.5 text-indigo-500 mb-0.5" />
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Available</p>
-              <p className="text-lg font-black text-slate-900 leading-tight">{legacyData?.unspentPoints || 0} XP</p>
+            
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-3 flex flex-col items-center shadow-sm relative group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
+              <div className="size-8 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
+                <Award className="size-4" />
+              </div>
+              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Experience</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-xl font-black text-slate-900 dark:text-white leading-tight">{legacyData?.unspentPoints || 0}</p>
+                <span className="text-[8px] font-bold text-indigo-500 dark:text-indigo-400 uppercase">XP</span>
+              </div>
             </div>
           </motion.div>
-          {/* Hall of Fame Snippet */}
-          <div className="mt-4 w-full min-h-0 flex flex-col">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 text-center flex items-center justify-center gap-2 shrink-0">
-               <History className="size-3" /> Hall of Fame
+
+          {/* Hall of Fame - Compact */}
+          <div className="mt-6 w-full min-h-0 flex flex-col relative">
+             <div className="absolute inset-0 bg-indigo-500/5 blur-2xl -z-10" />
+             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-2 text-center flex items-center justify-center gap-2 shrink-0">
+               <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
              </p>
-             <div className="space-y-1.5 overflow-y-auto max-h-[100px] custom-scrollbar pr-0.5 min-h-0">
+             <div className="space-y-2 overflow-y-auto max-h-[140px] custom-scrollbar pr-1 min-h-[60px]">
                {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition').length > 0 ? (
                  legacyData.hallOfFame
                    .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition')
                    .slice(0, 10)
                    .map(entry => (
-                    <div key={entry.id} className="bg-slate-50/50 border border-slate-100 rounded-xl px-3 py-1.5 flex items-center justify-between shrink-0">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-black text-slate-800 truncate">{entry.companyName}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{entry.outcome} · {formatMoney(entry.valuation)}</p>
+                    <motion.div 
+                      key={entry.id} 
+                      whileHover={{ x: 4 }}
+                      className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-white dark:border-white/5 shadow-sm rounded-xl px-3 py-2 flex items-center justify-between shrink-0"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="size-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-base">{entry.outcome === 'ipo' ? '🏛️' : '💰'}</div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
+                            <span className={cn(entry.outcome === 'ipo' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>{entry.outcome}</span> · {formatMoney(entry.valuation)}
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-black text-indigo-600 shrink-0 ml-2">+{entry.pointsEarned} XP</span>
-                    </div>
+                      <div className="text-right ml-2 shrink-0">
+                        <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400">+{entry.pointsEarned} XP</span>
+                      </div>
+                    </motion.div>
                   ))
                ) : (
-                 <div className="bg-slate-50/30 border border-dashed border-slate-100 rounded-xl px-3 py-4 text-center shrink-0">
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">No successful exits yet</p>
+                 <div className="bg-white/20 dark:bg-slate-900/20 backdrop-blur-sm border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl px-3 py-6 text-center flex flex-col items-center gap-1.5 group">
+                   <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform">
+                     <Award className="size-4" />
+                   </div>
+                   <p className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">No successful exits yet</p>
                  </div>
                )}
              </div>
           </div>
 
-          {/* Feature tags */}
-          <div className="mt-4 flex flex-wrap gap-1.5 justify-center shrink-0">
-            {["🏢 Real Unit Economics", "📈 100+ Events", "🎯 Sales Pipeline", "🤝 Co-Founders"].map(tag => (
-              <span key={tag} className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5">{tag}</span>
+          {/* Feature Pills - Compact */}
+          <div className="mt-6 flex flex-wrap gap-1.5 justify-center shrink-0">
+            {[
+              { label: "Real Unit Economics", icon: "🏢" },
+              { label: "100+ Events", icon: "📈" },
+              { label: "Sales Pipeline", icon: "🎯" },
+              { label: "Co-Founders", icon: "🤝" }
+            ].map(tag => (
+              <span key={tag.label} className="text-[8px] font-black text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm shadow-sm border border-white dark:border-white/5 rounded-full px-2.5 py-1 flex items-center gap-1">
+                <span className="opacity-80">{tag.icon}</span> {tag.label}
+              </span>
             ))}
           </div>
         </motion.div>
 
-        {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.6 }}
-          className="flex flex-col gap-2 mt-4 mb-2 shrink-0"
+          transition={{ delay: 0.45, duration: 0.6 }}
+          className="flex flex-col gap-2.5 mt-auto mb-2 shrink-0"
         >
           {hasActiveGame && (
             <button
               onClick={handleContinue}
-              className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black text-sm uppercase tracking-[0.12em] shadow-xl shadow-indigo-100 active:scale-95 transition-transform flex items-center justify-center gap-2 relative overflow-hidden group border-2 border-indigo-400"
+              className="group relative w-full h-14 rounded-2xl overflow-hidden shadow-xl shadow-indigo-500/10 active:scale-95 transition-all"
             >
-              <Zap className="size-4 fill-white" />
-              Continue Game
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-600" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+              <div className="absolute inset-[1px] bg-gradient-to-r from-indigo-400/20 to-violet-500/20 rounded-[15px] pointer-events-none border border-white/20" />
+              <div className="relative z-10 flex items-center justify-center gap-2.5">
+                <div className="size-7 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                  <Zap className="size-4 fill-white text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[8px] font-black text-white/70 uppercase tracking-widest leading-none mb-0.5">Resume Career</p>
+                  <p className="text-xs font-black text-white uppercase tracking-wider leading-none">CONTINUE GAME</p>
+                </div>
+              </div>
             </button>
           )}
 
           <button
             onClick={handleNewGame}
             className={cn(
-              "w-full rounded-2xl font-black text-sm uppercase tracking-[0.12em] transition-all flex items-center justify-center gap-2 relative overflow-hidden group",
-              hasActiveGame
-                ? "h-12 bg-white border-2 border-slate-200 text-slate-600 shadow-sm"
-                : "h-14 bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-xl shadow-indigo-200"
+              "group relative w-full rounded-2xl overflow-hidden transition-all active:scale-95 shadow-md",
+              hasActiveGame ? "h-12" : "h-14 shadow-indigo-500/10"
             )}
           >
-            {!hasActiveGame && <Plus className="size-4" />}
-            New Game
-          </button>
-
-          <button
-            onClick={() => { loadSaves(); setShowLoadModal(true); }}
-            className="w-full h-12 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-[0.12em] hover:border-indigo-300 hover:bg-indigo-50 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
-          >
-            <FolderOpen className="size-3.5 text-slate-500" />
-            Load Game
-            {savedGames.length > 0 && (
-              <span className="ml-1 text-[8px] font-black bg-indigo-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                {savedGames.length}
-              </span>
+            {hasActiveGame ? (
+              <>
+                <div className="absolute inset-0 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800" />
+                <div className="absolute inset-0 group-hover:bg-slate-50 dark:group-hover:bg-white/5 transition-colors" />
+                <div className="relative z-10 flex items-center justify-center gap-2">
+                  <Plus className="size-3.5 text-slate-400" />
+                  <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">New Game</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700" />
+                <div className="absolute inset-0 group-hover:bg-black/10 transition-colors" />
+                <div className="absolute inset-[1px] bg-gradient-to-r from-white/10 to-transparent rounded-[15px] border border-white/10" />
+                <div className="relative z-10 flex items-center justify-center gap-2">
+                   <Plus className="size-4 text-white" />
+                   <span className="text-xs font-black text-white uppercase tracking-widest">START NEW JOURNEY</span>
+                </div>
+              </>
             )}
           </button>
 
-          <button
-            onClick={() => setShowHowToPlay(true)}
-            className="w-full h-12 rounded-2xl bg-white text-slate-600 font-bold text-xs uppercase tracking-widest border-2 border-slate-100 hover:border-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <HelpCircle className="size-3.5" />
-            How to Play
-          </button>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => { loadSaves(); setShowLoadModal(true); }}
+              className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
+            >
+              <FolderOpen className="size-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Load Saves</span>
+            </button>
+
+            <button
+              onClick={() => setShowHowToPlay(true)}
+              className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
+            >
+              <HelpCircle className="size-3.5 text-slate-400 group-hover:text-violet-500 transition-colors" />
+              <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Help</span>
+            </button>
+          </div>
 
         </motion.div>
 
-        <div className="flex flex-col items-center gap-1 shrink-0 pb-2.5">
-          <p className="text-[9px] text-slate-300 font-medium tracking-tight">
+        <div className="flex flex-col items-center gap-1.5 shrink-0 pb-2.5">
+          <p className="text-[9px] text-slate-400 font-bold tracking-tight">
             FounderSim · Real startup simulation
           </p>
           <a 
             href="https://foundersim.fun/privacy" 
             target="_blank" 
-            className="text-[9px] text-indigo-400 font-bold hover:underline"
+            className="text-[9px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold hover:underline transition-colors"
           >
             Privacy Policy
           </a>
@@ -317,7 +415,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm"
             onClick={() => setShowLoadModal(false)}
           >
             <motion.div
@@ -325,12 +423,12 @@ export default function Home() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              className="w-full max-w-sm bg-white rounded-t-[2rem] p-6 shadow-2xl max-h-[85dvh] flex flex-col"
+              className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-t-[2rem] p-6 shadow-2xl max-h-[85dvh] flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-              <h2 className="text-lg font-black text-slate-900 mb-1">Load Game</h2>
-              <p className="text-[11px] text-slate-400 mb-4">{savedGames.length}/{MAX_SLOTS} slots used</p>
+              <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5" />
+              <h2 className="text-lg font-black text-slate-900 dark:text-white mb-1">Load Game</h2>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4">{savedGames.length}/{MAX_SLOTS} slots used</p>
 
               <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                 {/* Filled Slots */}
@@ -392,7 +490,7 @@ export default function Home() {
 
               <button
                 onClick={() => setShowLoadModal(false)}
-                className="mt-4 w-full h-12 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm"
+                className="mt-4 w-full h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-sm"
               >
                 Close
               </button>

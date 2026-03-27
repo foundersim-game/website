@@ -13,12 +13,12 @@ import { adService } from "@/lib/services/adService";
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
 const BACKGROUNDS = [
-    { id: "Engineer", label: "Engineer", icon: Cpu, desc: "+15 Tech · -5 Network", color: "border-blue-200 bg-blue-50", textColor: "text-blue-700", iconBg: "bg-blue-100" },
-    { id: "MBA", label: "MBA / Business", icon: Briefcase, desc: "+15 Network · -5 Tech", color: "border-indigo-200 bg-indigo-50", textColor: "text-indigo-700", iconBg: "bg-indigo-100" },
-    { id: "Designer", label: "Designer", icon: PenTool, desc: "+10 Marketing · +5 Tech", color: "border-pink-200 bg-pink-50", textColor: "text-pink-700", iconBg: "bg-pink-100" },
-    { id: "Serial Founder", label: "Serial Founder", icon: Sparkles, desc: "+10 Rep · -5 Stress", color: "border-amber-200 bg-amber-50", textColor: "text-amber-700", iconBg: "bg-amber-100" },
-    { id: "Hustler", label: "Sales Hustler", icon: ShoppingBag, desc: "+15 Network · -5 Intel", color: "border-emerald-200 bg-emerald-50", textColor: "text-emerald-700", iconBg: "bg-emerald-100" },
-    { id: "Finance", label: "Finance / VC", icon: TrendingUp, desc: "+10 Fundraising · +5 Net", color: "border-violet-200 bg-violet-50", textColor: "text-violet-700", iconBg: "bg-violet-100" },
+    { id: "Engineer", label: "Engineer", icon: Cpu, desc: "+15 Tech · -5 Network", color: "border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10", textColor: "text-blue-700 dark:text-blue-400", iconBg: "bg-blue-100 dark:bg-blue-900/30" },
+    { id: "MBA", label: "MBA / Business", icon: Briefcase, desc: "+15 Network · -5 Tech", color: "border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/10", textColor: "text-indigo-700 dark:text-indigo-400", iconBg: "bg-indigo-100 dark:bg-indigo-900/30" },
+    { id: "Designer", label: "Designer", icon: PenTool, desc: "+10 Marketing · +5 Tech", color: "border-pink-200 bg-pink-50 dark:border-pink-500/20 dark:bg-pink-500/10", textColor: "text-pink-700 dark:text-pink-400", iconBg: "bg-pink-100 dark:bg-pink-900/30" },
+    { id: "Serial Founder", label: "Serial Founder", icon: Sparkles, desc: "+10 Rep · -5 Stress", color: "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10", textColor: "text-amber-700 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-amber-900/30" },
+    { id: "Hustler", label: "Sales Hustler", icon: ShoppingBag, desc: "+15 Network · -5 Intel", color: "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10", textColor: "text-emerald-700 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-emerald-900/30" },
+    { id: "Finance", label: "Finance / VC", icon: TrendingUp, desc: "+10 Fundraising · +5 Net", color: "border-violet-200 bg-violet-50 dark:border-violet-500/20 dark:bg-violet-500/10", textColor: "text-violet-700 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-violet-900/30" },
 ];
 
 const INDUSTRIES = [
@@ -162,19 +162,18 @@ export default function CreateFounder() {
     const STEP_LABELS = ["Founder", "Background", "Mission", "Strategy", "Challenge", "Vision"];
 
     return (
-        <div className="h-[100dvh] bg-white flex flex-col overflow-hidden">
+        <div className="h-[100dvh] bg-white dark:bg-slate-950 flex flex-col overflow-hidden transition-colors duration-300">
             {/* Top Progress Bar */}
-            <div className="shrink-0 px-6 pt-8 pb-4">
+            <div className="shrink-0 px-6 pt-8 pb-4 border-b border-slate-50 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
-                            <Rocket className="size-3.5 text-white" />
+                        <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                            <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">FOUNDER<span className="text-indigo-500 italic">SIM</span></span>
                     </div>
-                    <span className="text-xs font-bold text-slate-400">Step {step} of {TOTAL_STEPS} · {STEP_LABELS[step - 1]}</span>
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">Step {step} of {TOTAL_STEPS} · {STEP_LABELS[step - 1]}</span>
                 </div>
-                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div
                         className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                         animate={{ width: `${progress}%` }}
@@ -185,7 +184,10 @@ export default function CreateFounder() {
                 <div className="flex justify-between mt-2 px-0.5">
                     {STEP_LABELS.map((label, i) => (
                         <div key={i} className={cn("flex flex-col items-center gap-0.5 cursor-pointer", i + 1 <= step ? "opacity-100" : "opacity-30")} onClick={() => i + 1 < step && setStep(i + 1)}>
-                            <div className={cn("w-1.5 h-1.5 rounded-full transition-all", i + 1 < step ? "bg-indigo-500" : i + 1 === step ? "bg-violet-500 ring-2 ring-violet-200" : "bg-slate-200")} />
+                            <div className={cn("w-1.5 h-1.5 rounded-full transition-all", 
+                                i + 1 < step ? "bg-indigo-500" : 
+                                i + 1 === step ? "bg-violet-500 ring-4 ring-violet-500/20 dark:ring-violet-500/10" : 
+                                "bg-slate-200 dark:bg-slate-700")} />
                         </div>
                     ))}
                 </div>
@@ -203,7 +205,7 @@ export default function CreateFounder() {
                     >
                         {/* Step header */}
                         <div className="mb-6 mt-2">
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">
+                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic drop-shadow-sm">
                                 {step === 1 && "The Founder"}
                                 {step === 2 && "The Path"}
                                 {step === 3 && "The Mission"}
@@ -211,7 +213,7 @@ export default function CreateFounder() {
                                 {step === 5 && "The Challenge"}
                                 {step === 6 && "The Vision"}
                             </h1>
-                            <p className="text-sm text-slate-500 mt-1 font-medium">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">
                                 {step === 1 && "Who are you building for?"}
                                 {step === 2 && "Your professional background shapes your starting stats."}
                                 {step === 3 && "Which market will you disrupt?"}
@@ -275,16 +277,16 @@ export default function CreateFounder() {
                                         className={cn(
                                             "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
                                             formData.background === bg.id
-                                                ? `${bg.color} border-current`
-                                                : "bg-white border-slate-100 hover:border-slate-200"
+                                                ? `${bg.color} border-indigo-500/50 dark:border-indigo-500/50`
+                                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
                                         )}
                                     >
                                         <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0", bg.iconBg)}>
                                             <bg.icon className={cn("size-5", bg.textColor)} />
                                         </div>
                                         <div className="flex-1">
-                                            <p className={cn("font-black text-sm uppercase italic", formData.background === bg.id ? bg.textColor : "text-slate-800")}>{bg.label}</p>
-                                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{bg.desc}</p>
+                                            <p className={cn("font-black text-sm uppercase italic", formData.background === bg.id ? bg.textColor : "text-slate-800 dark:text-slate-200 transition-colors")}>{bg.label}</p>
+                                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{bg.desc}</p>
                                         </div>
                                         {formData.background === bg.id && (
                                             <div className={cn("w-5 h-5 rounded-full flex items-center justify-center", bg.iconBg)}>
@@ -306,42 +308,42 @@ export default function CreateFounder() {
                                                 setFormData({ ...formData, industry: ind.id });
                                             }}
                                             className={cn(
-                                                "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
+                                                "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98] shadow-sm",
                                                 formData.industry === ind.id
-                                                    ? "border-indigo-300 bg-indigo-50"
-                                                    : "bg-white border-slate-100 hover:border-slate-200"
+                                                    ? "border-indigo-300 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/10"
+                                                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
                                             )}
                                         >
-                                            <span className="text-2xl w-10 text-center shrink-0">{ind.emoji}</span>
+                                            <span className="text-2xl w-10 text-center shrink-0 drop-shadow-sm">{ind.emoji}</span>
                                             <div className="flex-1">
-                                                <p className={cn("font-black text-sm uppercase italic", formData.industry === ind.id ? "text-indigo-700" : "text-slate-800")}>{ind.label}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
+                                                <p className={cn("font-black text-sm uppercase italic transition-colors", formData.industry === ind.id ? "text-indigo-700 dark:text-indigo-400" : "text-slate-800 dark:text-slate-200")}>{ind.label}</p>
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
                                                 <div className="flex gap-2 mt-1.5">
-                                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase", ind.diff === "Hard" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
+                                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase transition-colors", ind.diff === "Hard" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30" : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30")}>
                                                         {ind.diff} Difficulty
                                                     </span>
-                                                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100">{ind.capital} Capital</span>
+                                                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700/50">{ind.capital} Capital</span>
                                                 </div>
                                             </div>
                                             {formData.industry === ind.id && (
-                                                <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                                                <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
                                                     <ChevronRight className="size-3 text-white" />
                                                 </div>
                                             )}
                                         </button>
                                         {formData.industry === ind.id && (ind as any).detail && (
-                                            <div className="mx-1 p-3.5 bg-indigo-600 rounded-b-2xl border-x-2 border-b-2 border-indigo-400 -mt-2 pt-5">
-                                                <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest mb-2">📋 What You're Building</p>
+                                            <div className="mx-1 p-3.5 bg-indigo-600 dark:bg-indigo-900 rounded-b-2xl border-x-2 border-b-2 border-indigo-400 dark:border-indigo-800 -mt-2 pt-5 shadow-inner">
+                                                <p className="text-[8px] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-widest mb-2">📋 What You're Building</p>
                                                 <div className="space-y-2">
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏗️</span><p className="text-[10px] text-white font-semibold leading-tight">{(ind as any).detail.what}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.who}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.revenue}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💸</span><p className="text-[10px] text-indigo-100 leading-tight"><span className="text-indigo-300 font-black">COGS:</span> {(ind as any).detail.cogs}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏢</span><p className="text-[10px] text-indigo-100 leading-tight"><span className="text-indigo-300 font-black">OPEX:</span> {(ind as any).detail.opex}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><p className="text-[10px] text-indigo-100 leading-tight">{(ind as any).detail.growth}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><p className="text-[10px] text-rose-200 leading-tight">{(ind as any).detail.risk}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏗️</span><p className="text-[10px] text-white dark:text-indigo-50 font-semibold leading-tight">{(ind as any).detail.what}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.who}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.revenue}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💸</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">COGS:</span> {(ind as any).detail.cogs}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏢</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">OPEX:</span> {(ind as any).detail.opex}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.growth}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><p className="text-[10px] text-rose-200 dark:text-rose-400 leading-tight">{(ind as any).detail.risk}</p></div>
                                                 </div>
-                                                <p className="text-[8px] text-indigo-300 mt-2.5 text-right font-bold italic">Next → pick your go-to-market strategy</p>
+                                                <p className="text-[8px] text-indigo-300 dark:text-indigo-500 mt-2.5 text-right font-bold italic">Next → pick your go-to-market strategy</p>
                                             </div>
                                         )}
                                     </div>
@@ -357,30 +359,30 @@ export default function CreateFounder() {
                                         key={gtm.id}
                                         onClick={() => setFormData({ ...formData, gtmMotion: gtm.id })}
                                         className={cn(
-                                            "w-full p-5 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
+                                            "w-full p-5 rounded-2xl border-2 transition-all text-left active:scale-[0.98] shadow-sm",
                                             formData.gtmMotion === gtm.id
-                                                ? "border-indigo-300 bg-indigo-50"
-                                                : "bg-white border-slate-100 hover:border-slate-200"
+                                                ? "border-indigo-300 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-500/10"
+                                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
                                         )}
                                     >
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", formData.gtmMotion === gtm.id ? "bg-indigo-500" : "bg-slate-100")}>
-                                                <gtm.icon className={cn("size-5", formData.gtmMotion === gtm.id ? "text-white" : "text-slate-500")} />
+                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-inner", formData.gtmMotion === gtm.id ? "bg-indigo-500" : "bg-slate-100 dark:bg-slate-800")}>
+                                                <gtm.icon className={cn("size-5", formData.gtmMotion === gtm.id ? "text-white" : "text-slate-500 dark:text-slate-400")} />
                                             </div>
                                             <div>
-                                                <p className={cn("font-black text-sm uppercase italic", formData.gtmMotion === gtm.id ? "text-indigo-700" : "text-slate-800")}>{gtm.label}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium tracking-tight uppercase">{gtm.sub}</p>
+                                                <p className={cn("font-black text-sm uppercase italic transition-colors", formData.gtmMotion === gtm.id ? "text-indigo-700 dark:text-indigo-400" : "text-slate-800 dark:text-slate-200")}>{gtm.label}</p>
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight uppercase">{gtm.sub}</p>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-600 leading-relaxed mb-3">{gtm.desc}</p>
+                                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">{gtm.desc}</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <p className="text-[8px] font-black text-emerald-600 uppercase tracking-wider mb-1">Advantages</p>
-                                                {gtm.pros.map(p => <p key={p} className="text-[10px] text-slate-500 leading-tight">✓ {p}</p>)}
+                                                <p className="text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mb-1">Advantages</p>
+                                                {gtm.pros.map(p => <p key={p} className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">✓ {p}</p>)}
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-rose-500 uppercase tracking-wider mb-1">Trade-offs</p>
-                                                {gtm.cons.map(c => <p key={c} className="text-[10px] text-slate-400 leading-tight">× {c}</p>)}
+                                                <p className="text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase tracking-wider mb-1">Trade-offs</p>
+                                                {gtm.cons.map(c => <p key={c} className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">× {c}</p>)}
                                             </div>
                                         </div>
                                     </button>
@@ -396,27 +398,27 @@ export default function CreateFounder() {
                                         key={scen.id}
                                         onClick={() => setFormData({ ...formData, scenario: scen.id })}
                                         className={cn(
-                                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
+                                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98] shadow-sm",
                                             formData.scenario === scen.id
-                                                ? "border-amber-400 bg-amber-50"
-                                                : "bg-white border-slate-100 hover:border-slate-200"
+                                                ? "border-amber-400 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-500/10"
+                                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
                                         )}
                                     >
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <p className={cn("font-black text-sm uppercase italic", formData.scenario === scen.id ? "text-amber-700" : "text-slate-800")}>{scen.label}</p>
+                                                <p className={cn("font-black text-sm uppercase italic transition-colors", formData.scenario === scen.id ? "text-amber-700 dark:text-amber-400" : "text-slate-800 dark:text-slate-200")}>{scen.label}</p>
                                                 <span className={cn(
-                                                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase",
+                                                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shadow-sm",
                                                     scen.difficulty === "Extreme" ? "bg-red-500 text-white" :
                                                         scen.difficulty === "Hard" ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"
                                                 )}>
                                                     {scen.difficulty}
                                                 </span>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{scen.description}</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{scen.description}</p>
                                         </div>
                                         {formData.scenario === scen.id && (
-                                            <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
+                                            <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
                                                 <ChevronRight className="size-3 text-white" />
                                             </div>
                                         )}
@@ -487,16 +489,21 @@ export default function CreateFounder() {
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="p-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50"
+                                        className="p-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40"
                                     >
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Preview</p>
+                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Preview</p>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm" style={{ background: `${formData.brandColor}20`, border: `2px solid ${formData.brandColor}30` }}>
+                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border" 
+                                                style={{ 
+                                                    background: `${formData.brandColor}20`, 
+                                                    borderColor: `${formData.brandColor}40` 
+                                                }}
+                                            >
                                                 {formData.logo}
                                             </div>
                                             <div>
-                                                <p className="font-black text-slate-900">{formData.startupName}</p>
-                                                <p className="text-[10px] text-slate-400">{formData.industry} · {formData.background} · {formData.scenario}</p>
+                                                <p className="font-black text-slate-900 dark:text-white transition-colors">{formData.startupName}</p>
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{formData.industry} · {formData.background} · {formData.scenario}</p>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -508,11 +515,11 @@ export default function CreateFounder() {
             </div>
 
             {/* Navigation Footer */}
-            <div className="shrink-0 px-6 pb-8 pt-4 border-t border-slate-50 bg-white flex gap-3">
+            <div className="shrink-0 px-6 pb-8 pt-4 border-t border-slate-50 dark:border-slate-900 bg-white dark:bg-slate-950 flex gap-3 transition-colors duration-300">
                 <button
                     onClick={prev}
                     disabled={step === 1}
-                    className="h-14 w-14 rounded-2xl border-2 border-slate-200 flex items-center justify-center text-slate-500 disabled:opacity-30 hover:border-slate-300 active:scale-95 transition-all shrink-0"
+                    className="h-14 w-14 rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 disabled:opacity-30 hover:border-slate-300 dark:hover:border-slate-700 active:scale-95 transition-all shrink-0"
                 >
                     <ChevronLeft className="size-5" />
                 </button>
@@ -521,7 +528,7 @@ export default function CreateFounder() {
                     <button
                         onClick={next}
                         disabled={!canAdvance()}
-                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-black uppercase tracking-[0.15em] disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-black uppercase tracking-[0.15em] disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-indigo-950/20"
                     >
                         Continue
                         <ChevronRight className="size-4" />
@@ -530,7 +537,7 @@ export default function CreateFounder() {
                     <button
                         onClick={handleLaunch}
                         disabled={!canAdvance()}
-                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-black uppercase tracking-[0.15em] disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+                        className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-black uppercase tracking-[0.15em] disabled:opacity-40 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-indigo-950/20"
                     >
                         Launch Startup
                         <Rocket className="size-4" />

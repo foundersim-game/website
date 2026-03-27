@@ -87,13 +87,39 @@
 }
 
 .dark {
-  /* Enforce Light Mode Aesthetic - Game Design Choice */
-  --background: oklch(0.98 0.01 220);
-  --foreground: oklch(0.2 0.02 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 240);
-  --primary: oklch(0.6 0.2 250);
+  /* True dark mode palette */
+  --background: oklch(0.12 0.015 240);
+  --foreground: oklch(0.92 0.01 240);
+  --card: oklch(0.16 0.015 240);
+  --card-foreground: oklch(0.92 0.01 240);
+  --popover: oklch(0.14 0.015 240);
+  --popover-foreground: oklch(0.92 0.01 240);
+  --primary: oklch(0.65 0.22 255);
   --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.22 0.02 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
+  --muted: oklch(0.2 0.015 240);
+  --muted-foreground: oklch(0.55 0.04 240);
+  --accent: oklch(0.28 0.05 255);
+  --accent-foreground: oklch(0.9 0.02 240);
+  --destructive: oklch(0.55 0.18 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.18 0.015 240);
+  --ring: oklch(0.65 0.22 255);
+  --chart-1: oklch(0.65 0.22 255);
+  --chart-2: oklch(0.6 0.18 180);
+  --chart-3: oklch(0.7 0.18 110);
+  --chart-4: oklch(0.7 0.2 55);
+  --chart-5: oklch(0.75 0.18 35);
+  --sidebar: oklch(0.14 0.015 240);
+  --sidebar-foreground: oklch(0.88 0.01 240);
+  --sidebar-primary: oklch(0.65 0.22 255);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.22 0.02 240);
+  --sidebar-accent-foreground: oklch(0.85 0.01 240);
+  --sidebar-border: oklch(0.25 0.02 240);
+  --sidebar-ring: oklch(0.65 0.22 255);
 }
 
 @layer base {

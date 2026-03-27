@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,7 +25,6 @@ export default function RootLayout({
     const hasLaunched = sessionStorage.getItem("app_launched");
     if (!hasLaunched) {
       sessionStorage.setItem("app_launched", "true");
-      // Only force home if no save exists or we're already somewhere else
       const hasSave = typeof window !== 'undefined' && !!localStorage.getItem("founder_sim_state");
       if (pathname !== "/" && !hasSave) {
         router.push("/");
@@ -32,14 +32,11 @@ export default function RootLayout({
     }
 
     // 2. Handle Resume from Background
-    // Import dynamically to avoid SSR issues
     const setupAppListener = async () => {
       try {
         const { App } = await import("@capacitor/app");
         App.addListener("appStateChange", ({ isActive }) => {
           if (isActive) {
-            // Only clear splash seen, don't force redirect on every resume
-            // This prevented ads from landing correctly
             sessionStorage.removeItem("founder_sim_splash_seen");
           }
         });
@@ -50,7 +47,7 @@ export default function RootLayout({
 
     setupAppListener();
 
-    // 3. Inject safe area insets as CSS vars via JS (works even when env() resolution fails)
+    // 3. Inject safe area insets as CSS vars
     const injectSafeAreas = () => {
       const div = document.createElement('div');
       div.style.cssText = `
@@ -64,14 +61,11 @@ export default function RootLayout({
       `;
       document.body.appendChild(div);
       const cs = window.getComputedStyle(div);
-      const top = cs.top;
-      const bottom = cs.bottom;
-      document.documentElement.style.setProperty('--sat', top);
-      document.documentElement.style.setProperty('--sab', bottom);
+      document.documentElement.style.setProperty('--sat', cs.top);
+      document.documentElement.style.setProperty('--sab', cs.bottom);
       document.body.removeChild(div);
     };
 
-    // Run immediately and on resize (orientation change)
     injectSafeAreas();
     window.addEventListener('resize', injectSafeAreas);
 
@@ -87,10 +81,10 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
       </head>
-      <body
-        className={`${inter.variable} font-sans antialiased`}
-      >
-        {isInitialized ? children : <div className="bg-white fixed inset-0" />}
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <ThemeProvider>
+          {isInitialized ? children : <div className="bg-white dark:bg-slate-950 fixed inset-0" />}
+        </ThemeProvider>
       </body>
     </html>
   );
