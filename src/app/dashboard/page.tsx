@@ -1367,17 +1367,6 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         disabled={!isOnline && !isPremium}
                                         className={`h-6 text-[8px] font-black uppercase tracking-widest ${(!isOnline && !isPremium) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
                                         onClick={() => {
-                                            if (!isOnline && !isPremium) {
-                                                setConfirmDialog({
-                                                    open: true,
-                                                    title: "Action Unavailable",
-                                                    description: "Grant ads require an active internet connection. Connect and try again!",
-                                                    confirmText: "UNDERSTOOD",
-                                                    type: "offline",
-                                                    onConfirm: () => { }
-                                                });
-                                                return;
-                                            }
                                             if (isLimited) {
                                                 const nextAvail = Math.min(...validGrants) + 60 * 60 * 1000;
                                                 toast.error("Grant Limit Reached", { description: `You can claim 2 grants per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
@@ -1891,17 +1880,6 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline && !isPremium) && "grayscale opacity-50")}
                                         disabled={isRefillLimited || (!isOnline && !isPremium)}
                                         onClick={() => {
-                                            if (!isOnline && !isPremium) {
-                                                setConfirmDialog({
-                                                    open: true,
-                                                    title: "Access Denied",
-                                                    description: "Energy Refills require an active internet connection to load ad-rewards. Connect and push through!",
-                                                    confirmText: "UNDERSTOOD",
-                                                    type: "offline",
-                                                    onConfirm: () => { }
-                                                });
-                                                return;
-                                            }
                                             if (isRefillLimited) {
                                                 const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
                                                 toast.error("Refill Limit Reached", { description: `You can refill energy 2 times per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
@@ -2550,7 +2528,7 @@ export default function Dashboard() {
         confirmText?: string;
         cancelText?: string;
         onConfirm: () => void;
-        type?: "delete" | "fire" | "exit" | "warning" | "offline" | "premium";
+        type?: "delete" | "fire" | "exit" | "warning" | "premium";
     }>({ open: false, title: "", description: "", onConfirm: () => { } });
     const [sfxEnabled, setSfxEnabled] = useState<boolean>(() => !isAudioMuted());
 
@@ -2732,30 +2710,6 @@ export default function Dashboard() {
     const [selectedEmpIdx, setSelectedEmpIdx] = useState(0);
     const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
     const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
-
-    // --- CONNECTIVITY MONITOR ---
-    useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => {
-            setIsOnline(false);
-            setConfirmDialog({
-                open: true,
-                title: "📶 Signal Lost!",
-                description: "You've drifted into a Wi-Fi dead zone! The server basement is dark and cold. AI Mentor Sam is unreachable, and those Emergency Grants are stuck in the pipes until you find a signal.",
-                confirmText: "STAY CALM",
-                type: "offline",
-                onConfirm: () => { }
-            });
-        };
-
-        window.addEventListener("online", handleOnline);
-        window.addEventListener("offline", handleOffline);
-
-        return () => {
-            window.removeEventListener("online", handleOnline);
-            window.removeEventListener("offline", handleOffline);
-        };
-    }, []);
 
     // Global Interaction Sound Effects Listener
     useEffect(() => {
@@ -4127,17 +4081,6 @@ export default function Dashboard() {
                                     disabled={!isOnline}
                                     className={`h-7 text-[9px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 shadow-sm px-2 pr-2.5 ${!isOnline ? 'bg-slate-50 border-slate-200 text-slate-400 grayscale' : 'bg-violet-600 border-violet-700 text-white hover:bg-violet-700 dark:bg-violet-500 dark:border-violet-400'}`}
                                     onClick={() => {
-                                        if (!isOnline) {
-                                            setConfirmDialog({
-                                                open: true,
-                                                title: "📶 Signal Lost in the Void",
-                                                description: "You've entered a Wi-Fi dead zone! The AI grid is offline, and Sam's frequency is scrambled. Find a better uplink to continue the consultation.",
-                                                confirmText: "UNDERSTOOD",
-                                                type: "offline",
-                                                onConfirm: () => { }
-                                            });
-                                            return;
-                                        }
                                         const now = Date.now();
                                         const hourAgo = now - 60 * 60 * 1000;
                                         const validConsults = samConsults.filter(t => t > hourAgo);
@@ -4492,54 +4435,63 @@ export default function Dashboard() {
 
                 {/* PROCEED / NEXT STEP BUTTON */}
                 <div className="shrink-0 px-3 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800" style={{ position: "relative", zIndex: 50 }}>
-                    {selectedAction !== "none" && storyState.tutorialStep < 0 && (
-                        <div className="flex items-center justify-center mb-1.5">
-                            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="text-[9px] font-black text-indigo-700 uppercase">{selectedAction.replaceAll("_", " ")} queued for month end</span>
-                                <button onClick={() => setSelectedAction("none")} className="text-indigo-400 text-[10px] ml-1">✕</button>
-                            </div>
+                    {!isLoaded ? (
+                        <div className="w-full h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 animate-pulse flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
                         </div>
-                    )}
-                    {(storyState.tutorialStep >= 0 && !isCharacterDialogOpen) ? (
-                        /* ── Tutorial: Next Step button ── */
-                        <button
-                            onClick={() => {
-                                const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
-                                const next = storyState.tutorialStep + 1;
-                                
-                                setStoryState(prev => {
-                                    // Ensure current step is marked seen before moving
-                                    const updatedSeen = prev.seenTriggers.includes(currentTrigger) 
-                                        ? prev.seenTriggers 
-                                        : [...prev.seenTriggers, currentTrigger];
-                                        
-                                    if (next >= TUTORIAL_STEPS.length) {
-                                        return { ...prev, tutorialStep: -1, seenTriggers: updatedSeen };
-                                    }
-                                    return { ...prev, tutorialStep: next, seenTriggers: updatedSeen };
-                                });
-                            }}
-                            className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
-                            style={{
-                                background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                                boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
-                                position: "relative",
-                                zIndex: 50,
-                            }}
-                        >
-                            {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
-                                ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
-                                : "FINISH TUTORIAL & START 🚀"
-                            }
-                        </button>
                     ) : (
-                        /* ── Normal: Advance Month button ── */
-                        <button onClick={handleNextMonth} disabled={isProcessing}
-                            className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
-                            style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
-                            {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
-                        </button>
+                        <>
+                            {selectedAction !== "none" && storyState.tutorialStep < 0 && (
+                                <div className="flex items-center justify-center mb-1.5">
+                                    <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-[9px] font-black text-indigo-700 uppercase">{selectedAction.replaceAll("_", " ")} queued for month end</span>
+                                        <button onClick={() => setSelectedAction("none")} className="text-indigo-400 text-[10px] ml-1">✕</button>
+                                    </div>
+                                </div>
+                            )}
+                            {(storyState.tutorialStep >= 0 && !isCharacterDialogOpen) ? (
+                                /* ── Tutorial: Next Step button ── */
+                                <button
+                                    onClick={() => {
+                                        const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
+                                        const next = storyState.tutorialStep + 1;
+                                        
+                                        setStoryState(prev => {
+                                            const updatedSeen = prev.seenTriggers.includes(currentTrigger) 
+                                                ? prev.seenTriggers 
+                                                : [...prev.seenTriggers, currentTrigger];
+                                                
+                                            if (next >= TUTORIAL_STEPS.length) {
+                                                return { ...prev, tutorialStep: -1, seenTriggers: updatedSeen };
+                                            }
+                                            return { ...prev, tutorialStep: next, seenTriggers: updatedSeen };
+                                        });
+                                    }}
+                                    className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                                    style={{
+                                        background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                                        boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
+                                        position: "relative",
+                                        zIndex: 50,
+                                    }}
+                                >
+                                    {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
+                                        ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
+                                        : "FINISH TUTORIAL & START 🚀"
+                                    }
+                                </button>
+                            ) : (
+                                /* ── Normal: Advance Month button ── */
+                                <button onClick={handleNextMonth} disabled={isProcessing || isCharacterDialogOpen}
+                                    className={cn("w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg",
+                                        isCharacterDialogOpen && "opacity-0 pointer-events-none"
+                                    )}
+                                    style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
+                                    {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -4655,11 +4607,19 @@ export default function Dashboard() {
                 {/* MANDATORY CONNECTION OVERLAY */}
                 <NetworkStatusOverlay 
                     isOnline={isOnline} 
-                    onRetry={() => {
-                        const online = typeof window !== "undefined" ? navigator.onLine : true;
-                        setIsOnline(online);
-                        if (online) toast.success("Back online!");
-                        else toast.error("Still offline. Check your connection.");
+                    onRetry={async () => {
+                        const loadingToast = toast.loading("Checking connection...");
+                        try {
+                            // Try to fetch a tiny resource to truly verify connectivity
+                            await fetch("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-store" });
+                            setIsOnline(true);
+                            toast.dismiss(loadingToast);
+                            toast.success("Back online!");
+                        } catch (e) {
+                            setIsOnline(false);
+                            toast.dismiss(loadingToast);
+                            toast.error("Still offline. Check your connection.");
+                        }
                     }} 
                 />
 

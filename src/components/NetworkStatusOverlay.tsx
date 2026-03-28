@@ -47,8 +47,8 @@ export function NetworkStatusOverlay({ isOnline, onRetry }: NetworkStatusOverlay
                         />
                         <FeatureItem 
                             icon={<Globe className="w-4 h-4" />} 
-                            title="Market Live Events" 
-                            desc="Real-time world events and shifts." 
+                            title="AI-Driven Market Shifts" 
+                            desc="Real-time simulations of market changes." 
                         />
                     </div>
 
