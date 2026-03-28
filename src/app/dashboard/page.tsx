@@ -42,6 +42,8 @@ import { adService } from "@/lib/services/adService";
 import { iapService } from "@/lib/services/iapService";
 import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook";
 import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
+import { NetworkStatusOverlay } from "@/components/NetworkStatusOverlay";
+import { App } from "@capacitor/app";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatSaveDate(dateStr: string) {
@@ -2554,6 +2556,17 @@ export default function Dashboard() {
 
     // 2. ALL EFFECTS SECOND
     useEffect(() => {
+        const checkConnectivity = () => {
+            const online = typeof window !== "undefined" ? navigator.onLine : true;
+            setIsOnline(online);
+            if (online && !isPremium) {
+                adService.initialize().then(() => {
+                    adService.showBanner();
+                    adService.prepareInterstitial();
+                });
+            }
+        };
+
         const handleOnline = () => {
             setIsOnline(true);
             if (!isPremium) {
@@ -2564,11 +2577,21 @@ export default function Dashboard() {
             }
         };
         const handleOffline = () => setIsOnline(false);
+
         window.addEventListener("online", handleOnline);
         window.addEventListener("offline", handleOffline);
+
+        // Also check on app resume
+        const resumeListener = App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                checkConnectivity();
+            }
+        });
+
         return () => {
             window.removeEventListener("online", handleOnline);
             window.removeEventListener("offline", handleOffline);
+            resumeListener.then(l => l.remove());
         };
     }, [isPremium]);
 
@@ -4628,6 +4651,17 @@ export default function Dashboard() {
                         </>
                     )}
                 </AnimatePresence>
+
+                {/* MANDATORY CONNECTION OVERLAY */}
+                <NetworkStatusOverlay 
+                    isOnline={isOnline} 
+                    onRetry={() => {
+                        const online = typeof window !== "undefined" ? navigator.onLine : true;
+                        setIsOnline(online);
+                        if (online) toast.success("Back online!");
+                        else toast.error("Still offline. Check your connection.");
+                    }} 
+                />
 
                 {/* SAM & CHAD CHARACTER DIALOG */}
                 {(() => {

@@ -138,7 +138,7 @@ class AdService {
             if (adType === 'cash') adId = IDS.ios.rewarded_cash;
             else if (adType === 'energy') adId = IDS.ios.rewarded_energy;
             else if (adType === 'mentor') adId = IDS.ios.rewarded_mentor;
-            else adId = IDS.ios.banner;
+            else adId = IDS.ios.rewarded_energy; // Use energy rewarded ID for default, NOT banner
         } else {
             // Android platform
             if (adType === 'cash') adId = IDS.android.rewarded_cash;
@@ -157,6 +157,20 @@ class AdService {
             const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
                 console.log('User earned reward:', reward);
                 onReward();
+                rewardListener.remove();
+            });
+
+            const dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+                console.log('Ad dismissed');
+                dismissListener.remove();
+                rewardListener.remove();
+            });
+
+            const failedListener = await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
+                console.error('Ad failed to show', err);
+                toast.error("Ad failed to show. Try again.");
+                failedListener.remove();
+                dismissListener.remove();
                 rewardListener.remove();
             });
 
