@@ -51,44 +51,30 @@ class AdService {
         try {
             await AdMob.initialize({
                 testingDevices: [],
-                initializeForTesting: false,
+                initializeForTesting: false, 
             });
             this.initialized = true;
-            console.log('AdMob Initialized on', this.platform);
         } catch (e) {
             console.error('AdMob Initialization failed', e);
         }
     }
 
     async showBanner() {
-        console.log('adService: showBanner requested');
-        if (!this.initialized) {
-            console.log('adService: showBanner waiting for initialization');
-            await this.initialize();
-        }
-        if (!this.isNative) {
-            console.log('adService: showBanner skipped (not native)');
-            return;
-        }
+        if (!this.initialized) await this.initialize();
+        if (!this.isNative) return;
+
+        const options: BannerAdOptions = {
+            adId: this.platform === 'ios' ? IDS.ios.banner : IDS.android.banner,
+            adSize: BannerAdSize.ADAPTIVE_BANNER,
+            position: BannerAdPosition.BOTTOM_CENTER,
+            margin: 0,
+            isTesting: false
+        };
 
         try {
-            console.log('adService: attempting resumeBanner');
-            await AdMob.resumeBanner();
-        } catch (e) {
-            console.log('adService: resumeBanner failed, creating new banner', e);
-            const options: BannerAdOptions = {
-                adId: this.platform === 'ios' ? IDS.ios.banner : IDS.android.banner,
-                adSize: BannerAdSize.ADAPTIVE_BANNER,
-                position: BannerAdPosition.BOTTOM_CENTER,
-                margin: 0,
-                isTesting: false
-            };
-            try {
-                await AdMob.showBanner(options);
-                console.log('adService: showBanner success');
-            } catch (innerE) {
-                console.error('adService: showBanner failed definitively', innerE);
-            }
+            await AdMob.showBanner(options);
+        } catch (e: any) {
+            console.error('showBanner failed', e);
         }
     }
 

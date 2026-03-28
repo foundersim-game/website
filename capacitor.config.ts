@@ -13,7 +13,6 @@ const config: CapacitorConfig = {
     },
     plugins: {
         AdMob: {
-            initializeOnInApp: true,
             androidScheme: 'https'
         }
     }
