@@ -38,7 +38,7 @@ import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefca
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
-import { adService, REWARDED_CASH_ID } from "@/lib/services/adService";
+import { adService } from "@/lib/services/adService";
 import { iapService } from "@/lib/services/iapService";
 import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook";
 import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
@@ -1393,7 +1393,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 addTimelineEvent(`💰 Emergency Grant: +$50,000 received from strategic advisors.`);
                                                 toast.success("Emergency Grant Received!", { description: "+$50,000 added to your balance.", icon: "💰" });
                                                 setCashGrants([...validGrants, Date.now()]); // Update rates limit
-                                            }, REWARDED_CASH_ID);
+                                            }, 'cash');
                                         }}
                                     >
                                         {isLimited ? (
@@ -1909,7 +1909,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 setFocusHoursUsed(0);
                                                 setEnergyRefills([...validRefills, Date.now()]);
                                                 toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                            });
+                                            }, 'energy');
                                         }}
                                     >
                                         {isRefillLimited ? (
@@ -4147,7 +4147,7 @@ export default function Dashboard() {
                                         if (isPremium) {
                                             consultAction();
                                         } else {
-                                            adService.showRewardedAd(consultAction);
+                                            adService.showRewardedAd(consultAction, 'mentor');
                                         }
                                     }}
                                 >
@@ -4348,7 +4348,7 @@ export default function Dashboard() {
                                                     setFocusHoursUsed(0);
                                                     setEnergyRefills([...validRefills, Date.now()]);
                                                     toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                                });
+                                                }, 'energy');
                                             }}
                                         >
                                             {isRefillLimited ? "Cooldown (1/hr)" : "Refill ⚡"}
