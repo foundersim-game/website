@@ -83,7 +83,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          {isInitialized ? children : <div className="bg-white dark:bg-slate-950 fixed inset-0" />}
+          {isInitialized ? children : <div className="bg-slate-950 fixed inset-0" />}
         </ThemeProvider>
       </body>
     </html>

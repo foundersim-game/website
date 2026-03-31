@@ -17,13 +17,13 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>("light");
+    const [theme, setTheme] = useState<Theme>("dark");
 
     // On mount, read preference from localStorage
     useEffect(() => {
         if (typeof window === "undefined") return;
         const stored = localStorage.getItem("foundersim_theme") as Theme | null;
-        const initial = stored ?? "light";
+        const initial = stored ?? "dark";
         setTheme(initial);
         document.documentElement.classList.toggle("dark", initial === "dark");
     }, []);

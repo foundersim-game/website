@@ -35,10 +35,10 @@ function formatSaveDate(dateStr: string) {
 
 
 const STAGE_COLORS: Record<string, string> = {
-  "Bootstrapping": "bg-slate-100 text-slate-600",
-  "Angel Investment": "bg-amber-50 text-amber-700 border-amber-200",
-  "Seed Round": "bg-green-50 text-green-700 border-green-200",
-  "Series A": "bg-blue-50 text-blue-700 border-blue-200",
+  "Bootstrapping": "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300",
+  "Angel Investment": "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50",
+  "Seed Round": "bg-green-50 dark:bg-emerald-950/30 text-green-700 dark:text-emerald-400 border-green-200 dark:border-emerald-900/50",
+  "Series A": "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50",
 };
 
 
@@ -505,7 +505,7 @@ export default function Home() {
 
       {/* How to Play Modal */}
       <Dialog open={showHowToPlay} onOpenChange={setShowHowToPlay}>
-        <DialogContent className="sm:max-w-2xl bg-white border-slate-200 border-4 rounded-[2rem] p-0 shadow-2xl max-h-[85vh] overflow-hidden flex flex-col items-stretch [&>button]:hidden">
+        <DialogContent className="sm:max-w-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 border-4 rounded-[2rem] p-0 shadow-2xl max-h-[85vh] overflow-hidden flex flex-col items-stretch [&>button]:hidden">
           <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-6 py-8 relative">
             <div className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer" onClick={() => setShowHowToPlay(false)}>✕</div>
             <h2 className="text-2xl font-black tracking-tight text-white mb-1 leading-none">How To Play</h2>
@@ -514,7 +514,7 @@ export default function Home() {
 
           <HowToPlayContent />
 
-          <div className="px-6 py-4 bg-white border-t border-slate-100 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+          <div className="px-6 py-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
             <Button className="rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 h-12 w-full sm:w-auto px-10 shadow-lg shadow-indigo-600/20" onClick={() => setShowHowToPlay(false)}>GOT IT, LET'S BUILD</Button>
           </div>
         </DialogContent>

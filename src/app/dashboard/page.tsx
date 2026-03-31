@@ -60,13 +60,13 @@ function formatCooldown(nextAvail: number, currentTime: number) {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-    "Bootstrapping": "bg-slate-100 text-slate-600",
-    "Angel Investment": "bg-amber-50 text-amber-700 border-amber-200",
-    "Seed Round": "bg-emerald-50 text-emerald-700 border-emerald-200",
-    "Series A": "bg-blue-50 text-blue-700 border-blue-200",
-    "Series B": "bg-indigo-50 text-indigo-700 border-indigo-200",
-    "Series C": "bg-violet-50 text-violet-700 border-violet-200",
-    "IPO Ready": "bg-rose-50 text-rose-700 border-rose-200 shadow-sm",
+    "Bootstrapping": "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300",
+    "Angel Investment": "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50",
+    "Seed Round": "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50",
+    "Series A": "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50",
+    "Series B": "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/50",
+    "Series C": "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-900/50",
+    "IPO Ready": "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 shadow-sm",
 };
 
 type RivalryAction = {
