@@ -154,7 +154,7 @@ export default function CreateFounder() {
 
     const handleLaunch = () => {
         localStorage.setItem("founder_data", JSON.stringify({ ...formData, perks: unlockedThisRun }));
-        router.push("/dashboard");
+        router.replace("/dashboard");
     };
 
     const progress = (step / TOTAL_STEPS) * 100;

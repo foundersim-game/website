@@ -4136,47 +4136,7 @@ export default function Dashboard() {
                             <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 mr-2 shadow-xl border-slate-200">
                                 <div className="px-2 py-1.5 font-black text-xs text-slate-400 uppercase tracking-widest cursor-default select-none">Game Menu</div>
                                 <DropdownMenuSeparator className="bg-slate-100" />
-                                {!isPremium && (
-                                    <>
-                                        <DropdownMenuItem
-                                            className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors text-indigo-600"
-                                            onClick={() => {
-                                                setConfirmDialog({
-                                                    open: true,
-                                                    title: "🚀 Rocket to the Top!",
-                                                    description: "For $3.99, remove all interruptions. Focus like a pro with 2 ad-free Sam consults per hour and zero banner or interstitial ads throughout your journey.",
-                                                    confirmText: "GO PREMIUM — $3.99",
-                                                    cancelText: "Maybe Later",
-                                                    type: "premium",
-                                                    onConfirm: () => {
-                                                        iapService.purchasePremium().then(success => {
-                                                            if (success) {
-                                                                setIsPremium(true);
-                                                                adService.hideBanner();
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }}
-                                        >
-                                            <Rocket className="mr-2 h-4 w-4" /> Remove Ads
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="rounded-xl cursor-pointer py-2 focus:bg-slate-50 focus:text-slate-600 font-bold transition-colors text-slate-400"
-                                            onClick={() => {
-                                                iapService.restorePurchases().then(success => {
-                                                    if (success) {
-                                                        setIsPremium(true);
-                                                        adService.hideBanner();
-                                                    }
-                                                });
-                                            }}
-                                        >
-                                            <RefreshCw className="mr-2 h-4 w-4" /> Restore Purchases
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
-                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={handleOpenSaveModal}>
+                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={handleOpenSaveModal}>
                                     <Save className="mr-2 h-4 w-4" /> Save Game
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={handleSaveAndQuit}>

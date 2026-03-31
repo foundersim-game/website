@@ -939,7 +939,7 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
             if (m.growth_rate > 0.2) yesProb += 20;
         }
 
-        const votedYes = Math.random() * 100 < yesProb;
+        const votedYes = member.id === "founder-main" ? true : Math.random() * 100 < yesProb;
         votes.push({
             memberId: member.id,
             vote: votedYes ? "yes" : "no",
@@ -947,11 +947,11 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
         });
     });
 
-    // Weighted voting
-    const totalWeight = members.reduce((acc, mem) => acc + mem.equityWeight, 0);
-    const yesWeight = votes.reduce((acc, v, idx) => v.vote === "yes" ? acc + members[idx].equityWeight : acc, 0);
+    // One-vote-per-director model
+    const totalVotes = votes.length;
+    const yesVotes = votes.filter(v => v.vote === "yes").length;
     
-    const approved = yesWeight > totalWeight / 2;
+    const approved = yesVotes > totalVotes / 2;
 
     return {
         amount,
