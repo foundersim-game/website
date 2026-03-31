@@ -596,7 +596,51 @@ body {
 }
 
 /* ──────── UTILS ──────── */
+
+/* ──────── FORM INPUTS ──────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.form-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-left: 4px;
+}
+.form-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  width: 100%;
+  outline: none;
+}
+.form-input:focus {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--purple-light);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+}
+.form-input::placeholder {
+  color: rgba(255,255,255,0.2);
+}
+textarea.form-input {
+  min-height: 140px;
+  resize: vertical;
+}
+
+/* ──────── UTILS ──────── */
 .flex { display: flex; }
+
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }
 .items-start { align-items: flex-start; }

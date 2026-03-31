@@ -5,7 +5,8 @@ import type { Variants } from 'framer-motion';
 import {
   Zap, ArrowRight, Star, DollarSign,
   Award, ShieldCheck, X, ExternalLink, ChevronRight,
-  Building2, Rocket, BarChart3, Lightbulb, Target
+  Building2, Rocket, BarChart3, Lightbulb, Target,
+  Mail, MessageSquare
 } from 'lucide-react';
 import screenIpo from './assets/screen-ipo.png';
 
@@ -145,6 +146,108 @@ const LandingPage = () => {
     { text: '"From $200K seed to $1.6B IPO payout in 63 months. Unicorn Founder badge earned. This game is dangerously addictive."', name: 'Alex T.', handle: 'Angel Investor' },
   ];
 
+  const ContactSection = () => (
+    <Section id="contact">
+      <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 80 }}>
+        <div className="section-label" style={{ marginBottom: 20 }}>Get in Touch</div>
+        <h2 className="section-title" style={{ fontSize: 'clamp(36px, 5vw, 60px)', marginBottom: 24 }}>
+          QUESTIONS? <span className="glow-purple">PITCH US.</span>
+        </h2>
+        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.4)', maxWidth: 500, margin: '0 auto' }}>
+          Have feedback or technical questions? Our team typically responds within 24-48 hours.
+        </p>
+      </motion.div>
+
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <motion.div
+          variants={fadeUp}
+          className="card"
+          style={{ padding: '48px', position: 'relative', overflow: 'hidden' }}
+        >
+          {/* Subtle background glow for the form card */}
+          <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '40%', height: '60%', background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          
+          <form action="https://formspree.io/foundersim.game@gmail.com" method="POST" className="space-y-6">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="name">Full Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="Steve Jobs"
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="email">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  placeholder="steve@apple.com"
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="subject">Subject</label>
+              <input
+                type="text"
+                id="subject"
+                name="_subject"
+                required
+                placeholder="Game Feedback / Support / Partnership"
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="message">Your Message</label>
+              <textarea
+                id="message"
+                name="message"
+                required
+                placeholder="Your message to the Founder Sim team..."
+                className="form-input"
+              />
+            </div>
+
+            <input type="hidden" name="_next" value={window.location.href} />
+            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              className="btn-primary w-full"
+              style={{ padding: '20px', fontSize: '13px', marginTop: '12px' }}
+            >
+              Send Secure Message <Mail size={16} />
+            </motion.button>
+          </form>
+        </motion.div>
+
+        {/* Contact Info Row */}
+        <motion.div 
+          variants={stagger}
+          style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '40px', flexWrap: 'wrap' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
+            <MessageSquare size={16} className="text-purple-400" /> 
+            <span>foundersim.game@gmail.com</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
+            <ShieldCheck size={16} className="text-green-400" />
+            <span>End-to-End Encrypted</span>
+          </div>
+        </motion.div>
+      </div>
+    </Section>
+  );
+
   return (
     <div style={{ minHeight: '100vh' }}>
       {/* BG */}
@@ -162,6 +265,7 @@ const LandingPage = () => {
         <ul className="nav-links">
           <li><a href="#features">Features</a></li>
           <li><a href="#gameplay">Gameplay</a></li>
+          <li><a href="#contact">Contact</a></li>
           <li><Link to="/privacy">Privacy</Link></li>
         </ul>
 
@@ -193,7 +297,7 @@ const LandingPage = () => {
             <button onClick={() => setMenuOpen(false)} style={{ position: 'absolute', top: 28, right: 28, background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
               <X size={28} />
             </button>
-            {(['Features', 'Gameplay', 'Privacy'] as const).map((label, i) => {
+            {(['Features', 'Gameplay', 'Contact', 'Privacy'] as const).map((label, i) => {
               const href = label === 'Privacy' ? '/privacy' : `#${label.toLowerCase()}`;
               return (
                 <motion.a
@@ -531,6 +635,11 @@ const LandingPage = () => {
         </motion.div>
       </Section>
 
+      <div className="divider" />
+
+      {/* ─── CONTACT ─── */}
+      <ContactSection />
+
       {/* ─── CTA BANNER ─── */}
       <div className="ipo-banner">
         <motion.div
@@ -587,7 +696,7 @@ const LandingPage = () => {
               <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: 20 }}>Legal</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <Link to="/privacy" style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Privacy Policy</Link>
-                <a href="mailto:foundersim.game@gmail.com" style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Contact</a>
+                <a href="#contact" style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Contact</a>
               </div>
             </div>
           </div>
