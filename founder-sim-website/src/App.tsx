@@ -167,7 +167,7 @@ const LandingPage = () => {
           {/* Subtle background glow for the form card */}
           <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '40%', height: '60%', background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
           
-          <form action="https://formspree.io/foundersim.game@gmail.com" method="POST" className="space-y-6">
+          <form action="https://formspree.io/f/xaqljavr" method="POST" className="space-y-6">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
               <div className="form-group">
                 <label className="form-label" htmlFor="name">Full Name</label>
