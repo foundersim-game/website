@@ -151,6 +151,51 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             salesRoleDescription: "Bank Partnerships · Institutional Onboarding"
         }
     },
+    // Aliases — same config as FinTech so growth/churn curves match the revenue model
+    "FinTech App": {
+        PLG: {
+            maxPrice: 5, label: "% Interchange Fee", unit: "%",
+            calc: (p) => ({
+                conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
+                churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02,
+                loopPower: 4
+            }),
+            salesRoleName: "Conversion Analyst",
+            salesRoleDescription: "User Activation · Transaction Volume"
+        },
+        SLG: {
+            maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
+            calc: (p) => ({
+                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                churn: 0.01,
+                loopPower: 1
+            }),
+            salesRoleName: "Partnership Manager",
+            salesRoleDescription: "Bank Partnerships · Institutional Onboarding"
+        }
+    },
+    "FinTech Platform": {
+        PLG: {
+            maxPrice: 5, label: "% Interchange Fee", unit: "%",
+            calc: (p) => ({
+                conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
+                churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02,
+                loopPower: 4
+            }),
+            salesRoleName: "Conversion Analyst",
+            salesRoleDescription: "User Activation · Transaction Volume"
+        },
+        SLG: {
+            maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
+            calc: (p) => ({
+                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                churn: 0.01,
+                loopPower: 1
+            }),
+            salesRoleName: "Partnership Manager",
+            salesRoleDescription: "Bank Partnerships · Institutional Onboarding"
+        }
+    },
     "EdTech": {
         PLG: {
             maxPrice: 100, label: "Course Ticket", unit: " avg",
@@ -165,7 +210,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             salesRoleDescription: "Course Enrollment · Student Success"
         },
         SLG: {
-            maxPrice: 200, label: "Per Seat/yr", unit: " avg",
+            maxPrice: 200, label: "Per Seat/mo", unit: "/ mo",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 10 / (p/10 + 5)),
                 churn: 0.02,
@@ -288,24 +333,40 @@ export function calculateFinancials(
         cogs = revenue * (industry === "AI Platform" ? 0.30 : 0.10);
     } else {
         if (industry === "Mobile Game") {
+            // F2P: ad revenue + 3% whale IAP conversion
             const adsFreq = (metrics as any).ad_intensity || 0;
             revenue = (users * (adsFreq / 100) * 0.15) + (users * 0.03 * pricing);
             paidUsers = Math.floor(users * 0.03);
-            cogs = revenue * 0.05; 
+            cogs = revenue * 0.05;
         } else if (industry === "AI Platform") {
-            paidUsers = users;
-            revenue = users * pricing * 2; 
-            cogs = revenue * 0.35; 
+            // Usage-based API: free tier exists, ~40% of devs convert shaped by PMF.
+            // ×2 multiplier = avg 2 token bundles consumed per paying developer per month.
+            const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 70);
+            paidUsers = Math.floor(users * Math.min(0.60, Math.max(0.10, 0.40 * pmfFactor)));
+            revenue = paidUsers * pricing * 2;
+            cogs = revenue * 0.35; // High GPU compute costs
+        } else if (industry === "OTT / Streaming") {
+            // Subscription model — not freemium. Most signups pay.
+            // Base 50% conversion, gated by PMF (content quality / library depth).
+            const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 80);
+            paidUsers = Math.floor(users * Math.min(0.75, Math.max(0.10, 0.50 * pmfFactor)));
+            revenue = paidUsers * pricing;
+            cogs = revenue * 0.40; // Content licensing / production costs
         } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
-            paidUsers = users;
-            revenue = users * 200 * (pricing / 100); 
-            cogs = revenue * 0.20;
+            // GMV × interchange rate. Per-user GMV grows as users become more active over time.
+            const baseGMV = 200 + (monthsPassed * 15); // $200 → ~$500 by month 20
+            paidUsers = users; // Every active user transacts
+            revenue = users * baseGMV * (pricing / 100);
+            cogs = revenue * 0.20; // Payment processing + compliance overhead
         } else if (industry === "Marketplace") {
-            paidUsers = users;
-            revenue = users * 150 * (pricing / 100);
-            cogs = revenue * 0.15;
+            // GMV × take rate. Platform GMV per user grows as marketplace matures.
+            const baseGMV = 150 + (monthsPassed * 12); // $150 → ~$390 by month 20
+            paidUsers = users; // Every buyer/seller generates GMV
+            revenue = users * baseGMV * (pricing / 100);
+            cogs = revenue * 0.15; // Payment processing + trust & safety
         } else {
-            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50); 
+            // Generic freemium path: SaaS, EdTech, Dev Tools
+            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50);
             const qualityFactor = Math.max(0.2, (metrics.product_quality || 10) / 50);
             const maxPrice = activeConfig?.maxPrice || 300;
             const priceRatio = Math.min(1, Math.max(0.01, pricing / maxPrice));
@@ -685,7 +746,12 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.opex = monthlyOpex;
     metrics.net_profit = monthlyRevenue - monthlyCogs - monthlyOpex;
     metrics.cash += metrics.net_profit;
-    if (metrics.annual_billing && grossNewUsers > 0 && !isSLG) metrics.cash += (grossNewUsers * metrics.pricing * 11);
+    // Annual billing upfront: only meaningful for subscription industries (SaaS, OTT, EdTech, Dev Tools).
+    // Mobile Game (F2P), FinTech (interchange %), Marketplace (take rate %), AI (usage-based) are excluded.
+    const isSubscriptionIndustry = !["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(industry);
+    if (metrics.annual_billing && grossNewUsers > 0 && !isSLG && isSubscriptionIndustry) {
+        metrics.cash += (grossNewUsers * metrics.pricing * 11);
+    }
 
     const actualNetBurn = -metrics.net_profit;
     metrics.burn_rate = actualNetBurn > 0 ? actualNetBurn : 0;

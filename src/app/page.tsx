@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { cn, formatMoney } from "@/lib/utils";
 import { getLegacyData, LegacyData, PERKS, Perk, buyPerk } from "@/lib/engine/legacy";
 import { toast, Toaster } from "sonner";
-import { DollarSign, ShieldCheck, Zap as ZapIcon, Rocket as RocketIcon, Settings } from "lucide-react";
 import { adService } from "@/lib/services/adService";
 import { useTheme } from "@/components/ThemeProvider";
+import { playSound, playSynthSound } from "@/lib/audio";
 
 export type SaveSlot = {
   id: string;
@@ -97,16 +97,19 @@ export default function Home() {
   }, []);
 
   const handleContinue = () => {
+    playSound("click");
     router.push("/dashboard");
   };
 
   const handleNewGame = () => {
+    playSound("click");
     localStorage.removeItem("founder_sim_state");
     localStorage.removeItem("founder_data");
     router.push("/create-founder");
   };
 
   const handleLoad = (save: SaveSlot) => {
+    playSound("click");
     localStorage.setItem("founder_sim_state", JSON.stringify({ 
       ...save.data, 
       founderMeta: { logo: save.logo, brandColor: save.brandColor } 
@@ -115,6 +118,7 @@ export default function Home() {
   };
 
   const handleDelete = (id: string) => {
+    playSound("click");
     const updated = savedGames.filter(s => s.id !== id);
     localStorage.setItem("founder_sim_saves", JSON.stringify(updated));
     setSavedGames(updated);
@@ -380,7 +384,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 gap-2.5">
             <button
-              onClick={() => { loadSaves(); setShowLoadModal(true); }}
+              onClick={() => { playSound("click"); loadSaves(); setShowLoadModal(true); }}
               className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
             >
               <FolderOpen className="size-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
@@ -388,7 +392,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setShowHowToPlay(true)}
+              onClick={() => { playSound("click"); setShowHowToPlay(true); }}
               className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
             >
               <HelpCircle className="size-3.5 text-slate-400 group-hover:text-violet-500 transition-colors" />
@@ -442,7 +446,7 @@ export default function Home() {
                       <div className="p-4 rounded-2xl border-2 border-rose-200 bg-rose-50 flex items-center justify-between">
                         <p className="text-sm font-bold text-rose-700">Delete this save?</p>
                         <div className="flex gap-2">
-                          <button onClick={() => setConfirmDelete(null)} className="text-xs font-bold text-slate-500 px-3 py-1.5 rounded-xl bg-white border border-slate-200">Cancel</button>
+                          <button onClick={() => { playSound("click"); setConfirmDelete(null); }} className="text-xs font-bold text-slate-500 px-3 py-1.5 rounded-xl bg-white border border-slate-200">Cancel</button>
                           <button onClick={() => handleDelete(save.id)} className="text-xs font-bold text-white px-3 py-1.5 rounded-xl bg-rose-500">Delete</button>
                         </div>
                       </div>
@@ -470,7 +474,7 @@ export default function Home() {
                             </div>
                           </div>
                           <button
-                            onClick={e => { e.stopPropagation(); setConfirmDelete(save.id); }}
+                            onClick={e => { e.stopPropagation(); playSound("click"); setConfirmDelete(save.id); }}
                             className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-400 transition-colors shrink-0"
                           >
                             <Trash2 className="size-3.5" />

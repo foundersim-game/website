@@ -459,7 +459,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory }: ActionSheetProps) {
 
     const employees = allEmployees;
-    const liveRevenue = m.users * (m.pricing || 0);
+    const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
     const liveNetProfit = liveRevenue - (m.cogs || 0) - (m.opex || 0);
     const profitable = liveNetProfit >= 0;
 
@@ -712,13 +712,16 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         );
                     })()}
 
-                    <div
-                        onClick={() => setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, annual_billing: !s.metrics.annual_billing } }))}
-                        className={cn("mt-4 w-full p-2.5 rounded-xl border-2 text-center cursor-pointer transition text-[9px] font-black tracking-wide uppercase",
-                            m.annual_billing ? "bg-indigo-100 dark:bg-indigo-900/50 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/70" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50")}
-                    >
-                        {m.annual_billing ? "💸 Annual Billing (Upfront Cash)" : "📅 Monthly Billing (Default)"}
-                    </div>
+                    {/* Annual billing only makes sense for subscription-model industries */}
+                    {!["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(startup.industry) && (
+                        <div
+                            onClick={() => setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, annual_billing: !s.metrics.annual_billing } }))}
+                            className={cn("mt-4 w-full p-2.5 rounded-xl border-2 text-center cursor-pointer transition text-[9px] font-black tracking-wide uppercase",
+                                m.annual_billing ? "bg-indigo-100 dark:bg-indigo-900/50 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/70" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50")}
+                        >
+                            {m.annual_billing ? "💸 Annual Billing (Upfront Cash)" : "📅 Monthly Billing (Default)"}
+                        </div>
+                    )}
                 </div>
 
                 {/* Strategy Playbook Card */}
@@ -1578,7 +1581,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* ── IPO READINESS ── */}
                 {(() => {
-                    const liveArr = (m.users * (m.pricing || 0)) * 12;
+                    const liveArr = (m.revenue || 0) * 12;
                     const ipoChecks = [
                         { label: "$50M ARR", pass: liveArr >= 50_000_000 },
                         { label: "10K+ Users", pass: m.users >= 10_000 },
@@ -4288,7 +4291,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                         {[
                             { icon: '👤', label: formatNumber(m.users), sub: 'Users', color: 'text-slate-800 dark:text-slate-100' },
-                            { icon: '💵', label: formatMoney(m.users * m.pricing), sub: 'MRR', color: 'text-emerald-700 dark:text-emerald-400' },
+                            { icon: '💵', label: formatMoney(liveRevenue), sub: 'MRR', color: 'text-emerald-700 dark:text-emerald-400' },
                             { icon: '🔥', label: `${Math.round(m.founder_burnout || 0)}%`, sub: 'Burnout', color: (m.founder_burnout || 0) > 60 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' },
                         ].map((stat, i) => (
                             <div key={i} className="flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[90px]">
@@ -5349,11 +5352,12 @@ export default function Dashboard() {
                                     {/* Key metrics grid */}
                                     {(() => {
                                         const netProfit = m.net_profit ?? 0;
+                                        const { monthlyRevenue: financialsMRR } = calculateFinancials(startup, founder);
                                         return (
                                             <div className="grid grid-cols-2 gap-2">
                                                 {[
                                                     { label: "Cash", val: formatMoney(m.cash), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50", explanation: "Your company bank account. Maintain at least 3 months of runway." },
-                                                    { label: "MRR", val: formatMoney(m.users * m.pricing), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Monthly Recurring Revenue. Lifeblood of the business." },
+                                                    { label: "MRR", val: formatMoney(financialsMRR), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Monthly Recurring Revenue. Lifeblood of the business." },
                                                     { label: "Valuation", val: formatMoney(startup.valuation), color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30 border-violet-100 dark:border-violet-900/50", explanation: "Calculated based on MRR, growth, and product quality." },
                                                     { label: "Runway", val: netProfit > 0 ? "∞ Profitable" : (netProfit < 0 ? `${m.runway}mo` : "—"), color: netProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (netProfit < 0 ? (m.runway <= 3 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400") : "text-slate-400 dark:text-slate-500"), bg: netProfit > 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50" : (netProfit < 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"), explanation: "Time until cash runs out. Increase this by raising funds or reaching profitability." },
                                                 ].map(r => (

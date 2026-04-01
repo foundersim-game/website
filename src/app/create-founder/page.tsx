@@ -9,6 +9,7 @@ import { toast, Toaster } from "sonner";
 import { PerkModal } from "@/components/PerkModal";
 import { getLegacyData, buyPerk, LegacyData } from "@/lib/engine/legacy";
 import { adService } from "@/lib/services/adService";
+import { playSound, playSynthSound } from "@/lib/audio";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -143,8 +144,15 @@ export default function CreateFounder() {
     };
 
 
-    const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
-    const prev = () => setStep(s => Math.max(s - 1, 1));
+    const next = () => {
+        playSound("click");
+        playSynthSound("ui_step");
+        setStep(s => Math.min(s + 1, TOTAL_STEPS));
+    };
+    const prev = () => {
+        playSound("click");
+        setStep(s => Math.max(s - 1, 1));
+    };
 
     const canAdvance = () => {
         if (step === 1) return formData.name.trim().length > 0;
@@ -153,10 +161,11 @@ export default function CreateFounder() {
     };
 
     const handleLaunch = () => {
+        playSound("click");
+        playSynthSound("ui_launch");
         localStorage.setItem("founder_data", JSON.stringify({ ...formData, perks: unlockedThisRun }));
         router.replace("/dashboard");
     };
-
     const progress = (step / TOTAL_STEPS) * 100;
 
     const STEP_LABELS = ["Founder", "Background", "Mission", "Strategy", "Challenge", "Vision"];
@@ -257,7 +266,7 @@ export default function CreateFounder() {
 
                                 {legacyData && (
                                     <button
-                                        onClick={() => setShowPerksModal(true)}
+                                        onClick={() => { playSound("click"); setShowPerksModal(true); }}
                                         className="w-full h-14 rounded-2xl bg-amber-50 text-amber-700 font-bold text-sm uppercase tracking-widest border-2 border-amber-200 hover:bg-amber-100 active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
                                     >
                                         <Trophy className="size-4 fill-amber-500" />
@@ -273,7 +282,7 @@ export default function CreateFounder() {
                                 {BACKGROUNDS.map(bg => (
                                     <button
                                         key={bg.id}
-                                        onClick={() => setFormData({ ...formData, background: bg.id })}
+                                        onClick={() => { playSound("click"); setFormData({ ...formData, background: bg.id }); }}
                                         className={cn(
                                             "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98]",
                                             formData.background === bg.id
@@ -305,6 +314,7 @@ export default function CreateFounder() {
                                     <div key={ind.id}>
                                         <button
                                             onClick={() => {
+                                                playSound("click");
                                                 setFormData({ ...formData, industry: ind.id });
                                             }}
                                             className={cn(
@@ -357,7 +367,7 @@ export default function CreateFounder() {
                                 {(INDUSTRY_STRATEGIES[formData.industry] || INDUSTRY_STRATEGIES["SaaS Platform"]).map(gtm => (
                                     <button
                                         key={gtm.id}
-                                        onClick={() => setFormData({ ...formData, gtmMotion: gtm.id })}
+                                        onClick={() => { playSound("click"); setFormData({ ...formData, gtmMotion: gtm.id }); }}
                                         className={cn(
                                             "w-full p-5 rounded-2xl border-2 transition-all text-left active:scale-[0.98] shadow-sm",
                                             formData.gtmMotion === gtm.id
@@ -396,7 +406,7 @@ export default function CreateFounder() {
                                 {Object.values(SCENARIOS).map(scen => (
                                     <button
                                         key={scen.id}
-                                        onClick={() => setFormData({ ...formData, scenario: scen.id })}
+                                        onClick={() => { playSound("click"); setFormData({ ...formData, scenario: scen.id }); }}
                                         className={cn(
                                             "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left active:scale-[0.98] shadow-sm",
                                             formData.scenario === scen.id
@@ -453,7 +463,7 @@ export default function CreateFounder() {
                                         {LOGOS.map(logo => (
                                             <button
                                                 key={logo}
-                                                onClick={() => setFormData({ ...formData, logo })}
+                                                onClick={() => { playSound("click"); setFormData({ ...formData, logo }); }}
                                                 className={cn(
                                                     "aspect-square rounded-2xl flex items-center justify-center text-2xl transition-all active:scale-90 border-2",
                                                     formData.logo === logo ? "border-indigo-400 bg-indigo-50 shadow-md shadow-indigo-100" : "border-slate-100 bg-white hover:border-slate-200"
@@ -472,7 +482,7 @@ export default function CreateFounder() {
                                         {BRAND_COLORS.map(color => (
                                             <button
                                                 key={color.id}
-                                                onClick={() => setFormData({ ...formData, brandColor: color.id })}
+                                                onClick={() => { playSound("click"); setFormData({ ...formData, brandColor: color.id }); }}
                                                 className={cn(
                                                     "w-9 h-9 rounded-full transition-all active:scale-90 border-4",
                                                     color.cls,
@@ -546,10 +556,10 @@ export default function CreateFounder() {
             </div>
             <PerkModal
                 open={showPerksModal}
-                setOpen={setShowPerksModal}
+                setOpen={(val) => { playSound("click"); setShowPerksModal(val); }}
                 unspent={legacyData?.unspentPoints || 0}
                 unlocked={unlockedThisRun}
-                onBuy={handleBuyPerk}
+                onBuy={(id) => { playSound("click"); handleBuyPerk(id); }}
             />
             <Toaster position="top-center" />
         </div>
