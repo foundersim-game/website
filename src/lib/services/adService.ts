@@ -49,6 +49,13 @@ class AdService {
         }
 
         try {
+            if (this.platform === 'ios') {
+                const trackingInfo = await AdMob.trackingAuthorizationStatus();
+                if (trackingInfo.status === 'notDetermined') {
+                    await AdMob.requestTrackingAuthorization();
+                }
+            }
+
             await AdMob.initialize({
                 testingDevices: [],
                 initializeForTesting: false, 

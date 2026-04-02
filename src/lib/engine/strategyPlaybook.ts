@@ -45,8 +45,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
     },
     "OTT / Streaming_PLG": {
         model: "Direct-to-Consumer Streaming",
-        customers: "Individual subscribers paying monthly for entertainment content.",
-        mrrFormula: "Active Subscribers × Monthly Subscription Price",
+        customers: "Individual members paying monthly for entertainment content.",
+        mrrFormula: "Active Members × Monthly Recurring Price",
         growthLever: "Content quality and hit titles drive word-of-mouth and social buzz.",
         mainRisk: "Massive content investment needed to reduce churn and keep viewers hooked.",
         marketingTip: "PR campaigns around new releases + social clips drive organic acquisition.",

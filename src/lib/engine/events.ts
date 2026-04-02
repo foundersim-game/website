@@ -560,7 +560,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
         event_id: "key_customer_churn",
         stage: "growth_stage",
         title: "Key Customer Churned 😱",
-        description: "Acme Corp, your largest customer at $15K/mo, has cancelled their subscription. Their reason: 'We found a more complete solution at a lower price.'",
+        description: "Acme Corp, your largest customer at $15K/mo, has cancelled their membership. Their reason: 'We found a more complete solution at a lower price.'",
         choices: [
             { text: "Schedule an exit interview to learn deeply", effects: { intelligence: 10, product_quality: 5 } },
             { text: "Offer them a 50% discount to stay", effects: { cash: -5000, users: 50 } },
@@ -1274,8 +1274,8 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
 ];
 
 export function getRandomEvent(stage: string, seenIds: string[] = [], scenarioId?: string): GameEvent | null {
-    // 70% chance to trigger an event per month (up from 50%)
-    if (Math.random() > 0.70) return null;
+    // ~70% chance to trigger an event per month
+    if (Math.random() > 0.30) return null;
 
     // Map game phases to event stages
     const mappedStage = (stage || "").toLowerCase();

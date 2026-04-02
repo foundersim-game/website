@@ -167,7 +167,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         style={{
-                            position: "fixed", inset: 0, zIndex: 1000,
+                            position: "fixed", inset: 0, zIndex: 10000,
                             background: "rgba(0,0,0,0.8)",
                             backdropFilter: "blur(8px)",
                         }}
@@ -182,7 +182,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                         style={{
                             position: "fixed",
                             bottom: 0, left: 0, right: 0,
-                            zIndex: 1001,
+                            zIndex: 10001,
                             maxWidth: 480,
                             margin: "0 auto",
                             borderRadius: "32px 32px 0 0",

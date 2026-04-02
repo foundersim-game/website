@@ -330,7 +330,7 @@ export function CharacterDialog({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.22 }}
                         style={{
-                            position: "fixed", inset: 0, zIndex: 200,
+                            position: "fixed", inset: 0, zIndex: 10000,
                             background: "rgba(0,0,0,0.75)",
                             backdropFilter: "blur(5px)",
                         }}
@@ -346,7 +346,7 @@ export function CharacterDialog({
                         style={{
                             position: "fixed",
                             bottom: 0, left: 0, right: 0,
-                            zIndex: 201,
+                            zIndex: 10001,
                             maxWidth: 480,
                             margin: "0 auto",
                             borderRadius: "28px 28px 0 0",

@@ -34,7 +34,7 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2 } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark } from "lucide-react";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
@@ -153,6 +153,46 @@ const RIVALRY_ACTIONS: RivalryAction[] = [
             const newFounder = { ...founder, attributes: { ...founder.attributes, reputation: Math.max(0, (founder.attributes.reputation || 0) - 10) } };
             return { newStartup: startup, newFounder, newChadly: chadly, message: "PR BACKFIRE: Your attempt to counter-narrative looked desperate. Reputation hit -10." };
         }
+    },
+    {
+        id: "hostile_takeover",
+        label: "Hostile Takeover",
+        emoji: "⚔️",
+        description: "Forcibly absorb rival users (+70%). High risk, high cost.",
+        energyCost: 40,
+        cashCost: 50000,
+        successRate: 0.20,
+        effect: ({ startup, founder, chadly }) => {
+            const absorbedUsers = Math.floor(chadly.users * 0.7);
+            const newChadly = { ...chadly, users: Math.max(10, chadly.users - absorbedUsers), status: "failed" as any };
+            const newStartup = { 
+                ...startup, 
+                metrics: { 
+                    ...startup.metrics, 
+                    users: (startup.metrics.users || 0) + absorbedUsers,
+                    technical_debt: Math.min(100, (startup.metrics.technical_debt || 0) + 25),
+                    fraud_risk: Math.min(100, (startup.metrics.fraud_risk || 0) + 15)
+                } 
+            };
+            return { newStartup, newFounder: founder, newChadly, message: `VICTORY: You've aggressively absorbed ${absorbedUsers.toLocaleString()} users! They have been neutralized.` };
+        },
+        onFailure: ({ startup, founder, chadly }) => {
+            const newStartup = { 
+                ...startup, 
+                metrics: { 
+                    ...startup.metrics, 
+                    cash: Math.max(0, startup.metrics.cash - 25000),
+                } 
+            };
+            const newFounder = {
+                ...founder,
+                attributes: {
+                    ...founder.attributes,
+                    reputation: Math.max(0, (founder.attributes.reputation || 0) - 20)
+                }
+            };
+            return { newStartup, newFounder, newChadly: chadly, message: "CRUSHED: The SEC blocked your takeover! Your legal fees are massive and your rep is in tatters." };
+        }
     }
 ];
 
@@ -200,6 +240,9 @@ const STARTUP_BASE = {
         founder_health: 100,
         sleep_quality: 100,
         founder_salary: 0,
+        fraud_risk: 0,
+        current_season: "Normal",
+        has_legal_dept: false,
     },
     employees: [],
     history: [],
@@ -209,6 +252,7 @@ const FOUNDER_BASE = {
     id: "founder-1",
     name: "Alex Founder",
     background: "Engineer",
+    private_cash: 0,
     attributes: {
         intelligence: 55,
         technical_skill: 60,
@@ -292,7 +336,7 @@ function SH({ children }: { children: React.ReactNode }) {
     return <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-4 first:mt-0">{children}</p>;
 }
 
-function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, onToggle }: { label: string; value: string; sub?: string; color: string; icon: string; explanation?: string; isExpanded?: boolean; onToggle?: () => void }) {
+function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, onToggle, onInfoClick }: { label: string; value: string; sub?: string; color: string; icon: string; explanation?: string; isExpanded?: boolean; onToggle?: () => void; onInfoClick?: (e: React.MouseEvent) => void }) {
     return (
         <div
             onClick={onToggle}
@@ -303,7 +347,17 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
         >
             <div className="flex justify-between items-start">
                 <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{icon} {label}</p>
-                {explanation && <span className="text-[10px] text-slate-400 dark:text-slate-500">?</span>}
+                <div className="flex items-center gap-1.5">
+                    {onInfoClick && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onInfoClick(e); }}
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        >
+                            <Info className="w-3 h-3" />
+                        </button>
+                    )}
+                    {explanation && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">?</span>}
+                </div>
             </div>
             <p className="text-xl font-black italic text-slate-900 dark:text-white leading-none mt-0.5">{value}</p>
             {sub && <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
@@ -414,6 +468,7 @@ type ActionSheetProps = {
     handleIncrementSalary: (id: string) => void;
     setIsTeamOpen: (b: boolean) => void;
     setIsFinancialsOpen: (b: boolean) => void;
+    setIsBurnBreakdownOpen: (b: boolean) => void;
     competitors: any[];
     handleImmediateAction: (id: string) => void;
     handleToggleOngoingProgram: (id: string) => void;
@@ -452,7 +507,7 @@ type ActionSheetProps = {
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
     selectedEmpIdx, setSelectedEmpIdx, handleTrainEmployee, handlePromoteEmployee,
-    handleFireEmployee, handleIncrementSalary, setIsTeamOpen, setIsFinancialsOpen,
+    handleFireEmployee, handleIncrementSalary, setIsTeamOpen, setIsFinancialsOpen, setIsBurnBreakdownOpen,
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
@@ -1417,6 +1472,79 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 </div>
                             );
                         })}
+
+                        {/* HIGH-RISK FINANCIAL ACTIONS (Embezzle) */}
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                             <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1 italic">🚨 Black Market / Legal Risks</p>
+
+                             {/* Hire Legal Team */}
+                             <div className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all mb-2",
+                                 m.has_legal_dept
+                                     ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/50 opacity-60 cursor-default"
+                                     : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer active:scale-[0.98]")}
+                                 onClick={() => {
+                                     if (m.has_legal_dept) return;
+                                     setConfirmDialog({
+                                         open: true,
+                                         title: "⚖️ Hire Legal Team?",
+                                         description: "Retain an in-house legal team for $50,000. They will reduce your Fraud Risk by 5% every month and protect you from regulatory exposure.",
+                                         confirmText: "HIRE THEM",
+                                         onConfirm: () => {
+                                             if ((startup.metrics.cash || 0) < 50000) {
+                                                 toast.error("Insufficient Funds", { description: "You need at least $50,000 to retain a legal team." });
+                                                 return;
+                                             }
+                                             setStartup((s: any) => ({
+                                                 ...s,
+                                                 metrics: {
+                                                     ...s.metrics,
+                                                     cash: s.metrics.cash - 50000,
+                                                     has_legal_dept: true,
+                                                 }
+                                             }));
+                                             addTimelineEvent(`⚖️ Legal Team hired. Fraud Risk will decrease by 5% per month.`);
+                                             toast.success("Legal Team Retained!", { description: "Fraud Risk will now decrease by 5% each month.", icon: "⚖️" });
+                                         }
+                                     });
+                                 }}
+                             >
+                                <span className="text-xl w-7 text-center shrink-0">⚖️</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.has_legal_dept ? "Legal Team Active" : "Hire Legal Team"}</p>
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-500">{m.has_legal_dept ? "Fraud Risk -5% per month ongoing" : "One-time $50K retainer · -5% Fraud Risk/mo"}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400">-5% Fraud/mo</p>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border ${m.has_legal_dept ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}>
+                                        {m.has_legal_dept ? "✓ ACTIVE" : "-$50K"}
+                                    </span>
+                                </div>
+                             </div>
+
+                             {/* Embezzle Funds */}
+                             <div className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                 "bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/50 hover:bg-rose-100/50 dark:hover:bg-rose-950/30")}
+                                 onClick={() => {
+                                     setConfirmDialog({
+                                         open: true,
+                                         title: "💸 Embezzle Company Funds?",
+                                         description: "This will transfer 10% of company cash to your private bank account. WARNING: Increases Fraud Risk by 20% and may trigger an SEC audit.",
+                                         confirmText: "TAKE THE RISK",
+                                         onConfirm: () => handleActionClick("embezzle_funds" as any)
+                                     });
+                                 }}
+                             >
+                                <span className="text-xl w-7 text-center shrink-0">💸</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-rose-900 dark:text-rose-200">Embezzle Funds</p>
+                                    <p className="text-[9px] text-rose-600/70 dark:text-rose-400/70">Transfer 10% of cash to private account</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                    <p className="text-[9px] font-black text-rose-600 dark:text-rose-400">+20% Fraud Risk</p>
+                                    <span className="text-[8px] font-black bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded-full">⚡0h</span>
+                                </div>
+                             </div>
+                        </div>
                     </div>
                 )}
                 <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3">
@@ -1750,6 +1878,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         explanation="Monthly Profit/Loss. Positive means you are gaining cash; negative (Burn) means you are losing it. Hire a CFO to optimize expenses."
                         isExpanded={expandedMetric === "burn"}
                         onToggle={() => toggle("burn")}
+                        onInfoClick={!profitable ? () => {
+                            setActionCategory(null);
+                            setIsBurnBreakdownOpen(true);
+                        } : undefined}
                     />
                     <BigMetric
                         label="Valuation" value={formatMoney(startup.valuation)} color="bg-violet-50 border-violet-100" icon="🏆"
@@ -2471,6 +2603,7 @@ export default function Dashboard() {
         }
         return false;
     });
+    const [isBurnBreakdownOpen, setIsBurnBreakdownOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
     const [interstitialAdOwed, setInterstitialAdOwed] = useState<boolean>(() => {
         if (typeof window !== "undefined") {
@@ -2488,14 +2621,20 @@ export default function Dashboard() {
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
     const [characterDialog, setCharacterDialog] = useState<StorylineDialog | null>(null);
     const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
-    const [storyState, setStoryState] = useState<StorylineState>({
-        seenTriggers: [],
-        chadMustRespondNext: false,
-        lastChadMonth: -1,
-        act: 1,
-        tutorialStep: 0,
-        samGoneToIsland: false,
-        hasConsultedSam: false,
+    const [storyState, setStoryState] = useState<StorylineState>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("founder_sim_story_state");
+            if (saved) return JSON.parse(saved);
+        }
+        return {
+            seenTriggers: [],
+            chadMustRespondNext: false,
+            lastChadMonth: -1,
+            act: 1,
+            tutorialStep: 0,
+            samGoneToIsland: false,
+            hasConsultedSam: false,
+        };
     });
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
@@ -2595,6 +2734,12 @@ export default function Dashboard() {
     }, [interstitialAdOwed]);
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("founder_sim_story_state", JSON.stringify(storyState));
+        }
+    }, [storyState]);
+
+    useEffect(() => {
         const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(timer);
     }, []);
@@ -2644,6 +2789,15 @@ export default function Dashboard() {
 
     // Tutorial advance is button-driven (Next Step button), no auto-timers
 
+
+    // --- UI AUTO-DISMISS HELPERS ---
+    // Specifically to prevent the "Modal Behind Sheet" issue. 
+    // If a primary interaction starts (Negotiate, Fundraising, Event, AI Dialog, etc), we must close any side sheets.
+    useEffect(() => {
+        if (pendingCandidate || pendingInvestor || activeEvent || isCharacterDialogOpen || isEndgameOpen || confirmedFunding || confirmedHire) {
+            if (actionCategory !== null) setActionCategory(null);
+        }
+    }, [pendingCandidate, pendingInvestor, activeEvent, isCharacterDialogOpen, isEndgameOpen, confirmedFunding, confirmedHire, actionCategory]);
 
     useEffect(() => {
         iapService.initialize().then(() => {
@@ -2830,7 +2984,7 @@ export default function Dashboard() {
         };
     }, []);
 
-    // Watch for premium changes to hide ads immediately
+    // Watch for status changes to hide ads immediately
     useEffect(() => {
         if (isPremium) {
             adService.hideBanner();
@@ -3651,6 +3805,7 @@ export default function Dashboard() {
             }
 
             setIsProcessing(true);
+            setActionCategory(null); // Auto-close any open action sheets (Hire, Strategy, etc) so they don't block modals
             setRejectedCandidates([]);
             try {
                 const nextMonth = month + 1;
@@ -3781,16 +3936,36 @@ export default function Dashboard() {
 
                 // Random events (AI First, Fallback to Predefined)
                 // Mutex: Don't trigger random events if a storyline dialog is currently being shown
-                let ev: GameEvent | null = null;
-                if (!storyDialog) {
-                    if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
-                        const aiEvent = await generateAIEvent(newStartup, founder, seenEventIds);
-                        if (aiEvent) ev = aiEvent as GameEvent;
-                    }
+                
+                // Competitors Simulation (CRITICAL: Must happen before AI/Rivalry logic)
+                const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users, newStartup.valuation);
+                setCompetitors(updated);
+                news.forEach(n => addTimelineEvent(n, nextMonth));
+                const chadlyComp = updated.find(c => c.id === "chadly");
 
-                    if (!ev) {
-                        ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
+                // --- AI & EXTERNAL EFFECTS (Parallelized) ---
+                // Trigger AI event and Chad banter simultaneously
+                
+                let ev: GameEvent | null = null;
+                let aiBanter: any = null;
+
+                if (!storyDialog && isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
+                    try {
+                        const [aiEventResult, aiBanterResult] = await Promise.all([
+                            generateAIEvent(newStartup, founder, seenEventIds),
+                            chadlyComp ? generateChadBanter(newStartup, founder, chadlyComp) : Promise.resolve(null)
+                        ]);
+                        
+                        if (aiEventResult) ev = aiEventResult as GameEvent;
+                        aiBanter = aiBanterResult;
+                    } catch (e) {
+                        console.warn("AI Parallel generation failed", e);
                     }
+                }
+
+                // Fallback to local random event if AI failed or timed out
+                if (!ev && !storyDialog) {
+                    ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
                 }
 
                 if (ev) {
@@ -3798,20 +3973,6 @@ export default function Dashboard() {
                     setActiveEvent(ev);
                     if (ev.event_id) setSeenEventIds(prev => [...prev, ev.event_id!]);
                     else if (ev.title) setSeenEventIds(prev => [...prev, ev.title]);
-                }
-
-                // Competitors
-                const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users, newStartup.valuation);
-                setCompetitors(updated);
-                news.forEach(n => addTimelineEvent(n, nextMonth));
-                
-                const chadlyComp = updated.find(c => c.id === "chadly");
-                let aiBanter: any = null;
-                if (isOnline && chadlyComp) {
-                    // Pre-generate banter for potential UI use
-                    try {
-                        aiBanter = await generateChadBanter(newStartup, founder, chadlyComp);
-                    } catch (e) { console.warn("AI Banter failed", e); }
                 }
 
                 let nextFounder = { ...founder, attributes: { ...founder.attributes } };
@@ -3994,34 +4155,49 @@ export default function Dashboard() {
             const multiplier = eventMultiplier;
             const impactString = generateImpactSentence(choice.text, choice.effects, multiplier, activeEvent?.title);
 
-            // Use functional updates to ensure we have the absolute latest state
+            // Explicit allowlists — avoids 'key in obj' failing for uninitialized optional fields
+            const METRIC_KEYS = new Set([
+                'cash', 'burn_rate', 'revenue', 'users', 'paid_users', 'growth_rate',
+                'brand_awareness', 'employees', 'engineers', 'marketers', 'sales',
+                'team_morale', 'technical_debt', 'reliability', 'innovation', 'pmf_score',
+                'product_quality', 'feature_completion', 'founder_burnout', 'founder_health',
+                'sleep_quality', 'founder_salary', 'fraud_risk', 'option_pool',
+                'culture_score', 'pricing', 'unit_sales', 'cac', 'ltv', 'aov',
+                'cogs', 'opex', 'net_profit',
+            ]);
+            const ATTR_KEYS = new Set([
+                'intelligence', 'technical_skill', 'leadership', 'networking',
+                'marketing_skill', 'sales_skill', 'risk_appetite', 'stress_tolerance', 'reputation',
+            ]);
+
             setStartup(prevStartup => {
                 const metrics = { ...prevStartup.metrics };
 
                 Object.entries(choice.effects).forEach(([key, val]) => {
                     const numVal = Number(val);
-                    if (isNaN(numVal)) {
-                        console.warn(`[handleEventResolution] Skipping invalid effect value for ${key}:`, val);
-                        return;
-                    }
-                    
+                    if (isNaN(numVal)) return;
+
+                    if (!METRIC_KEYS.has(key)) return; // not a metric key, skip
+
                     let adjustedVal = numVal;
-                    if (['cash', 'burn_rate', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase())) {
+                    if (['cash', 'burn_rate', 'revenue'].includes(key)) {
                         adjustedVal *= multiplier;
                     }
 
-                    if (key in metrics) {
-                        const cur = (metrics as any)[key] || 0;
-                        (metrics as any)[key] = cur + adjustedVal;
-                    }
+                    const cur = ((metrics as any)[key] as number) || 0;
+                    (metrics as any)[key] = cur + adjustedVal;
                 });
 
-                // Catch-all clamping for metrics
-                ['founder_burnout', 'founder_health', 'team_morale', 'reliability', 'product_quality', 'pmf_score', 'reputation'].forEach(k => {
-                    if (k in metrics) (metrics as any)[k] = Math.min(100, Math.max(0, (metrics as any)[k]));
+                // Clamp metrics
+                ['team_morale', 'reliability', 'product_quality', 'pmf_score', 'founder_burnout', 'founder_health', 'sleep_quality', 'innovation', 'fraud_risk'].forEach(k => {
+                    if ((metrics as any)[k] !== undefined) {
+                        (metrics as any)[k] = Math.min(100, Math.max(0, (metrics as any)[k]));
+                    }
                 });
-                ['users', 'revenue', 'cash', 'brand_awareness', 'technical_debt'].forEach(k => {
-                    if (k in metrics) (metrics as any)[k] = Math.max(0, (metrics as any)[k]);
+                ['users', 'revenue', 'cash', 'brand_awareness', 'technical_debt', 'burn_rate'].forEach(k => {
+                    if ((metrics as any)[k] !== undefined) {
+                        (metrics as any)[k] = Math.max(0, (metrics as any)[k]);
+                    }
                 });
 
                 return { ...prevStartup, metrics };
@@ -4031,13 +4207,9 @@ export default function Dashboard() {
                 const attrs = { ...prevFounder.attributes };
                 Object.entries(choice.effects).forEach(([key, val]) => {
                     const numVal = Number(val);
-                    if (!isNaN(numVal) && key in attrs) {
-                        (attrs as any)[key] += numVal;
+                    if (!isNaN(numVal) && ATTR_KEYS.has(key)) {
+                        (attrs as any)[key] = Math.min(100, Math.max(0, ((attrs as any)[key] || 0) + numVal));
                     }
-                });
-                // Every attribute is [0, 100]
-                Object.keys(attrs).forEach(k => {
-                    (attrs as any)[k] = Math.min(100, Math.max(0, (attrs as any)[k]));
                 });
                 return { ...prevFounder, attributes: attrs };
             });
@@ -4046,7 +4218,7 @@ export default function Dashboard() {
         };
 
         const m = startup.metrics;
-        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex } = calculateFinancials(startup, founder);
+        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, opexBreakdown } = calculateFinancials(startup, founder);
         const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
         const profitable = liveNetProfit >= 0;
         const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
@@ -4057,17 +4229,81 @@ export default function Dashboard() {
         return (
             <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0 bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
 
+                {/* GLOBAL BLOCKING OVERLAY (DURING SIMULATION) */}
+                <AnimatePresence>
+                    {isProcessing && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[10000] flex flex-col items-center justify-center p-6 text-center"
+                        >
+                            <div className="relative w-24 h-24 mb-8">
+                                {/* Inner Spin */}
+                                <div className="absolute inset-0 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                                {/* Outer Pulse */}
+                                <motion.div 
+                                    animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                    className="absolute inset-0 border-8 border-emerald-500/10 rounded-full"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <Landmark className="w-8 h-8 text-emerald-400" />
+                                </div>
+                            </div>
+                            
+                            <motion.div
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Simulating Month {month}...</h3>
+                                <p className="text-emerald-400/80 font-black text-xs uppercase tracking-widest animate-pulse">Running GTM Strategy • Synthesizing Market Data</p>
+                            </motion.div>
+                            
+                            {/* Status Dots */}
+                            <div className="flex gap-2 mt-8">
+                                {[0, 1, 2].map(i => (
+                                    <motion.div 
+                                        key={i}
+                                        animate={{ scale: [1, 1.5, 1], opacity: [0.2, 1, 0.2] }}
+                                        transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
+                                        className="w-2 h-2 rounded-full bg-emerald-500"
+                                    />
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
                 <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
                     {/* HEADER */}
                     <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
+                    
+                    {/* MACRO SEASON BANNER */}
+                    {m.current_season && m.current_season !== "Normal" && (
+                        <div className={`absolute left-0 right-0 -bottom-6 h-6 flex items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] shadow-sm z-[-1] animate-in slide-in-from-top duration-500 ${
+                            m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
+                            m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
+                            m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
+                            m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
+                            "bg-slate-800 text-white"
+                        }`}>
+                            {m.current_season === "Bull Market" && "📈 Bull Market: Fundraising Sentiment High"}
+                            {m.current_season === "Bear Market" && "📉 Bear Market: Investors Risk Averse"}
+                            {m.current_season === "AI Boom" && "🤖 AI Boom: Tech Speed +20% / Salaries Surge"}
+                            {m.current_season === "Privacy Scare" && "🔒 Privacy Scare: Marketing Efficiency -30%"}
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
                         </div>
                         <div>
                             <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{startup.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Month {month} · {startup.industry} {isPremium && <span className="text-indigo-600 ml-1">🚀 PREMIUM</span>}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Month {month} · {startup.industry} {isPremium && <span className="text-indigo-600 ml-1">🚀 PRESTIGE</span>}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -4131,6 +4367,7 @@ export default function Dashboard() {
                                 </Button>
                             );
                         })()}
+
                         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-2.5 py-1 rounded-full">{formatMoney(m.cash)}</div>
                         <DropdownMenu>
                             <DropdownMenuTrigger className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
@@ -4206,15 +4443,29 @@ export default function Dashboard() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full" style={{ 
-                                    width: startup.funding_stage === "Bootstrapping" ? "25%" : 
-                                           startup.funding_stage === "Angel Investment" ? "50%" : 
-                                           startup.funding_stage === "Seed Round" ? "75%" : "100%" 
-                                }} />
+                        <div className="flex items-center gap-3">
+                            {/* Legal & Personal HUD - moved from header for mobile space */}
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
+                                <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
+                                    <span>🏦</span>
+                                    <span>{formatMoney(founder.private_cash || 0)}</span>
+                                </div>
+                                <div className="w-[1px] h-3 bg-slate-300 dark:bg-slate-600 mx-0.5" />
+                                <div className="flex items-center gap-1 text-[10px] font-black text-rose-600 dark:text-rose-400">
+                                    <span>🚔</span>
+                                    <span>{Math.floor(m.fraud_risk || 0)}%</span>
+                                </div>
                             </div>
-                            <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isMilestoneExpanded ? "rotate-180" : "")} />
+                            <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-indigo-500 rounded-full" style={{ 
+                                        width: startup.funding_stage === "Bootstrapping" ? "25%" : 
+                                               startup.funding_stage === "Angel Investment" ? "50%" : 
+                                               startup.funding_stage === "Seed Round" ? "75%" : "100%" 
+                                    }} />
+                                </div>
+                                <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isMilestoneExpanded ? "rotate-180" : "")} />
+                            </div>
                         </div>
                     </div>
                     {isMilestoneExpanded && (
@@ -4291,10 +4542,20 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                         {[
                             { icon: '👤', label: formatNumber(m.users), sub: 'Users', color: 'text-slate-800 dark:text-slate-100' },
-                            { icon: '💵', label: formatMoney(liveRevenue), sub: 'MRR', color: 'text-emerald-700 dark:text-emerald-400' },
+                            { 
+                                icon: '💵', 
+                                label: formatMoney(liveRevenue), 
+                                sub: 'MRR', 
+                                color: 'text-emerald-700 dark:text-emerald-400'
+                            },
                             { icon: '🔥', label: `${Math.round(m.founder_burnout || 0)}%`, sub: 'Burnout', color: (m.founder_burnout || 0) > 60 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' },
                         ].map((stat, i) => (
-                            <div key={i} className="flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[90px]">
+                            <div 
+                                key={i} 
+                                className={cn(
+                                    "flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[90px]"
+                                )}
+                            >
                                 <span className="text-lg">{stat.icon}</span>
                                 <div className="flex flex-col">
                                     <span className={cn("text-sm font-black leading-none", stat.color)}>{stat.label}</span>
@@ -4497,14 +4758,25 @@ export default function Dashboard() {
                         <>
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-[55]" />
-                            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                            <motion.div 
+                                drag="y"
+                                dragConstraints={{ top: 0, bottom: 0 }}
+                                dragElastic={0.4}
+                                onDragEnd={(_, info) => {
+                                    if (info.offset.y > 100) setActionCategory(null);
+                                }}
+                                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                                 transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+60px)]"
+                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+60px)] outline-none"
                                 style={{ maxHeight: '85vh' }}>
-                                <div className="flex justify-center pt-2.5 pb-1">
-                                    <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-800" />
+                                <div className="flex justify-center pt-2.5 pb-2">
+                                    <div className="w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
                                 </div>
-                                <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: 'calc(80vh - 40px)' }}>
+                                <div 
+                                    className="overflow-y-auto px-4 pb-8" 
+                                    style={{ maxHeight: 'calc(80vh - 40px)' }}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                >
                                     <ActionSheet
                                         category={actionCategory}
                                         startup={startup}
@@ -4528,6 +4800,7 @@ export default function Dashboard() {
                                         handleIncrementSalary={handleIncrementSalary}
                                         setIsTeamOpen={setIsTeamOpen}
                                         setIsFinancialsOpen={setIsFinancialsOpen}
+                                        setIsBurnBreakdownOpen={setIsBurnBreakdownOpen}
                                         setActionCategory={setActionCategory}
                                         competitors={competitors}
                                         expandedMetric={expandedMetric}
@@ -4785,7 +5058,7 @@ export default function Dashboard() {
                                 ? hiringOffer.equity / pendingCandidate.expectedEquity
                                 : 1.0;
 
-                            // Salary Score: Match (1.0x) = 70. Premium (2.0x) = 100.
+                            // Salary Score: Match (1.0x) = 70. High-end (2.0x) = 100.
                             const salaryScore = salaryRatio >= 1 
                                 ? 70 + Math.min(30, (salaryRatio - 1) * 30)
                                 : 70 * Math.pow(salaryRatio, 1.5);
@@ -5319,9 +5592,75 @@ export default function Dashboard() {
                     </DialogContent>
                 </Dialog>
 
+                {/* BURN BREAKDOWN DIALOG */}
+                <Dialog open={isBurnBreakdownOpen} onOpenChange={setIsBurnBreakdownOpen}>
+                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-6 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-2xl">🔥</div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Monthly Burn</h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Financial Breakdown</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                                    <span className="text-xs font-bold text-slate-500">Monthly Revenue</span>
+                                    <span className="text-sm font-black text-emerald-600">+{formatMoney(liveRevenue)}</span>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Cost of Sales (COGS)</span>
+                                        <span className="text-xs font-black text-rose-500">-{formatMoney(monthlyCogs || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">{startup.employees?.length > 0 ? "Salaries & Benefits" : "Base Startup Operating Cost"}</span>
+                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.salaries || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Infrastructure & SaaS</span>
+                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.infra || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Founder Living Cost</span>
+                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.founderLiving || 0)}</span>
+                                    </div>
+                                    {(opexBreakdown?.misc || 0) > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-slate-500">Misc & Program Costs</span>
+                                            <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.misc || 0)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Net Cash Flow</span>
+                                    <span className={`text-sm font-black ${liveNetProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                        {liveNetProfit >= 0 ? "+" : ""}{formatMoney(liveNetProfit)}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl">📅</span>
+                                    <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Est. Runway</span>
+                                </div>
+                                <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">
+                                    {profitable ? "∞ Profitable" : `${liveRunway} Months`}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <Button className="w-full h-12 mt-6 bg-slate-900 border-b-4 border-slate-800 rounded-2xl font-black uppercase tracking-widest text-white" onClick={() => setIsBurnBreakdownOpen(false)}>
+                            GOT IT
+                        </Button>
+                    </DialogContent>
+                </Dialog>
+
                 {/* FINANCIALS MODAL */}
                 <Dialog open={isFinancialsOpen} onOpenChange={setIsFinancialsOpen}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden z-[150]">
+                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
                         {/* Header */}
                         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-5 pb-8">
                             <div className="flex items-center gap-3">
@@ -5481,7 +5820,7 @@ export default function Dashboard() {
                     const meta = OUTCOME_META[outcome] ?? OUTCOME_META["active"];
 
                     return (
-                        <div className="fixed inset-0 z-[100] bg-black/90 flex items-end justify-center sm:items-center p-4">
+                        <div className="fixed inset-0 z-[10000] bg-black/90 flex items-end justify-center sm:items-center p-4">
                             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border-4 border-slate-100 dark:border-slate-800">
                                 {/* Header - fixed height */}
                                 <div className={`${meta.bg} shrink-0 p-5 text-center`}>

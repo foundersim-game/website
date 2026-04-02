@@ -326,6 +326,17 @@ export function getStorylineDialog(
     const seen = new Set(state.seenTriggers);
     const act = month >= 15 ? 3 : month >= 4 ? 2 : 1;
 
+    // ── NEW: Sam Bankruptcy Warning (High Priority, Months 2-12) ──
+    if (month > 1 && month <= 12 && metrics.runway <= 3 && metrics.cash < 100000 && !seen.has("sam_bankruptcy_warning")) {
+        return {
+            character: "sam",
+            trigger: "sam_bankruptcy_warning",
+            title: "🚨 BANKRUPTCY WARNING",
+            message: `Stop everything. Your runway is down to ${metrics.runway} months. You're bleeding cash faster than you're growing.\n\nIf you don't find funding or a cash grant in the next 30 days, this journey ends. Raise now, or cut your opex immediately.`,
+            buttonText: "I'LL FIND THE CASH",
+        };
+    }
+
     // ── Tutorial steps fire first (Month 1 only) ──
     if (month === 1 && state.tutorialStep >= 0 && state.tutorialStep < TUTORIAL_STEPS.length) {
         return TUTORIAL_STEPS[state.tutorialStep];

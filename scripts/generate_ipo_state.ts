@@ -29,6 +29,7 @@ const BASE_FOUNDER: Founder = {
     personal_wealth: 250000,
     assets: [],
     activeToggles: [],
+    private_cash: 250000,
     created_at: new Date().toISOString()
 };
 
@@ -66,8 +67,11 @@ const STARTUP: Startup = {
         option_pool: 15,
         investor_pipeline: { leads: 0, meetings: 0, term_sheets: 0 },
         b2b_pipeline: { leads: 100, active_deals: 20, closed_won: 50 },
-        founder_salary: 0,
-        net_profit: 500000
+        founder_salary: 15000,
+        net_profit: 500000,
+        fraud_risk: 0,
+        current_season: "Bull Market",
+        has_legal_dept: true,
     },
     cxoTeam: { "CTO": true, "CMO": true, "CFO": true, "COO": true },
     employees: [],

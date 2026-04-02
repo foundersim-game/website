@@ -28,6 +28,7 @@ export type Founder = {
         total: number;
     };
     personal_wealth: number; // Cash in personal bank account (secondary sales, savings)
+    private_cash: number;   // Embezzled startup funds (illicit)
     assets: LuxuryAsset[];
     activeToggles: string[]; // IDs of active LifestyleToggle
     created_at: string;
@@ -130,6 +131,8 @@ export type AcquisitionOffer = {
     negotiated: boolean;
 };
 
+export type SeasonType = "Normal" | "Bull Market" | "Bear Market" | "AI Boom" | "Privacy Scare";
+
 export type Startup = {
     id: string;
     game_session_id: string;
@@ -186,6 +189,12 @@ export type Startup = {
         founder_burnout: number;  // 0-100; at 100 = game over
         founder_health: number;   // 0-100; affects physical health
         sleep_quality: number;    // 0-100; affects focus energy & burnout recovery
+        
+        // Legal & Macro
+        fraud_risk: number;       // 0-100% chance for SEC audit
+        fraudStreak?: number;      // Consecutive months of high risk
+        current_season: SeasonType;
+        has_legal_dept: boolean;
     };
     employees: Employee[];
     cxoTeam?: Record<string, boolean>;

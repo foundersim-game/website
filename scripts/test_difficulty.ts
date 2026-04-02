@@ -23,6 +23,7 @@ const mockFounder: Founder = {
     personal_wealth: 10000,
     assets: [],
     activeToggles: [],
+    private_cash: 10000,
     created_at: new Date().toISOString()
 };
 
@@ -59,6 +60,9 @@ const mockStartup: Startup = {
         sleep_quality: 100,
         option_pool: 0,
         founder_salary: 0,
+        fraud_risk: 0,
+        current_season: "Normal",
+        has_legal_dept: false,
     },
     employees: [],
     phase: 'Idea Phase',

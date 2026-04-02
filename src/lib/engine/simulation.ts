@@ -1,4 +1,4 @@
-import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry } from "../types/database.types";
+import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry, SeasonType } from "../types/database.types";
 import { SCENARIOS, ScenarioId } from "./legacy";
 
 export interface PricingConfigNode {
@@ -287,6 +287,8 @@ export type StartupAction =
     | "pitch_investors"
     | "negotiate_round"
     | "rest_and_recharge"
+    | "hostile_takeover"
+    | "embezzle_funds"
     | "none";
 
 export function calculateFinancials(
@@ -296,7 +298,7 @@ export function calculateFinancials(
         users?: number,
         pricing?: number
     }
-): { monthlyRevenue: number, monthlyCogs: number, monthlyOpex: number, paidUsers: number } {
+): { monthlyRevenue: number, monthlyCogs: number, monthlyOpex: number, paidUsers: number, opexBreakdown?: any } {
     const metrics = startup.metrics;
     const users = overrides?.users ?? metrics.users;
     const pricing = overrides?.pricing ?? metrics.pricing ?? 0;
@@ -322,6 +324,20 @@ export function calculateFinancials(
     if (scenario?.rules?.burnMultiplier) opex *= scenario.rules.burnMultiplier;
     if (cxoTeam["CFO"]) opex *= 0.9;
 
+    // -- SEASONS: OPEX Impacts --
+    if (metrics.current_season === "AI Boom") {
+        opex *= 1.25; // Massive salary surges
+    } else if (metrics.current_season === "Bear Market") {
+        opex *= 0.9;  // Belt tightening
+    }
+
+    // -- LEGAL: Fraud Penalties --
+    // Chance for a fine if fraud_risk is high
+    if (metrics.fraud_risk > 30 && Math.random() < (metrics.fraud_risk / 200)) {
+        const fine = metrics.revenue * 0.5 + 10000;
+        opex += fine; // Simplified: fine added to opex for this month
+    }
+
     // 2. REVENUE & COGS
     let revenue = 0, cogs = 0, paidUsers = 0;
     const configRef = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
@@ -346,7 +362,7 @@ export function calculateFinancials(
             revenue = paidUsers * pricing * 2;
             cogs = revenue * 0.35; // High GPU compute costs
         } else if (industry === "OTT / Streaming") {
-            // Subscription model — not freemium. Most signups pay.
+            // Recurring Billing model — not freemium. Most signups pay.
             // Base 50% conversion, gated by PMF (content quality / library depth).
             const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 80);
             paidUsers = Math.floor(users * Math.min(0.75, Math.max(0.10, 0.50 * pmfFactor)));
@@ -378,7 +394,14 @@ export function calculateFinancials(
         }
     }
 
-    return { monthlyRevenue: revenue, monthlyCogs: cogs, monthlyOpex: opex, paidUsers };
+    // -- SEASONS: Revenue/Marketing Impacts --
+    if (metrics.current_season === "Privacy Scare") {
+        revenue *= 0.7; // Privacy changes break marketing/cookies
+    } else if (metrics.current_season === "Bull Market") {
+        revenue *= 1.1; // High consumer confidence
+    }
+
+    return { monthlyRevenue: revenue, monthlyCogs: cogs, monthlyOpex: opex, paidUsers, opexBreakdown: { salaries: (totalSalaries + benefitsBudget) * scalingOverheadMult, founderLiving: founderLivingCost * scalingOverheadMult, infra: userInfraCost * scalingOverheadMult, misc: ((metrics.burn_rate * 0.5) + (metrics.founder_salary || 0)) * scalingOverheadMult } };
 }
 
 export function processMonth(founder: Founder, startup: Startup, action: StartupAction): { newStartup: Startup, notices: string[] } {
@@ -404,6 +427,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     if (metrics.investor_pipeline === undefined) {
         metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
     }
+    if (metrics.current_season === undefined) metrics.current_season = "Normal";
+    if (metrics.fraud_risk === undefined) metrics.fraud_risk = 0;
+    if (metrics.has_legal_dept === undefined) metrics.has_legal_dept = false;
     if (!founder.xp) {
         (founder as any).xp = { technical: 0, marketing: 0, leadership: 0, fundraising: 0, total: 0 };
     }
@@ -528,6 +554,26 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             metrics.founder_health = Math.min(100, (metrics.founder_health || 100) + 15);
             metrics.sleep_quality = Math.min(100, (metrics.sleep_quality || 100) + 30);
             metrics.team_morale += 2; // Team happy to see founder rest
+            break;
+        case "hostile_takeover":
+            // Absorbs 70% of a rival's users but costs massive cash and tech debt
+            const rivalCost = 50000 + (metrics.users * 0.2); 
+            metrics.cash -= rivalCost;
+            metrics.users += Math.floor(metrics.users * 0.7); 
+            metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 25);
+            metrics.fraud_risk = Math.min(100, (metrics.fraud_risk || 0) + 15); 
+            notices.push(`⚔️ Hostile Takeover: You've aggressively acquired a competitor's userbase!`);
+            break;
+
+        case "embezzle_funds":
+            // Transfer 10% of company cash to private bank account
+            const embezzlementAmount = metrics.cash * 0.1;
+            if (embezzlementAmount > 0) {
+                metrics.cash -= embezzlementAmount;
+                founder.private_cash = (founder.private_cash || 0) + embezzlementAmount;
+                metrics.fraud_risk = Math.min(100, (metrics.fraud_risk || 0) + 20);
+                notices.push(`💸 Embezzled: You transferred ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(embezzlementAmount)} to your private account.`);
+            }
             break;
     }
 
@@ -748,8 +794,8 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.cash += metrics.net_profit;
     // Annual billing upfront: only meaningful for subscription industries (SaaS, OTT, EdTech, Dev Tools).
     // Mobile Game (F2P), FinTech (interchange %), Marketplace (take rate %), AI (usage-based) are excluded.
-    const isSubscriptionIndustry = !["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(industry);
-    if (metrics.annual_billing && grossNewUsers > 0 && !isSLG && isSubscriptionIndustry) {
+    const isRecurringRevenueIndustry = !["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(industry);
+    if (metrics.annual_billing && grossNewUsers > 0 && !isSLG && isRecurringRevenueIndustry) {
         metrics.cash += (grossNewUsers * metrics.pricing * 11);
     }
 
@@ -762,8 +808,8 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     let baseChurn = configChurn;
     if (metrics.annual_billing) baseChurn *= 0.4;
 
+    let currentChurn = baseChurn;
     if (metrics.users > 0) {
-        let currentChurn = baseChurn;
         const monthsActive = startup.history?.length || 0;
         const expectedQuality = Math.min(85, 20 + (monthsActive * 1.5));
         
@@ -774,6 +820,12 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         
         metrics.users = Math.max(0, metrics.users - Math.floor(metrics.users * currentChurn * (1 - (metrics.product_quality / 250))));
     }
+
+    // --- UNIT ECONOMICS SYNC ---
+    // CAC = Total Marketing Spend / New Users 
+    metrics.cac = grossNewUsers > 0 ? (explicitMarketingSpend / grossNewUsers) : 0;
+    // LTV = ARPU / Churn (Projected revenue over user lifetime)
+    metrics.ltv = Math.floor(metrics.pricing / Math.max(0.005, currentChurn));
 
     // --- PRODUCT DEBT GROWTH (SCENARIO) ---
     if (scenarioRules.techDebtGrowthMultiplier && (action === "build_mvp_features")) {
@@ -927,6 +979,37 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             pipeline.meetings -= toTermSheets;
             pipeline.term_sheets += toTermSheets;
         }
+    }
+
+    // -- SEASON TRANSITION (7% change) --
+    if (Math.random() < 0.07) {
+        const seasons: SeasonType[] = ["Normal", "Bull Market", "Bear Market", "AI Boom", "Privacy Scare"];
+        const newSeason = seasons[Math.floor(Math.random() * seasons.length)];
+        if (newSeason !== metrics.current_season) {
+            metrics.current_season = newSeason;
+            notices.push(`🌍 Macro Shift: The industry is now in a ${newSeason}!`);
+        }
+    }
+
+    // -- FRAUD DECAY / GROWTH --
+    if (metrics.has_legal_dept) {
+        metrics.fraud_risk = Math.max(0, metrics.fraud_risk - 5);
+    } else if (metrics.fraud_risk > 0) {
+        metrics.fraud_risk = Math.min(100, metrics.fraud_risk + 1);
+    }
+
+    // -- FRAUD STREAK & PENALTIES --
+    if (metrics.fraud_risk > 40) {
+        metrics.fraudStreak = (metrics.fraudStreak || 0) + 1;
+    } else {
+        metrics.fraudStreak = 0;
+    }
+
+    if (metrics.fraudStreak === 6) {
+        const fine = Math.min(metrics.cash, 150000); 
+        metrics.cash -= fine;
+        founder.attributes.reputation = Math.max(0, (founder.attributes.reputation || 50) - 40);
+        notices.push(`🚨 REGULATORY AUDIT: Sustained high-risk behavior triggered an SEC investigation. Fined $${fine.toLocaleString()} and reputation collapsed!`);
     }
 
     return { newStartup, notices };
