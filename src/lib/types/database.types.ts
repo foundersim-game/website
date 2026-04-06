@@ -28,7 +28,6 @@ export type Founder = {
         total: number;
     };
     personal_wealth: number; // Cash in personal bank account (secondary sales, savings)
-    private_cash: number;   // Embezzled startup funds (illicit)
     assets: LuxuryAsset[];
     activeToggles: string[]; // IDs of active LifestyleToggle
     created_at: string;
@@ -162,6 +161,11 @@ export type Startup = {
         pmf_score: number;
         culture_score?: number;
 
+        // Company Skills (from Co-Founders/Recruits)
+        marketing_skill?: number;
+        technical_skill?: number;
+        leadership?: number;
+
         // Advanced Financials
         revenue: number;
         annual_billing?: boolean; // True = 12x upfront cash, lower churn, slower growth
@@ -190,9 +194,6 @@ export type Startup = {
         founder_health: number;   // 0-100; affects physical health
         sleep_quality: number;    // 0-100; affects focus energy & burnout recovery
         
-        // Legal & Macro
-        fraud_risk: number;       // 0-100% chance for SEC audit
-        fraudStreak?: number;      // Consecutive months of high risk
         current_season: SeasonType;
         has_legal_dept: boolean;
     };

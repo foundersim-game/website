@@ -18,17 +18,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
         ],
         repeatable: false
     },
-    {
-        event_id: "cofounder_equity_dispute",
-        stage: "early_startup",
-        title: "Equity Dispute 📄",
-        description: "Your co-founder is demanding a larger equity slice, citing they've contributed more technical work. There's no signed agreement in place yet.",
-        choices: [
-            { text: "Give them 5% more — keep the peace", effects: { team_morale: 15, networking: -5 } },
-            { text: "Mediate with a lawyer ($3K)", effects: { cash: -3000, team_morale: 5, reputation: 5 } },
-            { text: "Refuse. Threaten to dissolve the company.", effects: { team_morale: -30, risk_appetite: 10 } }
-        ]
-    },
+
     {
         event_id: "server_outage",
         stage: "mvp",
@@ -59,7 +49,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
         description: "A Big Tech company (Meta) is trying to poach your lead engineer with a 2.5× salary offer and $200K RSUs. They want an answer by Friday.",
         choices: [
             { text: "Match the salary (costs $12K/mo extra)", effects: { cash: -12000, burn_rate: 1500, team_morale: 5 } },
-            { text: "Offer more equity — convince them to stay", effects: { team_morale: 10, networking: -10 } },
+            { text: "Offer a better role — convince them to stay", effects: { team_morale: 10, networking: -10 } },
             { text: "Wish them well and start hiring immediately", effects: { employees: -1, team_morale: -25, cash: 5000 } }
         ],
         repeatable: true
@@ -75,17 +65,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
             { text: "Ignore — call their bluff", effects: { reputation: -20, stress_tolerance: -10, risk_appetite: 15 } }
         ]
     },
-    {
-        event_id: "acquisition_rumor",
-        stage: "growth_stage",
-        title: "Acquisition Rumors 👀",
-        description: "TechCrunch is reporting that a major tech company is circling your company with a $15M acquisition interest. Your team is distracted with interviews.",
-        choices: [
-            { text: "Issue a denial statement publicly", effects: { reputation: 5, team_morale: -5, product_quality: 5 } },
-            { text: "Quietly reach out to explore the offer", effects: { networking: 15, risk_appetite: 10, product_quality: -10 } },
-            { text: "Host a team meeting to address uncertainty", effects: { team_morale: 20, cash: -2000 } }
-        ]
-    },
+
     {
         event_id: "security_breach",
         stage: "early_startup",
@@ -119,7 +99,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
         description: "Your senior engineer just slid a competing offer across the table — $30K more per year. They're giving you 48 hours.",
         choices: [
             { text: "Match the offer", effects: { cash: -3500, burn_rate: 3500, team_morale: 15 } },
-            { text: "Counter with equity acceleration", effects: { team_morale: 10, networking: 5 } },
+            { text: "Counter with a performance bonus plan", effects: { team_morale: 10, networking: 5, cash: -2000 } },
             { text: "Decline. Wish them luck.", effects: { employees: -1, team_morale: -30, technical_skill: -15 } }
         ]
     },
@@ -648,17 +628,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
             { text: "Ignore international for now — focus on core market", effects: {} }
         ]
     },
-    {
-        event_id: "acqui_hire_threat",
-        stage: "growth_stage",
-        title: "Acqui-Hire Threat 🔮",
-        description: "A Big Tech company has approached 4 of your top engineers with acqui-hire packages worth $500K each. They're meeting with the tech team this Friday.",
-        choices: [
-            { text: "Counter with retention equity packages", effects: { cash: -20000, team_morale: 20, burn_rate: 3000 } },
-            { text: "Meet with leadership to understand intent", effects: { networking: 15, team_morale: -10 } },
-            { text: "Let them go — rebuild with better aligned team", effects: { employees: -4, team_morale: -20, cash: 5000 } }
-        ]
-    },
+
 
     // ══════════════════════════════════════════
     // POSITIVE & MILESTONE EVENTS
@@ -1076,17 +1046,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
             { text: "Write a viral thread: 'Why this is actually good for us's", effects: { brand_awareness: 20, reputation: 5, networking: 10 } }
         ]
     },
-    {
-        event_id: "acquihire_approach",
-        stage: "growth_stage",
-        title: "Acqui-Hire Offer 💼",
-        description: "A $2B company approaches you not for your product, but for your engineering team. They're offering $3M split across the team ($1M upfront, $2M over 2 years). No product continuity.",
-        choices: [
-            { text: "Entertain it — negotiate harder", effects: { networking: 15, reputation: 5, team_morale: -10 } },
-            { text: "Decline — you believe in this product", effects: { team_morale: 10, reputation: 5, risk_appetite: -5 } },
-            { text: "Tell the team — let them vote", effects: { team_morale: -5, intelligence: 5, leadership: 5 } }
-        ]
-    },
+
 
     // ══════════════════════════════════════════
     // PRODUCT MILESTONES & POSITIVE EVENTS
@@ -1124,17 +1084,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
             { text: "Stay heads down — don't let it distract the team", effects: { product_quality: 5, team_morale: 10 } }
         ]
     },
-    {
-        event_id: "strategic_partnership",
-        stage: "growth_stage",
-        title: "Strategic Partnership Offer 🤝",
-        description: "A publicly traded company wants a strategic partnership — deep API integration, co-marketing, and a $500K investment in exchange for 5% equity and preferred data access rights.",
-        choices: [
-            { text: "Accept — the cash, distribution, and validation are worth it", effects: { cash: 500000, brand_awareness: 25, networking: 20 } },
-            { text: "Negotiate better terms (3% equity, no data exclusivity)", effects: { cash: 300000, brand_awareness: 15, reputation: 10 } },
-            { text: "Decline — data moat is your core asset", effects: { product_quality: 5, reputation: 5 } }
-        ]
-    },
+
     {
         event_id: "nps_breakout",
         stage: "growth_stage",

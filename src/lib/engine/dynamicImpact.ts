@@ -51,40 +51,51 @@ function statCeilingFactor(currentValue: number, cap = 100): number {
 }
 
 // ─── Department Power ────────────────────────────────────────────────────────
-function getDepartmentPower(category: string, startup: any): number {
+export function getDepartmentPower(category: string, startup: any, founder?: any): number {
     const employees = (startup.employees || []) as any[];
     const cxoTeam = startup.cxoTeam || {};
+    const m = startup.metrics || {};
     
-    // Map categories to skill types and roles
-    const mapping: Record<string, { skill: string, role: string, cxo: string }> = {
-        technical: { skill: "technical", role: "engineer", cxo: "CTO" },
-        product: { skill: "technical", role: "engineer", cxo: "CTO" },
-        marketing_skill: { skill: "marketing", role: "marketer", cxo: "CMO" },
-        growth: { skill: "marketing", role: "marketer", cxo: "CMO" },
-        leadership: { skill: "sales", role: "sales", cxo: "COO" },
-        culture: { skill: "sales", role: "sales", cxo: "COO" },
-        funding: { skill: "sales", role: "sales", cxo: "CFO" }
+    // 1. Better Role Mapping
+    const mapping: Record<string, { skill: string, roles: string[], cxo: string, founderAttr: string }> = {
+        technical: { skill: "technical", roles: ["engineer", "software engineer", "dev", "tech"], cxo: "CTO", founderAttr: "technical_skill" },
+        product: { skill: "technical", roles: ["engineer", "software engineer", "dev", "tech", "product"], cxo: "CTO", founderAttr: "intelligence" },
+        marketing_skill: { skill: "marketing", roles: ["marketer", "marketing", "growth"], cxo: "CMO", founderAttr: "reputation" },
+        growth: { skill: "marketing", roles: ["marketer", "marketing", "growth"], cxo: "CMO", founderAttr: "marketing_skill" },
+        leadership: { skill: "sales", roles: ["sales", "account executive", "rep"], cxo: "COO", founderAttr: "leadership" },
+        culture: { skill: "sales", roles: ["sales", "hr", "people"], cxo: "COO", founderAttr: "stress_tolerance" },
+        funding: { skill: "sales", roles: ["sales", "finance"], cxo: "CFO", founderAttr: "networking" }
     };
 
-    const map = mapping[category] || { skill: "technical", role: "engineer", cxo: "" };
+    const map = mapping[category] || { skill: "technical", roles: ["engineer"], cxo: "", founderAttr: "intelligence" };
     
-    // Skill average of relevant employees + CXOs
-    const relevantStaff = employees.filter((e: any) => 
-        e.role === map.role || (e.isCXO && e.role === map.cxo.toLowerCase())
-    );
+    // 2. Identify relevant staff
+    const relevantStaff = employees.filter((e: any) => {
+        const role = (e.role || "").toLowerCase();
+        return map.roles.some(r => role.includes(r)) || (e.isCXO && e.role === map.cxo.toLowerCase());
+    });
     
-    const avgSkill = relevantStaff.length > 0 
-        ? relevantStaff.reduce((acc: number, e: any) => acc + ((e.skills as any)[map.skill] || 50), 0) / relevantStaff.length
-        : 50;
+    const hasCXO = !!cxoTeam[map.cxo];
+    const staffCount = relevantStaff.length;
 
-    let power = 0.8 + (avgSkill / 100) * 0.4; // 0.8 to 1.2 base on avg skill
-    if (cxoTeam[map.cxo]) power *= 1.5; // Huge 1.5x CXO multiplier
+    // Use founder skill if no staff present
+    const founderSkill = founder?.attributes?.[map.founderAttr] || 40;
+
+    const avgSkill = (staffCount + (hasCXO ? 1 : 0)) > 0 
+        ? (relevantStaff.reduce((acc: number, e: any) => acc + ((e.skills as any)[map.skill] || 50), 0) + (hasCXO ? 90 : 0)) / (staffCount + (hasCXO ? 1 : 0))
+        : founderSkill;
+
+    const teamEfficiency = Math.max(0.3, (m.team_morale || 100) / 100);
     
-    return power;
+    // REDESIGNED POWER: Additive Headcount Scaling (Realistic Staff-to-User ratio)
+    // Solo founders now correctly split power by their personal attributes.
+    const power = avgSkill * (1 + staffCount * 0.25) * (hasCXO ? 1.3 : 1.0) * teamEfficiency;
+    
+    return Math.max(1, Math.round(power));
 }
 
 // ─── Founder Power ───────────────────────────────────────────────────────────
-function getFounderPower(category: string, founder: any): number {
+function getFounderPower(category: string, founder: any, startup: any): number {
     const attrs = founder.attributes || {};
     const mapping: Record<string, string> = {
         technical: "technical_skill",
@@ -99,7 +110,7 @@ function getFounderPower(category: string, founder: any): number {
     };
 
     const statKey = mapping[category] || "intelligence";
-    const statVal = attrs[statKey] || 50;
+    const statVal = (attrs[statKey] || 50) + (startup.metrics?.[statKey] || 0);
     
     return 0.5 + (statVal / 100);
 }
@@ -158,12 +169,33 @@ export function calcDynamicImpact(
     }
 
     // 3. Dept & Founder Power
-    const deptPower = getDepartmentPower(action.category, ctx.startup);
-    const founderPower = getFounderPower(action.category, ctx.founder);
-    multiplier *= (deptPower * founderPower);
+    const deptPower = getDepartmentPower(action.category, ctx.startup, ctx.founder);
+    const founderPower = getFounderPower(action.category, ctx.founder, ctx.startup);
+    
+    // Ratio Bottleneck: Compare Dept Power to Required Power for current scale
+    const users = ctx.m.users || 0;
+    const reqPower = Math.max(10, Math.pow(users, 0.45) * 1.5);
+    const capacityRatio = Math.min(1.0, deptPower / reqPower);
+    
+    // Categorize actions: Execution (throtteled) vs Personal (retains impact)
+    const isExecutionAction = ["product", "growth", "marketing_skill", "funding", "hiring"].includes(action.category);
 
-    if (deptPower > 1.2) hints.push(`🔥 Dept Strength (+${((deptPower - 1) * 100).toFixed(0)}%)`);
-    if (founderPower > 1.2) hints.push(`🧠 Founder Skill (+${((founderPower - 1) * 100).toFixed(0)}%)`);
+    if (isExecutionAction) {
+        // Multiplier for large-scale operations (Engineering, Marketing, etc.)
+        // Quadratic penalty for scaling bottlenecks ensures team size must grow with users.
+        multiplier *= ((deptPower / 100) * founderPower * Math.pow(capacityRatio, 2));
+
+        if (deptPower > 100) hints.push(`🔥 Dept Strength: ${deptPower} Power`);
+        if (capacityRatio < 0.95) {
+            hints.push(`⚖️ Scaling Bottleneck: ${Math.round(capacityRatio * 100)}% Capacity (Quadratic Penalty)`);
+        }
+    } else {
+        // Personal/Founder actions (1:1s, Reading, Health) ignore company scale bottlenecks.
+        multiplier *= (0.5 + (deptPower / 150) + (founderPower - 1.0));
+        if (founderPower > 1.2) hints.push(`🧠 High Founder Stat (+${((founderPower - 1) * 100).toFixed(0)}%)`);
+    }
+
+    if (founderPower > 1.2 && isExecutionAction) hints.push(`🧠 Founder Skill (+${((founderPower - 1) * 100).toFixed(0)}%)`);
 
     // 4. Gap bonus
     const gap = gapBonus(monthsGap);
@@ -192,12 +224,33 @@ export function calcDynamicImpact(
         }
     }
 
-    multiplier = Math.max(0.1, Math.min(5.0, multiplier));
+    multiplier = Math.max(0.1, Math.min(10.0, multiplier));
 
-    // Scaling factors
+
+    // ─── Dynamic Difficulty Curve ──────────────────────────────────────
+    // 1. Early-Game "Honeymoon" Boost (Smooth Winning Stage)
+    const currentUsers = ctx.m.users || 0;
+    const honeymoonMult = currentUsers < 5000 ? 2.5 : currentUsers < 15000 ? 1.5 : 1.0;
+    multiplier *= honeymoonMult;
+
+    // 2. Mid-to-Late Game "Complexity Drag" (Reflects organizational friction)
+    const teamSize = (ctx.startup.employees || []).length;
+    if (teamSize > 10) {
+        // Penalty starts at 11 employees, maxes out at 30% reduction (0.7x) at 30+ employees
+        const dragFactor = Math.max(0.7, 1 - (teamSize - 10) * 0.015);
+        if (dragFactor < 1.0) {
+            multiplier *= dragFactor;
+        }
+    }
+
+    // ─── Reward Multiplier (Logarithmic Scaling for long-term stability) ────
     const val = ctx.startup.valuation || 250000;
-    const rewardMult = Math.max(1, Math.floor(Math.sqrt(val / 250_000)));
-    const costMult = 1 + (val / 500_000);
+    // log2 of (val / 50k) ensures scaling is stable even at 10+ Billion dollar valuations
+    // e.g., $1M -> 4.3x | $100M -> 11x | $1B -> 14x | $10B -> 17x
+    const rewardMult = Math.max(1, Math.round(Math.log2(val / 50_000)));
+    // Costs scale logarithmically to prevent absurd late-game prices (e.g. 20M offsites)
+    const costMult = val > 500_000 ? 1 + Math.log2(val / 500_000) * 0.4 : 1;
+
     
     // Growth specific scaling (PMF + Quality)
     const pmf = ctx.m.pmf_score || 10;
@@ -210,6 +263,12 @@ export function calcDynamicImpact(
 
         if (key === "cash") {
             (scaledEffects as any)[key] = Math.round(v * costMult);
+        } else if (key === "technical_debt") {
+            // Realistic Tech Debt scaling: Inversely proportional to capacityRatio.
+            // ONLY starts after 5,000 users to keep early game smooth.
+            const users = ctx.m.users || 0;
+            const debtScaling = users >= 5000 ? Math.max(1.0, 1 / (capacityRatio || 0.1)) : 1.0;
+            (scaledEffects as any)[key] = Math.round(v * debtScaling);
         } else {
             const isUsers = key.toLowerCase() === 'users';
             
@@ -228,17 +287,32 @@ export function calcDynamicImpact(
             if (isGrowthMetric) {
                 finalMult *= growthMult;
                 if (isUsers && ctx.startup.industry && ctx.startup.gtm_motion) {
-                    finalMult *= getPricingScale(ctx.startup.industry, ctx.startup.gtm_motion);
+                    const priceScale = getPricingScale(ctx.startup.industry, ctx.startup.gtm_motion);
+                    finalMult *= Math.min(3.0, priceScale); // Cap price exploit
                 }
                 if (isUsers && growthMult > 1.2) hints.push(`📈 PMF/Quality Boost (+${((growthMult - 1) * 100).toFixed(0)}%)`);
                 if (isUsers && growthMult < 0.8) hints.push(`⚠️ Low PMF/Quality Penalty (-${((1 - growthMult) * 100).toFixed(0)}%)`);
             }
 
-            const scaledVal = v > 0
+            const rawVal = v > 0
                 ? Math.max(1, Math.round(v * finalMult))
                 : Math.min(-1, Math.round(v * finalMult));
 
-            (scaledEffects as any)[key] = scaledVal * (applyRewardScale ? rewardMult : 1);
+            let scaledVal = rawVal * (applyRewardScale ? rewardMult : 1);
+
+            // Cap absolute user gains (Mass Market Satiation)
+            if (isUsers && scaledVal > 0) {
+                const existingUsers = ctx.m.users || 100;
+                // Cap scaling: 10% early game, 2% mass market
+                const capPct = existingUsers > 100000 ? 0.02 : 0.10;
+                const userCap = Math.max(100, Math.floor(existingUsers * capPct));
+                
+                if (scaledVal > userCap) {
+                    scaledVal = userCap;
+                }
+            }
+
+            (scaledEffects as any)[key] = scaledVal;
         }
     }
 
@@ -266,12 +340,12 @@ function getPrimaryStatKey(effects: StatEffect): string | null {
 function getStatValue(stat: string, ctx: GameContext): number {
     const { founder, m } = ctx;
     const attrMap: Record<string, number> = {
-        intelligence: founder.attributes?.intelligence ?? 50,
-        technical_skill: founder.attributes?.technical_skill ?? 50,
-        leadership: founder.attributes?.leadership ?? 50,
-        networking: founder.attributes?.networking ?? 50,
-        marketing_skill: founder.attributes?.marketing_skill ?? 50,
-        reputation: founder.attributes?.reputation ?? 50,
+        intelligence: (founder.attributes?.intelligence ?? 50),
+        technical_skill: (founder.attributes?.technical_skill ?? 50) + (m.technical_skill || 0),
+        leadership: (founder.attributes?.leadership ?? 50) + (m.leadership || 0),
+        networking: (founder.attributes?.networking ?? 50),
+        marketing_skill: (founder.attributes?.marketing_skill ?? 50) + (m.marketing_skill || 0),
+        reputation: (founder.attributes?.reputation ?? 50),
         team_morale: m.team_morale ?? 70,
         product_quality: m.product_quality ?? 0,
         reliability: m.reliability ?? 80,

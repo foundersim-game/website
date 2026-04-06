@@ -14,12 +14,12 @@ import { playSound, playSynthSound } from "@/lib/audio";
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
 const BACKGROUNDS = [
-    { id: "Engineer", label: "Engineer", icon: Cpu, desc: "+15 Tech · -5 Network", color: "border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10", textColor: "text-blue-700 dark:text-blue-400", iconBg: "bg-blue-100 dark:bg-blue-900/30" },
-    { id: "MBA", label: "MBA / Business", icon: Briefcase, desc: "+15 Network · -5 Tech", color: "border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/10", textColor: "text-indigo-700 dark:text-indigo-400", iconBg: "bg-indigo-100 dark:bg-indigo-900/30" },
-    { id: "Designer", label: "Designer", icon: PenTool, desc: "+10 Marketing · +5 Tech", color: "border-pink-200 bg-pink-50 dark:border-pink-500/20 dark:bg-pink-500/10", textColor: "text-pink-700 dark:text-pink-400", iconBg: "bg-pink-100 dark:bg-pink-900/30" },
-    { id: "Serial Founder", label: "Serial Founder", icon: Sparkles, desc: "+10 Rep · -5 Stress", color: "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10", textColor: "text-amber-700 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-amber-900/30" },
-    { id: "Hustler", label: "Sales Hustler", icon: ShoppingBag, desc: "+15 Network · -5 Intel", color: "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10", textColor: "text-emerald-700 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-emerald-900/30" },
-    { id: "Finance", label: "Finance / VC", icon: TrendingUp, desc: "+10 Networking · +5 Net", color: "border-violet-200 bg-violet-50 dark:border-violet-500/20 dark:bg-violet-500/10", textColor: "text-violet-700 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-violet-900/30" },
+    { id: "Engineer", label: "Engineer", icon: Cpu, desc: "+25 Tech · -15 Network", color: "border-blue-200 bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/10", textColor: "text-blue-700 dark:text-blue-400", iconBg: "bg-blue-100 dark:bg-blue-900/30" },
+    { id: "MBA", label: "MBA / Business", icon: Briefcase, desc: "+20 Network · -15 Tech", color: "border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/10", textColor: "text-indigo-700 dark:text-indigo-400", iconBg: "bg-indigo-100 dark:bg-indigo-900/30" },
+    { id: "Designer", label: "Designer", icon: PenTool, desc: "+15 Marketing · +10 Tech", color: "border-pink-200 bg-pink-50 dark:border-pink-500/20 dark:bg-pink-500/10", textColor: "text-pink-700 dark:text-pink-400", iconBg: "bg-pink-100 dark:bg-pink-900/30" },
+    { id: "Serial Founder", label: "Serial Founder", icon: Sparkles, desc: "+20 Rep · +10 Stress Tol", color: "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10", textColor: "text-amber-700 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-amber-900/30" },
+    { id: "Hustler", label: "Sales Hustler", icon: ShoppingBag, desc: "+25 Network · -15 Intel", color: "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10", textColor: "text-emerald-700 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-emerald-900/30" },
+    { id: "Finance", label: "Finance / VC", icon: TrendingUp, desc: "+25 Network · +15 Intel", color: "border-violet-200 bg-violet-50 dark:border-violet-500/20 dark:bg-violet-500/10", textColor: "text-violet-700 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-violet-900/30" },
 ];
 
 const INDUSTRIES = [

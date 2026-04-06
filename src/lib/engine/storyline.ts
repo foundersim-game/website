@@ -82,6 +82,14 @@ export const TUTORIAL_STEPS: StorylineDialog[] = [
     },
 ];
 
+export const SAM_EXPERT_WELCOME: StorylineDialog = {
+    character: "sam",
+    trigger: "sam_expert_welcome",
+    title: "🚀 BACK IN THE SADDLE",
+    message: "Building another one, huh? I like the persistence. \n\nYou know the drill — watch your burn, keep your users happy, and don't let Chad get in your head. I'll be watching the metrics. \n\nLet's see if you can hit a Billion this time.",
+    buttonText: "LET'S BUILD 🏄",
+};
+
 // ─── Sam's Monthly Guidance (Months 3–6) ─────────────────────────────────────
 
 export const SAM_MONTHLY: Record<number, StorylineDialog> = {
@@ -337,9 +345,15 @@ export function getStorylineDialog(
         };
     }
 
-    // ── Tutorial steps fire first (Month 1 only) ──
-    if (month === 1 && state.tutorialStep >= 0 && state.tutorialStep < TUTORIAL_STEPS.length) {
-        return TUTORIAL_STEPS[state.tutorialStep];
+    // ── Tutorial steps or Expert Welcome (Month 1 only) ──
+    if (month === 1) {
+        if (state.tutorialStep >= 0 && state.tutorialStep < TUTORIAL_STEPS.length) {
+            return TUTORIAL_STEPS[state.tutorialStep];
+        }
+        // Repeat player: show the expert welcome if they skipped tutorial
+        if (!seen.has("sam_expert_welcome")) {
+            return SAM_EXPERT_WELCOME;
+        }
     }
 
     // ── Sam island farewell (Month 7, once) ──

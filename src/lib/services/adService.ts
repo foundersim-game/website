@@ -51,18 +51,19 @@ class AdService {
         try {
             if (this.platform === 'ios') {
                 const trackingInfo = await AdMob.trackingAuthorizationStatus();
+                console.log('AdMob Tracking Status:', trackingInfo.status);
                 if (trackingInfo.status === 'notDetermined') {
                     await AdMob.requestTrackingAuthorization();
                 }
             }
 
             await AdMob.initialize({
-                testingDevices: [],
                 initializeForTesting: false, 
             });
             this.initialized = true;
-        } catch (e) {
-            console.error('AdMob Initialization failed', e);
+            console.log('AdMob Initialized successfully on', this.platform);
+        } catch (e: any) {
+            console.error('AdMob Initialization failed:', e);
         }
     }
 

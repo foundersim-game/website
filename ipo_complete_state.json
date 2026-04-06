@@ -1,0 +1,1562 @@
+{
+  "startup": {
+    "id": "startup-ipo-ready",
+    "game_session_id": "s-legendary",
+    "name": "VaultAI",
+    "industry": "SaaS Platform",
+    "pricing_tier": "enterprise",
+    "gtm_motion": "PLG",
+    "active_marketing_channel": "organic",
+    "funding_stage": "Series C",
+    "ipo_stage": 0,
+    "phase": "Scaling",
+    "valuation": 8566529400,
+    "peak_valuation": 8566529400,
+    "peak_users": 1297959,
+    "culture_score": 88,
+    "cxoTeam": {
+      "CTO": true,
+      "CMO": true,
+      "CFO": true,
+      "COO": true,
+      "CPO": true
+    },
+    "capTable": [
+      {
+        "name": "Founder",
+        "equity": 38,
+        "type": "Founder"
+      },
+      {
+        "name": "Sequoia",
+        "equity": 18,
+        "type": "Investor"
+      },
+      {
+        "name": "a16z",
+        "equity": 14,
+        "type": "Investor"
+      },
+      {
+        "name": "Tiger Global",
+        "equity": 10,
+        "type": "Investor"
+      },
+      {
+        "name": "Employee Pool",
+        "equity": 12,
+        "type": "Employee"
+      },
+      {
+        "name": "Angels",
+        "equity": 8,
+        "type": "Investor"
+      }
+    ],
+    "metrics": {
+      "cash": 55000000,
+      "burn_rate": 900000,
+      "runway": 61,
+      "product_quality": 92,
+      "feature_completion": 0,
+      "users": 1297959,
+      "revenue": 71387745,
+      "growth_rate": 0.12,
+      "brand_awareness": 86,
+      "pmf_score": 85,
+      "technical_debt": 12,
+      "reliability": 94,
+      "innovation": 72,
+      "team_morale": 88,
+      "founder_burnout": 22,
+      "founder_health": 75,
+      "sleep_quality": 70,
+      "cac": 420,
+      "ltv": 4800,
+      "churn": 0.025,
+      "option_pool": 4.2,
+      "net_profit": 70487745,
+      "founder_salary": 25000,
+      "current_season": "Bull Market",
+      "has_legal_dept": true,
+      "investor_pipeline": {
+        "leads": 3,
+        "meetings": 1,
+        "term_sheets": 0
+      },
+      "b2b_pipeline": {
+        "leads": 220,
+        "active_deals": 45,
+        "closed_won": 180
+      },
+      "pricing": 55,
+      "employees": 57,
+      "engineers": 18,
+      "marketers": 17,
+      "sales": 17
+    },
+    "employees": [
+      {
+        "id": "emp-0",
+        "name": "Alex 1",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 92,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 0
+      },
+      {
+        "id": "emp-1",
+        "name": "Jordan 2",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 93,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 1
+      },
+      {
+        "id": "emp-2",
+        "name": "Morgan 3",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 88,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 1
+      },
+      {
+        "id": "emp-3",
+        "name": "Taylor 4",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 87,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 1
+      },
+      {
+        "id": "emp-4",
+        "name": "Chris 5",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 95,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 2
+      },
+      {
+        "id": "emp-5",
+        "name": "Sam 6",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 2
+      },
+      {
+        "id": "emp-6",
+        "name": "Riley 7",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 92,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 2
+      },
+      {
+        "id": "emp-7",
+        "name": "Drew 8",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 88,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 3
+      },
+      {
+        "id": "emp-8",
+        "name": "Casey 9",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 3
+      },
+      {
+        "id": "emp-9",
+        "name": "Jamie 10",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 3
+      },
+      {
+        "id": "emp-10",
+        "name": "Alex 11",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 4
+      },
+      {
+        "id": "emp-11",
+        "name": "Jordan 12",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 4
+      },
+      {
+        "id": "emp-12",
+        "name": "Morgan 13",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 4
+      },
+      {
+        "id": "emp-13",
+        "name": "Taylor 14",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 90,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 5
+      },
+      {
+        "id": "emp-14",
+        "name": "Chris 15",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 92,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 5
+      },
+      {
+        "id": "emp-15",
+        "name": "Sam 16",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 5
+      },
+      {
+        "id": "emp-16",
+        "name": "Riley 17",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 6
+      },
+      {
+        "id": "emp-17",
+        "name": "Drew 18",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 90,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 6
+      },
+      {
+        "id": "emp-18",
+        "name": "Casey 19",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 6
+      },
+      {
+        "id": "emp-19",
+        "name": "Jamie 20",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 7
+      },
+      {
+        "id": "emp-20",
+        "name": "Alex 21",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 87,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 7
+      },
+      {
+        "id": "emp-21",
+        "name": "Jordan 22",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 7
+      },
+      {
+        "id": "emp-22",
+        "name": "Morgan 23",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 8
+      },
+      {
+        "id": "emp-23",
+        "name": "Taylor 24",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 8
+      },
+      {
+        "id": "emp-24",
+        "name": "Chris 25",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 95,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 8
+      },
+      {
+        "id": "emp-25",
+        "name": "Sam 26",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 9
+      },
+      {
+        "id": "emp-26",
+        "name": "Riley 27",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 90,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 9
+      },
+      {
+        "id": "emp-27",
+        "name": "Drew 28",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 9
+      },
+      {
+        "id": "emp-28",
+        "name": "Casey 29",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 10
+      },
+      {
+        "id": "emp-29",
+        "name": "Jamie 30",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 93,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 10
+      },
+      {
+        "id": "emp-30",
+        "name": "Alex 31",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 10
+      },
+      {
+        "id": "emp-31",
+        "name": "Jordan 32",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 11
+      },
+      {
+        "id": "emp-32",
+        "name": "Morgan 33",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 94,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 11
+      },
+      {
+        "id": "emp-33",
+        "name": "Taylor 34",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 11
+      },
+      {
+        "id": "emp-34",
+        "name": "Chris 35",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 95,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "emp-35",
+        "name": "Sam 36",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "emp-36",
+        "name": "Riley 37",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 93,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "emp-37",
+        "name": "Drew 38",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 90,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 13
+      },
+      {
+        "id": "emp-38",
+        "name": "Casey 39",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 86,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 13
+      },
+      {
+        "id": "emp-39",
+        "name": "Jamie 40",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 13
+      },
+      {
+        "id": "emp-40",
+        "name": "Alex 41",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 14
+      },
+      {
+        "id": "emp-41",
+        "name": "Jordan 42",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 88,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 14
+      },
+      {
+        "id": "emp-42",
+        "name": "Morgan 43",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 88,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 14
+      },
+      {
+        "id": "emp-43",
+        "name": "Taylor 44",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 15
+      },
+      {
+        "id": "emp-44",
+        "name": "Chris 45",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 91,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 15
+      },
+      {
+        "id": "emp-45",
+        "name": "Sam 46",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 15
+      },
+      {
+        "id": "emp-46",
+        "name": "Riley 47",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 89,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 16
+      },
+      {
+        "id": "emp-47",
+        "name": "Drew 48",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 88,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 16
+      },
+      {
+        "id": "emp-48",
+        "name": "Casey 49",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 16
+      },
+      {
+        "id": "emp-49",
+        "name": "Jamie 50",
+        "role": "marketer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 92,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 17
+      },
+      {
+        "id": "emp-50",
+        "name": "Alex 51",
+        "role": "sales",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 85,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 17
+      },
+      {
+        "id": "emp-51",
+        "name": "Jordan 52",
+        "role": "engineer",
+        "level": "Senior",
+        "salary": 120000,
+        "performance": 92,
+        "morale": 90,
+        "isCXO": false,
+        "skills": {
+          "technical": 88,
+          "marketing": 82,
+          "sales": 80
+        },
+        "joined_at": 17
+      },
+      {
+        "id": "cxo_cto",
+        "name": "CTO (Executive)",
+        "role": "cto",
+        "level": "Executive",
+        "salary": 180000,
+        "performance": 95,
+        "morale": 92,
+        "isCXO": true,
+        "skills": {
+          "technical": 95,
+          "marketing": 95,
+          "sales": 95
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "cxo_cmo",
+        "name": "CMO (Executive)",
+        "role": "cmo",
+        "level": "Executive",
+        "salary": 180000,
+        "performance": 95,
+        "morale": 92,
+        "isCXO": true,
+        "skills": {
+          "technical": 95,
+          "marketing": 95,
+          "sales": 95
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "cxo_cfo",
+        "name": "CFO (Executive)",
+        "role": "cfo",
+        "level": "Executive",
+        "salary": 180000,
+        "performance": 95,
+        "morale": 92,
+        "isCXO": true,
+        "skills": {
+          "technical": 95,
+          "marketing": 95,
+          "sales": 95
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "cxo_coo",
+        "name": "COO (Executive)",
+        "role": "coo",
+        "level": "Executive",
+        "salary": 180000,
+        "performance": 95,
+        "morale": 92,
+        "isCXO": true,
+        "skills": {
+          "technical": 95,
+          "marketing": 95,
+          "sales": 95
+        },
+        "joined_at": 12
+      },
+      {
+        "id": "cxo_cpo",
+        "name": "CPO (Executive)",
+        "role": "cpo",
+        "level": "Executive",
+        "salary": 180000,
+        "performance": 95,
+        "morale": 92,
+        "isCXO": true,
+        "skills": {
+          "technical": 95,
+          "marketing": 95,
+          "sales": 95
+        },
+        "joined_at": 12
+      }
+    ],
+    "history": [
+      {
+        "month": 1,
+        "revenue": 31350,
+        "cogs": 5643,
+        "grossProfit": 25707,
+        "opex": 180855,
+        "netIncome": -149505
+      },
+      {
+        "month": 2,
+        "revenue": 35695,
+        "cogs": 6425,
+        "grossProfit": 29270,
+        "opex": 180974,
+        "netIncome": -145278
+      },
+      {
+        "month": 3,
+        "revenue": 40700,
+        "cogs": 7326,
+        "grossProfit": 33374,
+        "opex": 181110,
+        "netIncome": -140410
+      },
+      {
+        "month": 4,
+        "revenue": 46420,
+        "cogs": 8356,
+        "grossProfit": 38064,
+        "opex": 181266,
+        "netIncome": -134846
+      },
+      {
+        "month": 5,
+        "revenue": 52910,
+        "cogs": 9524,
+        "grossProfit": 43386,
+        "opex": 181443,
+        "netIncome": -128533
+      },
+      {
+        "month": 6,
+        "revenue": 60335,
+        "cogs": 10860,
+        "grossProfit": 49475,
+        "opex": 181646,
+        "netIncome": -121310
+      },
+      {
+        "month": 7,
+        "revenue": 68805,
+        "cogs": 12385,
+        "grossProfit": 56420,
+        "opex": 181877,
+        "netIncome": -113071
+      },
+      {
+        "month": 8,
+        "revenue": 78430,
+        "cogs": 14117,
+        "grossProfit": 64313,
+        "opex": 182139,
+        "netIncome": -103709
+      },
+      {
+        "month": 9,
+        "revenue": 89375,
+        "cogs": 16088,
+        "grossProfit": 73288,
+        "opex": 182438,
+        "netIncome": -93062
+      },
+      {
+        "month": 10,
+        "revenue": 101915,
+        "cogs": 18345,
+        "grossProfit": 83570,
+        "opex": 182780,
+        "netIncome": -80864
+      },
+      {
+        "month": 11,
+        "revenue": 116215,
+        "cogs": 20919,
+        "grossProfit": 95296,
+        "opex": 183170,
+        "netIncome": -66954
+      },
+      {
+        "month": 12,
+        "revenue": 132440,
+        "cogs": 23839,
+        "grossProfit": 108601,
+        "opex": 183612,
+        "netIncome": -51172
+      },
+      {
+        "month": 13,
+        "revenue": 151030,
+        "cogs": 27185,
+        "grossProfit": 123845,
+        "opex": 184119,
+        "netIncome": -33089
+      },
+      {
+        "month": 14,
+        "revenue": 172150,
+        "cogs": 30987,
+        "grossProfit": 141163,
+        "opex": 184695,
+        "netIncome": -12545
+      },
+      {
+        "month": 15,
+        "revenue": 196240,
+        "cogs": 35323,
+        "grossProfit": 160917,
+        "opex": 185352,
+        "netIncome": 10888
+      },
+      {
+        "month": 16,
+        "revenue": 223740,
+        "cogs": 40273,
+        "grossProfit": 183467,
+        "opex": 186102,
+        "netIncome": 37638
+      },
+      {
+        "month": 17,
+        "revenue": 255090,
+        "cogs": 45916,
+        "grossProfit": 209174,
+        "opex": 186957,
+        "netIncome": 68133
+      },
+      {
+        "month": 18,
+        "revenue": 290785,
+        "cogs": 52341,
+        "grossProfit": 238444,
+        "opex": 187931,
+        "netIncome": 102855
+      },
+      {
+        "month": 19,
+        "revenue": 331485,
+        "cogs": 59667,
+        "grossProfit": 271818,
+        "opex": 189041,
+        "netIncome": 142445
+      },
+      {
+        "month": 20,
+        "revenue": 377905,
+        "cogs": 68023,
+        "grossProfit": 309882,
+        "opex": 190307,
+        "netIncome": 187599
+      },
+      {
+        "month": 21,
+        "revenue": 430815,
+        "cogs": 77547,
+        "grossProfit": 353268,
+        "opex": 191750,
+        "netIncome": 239066
+      },
+      {
+        "month": 22,
+        "revenue": 491150,
+        "cogs": 88407,
+        "grossProfit": 402743,
+        "opex": 193395,
+        "netIncome": 297755
+      },
+      {
+        "month": 23,
+        "revenue": 559900,
+        "cogs": 100782,
+        "grossProfit": 459118,
+        "opex": 195270,
+        "netIncome": 364630
+      },
+      {
+        "month": 24,
+        "revenue": 638330,
+        "cogs": 114899,
+        "grossProfit": 523431,
+        "opex": 197409,
+        "netIncome": 440921
+      },
+      {
+        "month": 25,
+        "revenue": 727650,
+        "cogs": 130977,
+        "grossProfit": 596673,
+        "opex": 999845,
+        "netIncome": -272195
+      },
+      {
+        "month": 26,
+        "revenue": 829565,
+        "cogs": 149322,
+        "grossProfit": 680243,
+        "opex": 1002625,
+        "netIncome": -173059
+      },
+      {
+        "month": 27,
+        "revenue": 945670,
+        "cogs": 170221,
+        "grossProfit": 775449,
+        "opex": 1005791,
+        "netIncome": -60121
+      },
+      {
+        "month": 28,
+        "revenue": 1078110,
+        "cogs": 194060,
+        "grossProfit": 884050,
+        "opex": 1009403,
+        "netIncome": 68707
+      },
+      {
+        "month": 29,
+        "revenue": 1229030,
+        "cogs": 221225,
+        "grossProfit": 1007805,
+        "opex": 1013519,
+        "netIncome": 215511
+      },
+      {
+        "month": 30,
+        "revenue": 1401125,
+        "cogs": 252203,
+        "grossProfit": 1148923,
+        "opex": 1018213,
+        "netIncome": 382913
+      },
+      {
+        "month": 31,
+        "revenue": 1597255,
+        "cogs": 287506,
+        "grossProfit": 1309749,
+        "opex": 1023562,
+        "netIncome": 573694
+      },
+      {
+        "month": 32,
+        "revenue": 1820885,
+        "cogs": 327759,
+        "grossProfit": 1493126,
+        "opex": 1029661,
+        "netIncome": 791225
+      },
+      {
+        "month": 33,
+        "revenue": 2075810,
+        "cogs": 373646,
+        "grossProfit": 1702164,
+        "opex": 1036613,
+        "netIncome": 1039197
+      },
+      {
+        "month": 34,
+        "revenue": 2366430,
+        "cogs": 425957,
+        "grossProfit": 1940473,
+        "opex": 1044539,
+        "netIncome": 1321891
+      },
+      {
+        "month": 35,
+        "revenue": 2697750,
+        "cogs": 485595,
+        "grossProfit": 2212155,
+        "opex": 1053575,
+        "netIncome": 1644175
+      },
+      {
+        "month": 36,
+        "revenue": 3075435,
+        "cogs": 553578,
+        "grossProfit": 2521857,
+        "opex": 1063876,
+        "netIncome": 2011560
+      },
+      {
+        "month": 37,
+        "revenue": 3505975,
+        "cogs": 631076,
+        "grossProfit": 2874900,
+        "opex": 1075618,
+        "netIncome": 2430358
+      },
+      {
+        "month": 38,
+        "revenue": 3996795,
+        "cogs": 719423,
+        "grossProfit": 3277372,
+        "opex": 1089004,
+        "netIncome": 2907792
+      },
+      {
+        "month": 39,
+        "revenue": 4556365,
+        "cogs": 820146,
+        "grossProfit": 3736219,
+        "opex": 1104265,
+        "netIncome": 3452101
+      },
+      {
+        "month": 40,
+        "revenue": 5194255,
+        "cogs": 934966,
+        "grossProfit": 4259289,
+        "opex": 1121662,
+        "netIncome": 4072594
+      },
+      {
+        "month": 41,
+        "revenue": 5921465,
+        "cogs": 1065864,
+        "grossProfit": 4855601,
+        "opex": 1141495,
+        "netIncome": 4779971
+      },
+      {
+        "month": 42,
+        "revenue": 6750480,
+        "cogs": 1215086,
+        "grossProfit": 5535394,
+        "opex": 1164104,
+        "netIncome": 5586376
+      },
+      {
+        "month": 43,
+        "revenue": 7695545,
+        "cogs": 1385198,
+        "grossProfit": 6310347,
+        "opex": 1189879,
+        "netIncome": 6505667
+      },
+      {
+        "month": 44,
+        "revenue": 8772940,
+        "cogs": 1579129,
+        "grossProfit": 7193811,
+        "opex": 1219262,
+        "netIncome": 7553678
+      },
+      {
+        "month": 45,
+        "revenue": 10001145,
+        "cogs": 1800206,
+        "grossProfit": 8200939,
+        "opex": 1252759,
+        "netIncome": 8748387
+      },
+      {
+        "month": 46,
+        "revenue": 11401335,
+        "cogs": 2052240,
+        "grossProfit": 9349095,
+        "opex": 1290946,
+        "netIncome": 10110390
+      },
+      {
+        "month": 47,
+        "revenue": 12997490,
+        "cogs": 2339548,
+        "grossProfit": 10657942,
+        "opex": 1334477,
+        "netIncome": 11663013
+      },
+      {
+        "month": 48,
+        "revenue": 14817165,
+        "cogs": 2667090,
+        "grossProfit": 12150075,
+        "opex": 1384105,
+        "netIncome": 13433061
+      },
+      {
+        "month": 49,
+        "revenue": 16891545,
+        "cogs": 3040478,
+        "grossProfit": 13851067,
+        "opex": 1440679,
+        "netIncome": 15450867
+      },
+      {
+        "month": 50,
+        "revenue": 19256380,
+        "cogs": 3466148,
+        "grossProfit": 15790232,
+        "opex": 1505174,
+        "netIncome": 17751206
+      },
+      {
+        "month": 51,
+        "revenue": 21952260,
+        "cogs": 3951407,
+        "grossProfit": 18000853,
+        "opex": 1578698,
+        "netIncome": 20373562
+      },
+      {
+        "month": 52,
+        "revenue": 25025605,
+        "cogs": 4504609,
+        "grossProfit": 20520996,
+        "opex": 1662517,
+        "netIncome": 23363089
+      },
+      {
+        "month": 53,
+        "revenue": 28529160,
+        "cogs": 5135249,
+        "grossProfit": 23393911,
+        "opex": 1758068,
+        "netIncome": 26771092
+      },
+      {
+        "month": 54,
+        "revenue": 32523260,
+        "cogs": 5854187,
+        "grossProfit": 26669073,
+        "opex": 1866998,
+        "netIncome": 30656262
+      },
+      {
+        "month": 55,
+        "revenue": 37076545,
+        "cogs": 6673778,
+        "grossProfit": 30402767,
+        "opex": 1991179,
+        "netIncome": 35085367
+      },
+      {
+        "month": 56,
+        "revenue": 42267280,
+        "cogs": 7608110,
+        "grossProfit": 34659170,
+        "opex": 2132744,
+        "netIncome": 40134536
+      },
+      {
+        "month": 57,
+        "revenue": 48184675,
+        "cogs": 8673242,
+        "grossProfit": 39511434,
+        "opex": 2294128,
+        "netIncome": 45890548
+      },
+      {
+        "month": 58,
+        "revenue": 54930535,
+        "cogs": 9887496,
+        "grossProfit": 45043039,
+        "opex": 2478106,
+        "netIncome": 52452430
+      },
+      {
+        "month": 59,
+        "revenue": 62620800,
+        "cogs": 11271744,
+        "grossProfit": 51349056,
+        "opex": 2687840,
+        "netIncome": 59932960
+      },
+      {
+        "month": 60,
+        "revenue": 71387745,
+        "cogs": 12849794,
+        "grossProfit": 58537951,
+        "opex": 2926939,
+        "netIncome": 68460807
+      }
+    ],
+    "created_at": "2021-04-30T19:13:04.682Z"
+  },
+  "founder": {
+    "id": "f-ipo-ready",
+    "user_id": "u-demo",
+    "game_session_id": "s-legendary",
+    "name": "Alex Chen",
+    "background": "Engineer",
+    "attributes": {
+      "intelligence": 92,
+      "technical_skill": 90,
+      "leadership": 82,
+      "networking": 68,
+      "marketing_skill": 72,
+      "sales_skill": 65,
+      "risk_appetite": 70,
+      "stress_tolerance": 78,
+      "reputation": 75
+    },
+    "xp": {
+      "technical": 800,
+      "marketing": 350,
+      "leadership": 500,
+      "fundraising": 420,
+      "total": 2070
+    },
+    "personal_wealth": 450000,
+    "assets": [],
+    "activeToggles": [],
+    "created_at": "2021-04-30T19:13:04.683Z"
+  },
+  "month": 60,
+  "eventsTimeline": [
+    "🚀 Company founded with $500K seed funding",
+    "🌱 Seed Round closed at $2M",
+    "⚡ Series A: raised $12M from Sequoia",
+    "📈 Hit 10,000 users milestone!",
+    "💎 Series B: $80M from a16z at $400M valuation",
+    "🏢 Series C: $200M from Tiger Global",
+    "🎉 Crossed 200,000 users!",
+    "💰 Revenue run rate hit $857M ARR",
+    "🏛️ Board approved IPO planning — all checks passed"
+  ],
+  "competitors": [],
+  "unlockedAchievements": [
+    "first_hire",
+    "pmf_achieved",
+    "series_a",
+    "unicorn_path"
+  ],
+  "ongoingPrograms": [],
+  "seenEventIds": [],
+  "founderMeta": {
+    "name": "Alex Chen",
+    "age": "32",
+    "background": "Engineer",
+    "industry": "SaaS Platform",
+    "gtmMotion": "PLG",
+    "scenario": "classic",
+    "startupName": "VaultAI",
+    "logo": "🏦",
+    "brandColor": "#6366f1"
+  },
+  "focusHoursUsed": 0,
+  "actionUsageLog": {
+    "thisMonth": {},
+    "lifetime": {}
+  }
+}
