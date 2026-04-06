@@ -22,8 +22,9 @@ import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/li
 import { CharacterDialog } from "@/components/CharacterDialog";
 import { getStorylineDialog, StorylineState, StorylineDialog, getSamConsultDialog, TUTORIAL_STEPS } from "@/lib/engine/storyline";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
-import { calcDynamicImpact, applyEffectsToState, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
-import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS } from "@/lib/engine/actions";
+import { calcDynamicImpact, applyEffectsToState, getDepartmentPower, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
+import { ReviewTriggers } from "@/lib/services/reviewService";
+import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS, type ActionDef } from "@/lib/engine/actions";
 import { processOngoingPrograms, startProgram, stopProgram, getStreakMultiplier, ongoingProgramsTotalEnergy, type ActiveProgram } from "@/lib/engine/ongoingPrograms";
 import { EventModal, GameEvent, EventChoice, generateImpactSentence } from "@/components/EventModal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -154,46 +155,7 @@ const RIVALRY_ACTIONS: RivalryAction[] = [
             return { newStartup: startup, newFounder, newChadly: chadly, message: "PR BACKFIRE: Your attempt to counter-narrative looked desperate. Reputation hit -10." };
         }
     },
-    {
-        id: "hostile_takeover",
-        label: "Hostile Takeover",
-        emoji: "⚔️",
-        description: "Forcibly absorb rival users (+70%). High risk, high cost.",
-        energyCost: 40,
-        cashCost: 50000,
-        successRate: 0.20,
-        effect: ({ startup, founder, chadly }) => {
-            const absorbedUsers = Math.floor(chadly.users * 0.7);
-            const newChadly = { ...chadly, users: Math.max(10, chadly.users - absorbedUsers), status: "failed" as any };
-            const newStartup = { 
-                ...startup, 
-                metrics: { 
-                    ...startup.metrics, 
-                    users: (startup.metrics.users || 0) + absorbedUsers,
-                    technical_debt: Math.min(100, (startup.metrics.technical_debt || 0) + 25),
-                    fraud_risk: Math.min(100, (startup.metrics.fraud_risk || 0) + 15)
-                } 
-            };
-            return { newStartup, newFounder: founder, newChadly, message: `VICTORY: You've aggressively absorbed ${absorbedUsers.toLocaleString()} users! They have been neutralized.` };
-        },
-        onFailure: ({ startup, founder, chadly }) => {
-            const newStartup = { 
-                ...startup, 
-                metrics: { 
-                    ...startup.metrics, 
-                    cash: Math.max(0, startup.metrics.cash - 25000),
-                } 
-            };
-            const newFounder = {
-                ...founder,
-                attributes: {
-                    ...founder.attributes,
-                    reputation: Math.max(0, (founder.attributes.reputation || 0) - 20)
-                }
-            };
-            return { newStartup, newFounder, newChadly: chadly, message: "CRUSHED: The SEC blocked your takeover! Your legal fees are massive and your rep is in tatters." };
-        }
-    }
+
 ];
 
 const MAX_SLOTS = 6;
@@ -240,7 +202,6 @@ const STARTUP_BASE = {
         founder_health: 100,
         sleep_quality: 100,
         founder_salary: 0,
-        fraud_risk: 0,
         current_season: "Normal",
         has_legal_dept: false,
     },
@@ -252,13 +213,13 @@ const FOUNDER_BASE = {
     id: "founder-1",
     name: "Alex Founder",
     background: "Engineer",
-    private_cash: 0,
+
     attributes: {
-        intelligence: 55,
-        technical_skill: 60,
+        intelligence: 45,
+        technical_skill: 40,
         leadership: 40,
-        networking: 30,
-        marketing_skill: 35,
+        networking: 40,
+        marketing_skill: 40,
         reputation: 40,
         risk_appetite: 65,
         stress_tolerance: 70,
@@ -520,6 +481,66 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     const safeIdx = Math.min(selectedEmpIdx, Math.max(0, employees.length - 1));
     const emp = employees[safeIdx];
+    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+
+    const renderActionCard = (action: ActionDef, category: string) => {
+        const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
+        const isOver = (focusHoursUsed + action.energyCost) > maxHours * (category === 'founder' ? 1.0 : 1.2);
+        
+        const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, { month, startup, founder, m });
+        
+        const effectsList = Object.entries(scaledEffects)
+            .filter(([k, v]) => v && v !== 0 && k !== "cash")
+            .map(([k, v]) => {
+                const val = v as number;
+                const sign = val > 0 ? "+" : "";
+                let label = k.replace(/_/g, " ")
+                    .replace("intelligence", "Int")
+                    .replace("technical skill", "Tech")
+                    .replace("leadership", "Lead")
+                    .replace("networking", "Net")
+                    .replace("marketing skill", "Mkt")
+                    .replace("founder burnout", "Burnout")
+                    .replace("founder health", "Health")
+                    .replace("product quality", "Quality")
+                    .replace("technical debt", "Debt")
+                    .replace("reliability", "Rel")
+                    .replace("brand awareness", "Brand");
+                
+                // Capitalize first letter of each word
+                label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                return `${sign}${Math.abs(val) < 1 ? val.toFixed(1) : Math.round(val)} ${label}`;
+            }).join(" · ");
+
+        const colors = {
+            product: "hover:border-blue-200 dark:hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-950/30",
+            marketing: "hover:border-emerald-200 dark:hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30",
+            pricing: "hover:border-indigo-200 dark:hover:border-indigo-500/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30",
+            founder: "hover:border-indigo-200 dark:hover:border-indigo-500/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+        };
+        const colorClass = (colors as any)[category] || colors.founder;
+
+        return (
+            <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
+                className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
+                    isOver ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : `bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 ${colorClass}`)}>
+                <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
+                <div className="flex-1 min-w-0 pr-1">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight pr-2">{action.description.replace(/\s*\(\$\d+(?:,\d+)?\)/i, "")}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
+                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right leading-tight max-w-[130px] whitespace-normal">{effectsList}</p>
+                    <div className="flex gap-1 items-center">
+                        {scaledEffects.cash && (
+                            <span className="text-[8px] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">(Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
+                        )}
+                        <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const sheetHeader = (emoji: string, title: string, sub: string) => (
         <div className="mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -591,52 +612,63 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         return (
             <div>
                 {sheetHeader("🔧", "Product", "Instant technical execution")}
-                <p className="text-[9px] text-slate-400 dark:text-slate-500 mb-3 tracking-widest uppercase font-black">Requires Focus Energy</p>
+                
+                {/* ── Engineering Capacity Meter ── */}
+                {(() => {
+                    const power = getDepartmentPower("product", startup);
+                    const users = m.users || 0;
+                    const reqPower = Math.max(10, Math.pow(users, 0.45) * 1.5);
+                    const capacityRatio = Math.min(1.0, power / reqPower);
+                    const capacityPct = Math.round(capacityRatio * 100);
+                    const colorClass = capacityPct < 50 ? "bg-rose-500" : capacityPct < 90 ? "bg-amber-500" : "bg-emerald-500";
+                    const textClass = capacityPct < 50 ? "text-rose-400" : capacityPct < 90 ? "text-amber-400" : "text-emerald-400";
 
-                <div className="space-y-1.5 mb-6">
-                    {actions.map(action => {
-                        const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.2;
-
-                        // Calculate dynamic impact for the label
-                        const ctx = { month, startup, founder, m: startup.metrics };
-                        const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, ctx);
-
-                        // Format the dynamic label
-                        const dynamicImpact = Object.entries(scaledEffects)
-                            .filter(([k, v]) => v && v !== 0 && k !== "cash")
-                            .slice(0, 4)
-                            .map(([k, v]) => {
-                                const val = v as number;
-                                const sign = val > 0 ? "+" : "";
-                                let key = k.replace(/_/g, " ");
-                                return `${sign}${val} ${key}`;
-                            }).join(", ");
-
-                        return (
-                            <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
-                                className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                    isOver ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-500/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30")}>
-                                <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
-                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
-                                        {dynamicImpact}
-                                        {scaledEffects.cash && (
-                                            <span className="font-bold text-rose-600"> (Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
-                                        )}
-                                    </p>
+                    return (
+                        <div className="mb-4 space-y-2">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                <div className="flex justify-between items-end mb-1.5">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Eng. Capacity</p>
+                                        <h3 className={`text-xl font-black italic leading-none ${textClass}`}>{capacityPct}%</h3>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
+                                        <p className="text-xs font-black text-slate-700 dark:text-slate-300">{Math.round(power)} / {Math.round(reqPower)} Power</p>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                    {scaledEffects.technical_debt && scaledEffects.technical_debt < 0 && (
-                                        <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900/50 shadow-sm mb-1">⬇️ DEBT</span>
-                                    )}
-                                    <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-full opacity-90">⚡{action.energyCost}h</span>
+                                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <div className={`h-full ${colorClass} transition-all duration-700`} style={{ width: `${capacityPct}%` }} />
                                 </div>
                             </div>
-                        );
-                    })}
+
+                            {/* ── Innovation Metric ── */}
+                            <div className="p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
+                                <div className="flex justify-between items-end mb-1.5">
+                                    <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest leading-none">🚀 Innovation Level</p>
+                                    <p className="text-xs font-black text-violet-800 dark:text-violet-300">{Math.round(m.innovation || 0)}/100</p>
+                                </div>
+                                <div className="h-1.5 w-full bg-violet-100 dark:bg-violet-900/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-violet-500 transition-all duration-700" style={{ width: `${m.innovation || 0}%` }} />
+                                </div>
+                                <p className="mt-2 text-[7px] font-bold text-violet-600 dark:text-violet-500 uppercase leading-none tracking-tight">
+                                    High Innovation increases Valuation & Fundraising Success.
+                                </p>
+                            </div>
+
+                            {capacityPct < 100 && (
+                                <p className="mt-1 text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter px-1">
+                                    ⚠️ Throttled: Team is too small for {users.toLocaleString()} users. Actions are {100 - capacityPct}% less effective.
+                                </p>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-black mb-3">Requires Focus Energy</p>
+                <div className="space-y-1.5">
+                    {actions.map(action => renderActionCard(action, "product"))}
                 </div>
+
                 <div className="flex flex-col items-center gap-1 mb-3">
                     <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Pricing Strategy</p>
                     <div className={cn("px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest",
@@ -725,18 +757,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
                                                     {isPLG ? "Loop Power" : "Net Score"}
                                                 </span>
-                                                <span className={cn("text-[10px] font-black leading-none", loopPower < 0 ? "text-rose-500" : "text-indigo-600 dark:text-indigo-400")}>
-                                                    {loopPower > 0 ? '+' : ''}{loopPower.toFixed(0)}
+                                                <span className={cn("text-[10px] font-black leading-none", loopPower < 1.0 ? "text-rose-600" : loopPower > 1.4 ? "text-emerald-500" : "text-amber-600")}>
+                                                    {loopPower.toFixed(2)}x
                                                 </span>
                                             </div>
-                                        </div>
-                                    );
-                                })()}
-                            </div>
-                        );
-                    })()}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    );
+                })()}
+            </div>
 
-                    {/* Dynamic Pricing Insights */}
+                {/* Dynamic Pricing Insights */}
                     {(() => {
                         const ind = startup.industry || "SaaS Platform";
                         const isPLG = startup.gtm_motion === "PLG";
@@ -767,35 +800,49 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         );
                     })()}
 
-                    {/* Annual billing only makes sense for subscription-model industries */}
-                    {!["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(startup.industry) && (
-                        <div
-                            onClick={() => setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, annual_billing: !s.metrics.annual_billing } }))}
-                            className={cn("mt-4 w-full p-2.5 rounded-xl border-2 text-center cursor-pointer transition text-[9px] font-black tracking-wide uppercase",
-                                m.annual_billing ? "bg-indigo-100 dark:bg-indigo-900/50 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/70" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50")}
-                        >
-                            {m.annual_billing ? "💸 Annual Billing (Upfront Cash)" : "📅 Monthly Billing (Default)"}
-                        </div>
-                    )}
-                </div>
-
-                {/* Strategy Playbook Card */}
-                {(() => {
-                    const key = `${startup.industry}_${startup.gtm_motion}`;
-                    const pb = STRATEGY_PLAYBOOK[key];
-                    if (!pb) return null;
-                    return (
-                        <div className="mt-3 bg-slate-800 rounded-2xl p-4">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">📖 Strategy Playbook — {pb.model}</p>
-                            <div className="space-y-2">
-                                <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Your Customers</p><p className="text-[10px] text-slate-200 leading-tight">{pb.customers}</p></div></div>
-                                <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><div><p className="text-[8px] font-black text-slate-400 uppercase">MRR Formula</p><p className="text-[10px] text-emerald-300 font-bold leading-tight">{pb.mrrFormula}</p></div></div>
-                                <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Growth Lever</p><p className="text-[10px] text-slate-200 leading-tight">{pb.growthLever}</p></div></div>
-                                <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><div><p className="text-[8px] font-black text-slate-400 uppercase">Main Risk</p><p className="text-[10px] text-rose-300 leading-tight">{pb.mainRisk}</p></div></div>
+                    {/* Strategy Playbook Card */}
+                    {(() => {
+                        const key = `${startup.industry}_${startup.gtm_motion}`;
+                        const pb = STRATEGY_PLAYBOOK[key];
+                        if (!pb) return null;
+                        return (
+                            <div className="mt-3 bg-slate-800 dark:bg-slate-900 rounded-2xl p-4 border border-slate-700 dark:border-slate-800 shadow-md">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                    <span>📖</span> Strategy Playbook — {pb.model}
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex gap-2.5">
+                                        <span className="text-base shrink-0 mt-0.5">👤</span>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Your Customers</p>
+                                            <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.customers}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2.5">
+                                        <span className="text-base shrink-0 mt-0.5">💵</span>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">MRR Formula</p>
+                                            <p className="text-[10px] text-emerald-400 font-bold leading-snug">{pb.mrrFormula}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2.5">
+                                        <span className="text-base shrink-0 mt-0.5">🚀</span>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Growth Lever</p>
+                                            <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.growthLever}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2.5">
+                                        <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                                        <div>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Main Risk</p>
+                                            <p className="text-[10px] text-rose-400 font-medium leading-snug">{pb.mainRisk}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })()}
+                        );
+                    })()}
 
                 {m.pricing > 199 && m.b2b_pipeline && (
                     <div className="mt-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 space-y-1">
@@ -845,6 +892,41 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <p className="text-[8px] font-black text-violet-500 dark:text-violet-500 uppercase tracking-wide mt-0.5">Marketers</p>
                     </div>
                 </div>
+
+                {/* ── Growth Capacity Meter ── */}
+                {(() => {
+                    const power = getDepartmentPower("growth", startup);
+                    const users = m.users || 0;
+                    const reqPower = Math.max(10, Math.pow(users, 0.45) * 1.5);
+                    const capacityRatio = Math.min(1.0, power / reqPower);
+                    const capacityPct = Math.round(capacityRatio * 100);
+                    const colorClass = capacityPct < 50 ? "bg-rose-500" : capacityPct < 90 ? "bg-amber-500" : "bg-emerald-500";
+                    const textClass = capacityPct < 50 ? "text-rose-400" : capacityPct < 90 ? "text-amber-400" : "text-emerald-400";
+
+                    return (
+                        <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                            <div className="flex justify-between items-end mb-1.5">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Growth Capacity</p>
+                                    <h3 className={`text-xl font-black italic leading-none ${textClass}`}>{capacityPct}%</h3>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
+                                    <p className="text-xs font-black text-slate-700 dark:text-slate-300">{Math.round(power)} / {Math.round(reqPower)} Power</p>
+                                </div>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div className={`h-full ${colorClass} transition-all duration-700`} style={{ width: `${capacityPct}%` }} />
+                            </div>
+                            {capacityPct < 100 && (
+                                <p className="mt-2 text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter">
+                                    ⚠️ Throttled: Team is too small for {users.toLocaleString()} users. Growth actions are {100 - capacityPct}% less effective.
+                                </p>
+                            )}
+                        </div>
+                    );
+                })()}
+
                 <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 rounded-2xl px-3 py-2 mb-4 flex justify-between items-center">
                     <div className="text-center">
                         <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Growth Rate</p>
@@ -857,11 +939,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     <div className="text-center">
-                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">LTV</p>
-                        <p className="text-xs font-black text-slate-700 dark:text-slate-200">${(m.ltv || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
-                    <div className="text-center">
+                        <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide">PMF</p>
                         <p className={cn("text-xs font-black", (m.pmf_score || 0) < 30 ? "text-rose-600 dark:text-rose-400" : (m.pmf_score || 0) < 60 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>{Math.round(m.pmf_score || 0)}</p>
                     </div>
                 </div>
@@ -879,44 +957,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                     );
                 })()}
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Instant Action (Costs Energy)</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4 flex items-center gap-1.5">
+                    Instant Action <span className="text-[7px] text-slate-500">(Costs Energy)</span>
+                </p>
                 <div className="space-y-1.5">
-                    {actions.map(action => {
-                        const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                        const isOver = (focusHoursUsed + action.energyCost) > maxHours * 1.2;
-                        
-                        const ctx = { month, startup, founder, m: startup.metrics };
-                        const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, ctx);
-                        const dynamicImpact = Object.entries(scaledEffects)
-                            .filter(([k, v]) => v && v !== 0 && k !== "cash")
-                            .map(([k, v]) => {
-                                const val = v as number;
-                                let key = k.replace(/_/g, " ");
-                                if (key === "leads") return `${val > 0 ? "+" : ""}${val} Leads`;
-                                return `${val > 0 ? "+" : ""}${val} ${key.charAt(0).toUpperCase() + key.slice(1)}`;
-                            }).join(", ");
-
-                        return (
-                            <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
-                                className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                    isOver ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30")}>
-                                <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
-                                    <p className="text-[9px] text-slate-400 dark:text-slate-500">
-                                        {action.description.replace(/\s*\(\$\d+(?:,\d+)?\)/i, "")}
-                                        {scaledEffects.cash && (
-                                            <span className="font-bold text-rose-600"> (Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
-                                        )}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{dynamicImpact}</p>
-                                    <span className="text-[8px] font-black bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 px-1.5 py-0.5 rounded-full opacity-90">⚡{action.energyCost}h</span>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {actions.map(action => renderActionCard(action, "marketing"))}
                 </div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Ongoing Programs</p>
                 {mktPrograms.map(prog => {
@@ -1024,40 +1069,56 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     const mktAvg = avgSkill(mkt, "marketing");
                     const salAvg = avgSkill(sal, "sales");
 
-                    // Power = avg_skill * headcount * performance_weight (1.0 = no CXO, +20% with CXO) * Morale
-                    const teamEfficiency = Math.max(0.3, (m.team_morale || 100) / 100);
-                    const engPow = Math.round(engAvg * (eng.length + cxoEng) * (cxoEng ? 1.20 : 1.0) * teamEfficiency);
-                    const mktPow = Math.round(mktAvg * (mkt.length + cxoMkt) * (cxoMkt ? 1.20 : 1.0) * teamEfficiency);
-                    const salPow = Math.round(salAvg * (sal.length + cxoSal) * (cxoSal ? 1.20 : 1.0) * teamEfficiency);
+                    // Combined Avg Skill (if no staff, CXO provides a solo baseline of 80)
+                    const engAvgFinal = eng.length > 0 ? engAvg : (cxoEng ? 80 : 0);
+                    const mktAvgFinal = mkt.length > 0 ? mktAvg : (cxoMkt ? 80 : 0);
+                    const salAvgFinal = sal.length > 0 ? salAvg : (cxoSal ? 80 : 0);
 
-                    const DeptCard = ({ emoji, label, count, avgSk, power, drives, color, bg, border, darkBg, darkBorder, darkText }: any) => (
-                        <div className={`rounded-2xl border-2 ${bg} ${border} ${darkBg} ${darkBorder} p-3 mb-2`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-base">{emoji}</span>
-                                    <p className={`text-[10px] font-black uppercase tracking-wide ${color} ${darkText}`}>{label}</p>
+                    // Unify with Engine Formula
+                    const engPow = getDepartmentPower("product", startup);
+                    const mktPow = getDepartmentPower("growth", startup);
+                    const salPow = getDepartmentPower("leadership", startup);
+
+                    const DeptCard = ({ emoji, label, count, power, drives, color, bg, border, darkBg, darkBorder, darkText, category }: any) => {
+                        const reqPower = Math.max(10, Math.pow(m.users || 0, 0.45) * 1.5);
+                        const capacityPct = Math.round(Math.min(1.0, power / reqPower) * 100);
+                        const isScalingBottleneck = capacityPct < 100;
+
+                        return (
+                            <div className={`rounded-2xl border-2 ${bg} ${border} ${darkBg} ${darkBorder} p-3 mb-2 transition-all ${isScalingBottleneck && capacityPct < 70 ? "border-rose-300 dark:border-rose-500/50 shadow-inner" : ""}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-base">{emoji}</span>
+                                        <p className={`text-[10px] font-black uppercase tracking-wide ${color} ${darkText}`}>{label}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span className={`text-[9px] font-black ${isScalingBottleneck && capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : color + " " + darkText + " border-slate-100 bg-white dark:bg-slate-900"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{count} people</span>
+                                        <span className={`text-[9px] font-black ${capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : "text-emerald-600 border-emerald-100 bg-emerald-50"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{capacityPct}% Cap</span>
+                                    </div>
                                 </div>
-                                <span className={`text-[9px] font-black ${color} ${darkText} bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border dark:border-slate-800`}>{count} {count === 1 ? "person" : "people"}</span>
+                                <div className="flex gap-2">
+                                    <div className="flex-1 text-center bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+                                        <p className={`text-sm font-black ${isScalingBottleneck && capacityPct < 50 ? "text-rose-500" : color + " " + darkText}`}>
+                                            {power}
+                                        </p>
+                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Dept Power</p>
+                                    </div>
+                                    <div className="flex-[3] bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
+                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mb-0.5">Scale Requirements</p>
+                                        <p className="text-[8px] font-semibold text-slate-600 dark:text-slate-300 leading-tight">Requires {Math.round(reqPower)} Power for {Number(m.users || 0).toLocaleString()} users.</p>
+                                    </div>
+                                </div>
+                                {isScalingBottleneck && capacityPct < 90 && (
+                                    <div className="mt-2 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-lg p-2 flex items-start gap-2 shadow-sm">
+                                        <span className="text-[10px]">⚖️</span>
+                                        <p className="text-[8px] font-black text-rose-600 dark:text-rose-400 uppercase leading-none tracking-tighter">
+                                            SCALING BOTTLENECK: Team size is too small for current user scale. Execution speed is throttled by {100 - capacityPct}%. HIRE MORE STAFF!
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex gap-2">
-                                <div className="flex-1 text-center bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-                                    <p className={`text-sm font-black ${count === 0 ? "text-slate-300 dark:text-slate-700" : color + " " + darkText}`}>{count === 0 ? "–" : avgSk}</p>
-                                    <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Avg Skill</p>
-                                </div>
-                                <div className="flex-1 text-center bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-                                    <p className={`text-sm font-black ${count === 0 ? "text-slate-300 dark:text-slate-700" : color + " " + darkText}`}>{count === 0 ? "–" : power}</p>
-                                    <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Dept Power</p>
-                                </div>
-                                <div className="flex-1.5 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800 flex-[2]">
-                                    <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mb-0.5">Drives</p>
-                                    <p className="text-[8px] font-semibold text-slate-600 dark:text-slate-300 leading-tight">{drives}</p>
-                                </div>
-                            </div>
-                            {count === 0 && (
-                                <p className="text-[8px] text-slate-400 dark:text-slate-500 mt-1.5 leading-tight italic">No team yet — solo founder contributes minimal power here.</p>
-                            )}
-                        </div>
-                    );
+                        );
+                    };
 
                     return (
                         <div className="mb-4">
@@ -1076,11 +1137,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <p className="text-[8px] font-black text-indigo-500 dark:text-indigo-500 uppercase tracking-wide mt-0.5">Culture</p>
                                 </div>
                             </div>
-
                             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">🏢 Department Power</p>
                             <p className="text-[8px] text-slate-400 dark:text-slate-500 mb-3 leading-tight">Each dept's power = avg skill × headcount × performance. Power directly multiplies the attribute it drives every month.</p>
                             <DeptCard
-                                emoji="👨‍💻" label="Engineering" count={eng.length} avgSk={engAvg} power={engPow}
+                                emoji="👨‍💻" label="Engineering" count={eng.length + cxoEng} avgSk={engAvgFinal} power={engPow}
                                 drives="Product Quality · Tech Debt Reduction · Reliability"
                                 color="text-blue-700" bg="bg-blue-50" border="border-blue-200"
                                 darkText="dark:text-blue-400" darkBg="dark:bg-blue-950/20" darkBorder="dark:border-blue-900/50"
@@ -1181,6 +1241,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
                 ))}
 
+
+
+
+
                 {/* Manage existing team */}
                 {employees.length > 0 && (
                     <button onClick={() => setIsTeamOpen(true)}
@@ -1232,7 +1296,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         { role: "CTO", emoji: "💻", desc: "Cuts tech debt · boosts product quality", salary: 18000, bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
                         { role: "CMO", emoji: "✉️", desc: "Boosts brand · reduces CAC", salary: 15000, bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-700" },
                         { role: "COO", emoji: "⚙️", desc: "Reduces burnout · boosts focus (+40h)", salary: 16000, bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
-                        { role: "CFO", emoji: "📊", desc: "Optimises burn · improves runway", salary: 14000, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+                        { role: "CFO", emoji: "📊", desc: "Optimises burn · runs fundraising roadshow · required for IPO", salary: 14000, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
                         { role: "CPO", emoji: "🎯", desc: "Accelerates features · improves PMF", salary: 15000, bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
                         { role: "EA", emoji: "📅", desc: "Executive Assistant · boosts focus (+30h)", salary: 8000, bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700" },
                     ] as const).map(cxo => {
@@ -1307,6 +1371,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             ...s.metrics,
                                             founder_burnout: Math.max(0, (s.metrics.founder_burnout || 0) * 0.5),
                                             team_morale: Math.min(100, (s.metrics.team_morale || 70) + (cf.arch === "Balanced" ? 20 : 10)),
+                                            marketing_skill: (s.metrics.marketing_skill || 0) + (cf.arch === "GTM-First" ? 25 : cf.arch === "Balanced" ? 15 : 0),
+                                            technical_skill: (s.metrics.technical_skill || 0) + (cf.arch === "Tech-First" ? 25 : cf.arch === "Balanced" ? 15 : 0),
+                                            leadership: (s.metrics.leadership || 0) + (cf.arch === "Balanced" ? 15 : 0),
                                         },
                                     }));
                                     addTimelineEvent(`🤝 Recruited ${cf.arch} Co-Founder — ${cf.equity}% equity. ${cf.desc}`);
@@ -1348,16 +1415,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         let nextRound = getNextFundingStage(stage);
         
         // Smart Repair: Fix corrupted sequencing or "IPO Ready" overrides.
-        const raisedRounds = capTable.filter((e: any) => e.type !== "Founder").length;
+        const nonFounderInvestors = capTable.filter((e: any) => e.type !== "Founder" && e.type !== "Co-Founder");
+        const hasSeriesC = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series c"));
+        const hasSeriesB = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series b"));
+        const hasSeriesA = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series a"));
+        const hasSeed = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("seed") || e.name.toLowerCase().includes("angel"));
+
+
         if (stage === "IPO Ready" || stage === "Late Stage Round" || nextRound === "Late Stage Round") {
-            if (raisedRounds === 0) nextRound = "Angel Investment";
-            else if (raisedRounds === 1) nextRound = "Seed Round";
-            else if (raisedRounds === 2) nextRound = "Series A";
-            else if (raisedRounds === 3) nextRound = "Series B";
-            else if (raisedRounds === 4) nextRound = "Series C";
-            else if (raisedRounds === 5) nextRound = "Series D";
-            else if (raisedRounds === 6) nextRound = "Series E";
-            else nextRound = "Series F";
+            if (hasSeriesC) nextRound = "Series D";
+            else if (hasSeriesB) nextRound = "Series C";
+            else if (hasSeriesA) nextRound = "Series B";
+            else if (hasSeed) nextRound = "Series A";
+            else nextRound = "Seed Round";
         }
 
         const pitchActions = [];
@@ -1466,85 +1536,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{pa.sub}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                        <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 tracking-tighter">-10 Innovation</p>
                                         <span className="text-[8px] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 px-1.5 py-0.5 rounded-full opacity-90">⚡{fundCost}h</span>
                                     </div>
                                 </div>
                             );
                         })}
-
-                        {/* HIGH-RISK FINANCIAL ACTIONS (Embezzle) */}
-                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                             <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1 italic">🚨 Black Market / Legal Risks</p>
-
-                             {/* Hire Legal Team */}
-                             <div className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all mb-2",
-                                 m.has_legal_dept
-                                     ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/50 opacity-60 cursor-default"
-                                     : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer active:scale-[0.98]")}
-                                 onClick={() => {
-                                     if (m.has_legal_dept) return;
-                                     setConfirmDialog({
-                                         open: true,
-                                         title: "⚖️ Hire Legal Team?",
-                                         description: "Retain an in-house legal team for $50,000. They will reduce your Fraud Risk by 5% every month and protect you from regulatory exposure.",
-                                         confirmText: "HIRE THEM",
-                                         onConfirm: () => {
-                                             if ((startup.metrics.cash || 0) < 50000) {
-                                                 toast.error("Insufficient Funds", { description: "You need at least $50,000 to retain a legal team." });
-                                                 return;
-                                             }
-                                             setStartup((s: any) => ({
-                                                 ...s,
-                                                 metrics: {
-                                                     ...s.metrics,
-                                                     cash: s.metrics.cash - 50000,
-                                                     has_legal_dept: true,
-                                                 }
-                                             }));
-                                             addTimelineEvent(`⚖️ Legal Team hired. Fraud Risk will decrease by 5% per month.`);
-                                             toast.success("Legal Team Retained!", { description: "Fraud Risk will now decrease by 5% each month.", icon: "⚖️" });
-                                         }
-                                     });
-                                 }}
-                             >
-                                <span className="text-xl w-7 text-center shrink-0">⚖️</span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{m.has_legal_dept ? "Legal Team Active" : "Hire Legal Team"}</p>
-                                    <p className="text-[9px] text-slate-400 dark:text-slate-500">{m.has_legal_dept ? "Fraud Risk -5% per month ongoing" : "One-time $50K retainer · -5% Fraud Risk/mo"}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400">-5% Fraud/mo</p>
-                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border ${m.has_legal_dept ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"}`}>
-                                        {m.has_legal_dept ? "✓ ACTIVE" : "-$50K"}
-                                    </span>
-                                </div>
-                             </div>
-
-                             {/* Embezzle Funds */}
-                             <div className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                 "bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-900/50 hover:bg-rose-100/50 dark:hover:bg-rose-950/30")}
-                                 onClick={() => {
-                                     setConfirmDialog({
-                                         open: true,
-                                         title: "💸 Embezzle Company Funds?",
-                                         description: "This will transfer 10% of company cash to your private bank account. WARNING: Increases Fraud Risk by 20% and may trigger an SEC audit.",
-                                         confirmText: "TAKE THE RISK",
-                                         onConfirm: () => handleActionClick("embezzle_funds" as any)
-                                     });
-                                 }}
-                             >
-                                <span className="text-xl w-7 text-center shrink-0">💸</span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-rose-900 dark:text-rose-200">Embezzle Funds</p>
-                                    <p className="text-[9px] text-rose-600/70 dark:text-rose-400/70">Transfer 10% of cash to private account</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                    <p className="text-[9px] font-black text-rose-600 dark:text-rose-400">+20% Fraud Risk</p>
-                                    <span className="text-[8px] font-black bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded-full">⚡0h</span>
-                                </div>
-                             </div>
-                        </div>
                     </div>
                 )}
                 <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3">
@@ -1597,8 +1593,79 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     )}
                 </div>
 
+                {/* ── FUNDRAISING PROGRAMS ── */}
+                {(() => {
+                    const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
+                    // Show consultant only if no CFO; show CFO roadshow only if CFO hired
+                    const fundingProgIds = hasCFO ? ["cfo_fundraising_roadshow"] : ["fundraising_consultant"];
+                    const fundingProgs = ONGOING_PROGRAMS.filter(p => fundingProgIds.includes(p.id));
+                    const valuation = startup.valuation || 250_000;
+                    // Consultant fee scales logarithmically with valuation (same as action costs)
+                    const consultantFee = valuation > 500_000
+                        ? Math.round(15_000 * (1 + Math.log2(valuation / 500_000) * 0.4))
+                        : 15_000;
 
-                {/* ── M&A ACQUISITION OFFERS ── */}
+                    return (
+                        <div className="mt-4">
+                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                                {hasCFO ? "🏦 CFO-Managed Fundraising" : "💼 Fundraising Delegation"}
+                            </p>
+                            {!hasCFO && (
+                                <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl">
+                                    <p className="text-[8px] text-amber-700 dark:text-amber-400 leading-tight font-semibold">
+                                        💡 Hire a CFO to waive consultant fees and boost lead generation automatically.
+                                    </p>
+                                </div>
+                            )}
+                            {fundingProgs.map(prog => {
+                                const active = ongoingPrograms.some(p => p.id === prog.id);
+                                return (
+                                    <div
+                                        key={prog.id}
+                                        onClick={() => handleToggleOngoingProgram(prog.id)}
+                                        className={cn(
+                                            "flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all mb-2",
+                                            active
+                                                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+                                                : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-amber-200 dark:hover:border-amber-800"
+                                        )}
+                                    >
+                                        <span className="text-xl">{prog.emoji}</span>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{prog.label}</p>
+                                            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight">{prog.description}</p>
+                                            <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                                +{Math.round((founder.attributes.networking || 10) / 2) + (hasCFO ? 25 : 5)} investor leads/month
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                            {!hasCFO && (
+                                                <span className="text-[8px] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">
+                                                    ${consultantFee.toLocaleString()}/mo
+                                                </span>
+                                            )}
+                                            {hasCFO && (
+                                                <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full">
+                                                    Free (CFO handles)
+                                                </span>
+                                            )}
+                                            {prog.monthlyEnergy > 0 && (
+                                                <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                                                    ⚡{prog.monthlyEnergy}h
+                                                </span>
+                                            )}
+                                            <div className={cn("w-10 h-5 rounded-full transition-all relative", active ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700")}>
+                                                <div className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all", active ? "left-5" : "left-0.5")} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
+
+
                 {(startup.acquisition_offers?.length ?? 0) > 0 && (
                     <div className="mt-4">
                         <p className="text-[9px] font-black text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-2">🔔 Acquisition Offers</p>
@@ -1710,28 +1777,96 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ── IPO READINESS ── */}
                 {(() => {
                     const liveArr = (m.revenue || 0) * 12;
+                    const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
                     const ipoChecks = [
                         { label: "$50M ARR", pass: liveArr >= 50_000_000 },
                         { label: "10K+ Users", pass: m.users >= 10_000 },
                         { label: "PMF Score ≥ 60", pass: (m.pmf_score ?? 0) >= 60 },
                         { label: "Tech Debt < 40%", pass: (m.technical_debt ?? 0) < 40 },
                         { label: "Series A+ Raised", pass: ["Series A", "Series B", "Series C", "IPO Ready"].includes(startup.funding_stage) },
+                        { label: "CFO Hired", pass: hasCFO },
                     ];
                     const passed = ipoChecks.filter(c => c.pass).length;
                     const ipoStage = startup.ipo_stage ?? 0;
                     const IPO_STAGE_LABELS = ["", "📝 Pre-IPO Planning", "📄 S-1 Filing & Roadshow", "💰 Pricing & Lock-Up", "🏛️ IPO Day!"];
+
+                    // Stage 3: Pricing UI
+                    const pricingTargets = [
+                        { label: "Conservative (5× ARR)", mult: 5, risk: "Low" },
+                        { label: "Market Rate (8× ARR)", mult: 8, risk: "Medium" },
+                        { label: "Aggressive (12× ARR)", mult: 12, risk: "High" },
+                        { label: "Unicorn (18× ARR)", mult: 18, risk: "Very High" },
+                    ];
+
                     return (
                         <div className="mt-4 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 rounded-2xl p-3">
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-[9px] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest">🏛️ IPO Readiness</p>
-                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${passed >= 5 ? "bg-violet-600 text-white" : "bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-400"}`}>{passed}/5</span>
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${passed >= 6 ? "bg-violet-600 text-white" : "bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-400"}`}>{passed}/6</span>
                             </div>
                             {ipoStage > 0 && (
-                                <div className="mb-2 bg-violet-100 rounded-xl px-3 py-1.5">
-                                    <p className="text-[9px] font-black text-violet-700">Stage {ipoStage}/4: {IPO_STAGE_LABELS[ipoStage]}</p>
+                                <div className="mb-2 bg-violet-100 dark:bg-violet-900/40 rounded-xl px-3 py-1.5">
+                                    <p className="text-[9px] font-black text-violet-700 dark:text-violet-300">Stage {ipoStage}/4: {IPO_STAGE_LABELS[ipoStage]}</p>
                                 </div>
                             )}
+
+                            {/* Pricing selection at Stage 3 */}
+                            {ipoStage === 3 && (
+                                <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                                    <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">💰 Set Your IPO Price</p>
+                                    <p className="text-[8px] text-amber-600 dark:text-amber-500 mb-2">Based on your ARR of {formatMoney(liveArr)}. Market demand depends on your PMF, growth & brand.</p>
+                                    <div className="space-y-1.5">
+                                        {pricingTargets.map(pt => {
+                                            const targetVal = liveArr * pt.mult;
+                                            const fairVal = liveArr * 8 * ((m.pmf_score ?? 0) > 80 ? 1.3 : 1.0) * ((m.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
+                                            const ratio = fairVal / targetVal;
+                                            const demandLabel = ratio >= 1.5 ? "🚀 Oversubscribed" : ratio >= 1.2 ? "✅ Full demand" : ratio >= 0.8 ? "⚠️ Partial demand" : "📉 Undersubscribed";
+                                            const isSelected = (startup as any).ipo_price_mult === pt.mult;
+                                            return (
+                                                <div key={pt.mult}
+                                                    onClick={() => setStartup((s: any) => ({ ...s, ipo_price_mult: pt.mult }))}
+                                                    className={`flex items-center justify-between px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${
+                                                        isSelected ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-violet-200"
+                                                    }`}
+                                                >
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-slate-700 dark:text-slate-200">{pt.label}</p>
+                                                        <p className="text-[8px] text-slate-400">{formatMoney(targetVal)} target · Risk: {pt.risk}</p>
+                                                    </div>
+                                                    <p className="text-[8px] font-bold text-right">{demandLabel}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {!(startup as any).ipo_price_mult && (
+                                        <p className="text-[8px] text-amber-500 mt-2 text-center">Select a pricing tier to lock in before IPO Day</p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="space-y-1 mb-3">
+                                {passed === 6 && ipoStage === 0 && (
+                                    <button
+                                        onClick={() => {
+                                            const currentMonth = startup.history?.length ?? 0;
+                                            setStartup((s: any) => ({
+                                                ...s,
+                                                ipo_stage: 1,
+                                                ipo_attempt_month: currentMonth
+                                            }));
+                                            addTimelineEvent(`🏛️ IPO Process Started! CFO filed intent with underwriters. 4-month journey begins.`);
+                                        }}
+                                        className="w-full py-2 bg-violet-600 dark:bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-violet-700 dark:hover:bg-violet-500 transition mb-2"
+                                    >
+                                        File S-1 & Begin IPO Process →
+                                    </button>
+                                )}
+                                {passed === 5 && !hasCFO && ipoStage === 0 && (
+                                    <div className="mb-2 p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl">
+                                        <p className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">⛔ CFO Required for IPO</p>
+                                        <p className="text-[8px] text-rose-500 leading-tight">Hire a CFO from the Hiring tab. They handle SEC compliance, financial audits & the investor roadshow.</p>
+                                    </div>
+                                )}
                                 {ipoChecks.map((c, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         <span className="text-sm">{c.pass ? "✅" : "⬜"}</span>
@@ -1739,23 +1874,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     </div>
                                 ))}
                             </div>
-                            {passed >= 4 && ipoStage === 0 && (
-                                <button
-                                    onClick={() => {
-                                        const currentMonth = startup.history?.length ?? 0;
-                                        setStartup((s: any) => ({
-                                            ...s,
-                                            ipo_stage: 1,
-                                            ipo_attempt_month: currentMonth
-                                        }));
-                                        addTimelineEvent(`🏛️ IPO Process Started! Filed intent with underwriters. 5-month journey begins.`);
-                                    }}
-                                    className="w-full py-2 bg-violet-600 dark:bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-violet-700 dark:hover:bg-violet-500 transition"
-                                >
-                                    File S-1 & Begin IPO Process →
-                                </button>
-                            )}
-                            {passed < 4 && <p className="text-[8px] text-violet-500 leading-tight">Meet {4 - passed} more criteria to unlock the IPO process.</p>}
+                            {passed < 6 && <p className="text-[8px] text-violet-500 leading-tight">Meet {6 - passed} more criteria to unlock the IPO process.</p>}
                         </div>
                     );
                 })()}
@@ -1962,15 +2081,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const attrs = founder.attributes;
         const burnout = m.founder_burnout || 0;
         const health = m.founder_health || 100;
-        const HBar = ({ label, v, color }: { label: string; v: number; color: string }) => (
-            <div className="flex items-center gap-2 py-1.5 border-b border-slate-50 dark:border-slate-800 last:border-0">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
-                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className={cn("h-full rounded-full", color)} style={{ width: `${Math.round(v)}%` }} />
+        const HBar = ({ label, v, bonus = 0, color }: { label: string; v: number; bonus?: number; color: string }) => {
+            const total = Math.min(100, v + bonus);
+            const basePct = (v / total) * 100;
+            return (
+                <div className="flex items-center gap-2 py-1.5 border-b border-slate-50 dark:border-slate-800 last:border-0 grow">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
+                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                        <div className={cn("h-full", color)} style={{ width: `${Math.round((v / 100) * 100)}%` }} />
+                        {bonus > 0 && (
+                            <div className="h-full bg-white/40 animate-pulse" style={{ width: `${Math.round((bonus / 100) * 100)}%` }} />
+                        )}
+                    </div>
+                    <span className={cn("text-[10px] font-black w-6 text-right shrink-0", color.replace("bg-", "text-"))}>{Math.round(total)}</span>
                 </div>
-                <span className={cn("text-[10px] font-black w-6 text-right shrink-0", color.replace("bg-", "text-"))}>{Math.round(v)}</span>
-            </div>
-        );
+            );
+        };
         const maxHours = calcFocusHours(burnout, startup.employees || [], (startup as any).hasCoFounder);
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
         const usageColors = ["text-emerald-700 bg-emerald-50 border-emerald-200", "text-blue-700 bg-blue-50 border-blue-200", "text-amber-700 bg-amber-50 border-amber-200", "text-rose-700 bg-rose-50 border-rose-200", "text-slate-500 bg-slate-50 border-slate-200"];
@@ -1979,7 +2105,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             { label: "Intelligence", category: "intelligence" as const },
             { label: "Technical", category: "technical" as const },
             { label: "Leadership", category: "leadership" as const },
-            { label: "Networking", category: "networking" as const },
+            { label: "Network & Fundraising", category: "networking" as const },
             { label: "Marketing", category: "founder_marketing" as const },
             { label: "Health", category: "health" as const },
             { label: "Burnout Recovery", category: "burnout" as const },
@@ -2111,10 +2237,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="mb-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Attributes</p>
                     <HBar label="Intelligence" v={attrs.intelligence} color="bg-indigo-500" />
-                    <HBar label="Technical" v={attrs.technical_skill} color="bg-blue-500" />
-                    <HBar label="Leadership" v={attrs.leadership} color="bg-violet-500" />
-                    <HBar label="Networking" v={attrs.networking} color="bg-cyan-500" />
-                    <HBar label="Marketing" v={attrs.marketing_skill} color="bg-pink-500" />
+                    <HBar label="Technical" v={attrs.technical_skill} bonus={m.technical_skill || 0} color="bg-blue-500" />
+                    <HBar label="Leadership" v={attrs.leadership} bonus={m.leadership || 0} color="bg-violet-500" />
+                    <HBar label="Network & Fundraising" v={attrs.networking} color="bg-cyan-500" />
+                    <HBar label="Marketing" v={attrs.marketing_skill} bonus={m.marketing_skill || 0} color="bg-pink-500" />
                     <HBar label="Reputation" v={attrs.reputation ?? 50} color="bg-amber-500" />
                     <div className="mt-2 pt-2 border-t border-slate-50 space-y-0.5">
                         <HBar label="Health" v={health} color={health < 40 ? "bg-rose-500 animate-pulse" : "bg-emerald-500"} />
@@ -2214,64 +2340,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 {/* Expanded actions */}
                                 {!isCollapsed && (
                                     <div className="space-y-1.5 mt-1.5 ml-1">
-                                        {groupActions.map(action => {
-                                            const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-                                            const isOver = (focusHoursUsed + action.energyCost) > maxHours;
-                                            const uIdx = Math.min(usedCount, 4);
-
-                                            const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, {
-                                                month: startup.history?.length || 0,
-                                                startup,
-                                                founder,
-                                                m: startup.metrics
-                                            });
-
-                                            return (
-                                                <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
-                                                    className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                                        isOver ? "bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30")}>
-                                                    <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{action.label}</p>
-                                                        {(() => {
-                                                            const effectsList = Object.entries(scaledEffects)
-                                                                .map(([key, val]) => {
-                                                                    if (!val || key === "cash") return null;
-                                                                    const sign = val > 0 ? "+" : "";
-                                                                    const label = key.replace(/_/g, " ")
-                                                                        .replace("intelligence", "Int")
-                                                                        .replace("technical skill", "Tech")
-                                                                        .replace("leadership", "Lead")
-                                                                        .replace("networking", "Net")
-                                                                        .replace("marketing skill", "Mkt")
-                                                                        .replace("founder burnout", "Burnout")
-                                                                        .replace("founder health", "Health")
-                                                                        .replace("product quality", "Qual")
-                                                                        .replace("technical debt", "Debt")
-                                                                        .replace("reliability", "Rel")
-                                                                        .replace("brand awareness", "Brand");
-                                                                    return `${sign}${val} ${label}`;
-                                                                })
-                                                                .filter(Boolean)
-                                                                .join(" · ");
-
-                                                            return (
-                                                                <p className="text-[9px] text-slate-500 font-bold">
-                                                                    {effectsList}
-                                                                </p>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-1 shrink-0">
-                                                        <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">⚡{action.energyCost}h</span>
-                                                        {scaledEffects.technical_debt && scaledEffects.technical_debt < 0 && (
-                                                            <span className="text-[8px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200 shadow-sm flex items-center gap-0.5">⬇️ DEBT</span>
-                                                        )}
-                                                        {usedCount > 0 && <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded-md border", usageColors[uIdx])}>{usageLabels[uIdx]}</span>}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                        {groupActions.map(action => renderActionCard(action, "founder"))}
                                     </div>
                                 )}
                             </div>
@@ -2357,7 +2426,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatMoney(comp.valuation)}</p>
                                         </div>
                                         <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 dark:border-indigo-900 shadow-sm">
-                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Reach</p>
+                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Users</p>
                                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatNumber(comp.users)}</p>
                                         </div>
                                         <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 dark:border-indigo-900 shadow-sm">
@@ -2762,7 +2831,7 @@ export default function Dashboard() {
 
     // ── Monthly Storyline: ensure events trigger on load/reload ──────────────────
     useEffect(() => {
-        if (!isLoaded || month <= 1 || isCharacterDialogOpen || isProcessing) return;
+        if (!isLoaded || isCharacterDialogOpen || isProcessing) return;
 
         const storyDialog = getStorylineDialog(
             month,
@@ -2892,7 +2961,6 @@ export default function Dashboard() {
             currentValue: price,
             depreciationRate: asset.depreciationRate || 0
         };
-
         setFounder(prev => {
             const nextAttrs = { ...prev.attributes };
             if (asset.impact) {
@@ -3100,6 +3168,32 @@ export default function Dashboard() {
                             ...f.attributes,
                             sales_skill: isSLG ? f.attributes.sales_skill + 15 : f.attributes.sales_skill,
                         };
+
+                        // Apply Background Modifiers (Aggressive Shifts for Realism)
+                        const bg = d.background;
+                        if (bg === "Engineer") {
+                            newAttrs.technical_skill = (newAttrs.technical_skill || 0) + 25;
+                            newAttrs.networking = Math.max(0, (newAttrs.networking || 0) - 15);
+                            newAttrs.marketing_skill = Math.max(0, (newAttrs.marketing_skill || 0) - 10);
+                        } else if (bg === "MBA") {
+                            newAttrs.networking = (newAttrs.networking || 0) + 20;
+                            newAttrs.leadership = (newAttrs.leadership || 0) + 5;
+                            newAttrs.technical_skill = Math.max(0, (newAttrs.technical_skill || 0) - 15);
+                        } else if (bg === "Designer") {
+                            newAttrs.marketing_skill = (newAttrs.marketing_skill || 0) + 15;
+                            newAttrs.technical_skill = (newAttrs.technical_skill || 0) + 10;
+                        } else if (bg === "Serial Founder") {
+                            newAttrs.reputation = (newAttrs.reputation || 0) + 20;
+                            newAttrs.stress_tolerance = (newAttrs.stress_tolerance || 0) + 10;
+                        } else if (bg === "Hustler") {
+                            newAttrs.networking = (newAttrs.networking || 0) + 25;
+                            newAttrs.marketing_skill = (newAttrs.marketing_skill || 0) + 15;
+                            newAttrs.intelligence = Math.max(0, (newAttrs.intelligence || 0) - 15);
+                        } else if (bg === "Finance") {
+                            newAttrs.networking = (newAttrs.networking || 0) + 35;
+                            newAttrs.intelligence = (newAttrs.intelligence || 0) + 15;
+                            newAttrs.technical_skill = Math.max(0, (newAttrs.technical_skill || 0) - 15);
+                        }
 
                         // Apply Perks to attributes
                         if (perks.includes("charismatic_leader")) {
@@ -3363,6 +3457,14 @@ export default function Dashboard() {
             .map(([k, v]) => `${(v as number) > 0 ? '+' : ''}${v} ${k.replace(/_/g, ' ')}`).join(' · ');
         const feedbackText = `${def.emoji} ${def.label}  ·  ${parts}${hint ? `  ·  ${hint}` : ''}`;
         setImmediateActionFeedback({ text: feedbackText, color: multiplier >= 1 ? '#16a34a' : multiplier >= 0.5 ? '#d97706' : '#dc2626' });
+        
+        // Finalized Toast: Impact + Energy Cost as requested
+        toast.success(`${def.label}: Success!`, { 
+            description: `${parts} · Consumed ${energyCost}h Focus`, 
+            icon: def.emoji,
+            duration: 4000
+        });
+
         addTimelineEvent(`${def.emoji} ${def.label}: ${def.description}. Result: ${parts}`);
         setTimeout(() => setImmediateActionFeedback(null), 3000);
     };
@@ -3587,13 +3689,16 @@ export default function Dashboard() {
                     ns.phase = getFundingPhase(nextStage);
 
                     const investorEquity = equityGiven;
-                    const founderDiluted = 100 - investorEquity;
-                    const existingEntries = (ns.capTable || []).filter((e: any) => e.type !== "Founder");
-                    ns.capTable = [
-                        { name: "Founder", equity: parseInt(founderDiluted.toFixed(0)), type: "Founder" },
-                        ...existingEntries,
-                        { name: pendingInvestor.name, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
-                    ];
+
+                    
+                    ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
+                        if (e.type === "Founder") {
+                            return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
+                        }
+                        return e;
+                    });
+                    
+                    ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
                     if (ns.metrics?.investor_pipeline) {
                         ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
                     }
@@ -3607,6 +3712,13 @@ export default function Dashboard() {
                 setSelectedAction("none");
                 setPendingInvestor(null);
                 setPendingCounterOffer(null);
+
+                // Review prompt at key funding milestones (peak happiness)
+                if (nextStage === "Seed Round" || nextStage === "Angel Investment") {
+                    ReviewTriggers.firstFundingRaise();
+                } else if (nextStage === "Series A") {
+                    ReviewTriggers.seriesARaise();
+                }
             } else if (result.counterValuation) {
                 toast.info("Investor Countered", { description: "Review their terms below." });
                 setPendingCounterOffer({ valuation: result.counterValuation, equity: result.counterEquity! });
@@ -3630,13 +3742,15 @@ export default function Dashboard() {
                 ns.phase = getFundingPhase(nextStage);
 
                 const investorEquity = equityGiven;
-                const founderDiluted = 100 - investorEquity;
-                const existingEntries = (ns.capTable || []).filter((e: any) => e.type !== "Founder");
-                ns.capTable = [
-                    { name: "Founder", equity: parseInt(founderDiluted.toFixed(0)), type: "Founder" },
-                    ...existingEntries,
-                    { name: pendingInvestor.name, equity: parseInt(investorEquity.toFixed(0)), type: "Investor" },
-                ];
+                
+                ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
+                    if (e.type === "Founder") {
+                        return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
+                    }
+                    return e;
+                });
+                
+                ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
                 if (ns.metrics?.investor_pipeline) {
                     ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
                 }
@@ -3807,7 +3921,11 @@ export default function Dashboard() {
             setIsProcessing(true);
             setActionCategory(null); // Auto-close any open action sheets (Hire, Strategy, etc) so they don't block modals
             setRejectedCandidates([]);
+            
             try {
+                // Ensure the overlay has a frame to render before processing starts
+                await new Promise(r => setTimeout(r, 800));
+                
                 const nextMonth = month + 1;
 
 
@@ -3833,14 +3951,48 @@ export default function Dashboard() {
                     newStartup.ipo_stage += 1;
                     const IPO_MESSAGES = [
                         "",
-                        "📝 Pre-IPO Planning complete. Setting up data rooms.",
-                        "📄 S-1 Filing submitted. SEC review in progress.",
-                        "💰 Roadshow complete. Investor demand is high!",
-                        "🏛️ IPO DAY! The bell is ringing!"
+                        "📝 Pre-IPO Planning complete. CFO has set up data rooms & financial audits.",
+                        "📄 S-1 Filing submitted to SEC. Roadshow begins next month.",
+                        "💰 Roadshow complete. Select your pricing tier in the Funding tab before IPO Day!",
+                        "🏛️ IPO DAY! The opening bell is ringing!"
                     ];
                     addTimelineEvent(IPO_MESSAGES[newStartup.ipo_stage], nextMonth);
 
                     if (newStartup.ipo_stage === 4) {
+                        // Resolve IPO subscription pricing
+                        const priceMult = (newStartup as any).ipo_price_mult ?? 8;
+                        const liveArr = (newStartup.metrics.revenue || 0) * 12;
+                        const targetVal = liveArr * priceMult;
+                        const fairVal = liveArr * 8
+                            * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
+                            * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
+                        const ratio = fairVal / Math.max(1, targetVal);
+
+                        let finalValuation: number;
+                        let ipoEventMsg: string;
+                        if (ratio >= 1.5) {
+                            finalValuation = Math.floor(targetVal * 1.5);
+                            ipoEventMsg = `🚀 IPO OVERSUBSCRIBED 2×! Stock popped +50% on listing day. Final market cap: ${formatMoney(finalValuation)}`;
+                        } else if (ratio >= 1.2) {
+                            finalValuation = targetVal;
+                            ipoEventMsg = `✅ IPO Fully Subscribed at target. Market cap: ${formatMoney(finalValuation)}`;
+                        } else if (ratio >= 0.8) {
+                            finalValuation = Math.floor(targetVal * 0.85);
+                            ipoEventMsg = `⚠️ IPO Partially Subscribed. Priced at a 15% discount. Market cap: ${formatMoney(finalValuation)}`;
+                        } else {
+                            finalValuation = Math.floor(targetVal * 0.60);
+                            ipoEventMsg = `📉 IPO Undersubscribed. Priced at a 40% discount to attract buyers. Market cap: ${formatMoney(finalValuation)}`;
+                        }
+
+                        const founderEquityPct = (newStartup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 20) / 100;
+                        const cashRaised = Math.floor(finalValuation * 0.20); // 20% float
+                        newStartup.valuation = finalValuation;
+                        newStartup.metrics.cash = (newStartup.metrics.cash || 0) + cashRaised;
+
+                        addTimelineEvent(ipoEventMsg, nextMonth);
+                        addTimelineEvent(`💵 Raised ${formatMoney(cashRaised)} from public float (20%). Your stake is worth ${formatMoney(Math.floor(finalValuation * founderEquityPct))}.`, nextMonth);
+
+                        ReviewTriggers.ipoDay();
                         playSound("success");
                         newStartup.outcome = "ipo";
                         const pts = recordExit(newStartup, founder.name);
@@ -4161,9 +4313,9 @@ export default function Dashboard() {
                 'brand_awareness', 'employees', 'engineers', 'marketers', 'sales',
                 'team_morale', 'technical_debt', 'reliability', 'innovation', 'pmf_score',
                 'product_quality', 'feature_completion', 'founder_burnout', 'founder_health',
-                'sleep_quality', 'founder_salary', 'fraud_risk', 'option_pool',
+                'sleep_quality', 'founder_salary', 'option_pool',
                 'culture_score', 'pricing', 'unit_sales', 'cac', 'ltv', 'aov',
-                'cogs', 'opex', 'net_profit',
+                'cogs', 'opex', 'net_profit'
             ]);
             const ATTR_KEYS = new Set([
                 'intelligence', 'technical_skill', 'leadership', 'networking',
@@ -4189,7 +4341,7 @@ export default function Dashboard() {
                 });
 
                 // Clamp metrics
-                ['team_morale', 'reliability', 'product_quality', 'pmf_score', 'founder_burnout', 'founder_health', 'sleep_quality', 'innovation', 'fraud_risk'].forEach(k => {
+                ['team_morale', 'reliability', 'product_quality', 'pmf_score', 'founder_burnout', 'founder_health', 'sleep_quality', 'innovation'].forEach(k => {
                     if ((metrics as any)[k] !== undefined) {
                         (metrics as any)[k] = Math.min(100, Math.max(0, (metrics as any)[k]));
                     }
@@ -4281,21 +4433,7 @@ export default function Dashboard() {
                     {/* HEADER */}
                     <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
                     
-                    {/* MACRO SEASON BANNER */}
-                    {m.current_season && m.current_season !== "Normal" && (
-                        <div className={`absolute left-0 right-0 -bottom-6 h-6 flex items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] shadow-sm z-[-1] animate-in slide-in-from-top duration-500 ${
-                            m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
-                            m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
-                            m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
-                            m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
-                            "bg-slate-800 text-white"
-                        }`}>
-                            {m.current_season === "Bull Market" && "📈 Bull Market: Fundraising Sentiment High"}
-                            {m.current_season === "Bear Market" && "📉 Bear Market: Investors Risk Averse"}
-                            {m.current_season === "AI Boom" && "🤖 AI Boom: Tech Speed +20% / Salaries Surge"}
-                            {m.current_season === "Privacy Scare" && "🔒 Privacy Scare: Marketing Efficiency -30%"}
-                        </div>
-                    )}
+
 
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
@@ -4415,6 +4553,22 @@ export default function Dashboard() {
                     </div>
                 </div>
 
+                {/* MACRO SEASON BANNER */}
+                {m.current_season && m.current_season !== "Normal" && (
+                    <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${
+                        m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
+                        m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
+                        m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
+                        m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
+                        "bg-slate-800 text-white"
+                    }`}>
+                        {m.current_season === "Bull Market" && "📈 Bull Market: Fundraising Sentiment High"}
+                        {m.current_season === "Bear Market" && "📉 Bear Market: Investors Risk Averse"}
+                        {m.current_season === "AI Boom" && "🤖 AI Boom: Tech Speed +20% / Salaries Surge"}
+                        {m.current_season === "Privacy Scare" && "🔒 Privacy Scare: Marketing Efficiency -30%"}
+                    </div>
+                )}
+
                                                 {/* Collapsible Milestone Card */}
                 <div 
                     onClick={() => setIsMilestoneExpanded(!isMilestoneExpanded)} 
@@ -4444,18 +4598,7 @@ export default function Dashboard() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            {/* Legal & Personal HUD - moved from header for mobile space */}
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
-                                <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
-                                    <span>🏦</span>
-                                    <span>{formatMoney(founder.private_cash || 0)}</span>
-                                </div>
-                                <div className="w-[1px] h-3 bg-slate-300 dark:bg-slate-600 mx-0.5" />
-                                <div className="flex items-center gap-1 text-[10px] font-black text-rose-600 dark:text-rose-400">
-                                    <span>🚔</span>
-                                    <span>{Math.floor(m.fraud_risk || 0)}%</span>
-                                </div>
-                            </div>
+
                             <div className="flex items-center gap-2">
                                 <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                     <div className="h-full bg-indigo-500 rounded-full" style={{ 
@@ -5910,18 +6053,34 @@ export default function Dashboard() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* V2 Teaser — IPO only */}
+                                    {outcome === "ipo" && (
+                                        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-4 relative overflow-hidden">
+                                            <div className="absolute -top-4 -right-4 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
+                                            <div className="relative z-10">
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest mb-2">
+                                                    🧩 Your Story Doesn't End Here
+                                                </div>
+                                                <p className="text-white font-bold text-sm leading-snug mb-1">
+                                                    You've just listed on the stock exchange.
+                                                </p>
+                                                <p className="text-indigo-100 text-[10px] leading-relaxed mb-3">
+                                                    But running a publicly traded company is a whole new game. The V2 update continues your journey — quarterly earnings calls, activist investors, board battles, and the pressure of performing in front of Wall Street.
+                                                </p>
+                                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 w-fit">
+                                                    <span className="text-xs">🕐</span>
+                                                    <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Footer buttons - fixed bottom with safe area */}
                                 <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                                    {(outcome === "ipo" || outcome === "acquired") && (
-                                        <button
-                                            onClick={() => { setIsEndgameOpen(false); setDismissedEndgame(true); }}
-                                            className="w-full py-3.5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition active:scale-[0.98]"
-                                        >
-                                            Explore My Startup (Sandbox)
-                                        </button>
-                                    )}
+
+
                                     <button
                                         onClick={() => handleResetGame(true)}
                                         className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
@@ -5968,11 +6127,35 @@ export default function Dashboard() {
                                     <Rocket className="size-3" /> Upcoming Expansion
                                 </div>
                                 <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
-                                <p className="text-indigo-100 text-sm font-medium max-w-md">We're transforming Founder Sim into a global empire tycoon. Here's what's landing in your garage soon.</p>
+                                <p className="text-indigo-100 text-sm font-medium max-w-md">V2 picks up where you left off — run your publicly listed company, build a global empire, and face challenges no bootstrapped founder ever imagined.</p>
                             </div>
                         </div>
 
                         <div className="p-8 bg-slate-50 dark:bg-slate-900/50 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
+                            {/* Post-IPO Chapter — Featured First Card */}
+                            <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 p-5 rounded-3xl shadow-lg shadow-violet-600/20 relative overflow-hidden">
+                                <div className="absolute -top-6 -right-6 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
+                                <div className="relative z-10">
+                                    <div className="flex gap-2 mb-3">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest">New Chapter</span>
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 text-amber-100 text-[8px] font-black uppercase tracking-widest">Continues Your Story</span>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="size-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏛️</div>
+                                        <div>
+                                            <p className="text-base font-black text-white mb-1">Post-IPO: The Public Company Era</p>
+                                            <p className="text-xs text-indigo-100 font-medium leading-relaxed">Your IPO was just the beginning. The V2 update picks up where Founder Sim leaves off — you'll run your company as a publicly listed entity. Manage quarterly earnings, deal with shareholder activism, navigate board politics, and face the brutally realistic world of public markets.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-3">
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25">
+                                            <span className="text-xs">🕐</span>
+                                            <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-300 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
                                 <div className="flex gap-4">
@@ -5986,10 +6169,10 @@ export default function Dashboard() {
 
                             <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 shadow-sm relative overflow-hidden">
                                 <div className="flex gap-4">
-                                    <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🏛️</div>
+                                    <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
                                     <div>
                                         <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">The Empire Expansion</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate tasks to VPs, engage in hostile takeovers, lobby the government, and lead your company to a public offering.</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate divisions to your VPs, execute hostile takeovers of rivals, lobby regulators, and expand into international markets.</p>
                                     </div>
                                 </div>
                             </div>
@@ -5999,7 +6182,7 @@ export default function Dashboard() {
                                     <div className="size-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
                                     <div>
                                         <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Dynamic Crisis Engine</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">CEO burnout meltdowns, viral PR nightmares, and aggressive competitor espionage. Your choices now carry permanent weight.</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Data breaches, activist short-sellers, viral PR disasters, and regulatory investigations. Every quarter on the public markets brings a new fire to put out.</p>
                                     </div>
                                 </div>
                             </div>
@@ -6016,7 +6199,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="px-8 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0">
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q2 2026 Drop</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q3 2026 Drop</p>
                             <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
                                 LET'S SCALE →
                             </Button>

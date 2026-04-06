@@ -94,6 +94,48 @@ export function processOngoingPrograms(
         newStartup = result.startup;
         newFounder = result.founder;
 
+        // ── Special-case: fundraising programs generate investor leads dynamically ──
+        if (prog.id === "fundraising_consultant" || prog.id === "cfo_fundraising_roadshow") {
+            const hasCFO = !!(startup.cxoTeam?.["CFO"]);
+            const networking = (founder.attributes?.networking || 10);
+            const leadsPerMonth = Math.round(networking / 2) + (hasCFO ? 25 : 5);
+
+            // Consultant charges a fee (scales with valuation); CFO handles for free
+            if (!hasCFO && prog.id === "fundraising_consultant") {
+                const val = startup.valuation || 250_000;
+                const fee = val > 500_000
+                    ? Math.round(15_000 * (1 + Math.log2(val / 500_000) * 0.4))
+                    : 15_000;
+                newStartup = {
+                    ...newStartup,
+                    metrics: {
+                        ...newStartup.metrics,
+                        cash: (newStartup.metrics.cash || 0) - fee,
+                        investor_pipeline: {
+                            ...(newStartup.metrics.investor_pipeline || { leads: 0, meetings: 0, term_sheets: 0 }),
+                            leads: (newStartup.metrics.investor_pipeline?.leads || 0) + leadsPerMonth,
+                        }
+                    }
+                };
+                log.push(`💼 Fundraising Consultant: +${leadsPerMonth} investor leads (Fee: $${fee.toLocaleString()})`);
+            } else if (hasCFO && prog.id === "cfo_fundraising_roadshow") {
+                newStartup = {
+                    ...newStartup,
+                    metrics: {
+                        ...newStartup.metrics,
+                        investor_pipeline: {
+                            ...(newStartup.metrics.investor_pipeline || { leads: 0, meetings: 0, term_sheets: 0 }),
+                            leads: (newStartup.metrics.investor_pipeline?.leads || 0) + leadsPerMonth,
+                        }
+                    }
+                };
+                log.push(`🏦 CFO Roadshow: +${leadsPerMonth} investor leads (free)`);
+            }
+            prog.streakMonths++;
+            prog.lastAppliedMonth = currentMonth;
+            continue; // skip generic effect processing
+        }
+
         // Streak badge
         const streakBadge = streak >= 6 ? " 🔥🔥🔥" : streak >= 3 ? " 🔥🔥" : streak >= 1 ? " 🔥" : "";
         const multStr = multiplier > 1 ? ` (×${multiplier.toFixed(0)} streak bonus)` : "";

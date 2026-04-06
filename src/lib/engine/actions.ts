@@ -439,7 +439,7 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         energyCost: 30,
         description: "Intense feature development sprint",
         cooldownMonthly: 3,
-        baseEffects: { product_quality: 3, technical_debt: 8, innovation: 2, cash: -1000 },
+        baseEffects: { product_quality: 3, technical_debt: 4, innovation: 2, cash: -1000 },
         situationalBoosts: { small_team: 1.5 },
         situationalNote: { small_team: "🔥 1.5× — high impact for small founder-led teams" },
     },
@@ -452,7 +452,7 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         energyCost: 40,
         description: "Scale your product offering for new markets",
         cooldownMonthly: 2,
-        baseEffects: { product_quality: 6, technical_debt: 5, users: 30, cash: -2000 },
+        baseEffects: { product_quality: 6, technical_debt: 3, users: 30, cash: -2000 },
     },
     {
         id: "refactor_codebase",
@@ -706,6 +706,18 @@ export const ONGOING_PROGRAMS: OngoingProgramDef[] = [
         streakMultipliers: [{ atMonth: 3, multiplier: 1.4 }, { atMonth: 6, multiplier: 1.8 }],
     },
     {
+        id: "founder_health_routine",
+        label: "Founder Health Routine",
+        emoji: "🥗",
+        category: "health",
+        category_ui: "Founder",
+        description: "Gym & diet — +4 Health, -2 Burnout",
+        monthlyCost: 200,
+        monthlyEnergy: 8,
+        baseMonthlyEffect: {  founder_health: 4, founder_burnout: -2  },
+        streakMultipliers: [{ atMonth: 2, multiplier: 1.5 }],
+    },
+    {
         id: "daily_meditation",
         label: "Daily Meditation",
         emoji: "🧘",
@@ -817,6 +829,30 @@ export const ONGOING_PROGRAMS: OngoingProgramDef[] = [
         baseMonthlyEffect: { networking: 2 },
         streakMultipliers: [{ atMonth: 3, multiplier: 1.2 }, { atMonth: 6, multiplier: 1.4 }],
     },
+    {
+        id: "fundraising_consultant",
+        label: "Hire Fundraising Consultant",
+        emoji: "💼",
+        category: "funding",
+        category_ui: "Funding",
+        description: "Generates massive leads. Heavily expensive cash drain.",
+        monthlyCost: 15000,
+        monthlyEnergy: 5,
+        baseMonthlyEffect: { }, 
+        streakMultipliers: [],
+    },
+    {
+        id: "cfo_fundraising_roadshow",
+        label: "CFO: Active Roadshow",
+        emoji: "🏦",
+        category: "funding",
+        category_ui: "Funding",
+        description: "Your CFO packs your pipeline dynamically. Zero extra cost.",
+        monthlyCost: 0,
+        monthlyEnergy: 0,
+        baseMonthlyEffect: { }, 
+        streakMultipliers: [],
+    }
 ];
 
 // ─── Helper: Get action by ID ─────────────────────────────────────────────────
