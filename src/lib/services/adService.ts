@@ -6,7 +6,8 @@ import {
     AdOptions,
     RewardAdOptions,
     AdMobError,
-    RewardAdPluginEvents
+    RewardAdPluginEvents,
+    AdmobConsentStatus
 } from '@capacitor-community/admob';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
@@ -38,7 +39,7 @@ class AdService {
     async initialize() {
         if (this.initialized) return;
         this.isNative = Capacitor.isNativePlatform();
-        
+
         if (this.isNative) {
             this.platform = Capacitor.getPlatform() as 'ios' | 'android';
         }
@@ -49,6 +50,18 @@ class AdService {
         }
 
         try {
+            // Handle UMP Consent (Google Requirement)
+            // This is separate from Apple's ATT and is required for ads to serve in many cases.
+            try {
+                const consentInfo = await AdMob.requestConsentInfo();
+                if (consentInfo.isConsentFormAvailable && consentInfo.status === AdmobConsentStatus.REQUIRED) {
+                    await AdMob.showConsentForm();
+                }
+            } catch (consentError) {
+                console.warn('UMP Consent flow failed or skipped:', consentError);
+            }
+
+            // Handle iOS ATT (App Tracking Transparency)
             if (this.platform === 'ios') {
                 const trackingInfo = await AdMob.trackingAuthorizationStatus();
                 console.log('AdMob Tracking Status:', trackingInfo.status);
@@ -58,7 +71,7 @@ class AdService {
             }
 
             await AdMob.initialize({
-                initializeForTesting: false, 
+                initializeForTesting: false,
             });
             this.initialized = true;
             console.log('AdMob Initialized successfully on', this.platform);
@@ -121,7 +134,7 @@ class AdService {
 
     async showRewardedAd(onReward: () => void, adType: 'cash' | 'energy' | 'mentor' | 'default' = 'default') {
         if (!this.initialized) await this.initialize();
-        
+
         if (!this.isNative) {
             toast.info("Ads available on the mobile app only.", { description: "Download the app to earn rewards via ads." });
             return;

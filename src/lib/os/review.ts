@@ -19,7 +19,7 @@ export async function requestStoreReview() {
 
 export function openStoreListing() {
     const url = Capacitor.getPlatform() === 'ios'
-        ? `https://apps.apple.com/app/idYOUR_APPLE_ID` // Update after iOS submission
+        ? `https://apps.apple.com/app/id6761432505` // Live Apple ID
         : `https://play.google.com/store/apps/details?id=${APP_ID}`;
     
     window.open(url, '_blank');
