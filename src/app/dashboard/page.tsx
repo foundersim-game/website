@@ -2749,10 +2749,8 @@ export default function Dashboard() {
             const online = typeof window !== "undefined" ? navigator.onLine : true;
             setIsOnline(online);
             if (online && !isPremium) {
-                adService.initialize().then(() => {
-                    adService.showBanner();
-                    adService.prepareInterstitial();
-                });
+                // Use resume as it handles re-attaching banners and pre-loading
+                adService.resume();
             }
         };
 
@@ -2773,7 +2771,10 @@ export default function Dashboard() {
         // Also check on app resume
         const resumeListener = App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
-                checkConnectivity();
+                console.log('App resumed, refreshing ads and checking connection...');
+                setTimeout(() => {
+                    checkConnectivity(); // This already handles adService.resume()
+                }, 1500); // 1.5s delay to ensure native view is fully ready
             }
         });
 
@@ -3031,16 +3032,12 @@ export default function Dashboard() {
         };
         enableFullscreen();
 
-        // AdMob Initialization (Serves mock on web)
+        // AdMob Initialization
         const initAds = async () => {
             try {
+                adService.setPremium(isPremium);
                 await adService.initialize();
-                if (!isPremium) {
-                    await adService.showBanner();
-                    await adService.prepareInterstitial();
-                } else {
-                    await adService.hideBanner();
-                }
+                // adService.initialize() now calls showBanner() and preLoadAll() internally if not premium
             } catch (e) {
                 console.error("AdMob initialization failed", e);
             }
@@ -3054,6 +3051,7 @@ export default function Dashboard() {
 
     // Watch for status changes to hide ads immediately
     useEffect(() => {
+        adService.setPremium(isPremium);
         if (isPremium) {
             adService.hideBanner();
         } else if (isLoaded) {
@@ -3307,9 +3305,15 @@ export default function Dashboard() {
 
     const handleResetGame = (skipConfirm = false) => {
         const performReset = () => {
+            // Thoroughly clear all persistent states to ensure a fresh 2nd game
             localStorage.removeItem("founder_sim_state");
             localStorage.removeItem("founder_data");
-            router.push("/");
+            localStorage.removeItem("founder_sim_ad_owed");
+            localStorage.removeItem("founder_sim_story_state");
+            localStorage.removeItem("founder_sim_achievements");
+            
+            // Force a full location reload to clear any in-memory module-level states (like AI keys)
+            window.location.href = "/";
         };
 
         if (skipConfirm) {
@@ -4548,6 +4552,11 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
                                     <Rocket className="mr-2 h-4 w-4" /> V2 Roadmap (Coming Soon)
                                 </DropdownMenuItem>
+                                {isNative && (
+                                    <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-slate-100 focus:text-slate-900 font-bold transition-colors text-slate-500" onClick={() => adService.showPrivacySettings()}>
+                                        <Shield className="mr-2 h-4 w-4" /> Privacy Settings
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

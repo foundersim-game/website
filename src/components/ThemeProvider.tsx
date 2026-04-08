@@ -19,6 +19,24 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<Theme>("dark");
 
+    const updateNativeUI = useCallback(async (newTheme: Theme) => {
+        if (typeof window === "undefined") return;
+        
+        try {
+            const { StatusBar, Style } = await import("@capacitor/status-bar");
+            if (newTheme === "dark") {
+                await StatusBar.setStyle({ style: Style.Dark });
+                // Match the oklch(0.12 0.015 240) background color which is ~#1a1c24
+                await StatusBar.setBackgroundColor({ color: '#1a1c24' });
+            } else {
+                await StatusBar.setStyle({ style: Style.Light });
+                await StatusBar.setBackgroundColor({ color: '#f7f8fc' });
+            }
+        } catch (e) {
+            console.warn("StatusBar plugin not available", e);
+        }
+    }, []);
+
     // On mount, read preference from localStorage
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -26,16 +44,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const initial = stored ?? "dark";
         setTheme(initial);
         document.documentElement.classList.toggle("dark", initial === "dark");
-    }, []);
+        updateNativeUI(initial);
+    }, [updateNativeUI]);
 
     const toggleTheme = useCallback(() => {
         setTheme(prev => {
             const next = prev === "light" ? "dark" : "light";
             localStorage.setItem("foundersim_theme", next);
             document.documentElement.classList.toggle("dark", next === "dark");
+            updateNativeUI(next);
             return next;
         });
-    }, []);
+    }, [updateNativeUI]);
 
     return (
         <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>

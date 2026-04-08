@@ -105,10 +105,13 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             sliders: [{ key: "ad_intensity", label: "Ad Frequency", min: 0, max: 100, step: 1, unit: "%" }],
             calc: (p, m) => {
                 const ads = m.ad_intensity || 0;
+                // Disruption spike: past 40% intensity, churn starts climbing much faster
+                const disruption = ads > 40 ? (ads - 40) * 0.008 : 0;
                 return {
                     conversion: p === 0 ? 10.0 : Math.max(0.1, 15 / (p + 5)),
-                    churn: 0.12 + (ads / 100) * 0.15 + (p / 20) * 0.05,
-                    loopPower: 10 - (ads / 20)
+                    churn: 0.12 + (ads / 100) * 0.20 + disruption + (p / 20) * 0.05,
+                    // Virality (loop power) drops sharply if game is annoying
+                    loopPower: Math.max(0.1, 10 - (ads / 8))
                 };
             },
             salesRoleName: "Monetization Manager",
@@ -349,10 +352,23 @@ export function calculateFinancials(
         cogs = revenue * (industry === "AI Platform" ? 0.30 : 0.10);
     } else {
         if (industry === "Mobile Game") {
-            // F2P: ad revenue + 3% whale IAP conversion
+            // F2P Model: Ad Revenue (daily ARPU based) + Whale IAP conversion
             const adsFreq = (metrics as any).ad_intensity || 0;
-            revenue = (users * (adsFreq / 100) * 0.15) + (users * 0.03 * pricing * salesConversionBoost);
-            paidUsers = Math.floor(users * 0.03 * salesConversionBoost);
+            
+            // 1. Ad Revenue: Users * (Freq Ratio) * Daily ARPU * 30 Days
+            // Higher ad intensity reduces the value per-ad (UX fatigue/blindness)
+            const adARPU = 0.02 * (1 - (adsFreq / 200)); 
+            const adMonthlyRev = users * (adsFreq / 100) * adARPU * 30;
+
+            // 2. IAP Revenue: Users * Conversion * Monthly Spend (Pricing)
+            // IAP conversion (Average Monthly Spend) drops sharply as ad frequency increases (bad user experience)
+            const iapBaseConversion = 0.03;
+            // High disruption curve: at 50% frequency, you lose 66% of your shoppers. At 75%, conversion is near zero.
+            const iapPenalty = Math.max(0.05, 1 - (adsFreq / 75));
+            const iapConversion = iapBaseConversion * iapPenalty * salesConversionBoost;
+            
+            revenue = adMonthlyRev + (users * iapConversion * pricing);
+            paidUsers = Math.floor(users * iapConversion);
             cogs = revenue * 0.05;
         } else if (industry === "AI Platform") {
             // Usage-based API: free tier exists, ~40% of devs convert shaped by PMF.
