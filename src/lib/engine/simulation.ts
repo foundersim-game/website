@@ -301,7 +301,7 @@ export function calculateFinancials(
         users?: number,
         pricing?: number
     }
-): { monthlyRevenue: number, monthlyCogs: number, monthlyOpex: number, paidUsers: number, opexBreakdown?: any } {
+): { monthlyRevenue: number, monthlyCogs: number, monthlyOpex: number, paidUsers: number, avgVolume: number, opexBreakdown?: any } {
     const metrics = startup.metrics;
     const users = overrides?.users ?? metrics.users;
     const pricing = overrides?.pricing ?? metrics.pricing ?? 0;
@@ -336,7 +336,7 @@ export function calculateFinancials(
     }
 
     // 2. REVENUE & COGS
-    let revenue = 0, cogs = 0, paidUsers = 0;
+    let revenue = 0, cogs = 0, paidUsers = 0, avgVolume = 0;
     const configRef = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
     const activeConfig = isSLG ? configRef.SLG : configRef.PLG;
 
@@ -368,6 +368,7 @@ export function calculateFinancials(
             const iapConversion = iapBaseConversion * iapPenalty * salesConversionBoost;
             
             revenue = adMonthlyRev + (users * iapConversion * pricing);
+            avgVolume = users > 0 ? revenue / users : 0;
             paidUsers = Math.floor(users * iapConversion);
             cogs = revenue * 0.05;
         } else if (industry === "AI Platform") {
@@ -375,7 +376,8 @@ export function calculateFinancials(
             // ×2 multiplier = avg 2 token bundles consumed per paying developer per month.
             const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 70);
             paidUsers = Math.floor(users * Math.min(0.60, Math.max(0.10, 0.40 * pmfFactor * salesConversionBoost)));
-            revenue = paidUsers * pricing * 2;
+            avgVolume = 2; // Tokens consumed per paid user
+            revenue = paidUsers * pricing * avgVolume;
             cogs = revenue * 0.35; // High GPU compute costs
         } else if (industry === "OTT / Streaming") {
             // Recurring Billing model — not freemium. Most signups pay.
@@ -386,15 +388,15 @@ export function calculateFinancials(
             cogs = revenue * 0.40; // Content licensing / production costs
         } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
             // GMV × interchange rate. Per-user GMV grows as users become more active over time.
-            const baseGMV = (200 + (monthsPassed * 15)) * salesConversionBoost; // Sales increases per-user transaction volume
+            avgVolume = (200 + (monthsPassed * 15)) * salesConversionBoost; // Sales increases per-user transaction volume
             paidUsers = users; // Every active user transacts
-            revenue = users * baseGMV * (pricing / 100);
+            revenue = users * avgVolume * (pricing / 100);
             cogs = revenue * 0.20; // Payment processing + compliance overhead
         } else if (industry === "Marketplace") {
             // GMV × take rate. Platform GMV per user grows as marketplace matures.
-            const baseGMV = 150 + (monthsPassed * 12); // $150 → ~$390 by month 20
+            avgVolume = 150 + (monthsPassed * 12); // $150 → ~$390 by month 20
             paidUsers = users; // Every buyer/seller generates GMV
-            revenue = users * baseGMV * (pricing / 100);
+            revenue = users * avgVolume * (pricing / 100);
             cogs = revenue * 0.15; // Payment processing + trust & safety
         } else {
             // Generic freemium path: SaaS, EdTech, Dev Tools
@@ -430,6 +432,7 @@ export function calculateFinancials(
         monthlyCogs: finalCogs, 
         monthlyOpex: finalOpex, 
         paidUsers: paidUsers || 0, 
+        avgVolume: avgVolume || 0,
         opexBreakdown: { 
             salaries: (totalSalaries + benefitsBudget) * scalingOverheadMult || 0, 
             founderLiving: founderLivingCost * scalingOverheadMult || 0, 
@@ -901,7 +904,18 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // User-based floor for pre-revenue
     const userValuation = metrics.users * 40 * (1 + metrics.pmf_score / 100);
 
-    let finalValuation = Math.max(500000, arrValuation, userValuation) * qualityPremium;
+    // Profit & Burn Adjustments
+    let profitMultiplier = 1.0;
+    if (metrics.net_profit > 0) {
+        // Reward profitability (+10% to +50% bump)
+        profitMultiplier = 1 + Math.min(0.5, metrics.net_profit / Math.max(1, monthlyRevenue));
+    } else {
+        // Punish extreme burn (-10% to -40% hit)
+        const burnRatio = Math.abs(metrics.net_profit) / Math.max(1, monthlyRevenue);
+        if (burnRatio > 1.5) profitMultiplier = Math.max(0.6, Math.min(0.9, 1.5 / burnRatio));
+    }
+
+    let finalValuation = Math.max(500000, arrValuation, userValuation) * qualityPremium * profitMultiplier;
 
     // Elite Growth Premium (Unicorn Path) - Only for significant revenue
     if (annualRevenue > 2000000 && metrics.growth_rate > 0.15 && metrics.pmf_score > 60) {
@@ -909,12 +923,22 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     }
 
     // --- VALUATION PERSISTENCE (Damping) ---
-    // Prevent sudden crashes after a high-valuation round. 
-    // Valuation can only drop by ~3% per month unless metrics are truly disastrous.
+    // Prevent sudden crashes after a high-valuation round, BUT punish if metrics legitimately decline.
     const previousValuation = startup.valuation || 500000;
-    const supportFloor = previousValuation * 0.97;
+    
+    let floorDecay = 0.97; // Default: -3% max drop per month
+    if (metrics.growth_rate <= 0 || profitMultiplier < 0.8) {
+        // If growth is dead or burn is alarming, valuation floor drops sharply (-10% to -20%)
+        floorDecay = metrics.growth_rate < -0.05 ? 0.80 : 0.90; 
+    } else if (finalValuation > previousValuation) {
+        // If things are going great, let it ride up naturally; floor isn't needed.
+        floorDecay = 1.0;
+    }
+    
+    const supportFloor = previousValuation * floorDecay;
     
     newStartup.valuation = Math.max(Math.floor(finalValuation), Math.floor(supportFloor));
+
 
     // --- SKILL ATROPHY & MAINTENANCE (Use it or Lose it!) ---
     const actionCategories: Record<string, string[]> = {

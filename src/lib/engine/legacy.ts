@@ -11,7 +11,8 @@ export type HallOfFameEntry = {
     id: string;
     companyName: string;
     founderName: string;
-    outcome: "ipo" | "acquisition";
+    outcome: "ipo" | "acquired" | "bankrupt" | "wound_down" | "burnout" | "other" | "acquisition"; // Added acquisition for legacy compatibility
+
     valuation: number;
     exitDate: string;
     pointsEarned: number;
@@ -192,11 +193,13 @@ export function recordExit(startup: Startup, founderName: string) {
     
     const totalEarned = Math.max(1, basePoints + ipoBonus + speedBonus);
 
+    const isWin = startup.outcome === "ipo" || startup.outcome === "acquired";
+
     const entry: HallOfFameEntry = {
         id: crypto.randomUUID(),
         companyName: startup.name,
         founderName,
-        outcome: startup.outcome as "ipo" | "acquisition",
+        outcome: (startup.outcome || "other") as any, // Preserve original outcome
         valuation: startup.valuation,
         exitDate: new Date().toISOString(),
         pointsEarned: totalEarned,
@@ -205,7 +208,7 @@ export function recordExit(startup: Startup, founderName: string) {
 
     const newLegacy: LegacyData = {
         ...legacy,
-        totalExits: legacy.totalExits + 1,
+        totalExits: isWin ? legacy.totalExits + 1 : legacy.totalExits,
         totalLegacyPoints: legacy.totalLegacyPoints + totalEarned,
         unspentPoints: legacy.unspentPoints + totalEarned,
         hallOfFame: [entry, ...legacy.hallOfFame].slice(0, 10) // Keep top 10
@@ -213,6 +216,7 @@ export function recordExit(startup: Startup, founderName: string) {
     saveLegacyData(newLegacy);
     return totalEarned;
 }
+
 
 export function buyPerk(perkId: string): boolean {
     const legacy = getLegacyData();

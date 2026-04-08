@@ -1937,7 +1937,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── STATS ─────────────────────────────────────────────────────────────────
     if (category === "stats") {
         const toggle = (metricName: string) => setExpandedMetric(expandedMetric === metricName ? null : metricName);
-        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex } = calculateFinancials(startup, founder);
+        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, avgVolume: liveAvgVolume } = calculateFinancials(startup, founder);
+        const pbKey = `${startup.industry}_${startup.gtm_motion}`;
+        const pbConfig = STRATEGY_PLAYBOOK[pbKey];
         const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
         const profitable = liveNetProfit >= 0;
         const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
@@ -1952,19 +1954,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                     Tap any card or label for a plain-english explanation
                 </p>
-                {/* Revenue model context */}
-                {(() => {
-                    const key = `${startup.industry}_${startup.gtm_motion}`;
-                    const pb = STRATEGY_PLAYBOOK[key];
-                    if (!pb) return null;
-                    return (
-                        <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
-                            <p className="text-[8px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">💵 Your Revenue Model — {pb.model}</p>
-                            <p className="text-[10px] font-bold text-violet-800 dark:text-violet-200 mb-1">{pb.mrrFormula}</p>
-                            <p className="text-[9px] text-violet-600 dark:text-violet-400 leading-tight">{pb.statFocus}</p>
-                        </div>
-                    );
-                })()}
+                {pbConfig && (
+                    <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
+                        <p className="text-[8px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">💵 Your Revenue Model — {pbConfig.model}</p>
+                        <p className="text-[10px] font-bold text-violet-800 dark:text-violet-200 mb-1">{pbConfig.mrrFormula}</p>
+                        <p className="text-[9px] text-violet-600 dark:text-violet-400 leading-tight">{pbConfig.statFocus}</p>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-4 mb-4 text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     <span>Legend:</span>
@@ -2021,14 +2017,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         explanation={startup.gtm_motion === "SLG" ? "Number of active enterprise contracts or licenses." : "Number of active users. The primary driver of MRR and valuation in PLG models."}
                         isExpanded={expandedMetric === "users"} onToggle={() => toggle("users")}
                     />
-                    {startup.gtm_motion === "PLG" && (
+                    {startup.gtm_motion === "PLG" && pbConfig?.showPaidUsers !== false && (
                         <StatRow label="Paid Users" value={(m.paid_users || 0).toLocaleString()} color="text-violet-600 dark:text-violet-400"
                             explanation="Number of users who have converted from free to paid tiers (e.g. 5% Freemium conversion rate)."
                             isExpanded={expandedMetric === "paid_users"} onToggle={() => toggle("paid_users")}
                         />
                     )}
+                    {pbConfig?.volumeLabel && (
+                        <StatRow label={pbConfig.volumeLabel} value={startup.industry === "AI Platform" ? `${liveAvgVolume.toFixed(1)} tokens` : formatMoney(liveAvgVolume)} color="text-amber-600 dark:text-amber-400"
+                            explanation={`Average ${pbConfig.volumeLabel} generated per user month-to-month. This scales as your product matures.`}
+                            isExpanded={expandedMetric === "volume"} onToggle={() => toggle("volume")}
+                        />
+                    )}
                     <StatRow label="MRR" value={formatMoney(liveRevenue || 0)} color="text-emerald-600 dark:text-emerald-400"
-                        explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : "Monthly Recurring Revenue. Calculated as Paid Users × Pricing."}
+                        explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : `Monthly Recurring Revenue. Formula: ${pbConfig?.mrrFormula || "Paid Users × Pricing"}.`}
                         isExpanded={expandedMetric === "mrr"} onToggle={() => toggle("mrr")}
                     />
                     <StatRow label="Growth Rate" value={`${((m.growth_rate || 0) * 100).toFixed(0)}%/mo`} color="text-teal-600 dark:text-teal-400"
@@ -2842,6 +2844,8 @@ export default function Dashboard() {
                 cash: startup.metrics.cash ?? 0,
                 runway: startup.metrics.runway ?? 0,
                 burnout: startup.metrics.founder_burnout ?? 0,
+                growth_rate: startup.metrics.growth_rate ?? 0,
+                net_profit: startup.metrics.net_profit ?? 0,
             },
             competitors,
             storyState,
@@ -4041,6 +4045,8 @@ export default function Dashboard() {
                         cash: newStartup.metrics.cash ?? 0,
                         runway: newStartup.metrics.runway ?? 0,
                         burnout: newStartup.metrics.founder_burnout ?? 0,
+                        growth_rate: newStartup.metrics.growth_rate ?? 0,
+                        net_profit: newStartup.metrics.net_profit ?? 0,
                     },
                     competitors,
                     storyState,

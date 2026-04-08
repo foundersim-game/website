@@ -569,6 +569,27 @@ export const IMMEDIATE_ACTIONS: ActionDef[] = [
         cooldownMonthly: 3,
         baseEffects: { marketing_skill: 4 },
     },
+    // ── Board Pressure Auto-Actions
+    {
+        id: "board_pressure_shield_team",
+        label: "Take the Heat",
+        emoji: "🛡️",
+        category: "leadership",
+        tier: "immediate",
+        energyCost: 0,
+        description: "Shield the team from investor pressure (Health -20, Burnout +20)",
+        baseEffects: { founder_health: -20, founder_burnout: 20 },
+    },
+    {
+        id: "board_pressure_pressure_team",
+        label: "Pass the Pressure",
+        emoji: "⚡",
+        category: "leadership",
+        tier: "immediate",
+        energyCost: 0,
+        description: "Pressure the team to deliver faster (Morale -25)",
+        baseEffects: { team_morale: -25 },
+    },
 ];
 
 // ─── Tier 2: Month-Bound Actions (existing product/marketing/hiring/funding) ──

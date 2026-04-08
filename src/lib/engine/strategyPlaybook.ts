@@ -2,6 +2,7 @@
 export const STRATEGY_PLAYBOOK: Record<string, {
     model: string; customers: string; mrrFormula: string; growthLever: string; mainRisk: string;
     marketingTip: string; hiringPriority: string; statFocus: string;
+    showPaidUsers?: boolean; volumeLabel?: string;
 }> = {
     "SaaS Platform_PLG": {
         model: "Self-Serve SaaS",
@@ -12,6 +13,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Organic social and content marketing bring low-CAC signups. Keep investing.",
         hiringPriority: "Hire Engineers first to build a reliable product, then Growth Marketers.",
         statFocus: "Watch PMF Score and Churn. Both must improve together.",
+        showPaidUsers: true,
     },
     "SaaS Platform_SLG": {
         model: "Enterprise SaaS",
@@ -22,6 +24,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "PR and brand credibility matter more than viral reach. Build case studies.",
         hiringPriority: "Hire Sales first. Your Account Executives close the deals that matter.",
         statFocus: "Track Deals Closed and pipeline velocity. Revenue follows deals, not users.",
+        showPaidUsers: false,
     },
     "AI Platform_PLG": {
         model: "Self-Serve API Model",
@@ -32,6 +35,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Developer content, YouTube demos, and GitHub visibility drive adoption.",
         hiringPriority: "Engineers first for model quality, then DevRel to grow the community.",
         statFocus: "Watch Reliability — if your API goes down, developers will switch instantly.",
+        showPaidUsers: true,
+        volumeLabel: "Usage / User",
     },
     "AI Platform_SLG": {
         model: "Enterprise AI Solutions",
@@ -42,6 +47,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Whitepapers, analyst reports, and LinkedIn thought leadership build credibility.",
         hiringPriority: "Sales + Solutions Architects. Technical sales matters most here.",
         statFocus: "Product Quality must be very high. Enterprise buyers demand reliability.",
+        showPaidUsers: false,
     },
     "OTT / Streaming_PLG": {
         model: "Direct-to-Consumer Streaming",
@@ -52,6 +58,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "PR campaigns around new releases + social clips drive organic acquisition.",
         hiringPriority: "Engineers (for streaming infra reliability) + Marketers (for buzz).",
         statFocus: "Churn is your enemy. High churn means great acquisition but poor retention.",
+        showPaidUsers: true,
     },
     "OTT / Streaming_SLG": {
         model: "B2B Content Licensing",
@@ -62,6 +69,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Industry events, trade publications, and direct outreach to media buyers.",
         hiringPriority: "Sales (Content Partnership Managers). More deals = more revenue.",
         statFocus: "Track Deals Closed. Each deal pays a fixed retainer regardless of viewer count.",
+        showPaidUsers: false,
     },
     "Mobile Game_PLG": {
         model: "F2P Viral Mobile Game",
@@ -72,6 +80,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Paid acquisition on Meta/TikTok can scale, but watch ROAS carefully.",
         hiringPriority: "Engineers for game quality and crash-free experience.",
         statFocus: "Balance Ad Frequency slider carefully — too high causes churn.",
+        showPaidUsers: true,
+        volumeLabel: "Avg. ARPU",
     },
     "Mobile Game_SLG": {
         model: "Branded / IP Licensed Game",
@@ -82,6 +92,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Your portfolio of past games and technical demos close deals.",
         hiringPriority: "Sales (Brand Partnership Managers) + senior Engineers for polished demos.",
         statFocus: "Product Quality matters most. Low quality games don't renew contracts.",
+        showPaidUsers: false,
     },
     "FinTech_PLG": {
         model: "Consumer Neo-bank / FinTech App",
@@ -92,7 +103,10 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Referral programs and cashback campaigns are the highest-ROI growth channel.",
         hiringPriority: "Engineers (compliance, security, fraud) first. Regulators will shut you down otherwise.",
         statFocus: "Revenue is transaction volume × %, so User growth is everything.",
+        showPaidUsers: false,
+        volumeLabel: "Avg. Volume",
     },
+
     "FinTech_SLG": {
         model: "B2B Embedded Finance API",
         customers: "E-commerce platforms, SaaS apps, and fintechs embedding your payment rails.",
@@ -102,6 +116,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Developer docs and partner portals matter. B2B buyers research deeply.",
         hiringPriority: "Sales + Engineers. Quality of API and reliability are selling points.",
         statFocus: "Reliability is critical. Payment downtime = immediate contract cancellation.",
+        showPaidUsers: false,
     },
     // Aliases for FinTech App / FinTech Platform variants
     "FinTech App_PLG": {
@@ -113,6 +128,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Referral programs and cashback campaigns are the highest-ROI growth channel.",
         hiringPriority: "Engineers (compliance, security, fraud) first. Regulators will shut you down otherwise.",
         statFocus: "Revenue is transaction volume × %, so User growth is everything.",
+        showPaidUsers: false,
+        volumeLabel: "Avg. Volume",
     },
     "FinTech App_SLG": {
         model: "B2B Embedded Finance API",
@@ -123,6 +140,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Developer docs and partner portals matter. B2B buyers research deeply.",
         hiringPriority: "Sales + Engineers. Quality of API and reliability are selling points.",
         statFocus: "Reliability is critical. Payment downtime = immediate contract cancellation.",
+        showPaidUsers: false,
     },
     "FinTech Platform_PLG": {
         model: "Consumer Neo-bank / FinTech App",
@@ -133,6 +151,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Referral programs and cashback campaigns are the highest-ROI growth channel.",
         hiringPriority: "Engineers (compliance, security, fraud) first. Regulators will shut you down otherwise.",
         statFocus: "Revenue is transaction volume × %, so User growth is everything.",
+        showPaidUsers: false,
+        volumeLabel: "Avg. Volume",
     },
     "FinTech Platform_SLG": {
         model: "B2B Embedded Finance Platform",
@@ -143,6 +163,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Developer docs and partner portals matter. B2B buyers research deeply.",
         hiringPriority: "Sales + Engineers. Quality of API and reliability are selling points.",
         statFocus: "Reliability is critical. Payment downtime = immediate contract cancellation.",
+        showPaidUsers: false,
     },
     "EdTech_PLG": {
         model: "Direct-to-Learner Platform",
@@ -153,6 +174,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "YouTube tutorials and SEO articles funnel learners directly to paid courses.",
         hiringPriority: "Marketers for content SEO + Engineers for smooth course UX.",
         statFocus: "PMF Score reflects learner satisfaction. Push it above 60 for viral growth.",
+        showPaidUsers: true,
     },
     "EdTech_SLG": {
         model: "Institutional / Corporate Learning",
@@ -163,6 +185,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Conference talks and whitepapers build credibility with institutional buyers.",
         hiringPriority: "Sales (Account Executives) who can navigate long B2B procurement cycles.",
         statFocus: "Track Deals Closed. Each deal locks in recurring monthly contract revenue.",
+        showPaidUsers: false,
     },
     "Dev Tools_PLG": {
         model: "Open-Source / Freemium DevTool",
@@ -173,6 +196,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Open-source the core, charge for the hosted/managed version. OSS = marketing.",
         hiringPriority: "Engineers to keep the core product sharp + DevRel / Developer Advocate.",
         statFocus: "Product Quality and Tech Debt define your developer reputation. Keep them healthy.",
+        showPaidUsers: true,
     },
     "Dev Tools_SLG": {
         model: "Enterprise DevTool Platform",
@@ -183,6 +207,7 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "Security and compliance certifications (SOC2, ISO 27001) are more powerful than ads.",
         hiringPriority: "Sales AEs + Engineers for compliance features. Security is table stakes.",
         statFocus: "Reliability is non-negotiable for dev tools in production environments.",
+        showPaidUsers: false,
     },
     "Marketplace_PLG": {
         model: "Community Marketplace",
@@ -193,6 +218,8 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "SEO and PR drive buyer intent. Seller referrals grow supply side cheaply.",
         hiringPriority: "Engineers (search, trust & safety) + Marketers (SEO, demand gen).",
         statFocus: "User count = both buyers and sellers. GMV and take rate drive revenue.",
+        showPaidUsers: false,
+        volumeLabel: "Avg. GMV",
     },
     "Marketplace_SLG": {
         model: "Managed Marketplace",
@@ -203,5 +230,6 @@ export const STRATEGY_PLAYBOOK: Record<string, {
         marketingTip: "White-glove service reputation and case studies attract premium enterprise buyers.",
         hiringPriority: "Sales (Merchant Success + onboarding) + Engineers for ops automation.",
         statFocus: "Track Deals Closed. Each managed vendor is a fixed retainer contract.",
+        showPaidUsers: false,
     },
 };

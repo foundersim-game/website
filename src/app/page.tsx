@@ -277,9 +277,9 @@ export default function Home() {
                <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
              </p>
              <div className="space-y-2 overflow-y-auto max-h-[140px] custom-scrollbar pr-1 min-h-[60px]">
-               {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition').length > 0 ? (
+               {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired').length > 0 ? (
                  legacyData.hallOfFame
-                   .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition')
+                   .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired')
                    .slice(0, 10)
                    .map(entry => (
                     <motion.div 
@@ -292,7 +292,9 @@ export default function Home() {
                         <div className="min-w-0">
                           <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
                           <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
-                            <span className={cn(entry.outcome === 'ipo' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>{entry.outcome}</span> · {formatMoney(entry.valuation)}
+                            <span className={cn(entry.outcome === 'ipo' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>
+                             {entry.outcome === 'acquired' || entry.outcome === 'acquisition' ? 'acquired' : entry.outcome}
+                           </span> · {formatMoney(entry.valuation)}
                           </p>
                         </div>
                       </div>

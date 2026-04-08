@@ -6,7 +6,7 @@ import { useTheme } from "@/components/ThemeProvider";
 
 export type CharacterDialogProps = {
     isOpen: boolean;
-    character: "sam" | "chad";
+    character: "sam" | "chad" | "board";
     title: string;
     message: string;
     buttonText?: string;
@@ -49,6 +49,22 @@ const CHARACTER_CONFIG = {
         decorCircle2: "rgba(239,68,68,0.1)",
         imageOffsetX: "-4px",
         soundType: "chad" as const,
+    },
+    board: {
+        name: "The Board",
+        role: "Lead Investors",
+        image: "/investor.png",
+        panelFrom: "#1f1414",
+        panelTo: "#2e1a1a",
+        accent: "#dc2626",
+        badgeBg: "#991b1b",
+        badgeText: "#fecaca",
+        glowColor: "rgba(220,38,38,0.3)",
+        borderColor: "rgba(220,38,38,0.2)",
+        decorCircle1: "rgba(220,38,38,0.05)",
+        decorCircle2: "rgba(153,27,27,0.08)",
+        imageOffsetX: "-4px",
+        soundType: "chad" as const, // Use severe chad sound
     },
 };
 
@@ -174,7 +190,7 @@ function getTypeCtx(): AudioContext | null {
 }
 
 // Soft mechanical key-tap: white noise burst + very short sine click
-function playTypeKey(character: "sam" | "chad") {
+function playTypeKey(character: "sam" | "chad" | "board") {
     if (typeof window === "undefined") return;
     const isMuted = localStorage.getItem("foundersim_sfx_muted") === "true";
     if (isMuted) return;
@@ -192,7 +208,8 @@ function playTypeKey(character: "sam" | "chad") {
         const filter = ctx.createBiquadFilter();
         const ng = ctx.createGain();
         filter.type = "bandpass";
-        filter.frequency.value = character === "chad" ? 2200 : 3000;
+        filter.frequency.value = (character === "chad" || character === "board") ? 2200 : 3000;
+
         filter.Q.value = 0.8;
         ng.gain.value = 0.045; // very subtle
         noise.buffer = buf;
@@ -204,7 +221,7 @@ function playTypeKey(character: "sam" | "chad") {
 }
 
 // ── Typewriter hook ───────────────────────────────────────────────────────────
-function useTypewriter(text: string, isActive: boolean, character: "sam" | "chad", speed = 20) {
+function useTypewriter(text: string, isActive: boolean, character: "sam" | "chad" | "board", speed = 20) {
     const [displayed, setDisplayed] = useState("");
     const [done, setDone] = useState(false);
     const idx = useRef(0);

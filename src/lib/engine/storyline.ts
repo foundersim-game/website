@@ -17,7 +17,7 @@ import { Competitor } from "./competitors";
 import { formatMoney } from "../utils";
 
 export type StorylineDialog = {
-    character: "sam" | "chad";
+    character: "sam" | "chad" | "board";
     title: string;
     message: string;
     buttonText?: string;
@@ -324,7 +324,7 @@ export function getChadDialog(
 
 export function getStorylineDialog(
     month: number,
-    metrics: { valuation: number; users: number; cash: number; runway: number; burnout: number },
+    metrics: { valuation: number; users: number; cash: number; runway: number; burnout: number; growth_rate: number; net_profit: number },
     competitors: Competitor[],
     state: StorylineState,
     justFundraised: boolean
@@ -333,6 +333,23 @@ export function getStorylineDialog(
     const chadly = competitors.find(c => c.id === "chadly");
     const seen = new Set(state.seenTriggers);
     const act = month >= 15 ? 3 : month >= 4 ? 2 : 1;
+
+    // ── INVESTOR PRESSURE (Board Meeting) ──
+    if (month > 3 && metrics.growth_rate <= 0 && metrics.net_profit < 0 && metrics.runway <= 6 && !seen.has("board_pressure")) {
+        return {
+            character: "board",
+            trigger: "board_pressure",
+            title: "💼 EMERGENCY BOARD MEETING",
+            message: `Your growth has stalled to ${Math.round(metrics.growth_rate * 100)}% and you are burning ${formatMoney(Math.abs(metrics.net_profit))} per month with shrinking runway. The Board is losing patience. We expect a path to profitability IMMEDIATELY.`,
+            hasChoices: true,
+            choiceALabel: "TAKE THE HEAT",
+            choiceADescription: "Shield the team from investor pressure (Health -20, Burnout +20)",
+            choiceAActionId: "board_pressure_shield_team",
+            choiceBLabel: "PASS IT DOWN",
+            choiceBDescription: "Pressure the team to deliver faster (Morale -25)",
+            choiceBActionId: "board_pressure_pressure_team",
+        };
+    }
 
     // ── NEW: Sam Bankruptcy Warning (High Priority, Months 2-12) ──
     if (month > 1 && month <= 12 && metrics.runway <= 3 && metrics.cash < 100000 && !seen.has("sam_bankruptcy_warning")) {
@@ -344,6 +361,7 @@ export function getStorylineDialog(
             buttonText: "I'LL FIND THE CASH",
         };
     }
+
 
     // ── Tutorial steps or Expert Welcome (Month 1 only) ──
     if (month === 1) {
