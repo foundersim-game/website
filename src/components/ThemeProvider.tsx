@@ -28,9 +28,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 await StatusBar.setStyle({ style: Style.Dark });
                 // Match the oklch(0.12 0.015 240) background color which is ~#1a1c24
                 await StatusBar.setBackgroundColor({ color: '#1a1c24' });
+                document.getElementById('theme-color-meta')?.setAttribute('content', '#1a1c24');
             } else {
                 await StatusBar.setStyle({ style: Style.Light });
                 await StatusBar.setBackgroundColor({ color: '#f7f8fc' });
+                document.getElementById('theme-color-meta')?.setAttribute('content', '#f7f8fc');
             }
         } catch (e) {
             console.warn("StatusBar plugin not available", e);

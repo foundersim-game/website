@@ -346,70 +346,117 @@ export function calculateFinancials(
         .reduce((sum, e) => sum + (e.skills.sales * (e.performance / 100)), 0);
     const salesConversionBoost = 1 + (salesPower * 0.005); // 100 sales power = +50% conversion boost
 
-    if (isSLG) {
-        paidUsers = users;
-        revenue = users * pricing;
-        cogs = revenue * (industry === "AI Platform" ? 0.30 : 0.10);
-    } else {
-        if (industry === "Mobile Game") {
-            // F2P Model: Ad Revenue (daily ARPU based) + Whale IAP conversion
+    // Global Drivers
+    const pmfFactor = 0.5 + (Math.min(100, metrics.pmf_score || 0) / 100);
+    const qualityFactor = 0.8 + (Math.min(100, metrics.product_quality || 0) / 250);
+
+    if (industry === "Mobile Game") {
+        if (isSLG) {
+            // SLG: Institutional Licensing (K-12, corporate training)
+            // Revenue = Licensed_Users (Leads) * Pricing_Per_Seat
+            paidUsers = users; // users represent licensed seats here
+            revenue = paidUsers * pricing * salesConversionBoost;
+            avgVolume = pricing;
+            cogs = revenue * 0.10;
+        } else {
+            // PLG: F2P Model (Ad Revenue + IAP)
             const adsFreq = (metrics as any).ad_intensity || 0;
-            
-            // 1. Ad Revenue: Users * (Freq Ratio) * Daily ARPU * 30 Days
-            // Higher ad intensity reduces the value per-ad (UX fatigue/blindness)
             const adARPU = 0.02 * (1 - (adsFreq / 200)); 
             const adMonthlyRev = users * (adsFreq / 100) * adARPU * 30;
 
-            // 2. IAP Revenue: Users * Conversion * Monthly Spend (Pricing)
-            // IAP conversion (Average Monthly Spend) drops sharply as ad frequency increases (bad user experience)
             const iapBaseConversion = 0.03;
-            // High disruption curve: at 50% frequency, you lose 66% of your shoppers. At 75%, conversion is near zero.
-            const iapPenalty = Math.max(0.05, 1 - (adsFreq / 75));
-            const iapConversion = iapBaseConversion * iapPenalty * salesConversionBoost;
+            // High ad intensity actively destroys IAP conversion
+            const iapPenalty = Math.max(0.005, 1 - (adsFreq / 75));
+            const iapConversion = iapBaseConversion * qualityFactor * iapPenalty;
             
             revenue = adMonthlyRev + (users * iapConversion * pricing);
             avgVolume = users > 0 ? revenue / users : 0;
             paidUsers = Math.floor(users * iapConversion);
             cogs = revenue * 0.05;
-        } else if (industry === "AI Platform") {
-            // Usage-based API: free tier exists, ~40% of devs convert shaped by PMF.
-            // ×2 multiplier = avg 2 token bundles consumed per paying developer per month.
-            const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 70);
-            paidUsers = Math.floor(users * Math.min(0.60, Math.max(0.10, 0.40 * pmfFactor * salesConversionBoost)));
-            avgVolume = 2; // Tokens consumed per paid user
+        }
+    } else if (industry === "AI Platform") {
+        if (isSLG) {
+            // SLG: Enterprise / Managed deployments
+            // Typical enterprise deal with integration
+            paidUsers = Math.floor(users * Math.min(1.0, 0.15 * salesConversionBoost));
+            avgVolume = 1; // 1 enterprise contract per company lead
+            revenue = paidUsers * pricing * 10 * salesConversionBoost; // Custom high enterprise pricing
+            cogs = revenue * 0.30;
+        } else {
+            // PLG: Usage-based API (Developers)
+            paidUsers = Math.floor(users * Math.min(0.60, Math.max(0.10, 0.40 * pmfFactor)));
+            // Volume driven by innovation (team power) and quality
+            avgVolume = 2 * Math.max(1, (salesPower * 0.01)) * qualityFactor; 
             revenue = paidUsers * pricing * avgVolume;
             cogs = revenue * 0.35; // High GPU compute costs
-        } else if (industry === "OTT / Streaming") {
-            // Recurring Billing model — not freemium. Most signups pay.
-            // Base 50% conversion, gated by PMF (content quality / library depth).
-            const pmfFactor = Math.max(0.3, (metrics.pmf_score || 10) / 80);
-            paidUsers = Math.floor(users * Math.min(0.75, Math.max(0.10, 0.50 * pmfFactor * salesConversionBoost)));
+        }
+    } else if (industry === "OTT / Streaming") {
+        if (isSLG) {
+            // Unlikely pure SLG, but B2B syndication / institutional bundles
+            paidUsers = Math.floor(users * Math.min(1.0, 0.30 * salesConversionBoost));
+            revenue = paidUsers * pricing * 12; // Annual institutional licenses
+            cogs = revenue * 0.35;
+        } else {
+            // PLG: Recurring Billing model. Gated by Quality & Stars (Marketing)
+            // Assuming salesConversionBoost represents 'Marketing/Star' power loosely here
+            paidUsers = Math.floor(users * Math.min(0.75, Math.max(0.10, 0.40 * qualityFactor * salesConversionBoost)));
             revenue = paidUsers * pricing;
             cogs = revenue * 0.40; // Content licensing / production costs
-        } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
-            // GMV × interchange rate. Per-user GMV grows as users become more active over time.
-            avgVolume = (200 + (monthsPassed * 15)) * salesConversionBoost; // Sales increases per-user transaction volume
-            paidUsers = users; // Every active user transacts
-            revenue = users * avgVolume * (pricing / 100);
-            cogs = revenue * 0.20; // Payment processing + compliance overhead
-        } else if (industry === "Marketplace") {
-            // GMV × take rate. Platform GMV per user grows as marketplace matures.
-            avgVolume = 150 + (monthsPassed * 12); // $150 → ~$390 by month 20
-            paidUsers = users; // Every buyer/seller generates GMV
-            revenue = users * avgVolume * (pricing / 100);
-            cogs = revenue * 0.15; // Payment processing + trust & safety
+            avgVolume = 1;
+        }
+    } else if (industry === "FinTech" || industry === "FinTech App" || industry === "FinTech Platform") {
+        if (isSLG) {
+            // SLG: Infrastructure (API/BaaS)
+            // Volume dependent on enterprise clients processing bulk
+            avgVolume = 50000 * Math.max(0.5, (salesConversionBoost * 0.8));
+            paidUsers = Math.floor(users * Math.min(1.0, 0.20 * salesConversionBoost));
+            revenue = paidUsers * avgVolume * (pricing / 100);
+            cogs = revenue * 0.15; // Bulk processing edge
         } else {
-            // Generic freemium path: SaaS, EdTech, Dev Tools
-            const pmfFactor = Math.max(0.2, (metrics.pmf_score || 10) / 50);
-            const qualityFactor = Math.max(0.2, (metrics.product_quality || 10) / 50);
+            // PLG: Consumer NeoBank / Trading
+            avgVolume = (250 + (monthsPassed * 10)) * pmfFactor * qualityFactor;
+            paidUsers = users; 
+            revenue = users * avgVolume * (pricing / 100);
+            cogs = revenue * 0.20; 
+        }
+    } else if (industry === "Marketplace") {
+        if (isSLG) {
+            // SLG: Managed Supply (B2B)
+            // High commission, high validation/ops
+            const vettingFactor = Math.min(1.2, qualityFactor);
+            avgVolume = 1500 * vettingFactor; // High ticket value
+            paidUsers = Math.floor(users * Math.min(1.0, 0.40 * salesConversionBoost));
+            revenue = paidUsers * avgVolume * (pricing / 100);
+            cogs = revenue * 0.30; // Ops heavy for vetting
+        } else {
+            // PLG: Fragmented C2C
+            // Network Effect multiplier
+            const networkEffect = 1 + Math.log10(Math.max(1, users / 1000)) * 0.2;
+            avgVolume = (150 + (monthsPassed * 12)) * pmfFactor * networkEffect;
+            paidUsers = users; 
+            revenue = users * avgVolume * (pricing / 100);
+            cogs = revenue * 0.15;
+        }
+    } else {
+        // Generic SaaS / EdTech / Dev Tools
+        if (isSLG) {
+            // B2B Enterprise SaaS
+            const baseContractCR = 0.05; // 5% baseline conversion from Lead -> Enterprise
+            paidUsers = Math.floor(users * Math.min(0.80, baseContractCR * salesConversionBoost));
+            revenue = paidUsers * pricing * 12; // Annual ACV modeling
+            avgVolume = 12;
+            cogs = revenue * 0.10;
+        } else {
+            // Generic Freemium
             const maxPrice = activeConfig?.maxPrice || 100;
             const priceRatio = Math.min(1, Math.max(0.01, pricing / maxPrice));
             const priceFactor = Math.max(0.1, 1.25 - (priceRatio * 1.0));
 
-            // Honeymoon period multiplier: it is easier to convert early adopters (under 5k users)
+            // Honeymoon period multiplier
             const honeymoonMult = users < 5000 ? 2.5 : users < 15000 ? 1.5 : 1.0;
 
-            paidUsers = Math.floor(users * Math.min(0.25, Math.max(0.005, 0.04 * pmfFactor * qualityFactor * priceFactor * honeymoonMult)));
+            const baseCR = 0.04;
+            paidUsers = Math.floor(users * Math.min(0.25, Math.max(0.005, baseCR * pmfFactor * priceFactor * honeymoonMult)));
             revenue = paidUsers * pricing;
             cogs = revenue * 0.15;
         }

@@ -127,16 +127,23 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    @apply bg-background;
+    background-color: var(--background);
     min-height: 100%;
     margin: 0;
     padding: 0;
-  }
-  body {
-    @apply text-foreground antialiased;
+    /* Prevent white flash in safe areas */
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
+    height: 100%;
+    overflow: hidden; /* Prevent bouncing white backgrounds on iOS */
+  }
+  body {
+    @apply text-foreground antialiased;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

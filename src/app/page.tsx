@@ -51,6 +51,7 @@ export default function Home() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [legacyData, setLegacyData] = useState<LegacyData | null>(null);
   const [hasActiveGame, setHasActiveGame] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const { toggleTheme, isDark } = useTheme();
 
 
@@ -78,14 +79,23 @@ export default function Home() {
 
       const activeState = localStorage.getItem("founder_sim_state");
       setHasActiveGame(!!activeState);
+      
+      const premium = localStorage.getItem("founder_sim_premium") === "true";
+      setIsPremium(premium);
     } catch {
       setSavedGames([]);
       setHasActiveGame(false);
+      setIsPremium(false);
     }
   };
 
   useEffect(() => { 
-    adService.hideBanner();
+    const premium = localStorage.getItem("founder_sim_premium") === "true";
+    if (premium) {
+      adService.hideBanner();
+    } else {
+      adService.showBanner();
+    }
     loadSaves(); 
     setLegacyData(getLegacyData());
 
@@ -207,8 +217,11 @@ export default function Home() {
 
       {/* Main Content - Compact & Zero-Scroll */}
       <div 
-        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] relative z-10 overflow-hidden"
-        style={{ paddingTop: 'calc(var(--sat, 0px) + 16px)' }}
+        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden"
+        style={{ 
+          paddingTop: 'calc(var(--sat, 0px) + 16px)',
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '16px' : '76px'})`
+        }}
       >
 
         <motion.div

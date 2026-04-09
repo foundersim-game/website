@@ -404,15 +404,20 @@ export function CharacterDialog({
                                 src={cfg.image}
                                 alt={cfg.name}
                                 initial={{ y: 50, opacity: 0, scale: 0.92 }}
-                                animate={{ y: 0, opacity: 1, scale: 1.05 }}
+                                animate={{ 
+                                    y: character === "board" ? -10 : 0, 
+                                    opacity: 1, 
+                                    scale: character === "board" ? 1.6 : 1.05 
+                                }}
                                 transition={{ delay: 0.1, type: "spring", damping: 20, stiffness: 180 }}
                                 style={{
                                     position: "absolute",
-                                    bottom: -32,
+                                    bottom: character === "board" ? -20 : -32,
                                     left: cfg.imageOffsetX,
                                     height: 260, // Slightly larger to compensate for deeper bottom offset
                                     width: "auto",
-                                    objectFit: "contain",
+                                    objectFit: "cover",
+                                    objectPosition: character === "board" ? "center 15%" : "center",
                                     transformOrigin: "bottom left",
                                     pointerEvents: "none",
                                     userSelect: "none",

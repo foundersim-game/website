@@ -4878,7 +4878,11 @@ export default function Dashboard() {
                 </div>
 
                 {/* ACTION GRID */}
-                <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{ position: "relative", zIndex: storyState.tutorialStep >= 2 ? 50 : 1, paddingBottom: isNative ? 'calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px)' : '1rem' }}>
+                <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{ 
+                    position: "relative", 
+                    zIndex: storyState.tutorialStep >= 2 ? 50 : 1, 
+                    paddingBottom: isNative ? `calc(var(--sab, env(safe-area-inset-bottom, 0px)) + ${isPremium ? '20px' : '85px'})` : '1rem' 
+                }}>
                     <div className="grid grid-cols-4 gap-2">
                         {([
                             { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
@@ -4925,8 +4929,11 @@ export default function Dashboard() {
                                 }}
                                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                                 transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+60px)] outline-none"
-                                style={{ maxHeight: '85vh' }}>
+                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 outline-none"
+                                style={{ 
+                                    maxHeight: '85vh',
+                                    paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})`
+                                }}>
                                 <div className="flex justify-center pt-2.5 pb-2">
                                     <div className="w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
                                 </div>
@@ -6093,7 +6100,7 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Footer buttons - fixed bottom with safe area */}
-                                <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+                                <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
 
 
                                     <button
@@ -6213,7 +6220,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="px-8 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0">
+                        <div className="px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q3 2026 Drop</p>
                             <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
                                 LET'S SCALE →
