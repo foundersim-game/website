@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     },
     ios: {
         contentInset: 'automatic',
-        backgroundColor: '#f7f8fc'
+        backgroundColor: '#0f1117'
     },
     plugins: {
         AdMob: {

@@ -1,25 +1,251 @@
 
 import React, { useState } from 'react';
-import { Zap, TrendingUp, DollarSign, Users, Shield, Award, BarChart3, Heart, AlertCircle, Sparkles, Globe } from "lucide-react";
+import { 
+  Zap, TrendingUp, DollarSign, Users, Shield, Award, BarChart3, 
+  Heart, AlertCircle, Sparkles, Globe, ChevronRight, 
+  CreditCard, Banknote, ShoppingBag, Gamepad2, GraduationCap, 
+  Terminal, MonitorPlay, BrainCircuit, Box
+} from "lucide-react";
 
 export function HowToPlayContent() {
   const [activeTab, setActiveTab] = useState('basics');
+  const [selectedIndustry, setSelectedIndustry] = useState('SaaS');
 
   const tabs = [
     { id: 'basics',      label: 'Basics',      icon: BarChart3 },
     { id: 'product',     label: 'Product',     icon: Zap },
+    { id: 'industries',  label: 'Industries',  icon: Globe },
     { id: 'growth',      label: 'Growth',      icon: TrendingUp },
-    { id: 'revenue',     label: 'Revenue',     icon: Globe },
     { id: 'funding',     label: 'Funding',     icon: DollarSign },
     { id: 'team',        label: 'Team',        icon: Users },
     { id: 'competitors', label: 'Rivals',      icon: Shield },
     { id: 'ending',      label: 'Winning',     icon: Award },
   ];
 
+  const industries = [
+    { id: 'SaaS', name: 'SaaS', icon: Box, description: 'Software as a Service. High margins, predictable recurring revenue.' },
+    { id: 'AI', name: 'AI Platform', icon: BrainCircuit, description: 'Cutting-edge intelligence. High compute costs but massive scaling potential.' },
+    { id: 'FinTech', name: 'FinTech', icon: CreditCard, description: 'Banking and payments. Trust-dependent, regulated, volume-driven revenue.' },
+    { id: 'Game', name: 'Mobile Game', icon: Gamepad2, description: 'Entertainment first. Hit-driven with complex monetization levers.' },
+    { id: 'Marketplace', name: 'Marketplace', icon: ShoppingBag, description: 'Connecting buyers and sellers. Hard to start (cold-start), huge network effects.' },
+    { id: 'OTT', name: 'OTT Streaming', icon: MonitorPlay, description: 'Media and content. Reliability is king, high infrastructure burn.' },
+    { id: 'DevTools', name: 'Dev Tools', icon: Terminal, description: 'Building for builders. Reliability and word-of-mouth are everything.' },
+    { id: 'EdTech', name: 'EdTech', icon: GraduationCap, description: 'Digital learning. Completion rates drive reputation and referrals.' },
+  ];
+
+  const industryDetails: Record<string, any> = {
+    'SaaS': {
+      viral: {
+        title: 'Self-Serve SaaS',
+        formula: 'Revenue = Paid Users × Monthly Price',
+        drivers: 'PMF vs. Pricing Tension. Early-game "Honeymoon" multipliers help early growth.',
+        tip: 'Keep pricing low relative to PMF early to maximize conversion.'
+      },
+      sales: {
+        title: 'Enterprise SaaS',
+        formula: 'Revenue = Active Contracts × Annual Contract Value (ACV)',
+        drivers: 'Win Rate is driven 50% by Sales Team skill and 50% by Product Quality.',
+        tip: 'Enterprise deals pay 12 months upfront. Great for cash flow!'
+      }
+    },
+    'AI': {
+      viral: {
+        title: 'Self-Serve API Model',
+        formula: 'Revenue = Paid Users × Token Usage × Price',
+        drivers: 'Token Volume scales with Innovation Score and Team technical power.',
+        tip: 'Innovation drives usage. Keep your Engineers building hits.'
+      },
+      sales: {
+        title: 'Enterprise AI Solutions',
+        formula: 'Revenue = Closed Deals × 10x Enterprise Premium',
+        drivers: 'Very low base win rate. Requires highly skilled Solution Architects.',
+        tip: 'Each contract is worth 10x your base price. Big fish only.'
+      }
+    },
+    'FinTech': {
+      viral: {
+        title: 'Consumer Neo-Bank',
+        formula: 'Revenue = Users × Transaction Volume × Interchange %',
+        drivers: 'Transaction Volume depends heavily on PMF (Trust) and quality.',
+        tip: 'Regulatory compliance overhead adds to your monthly burn.'
+      },
+      sales: {
+        title: 'B2B Embedded Finance API',
+        formula: 'Revenue = Platform Deals × Bulk Transaction Fees',
+        drivers: 'Enterprise clients value Reliability above all else. 0% downtime = 100% renewal.',
+        tip: 'A single reliability outage in FinTech can trigger massive churn.'
+      }
+    },
+    'Game': {
+      viral: {
+        title: 'F2P Viral Mobile Game',
+        formula: 'Revenue = (Ads × Freq) + (Users × IAP Conversion × Price)',
+        drivers: 'Ad Intensity (Slider) increases revenue but destroys PMF and spikes churn.',
+        tip: 'Check your Ad Intensity! Past 40%, users start quitting in droves.'
+      },
+      sales: {
+        title: 'Branded / IP Licensed Game',
+        formula: 'Revenue = License Contracts × Monthly Franchise Fee',
+        drivers: 'Fixed revenue per brand deal. High Reputation helps close big IPs.',
+        tip: 'You don\'t own the users here; you own the contract. Sticky but slower growth.'
+      }
+    },
+    'Marketplace': {
+      viral: {
+        title: 'Community Marketplace',
+        formula: 'Revenue = Users × GMV per User × Take Rate %',
+        drivers: 'Network Effects log-scale bonus: revenue per user GROWS as your base grows.',
+        tip: 'Cross 10,000 users to unlock the first tier of exponential network effects.'
+      },
+      sales: {
+        title: 'Managed Marketplace',
+        formula: 'Revenue = Active Vetted Contracts × Retainer Fee',
+        drivers: 'Operations-intensive. Vetting quality dictates how much suppliers pay to be listed.',
+        tip: 'High COGS (30%+) due to manual vetting and supply-side management.'
+      }
+    },
+    'OTT': {
+      viral: {
+        title: 'Direct-to-Consumer Streaming',
+        formula: 'Revenue = Subscribed Users × Monthly Price',
+        drivers: 'High infrastructure burn (CDN). Quality/Content determines conversion.',
+        tip: 'Reliability is critical. If content buffers, users cancel immediate.'
+      },
+      sales: {
+        title: 'B2B Content Licensing',
+        formula: 'Revenue = License Deals × Periodic Renewal Fee',
+        drivers: 'Sales-driven content distribution to larger platforms/airlines/hotels.',
+        tip: 'Lower upside than consumer, but much lower infrastructure cost.'
+      }
+    },
+    'DevTools': {
+      viral: {
+        title: 'Self-Serve DevTool / OSS',
+        formula: 'Revenue = Paid Developer Seats × Price',
+        drivers: 'Developer word-of-mouth (Virality) is unusually high (8x multiplier).',
+        tip: 'Developers hate bugs. Reliability is the lead growth engine here.'
+      },
+      sales: {
+        title: 'Enterprise Dev Platform',
+        formula: 'Revenue = Enterprise Contracts × Security/SSO Premium',
+        drivers: 'SOC2, Security, and Compliance features close these deals.',
+        tip: 'Standard engineers can\'t build these; hire Senior Sales AEs.'
+      }
+    },
+    'EdTech': {
+      viral: {
+        title: 'Direct-to-Learner Platform',
+        formula: 'Revenue = Subscribed Learners × Price',
+        drivers: 'PMF (Student Success) above 60 unlocks major viral referrals.',
+        tip: 'Help students graduate! Completion rates drive your organic growth rate.'
+      },
+      sales: {
+        title: 'Institutional / Corporate learning',
+        formula: 'Revenue = Active Seat Licenses × Per-Seat Price',
+        drivers: 'Winning multi-seat contracts at universities or HR departments.',
+        tip: 'Long procurement cycles. You need a CFO to handle these contracts.'
+      }
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
+      case 'industries':
+        const indData = industryDetails[selectedIndustry] || industryDetails['SaaS'];
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Industries & Modes</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
+                Every industry is governed by different physical laws. Select one below to see how its business models function.
+              </p>
+            </div>
 
-      // ─── BASICS ───────────────────────────────────────────────────────────────
+            {/* Industry Selector */}
+            <div className="flex gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
+              {industries.map(ind => {
+                const Icon = ind.icon;
+                const isSelected = selectedIndustry === ind.id;
+                return (
+                  <button
+                    key={ind.id}
+                    onClick={() => setSelectedIndustry(ind.id)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all shrink-0 w-24 ${
+                      isSelected 
+                        ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30' 
+                        : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
+                    }`}
+                  >
+                    <Icon className={`size-6 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <span className={`text-[10px] font-black uppercase tracking-tight ${isSelected ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-500'}`}>{ind.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-3xl border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-bold mb-4 italic leading-relaxed">
+                "{industries.find(i => i.id === selectedIndustry)?.description}"
+              </p>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Viral Mode */}
+                <div className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-10"><Zap className="size-12 text-indigo-500" /></div>
+                  <p className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1">Mode: Viral / Self-Serve</p>
+                  <h4 className="text-lg font-black text-slate-800 dark:text-slate-200 mb-3">{indData.viral.title}</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Revenue Formula</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{indData.viral.formula}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Core Levers</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{indData.viral.drivers}</p>
+                    </div>
+                    <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/20">
+                      <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase mb-1 flex items-center gap-1"><Sparkles className="size-3" /> Growth Pro-Tip</p>
+                      <p className="text-[11px] text-indigo-900/80 dark:text-indigo-300/80 font-bold italic">{indData.viral.tip}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sales Mode */}
+                <div className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-10"><Users className="size-12 text-emerald-500" /></div>
+                  <p className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest mb-1">Mode: Enterprise / B2B</p>
+                  <h4 className="text-lg font-black text-slate-800 dark:text-slate-200 mb-3">{indData.sales.title}</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Revenue Formula</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{indData.sales.formula}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Core Levers</p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{indData.sales.drivers}</p>
+                    </div>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/20">
+                      <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase mb-1 flex items-center gap-1"><BrainCircuit className="size-3" /> Strategy Pro-Tip</p>
+                      <p className="text-[11px] text-emerald-900/80 dark:text-emerald-300/80 font-bold italic">{indData.sales.tip}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hidden Mechanics Alert */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
+              <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-1">Hidden Multipliers</p>
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-medium leading-relaxed">
+                  Profit margins are not flat. <strong className="font-bold">AI Platforms</strong> suffer from GPU compute COGS. <strong className="font-bold">FinTech</strong> carries high regulatory costs. <strong className="font-bold">OTT</strong> burns cash on CDN delivery. Scale carefully.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'basics':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -54,17 +280,9 @@ export function HowToPlayContent() {
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Valuation grows</strong> dynamically based on user count, revenue, PMF, and team quality.</li>
               </ul>
             </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
-              <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
-                <strong className="font-bold">Valuation is dynamic.</strong> It grows when your PMF, revenue, and team are strong — and shrinks when you have high debt, low morale, or low PMF. Bad products will not sustain a high valuation.
-              </p>
-            </div>
           </div>
         );
 
-      // ─── PRODUCT ──────────────────────────────────────────────────────────────
       case 'product':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -87,21 +305,14 @@ export function HowToPlayContent() {
                 <div className="size-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-lg shadow-blue-600/20 shrink-0">🔁</div>
                 <div>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">PMF Score (Product-Market Fit)</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">PMF reflects how well users love your product. It grows automatically as quality improves and users engage. Low PMF ({'<'}45) adds +10% monthly churn on top of your base rate. It is the biggest lever for transaction volume in FinTech and retention in all industries.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">PMF reflects how well users love your product. It grows automatically as quality improves and users engage. Low PMF ({'<'}45) adds +10% monthly churn on top of your base rate.</p>
                 </div>
               </div>
               <div className="flex gap-4 items-start bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl">
                 <div className="size-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black shadow-lg shadow-amber-600/20 shrink-0">⚠️</div>
                 <div>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">Technical Debt</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Building features too fast accumulates Tech Debt. High debt drops reliability, triggers server crisis events, and limits how high your Product Quality can actually reach. Run "Refactor Code" or hire Engineers to clear it passively.</p>
-                </div>
-              </div>
-              <div className="flex gap-4 items-start bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl">
-                <div className="size-10 rounded-xl bg-slate-600 text-white flex items-center justify-center font-black shadow-lg shrink-0">📉</div>
-                <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">Reliability</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Reliability below 60% adds a direct churn penalty every month. For OTT/Streaming, even a brief outage means users cancel. Keep debt low to keep reliability high.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Building features too fast accumulates Tech Debt. High debt drops reliability, triggers server crisis events, and limits how high your Quality can reach.</p>
                 </div>
               </div>
             </div>
@@ -110,26 +321,26 @@ export function HowToPlayContent() {
               <AlertCircle className="size-6 text-amber-600 dark:text-amber-500 shrink-0" />
               <div>
                 <p className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase mb-1">Key Insight: Bad Products Can't Go Viral</p>
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">The viral multiplier only kicks in when Quality {'>'} 50 AND PMF {'>'} 30. A buggy product spread through word-of-mouth only accelerates churn. Fix the product first, then market it.</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">The viral multiplier only kicks in when Quality {'>'} 50 AND PMF {'>'} 15. Fix the product first, then market it.</p>
               </div>
             </div>
           </div>
         );
 
-      // ─── GROWTH ───────────────────────────────────────────────────────────────
       case 'growth':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">PLG vs SLG Growth Modes</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Growth Strategies</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                When you create your startup, you choose a Go-To-Market motion. This fundamentally changes how users, leads, and revenue are calculated.
+                When you create your startup, you choose a Go-To-Market strategy. This fundamentally changes how users, leads, and revenue are calculated.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-800 p-4 rounded-2xl">
-                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300 mb-2">📲 PLG — Product-Led Growth</p>
+                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300 mb-1">📲 Viral / Self-Serve Growth</p>
+                <p className="text-[10px] text-indigo-500 dark:text-indigo-400 font-black uppercase tracking-widest mb-2">Self-Serve SaaS · F2P Viral · Community Marketplace · Consumer Neo-bank</p>
                 <ul className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium space-y-1.5 leading-relaxed">
                   <li>• Growth metric = <strong className="font-bold">Free Users</strong></li>
                   <li>• Revenue comes from converting free → paid via PMF & pricing</li>
@@ -139,7 +350,8 @@ export function HowToPlayContent() {
                 </ul>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 p-4 rounded-2xl">
-                <p className="text-sm font-black text-emerald-900 dark:text-emerald-300 mb-2">🤝 SLG — Sales-Led Growth</p>
+                <p className="text-sm font-black text-emerald-900 dark:text-emerald-300 mb-1">🤝 Enterprise / B2B Sales</p>
+                <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-black uppercase tracking-widest mb-2">Enterprise SaaS · Branded IP Game · Managed Marketplace · B2B Finance API</p>
                 <ul className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium space-y-1.5 leading-relaxed">
                   <li>• Growth metric = <strong className="font-bold">B2B Leads → Active Deals → Closed Won</strong></li>
                   <li>• Revenue = Contracts × Price (no free tier)</li>
@@ -160,125 +372,9 @@ export function HowToPlayContent() {
                 <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 mt-2"><span className="font-black text-slate-700 dark:text-slate-300">Maximum monthly churn cap</span><span className="font-black text-slate-700 dark:text-slate-300">40%</span></div>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Growth Engines</p>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Brand Awareness</span>
-                  <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-black">Boosts Free User Intake</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Network Effects (Marketplace PLG)</span>
-                  <span className="text-[10px] bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full font-black">Volume grows with user base</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">B2B Pipeline (SLG Only)</span>
-                  <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-black">Requires Sales Team to Convert</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">CAC (Cost to Acquire a User)</span>
-                  <span className="text-[10px] bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full font-black">Marketing Spend ÷ New Users</span>
-                </div>
-              </div>
-            </div>
           </div>
         );
 
-      // ─── REVENUE ──────────────────────────────────────────────────────────────
-      case 'revenue':
-        return (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Revenue Engines By Industry</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Each industry has a unique revenue formula. The same action (like improving product quality) hits your MRR differently depending on what you're building.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                {
-                  emoji: "💳", name: "FinTech (PLG — NeoBank)",
-                  formula: "Users × Avg Transaction Volume × Take Rate",
-                  drivers: "PMF (trust) raises volume. Quality (stability) raises volume. Bad product = users keep less money with you.",
-                  color: "blue"
-                },
-                {
-                  emoji: "🏦", name: "FinTech (SLG — B2B API)",
-                  formula: "Enterprise Clients × Bulk Volume × Take Rate",
-                  drivers: "Sales Team converts leads. Once landed, enterprise contracts process massive bulk volumes automatically.",
-                  color: "blue"
-                },
-                {
-                  emoji: "🏪", name: "Marketplace (PLG — C2C)",
-                  formula: "Users × GMV per User × Take Rate",
-                  drivers: "Network Effects bonus: the bigger your marketplace, the more each user transacts (log scale). PMF raises base GMV.",
-                  color: "amber"
-                },
-                {
-                  emoji: "📦", name: "Marketplace (SLG — Managed B2B)",
-                  formula: "Vetted Suppliers × High-Ticket GMV × Commission",
-                  drivers: "Quality vetting = higher listing value. Heavy COGS (30%) — this is ops-intensive. Sales drives supplier onboarding.",
-                  color: "amber"
-                },
-                {
-                  emoji: "🤖", name: "AI Platform (PLG — Dev API)",
-                  formula: "Paying Devs × Token Bundles Used × Price",
-                  drivers: "PMF converts free devs to paid. Token usage volume scales with Team innovation score and Product Quality.",
-                  color: "violet"
-                },
-                {
-                  emoji: "🏢", name: "AI Platform (SLG — Enterprise)",
-                  formula: "Closed Deals × Enterprise Price × 10×",
-                  drivers: "Very low base conversion (15%). Sales team multiplies it. Each closed deal is worth 10× your listed price.",
-                  color: "violet"
-                },
-                {
-                  emoji: "🎮", name: "Mobile Game (PLG — F2P)",
-                  formula: "Ad Revenue + (IAP Paying Users × Price)",
-                  drivers: "High Ad Intensity kills IAP conversion. Quality raises IAP conversion directly. Low quality = low paying whale ratio.",
-                  color: "rose"
-                },
-                {
-                  emoji: "🎓", name: "Mobile Game (SLG — Institutional)",
-                  formula: "Licensed Seats × Price Per Seat",
-                  drivers: "No free users. Entire revenue from organisational contracts. Sales Team is the sole growth engine.",
-                  color: "rose"
-                },
-                {
-                  emoji: "🎬", name: "OTT / Streaming (PLG)",
-                  formula: "Subscribed Users × Monthly Price",
-                  drivers: "Conversion gated by Quality (content/UX). Low reliability (buffering) directly triggers immediate churn.",
-                  color: "pink"
-                },
-                {
-                  emoji: "☁️", name: "SaaS / DevTools (PLG)",
-                  formula: "Paid Users × Monthly Price",
-                  drivers: "Conversion balances PMF vs Pricing tension. Early adopters convert 2.5× easier. Over-pricing kills conversion fast.",
-                  color: "indigo"
-                },
-                {
-                  emoji: "🏗️", name: "SaaS / DevTools (SLG)",
-                  formula: "Enterprise Contracts × Annual Contract Value",
-                  drivers: "5% base conversion from Sales pipeline. Sales Skill multiplies this. Revenue modelled as Annual ACV upfront.",
-                  color: "indigo"
-                },
-              ].map(item => (
-                <div key={item.name} className={`bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-3 rounded-xl`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{item.emoji}</span>
-                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">{item.name}</p>
-                  </div>
-                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 mb-1 font-mono">{item.formula}</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{item.drivers}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      // ─── FUNDING ──────────────────────────────────────────────────────────────
       case 'funding':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -300,21 +396,9 @@ export function HowToPlayContent() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Funding Stages</p>
-              <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl">
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Bootstrapping:</strong> Only your savings. Tight runway but you own 100%.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Angel Round:</strong> Small checks from individuals. 5-15% dilution typical.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Seed Round:</strong> Institutional money. Requires basic traction proof.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Series A:</strong> Large round. Needs strong MRR, PMF ≥ 60, and a credible team.</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Investor Relations Programs</p>
               <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl">
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Monthly Investor Updates:</strong> Costs nothing. Adds +1 Reputation/mo.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Angel Syndicate Membership:</strong> $200/mo, builds networking contacts.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Fundraising Consultant:</strong> Generates investor leads every month — expensive but powerful when you have no CFO.</li>
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">CFO Roadshow:</strong> Replaces the Consultant once you hire a CFO. Zero extra cost, higher lead volume.</li>
               </ul>
             </div>
@@ -326,7 +410,6 @@ export function HowToPlayContent() {
           </div>
         );
 
-      // ─── TEAM ─────────────────────────────────────────────────────────────────
       case 'team':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -341,7 +424,7 @@ export function HowToPlayContent() {
               {[
                 { emoji: "👨‍💻", role: "Engineers", color: "blue", effect: "Clear tech debt passively. The higher the skill, the more debt removed monthly." },
                 { emoji: "📣", role: "Marketers", color: "pink", effect: "Increase brand awareness and organic user growth. Reduce CAC over time." },
-                { emoji: "🤝", role: "Sales", color: "emerald", effect: "In SLG mode, their combined skill score drives pipeline win-rate directly. In PLG, they boost conversion by up to +50% per 100 skill points." },
+                { emoji: "🤝", role: "Sales", color: "emerald", effect: "In Enterprise mode, their combined skill score drives pipeline win-rate directly. In Viral/Self-Serve, they boost conversion by up to +50% per 100 skill points." },
                 { emoji: "🎨", role: "Designers", color: "violet", effect: "Raise product quality by improving UX and reducing friction." },
               ].map(e => (
                 <div key={e.role} className={`p-3 bg-${e.color}-50/50 dark:bg-${e.color}-900/20 rounded-xl border border-${e.color}-100 dark:border-${e.color}-900/30`}>
@@ -369,18 +452,9 @@ export function HowToPlayContent() {
                 ))}
               </div>
             </div>
-
-            <div className="bg-rose-50 dark:bg-rose-900/20 border-2 border-rose-200 dark:border-rose-900/30 p-4 rounded-2xl flex gap-3">
-              <Heart className="size-6 text-rose-600 dark:text-rose-500 shrink-0" />
-              <div>
-                <p className="text-xs font-black text-rose-900 dark:text-rose-300 uppercase mb-1">Team Morale Matters Now</p>
-                <p className="text-[11px] text-rose-700 dark:text-rose-400 font-medium leading-relaxed">Low morale (below 40) now directly increases monthly churn. Unhappy teams give poor support, driving users away. Morale drops from low salaries, crisis events, and founder burnout. Raise salaries or grant equity to restore it.</p>
-              </div>
-            </div>
           </div>
         );
 
-      // ─── COMPETITORS ──────────────────────────────────────────────────────────
       case 'competitors':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -408,24 +482,9 @@ export function HowToPlayContent() {
                 ))}
               </div>
             </div>
-
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
-              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 flex items-center gap-1"><Sparkles className="size-3" /> Meet Chadly</p>
-              <p className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium leading-relaxed">Chadly is your in-game rival character. He tracks your progress and taunts you when you're struggling. He can also make his own strategic mistakes — over-expanding, running out of runway, or suffering PR disasters that drop his valuation. Watch for him in the Rival feed.</p>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Your Counter-Moves</p>
-              <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-1.5 leading-relaxed">
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">High PMF:</strong> Users with high loyalty are harder for rivals to poach.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">PR Campaign:</strong> Directly counter press attacks and restore reputation.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Competitor Analysis:</strong> Reveals their valuation, stage, and next likely move.</li>
-              </ul>
-            </div>
           </div>
         );
 
-      // ─── ENDING ───────────────────────────────────────────────────────────────
       case 'ending':
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -441,36 +500,16 @@ export function HowToPlayContent() {
                 <div className="size-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-black shadow-lg shadow-slate-900/20 shrink-0">🏛️</div>
                 <div>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">1. IPO Route</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Taking your company public requires hitting  <strong className="font-bold text-slate-700 dark:text-slate-300">$50M ARR, 10k+ users, PMF ≥ 60, Series A raised</strong>, and filing your S-1. It's a 4-month multi-step process with underwriting, roadshows, and a public offering price. Higher risk, potentially highest payout.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Taking your company public requires hitting  <strong className="font-bold text-slate-700 dark:text-slate-300">$50M ARR, 10k+ users, PMF ≥ 60, Series A raised</strong>.</p>
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-900/40 border-2 border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
                 <div className="size-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/20 shrink-0">💰</div>
                 <div>
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">2. Acquisition</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A strategic buyer approaches you with an offer based on your current valuation multiple. Negotiations can raise the offer. Faster to close than an IPO, typically 5-8× ARR. Best for founders who want a clean exit without lockup periods.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A strategic buyer approaches you with an offer based on your current valuation multiple. Payout is typically 5-10x ARR.</p>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Legacy System</p>
-              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl text-xs text-slate-600 dark:text-slate-400 font-medium space-y-1.5">
-                <p>After each exit, you earn <strong className="font-bold text-slate-800 dark:text-slate-200">XP (Experience Points)</strong> based on your final valuation and equity retained. Use XP to unlock <strong className="font-bold text-slate-800 dark:text-slate-200">Legacy Perks</strong> that carry into future games:</p>
-                <ul className="space-y-1 mt-2">
-                  <li>• <strong className="font-bold text-slate-700 dark:text-slate-300">Serial Founder:</strong> Start with extra cash in your next run.</li>
-                  <li>• <strong className="font-bold text-slate-700 dark:text-slate-300">Growth Hacker:</strong> +10% monthly growth rate permanently.</li>
-                  <li>• <strong className="font-bold text-slate-700 dark:text-slate-300">Efficient Ops:</strong> -15% burn rate across all future companies.</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
-              <p className="text-xs font-black uppercase text-indigo-400 mb-1 flex items-center gap-1"><Award className="size-4" /> Score Formula</p>
-              <p className="text-[11px] font-medium leading-relaxed text-slate-300">
-                <strong className="font-bold text-white">(Exit Valuation × Your Equity %) + Personal Wealth Extracted</strong>
-                <br />Build slow, retain equity, then strike at valuation peak. A 60% stake in a $200M company beats a 10% stake in a $500M company.
-              </p>
             </div>
           </div>
         );
@@ -482,15 +521,6 @@ export function HowToPlayContent() {
 
   return (
     <div className="flex flex-col md:flex-row h-full overflow-hidden flex-1">
-      {/* Mobile Scroll Hint */}
-      <div className="flex items-center justify-between px-4 py-1.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 md:hidden shrink-0">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sections</span>
-        <div className="flex items-center gap-1 text-indigo-600 animate-pulse">
-          <span className="text-[9px] font-black uppercase tracking-wider">Scroll Right</span>
-          <span className="text-xs font-bold leading-none">→</span>
-        </div>
-      </div>
-
       {/* Sidebar / Tab Navigation */}
       <div className="relative shrink-0 w-full md:w-52">
         <div className="bg-slate-50 dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 p-3 flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -504,7 +534,7 @@ export function HowToPlayContent() {
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-left font-black text-[10px] uppercase tracking-wider transition-all duration-150 shrink-0 select-none ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 active:scale-[0.98]'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800'
                 }`}
               >
                 <Icon className={`size-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />

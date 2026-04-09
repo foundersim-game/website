@@ -80,7 +80,7 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
-        <meta name="theme-color" id="theme-color-meta" content="#f7f8fc" />
+        <meta name="theme-color" id="theme-color-meta" content="#0f1117" />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>

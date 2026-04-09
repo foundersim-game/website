@@ -32,7 +32,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         try {
             const { StatusBar, Style } = await import("@capacitor/status-bar");
             await StatusBar.setStyle({ style: newTheme === "dark" ? Style.Dark : Style.Light });
-            await StatusBar.setBackgroundColor({ color: bg });
+            
+            // On iOS, we make the status bar transparent and overlay the webview
+            // This ensures the top bar color matches the game header perfectly.
+            try {
+                await StatusBar.setOverlaysWebView({ overlay: true });
+            } catch (e) {
+                // setOverlaysWebView not available on all platforms, safe to ignore
+            }
+
+            if (newTheme === "dark") {
+                await StatusBar.setBackgroundColor({ color: darkBg });
+            } else {
+                await StatusBar.setBackgroundColor({ color: lightBg });
+            }
         } catch (e) {
             console.warn("StatusBar plugin not available", e);
         }
