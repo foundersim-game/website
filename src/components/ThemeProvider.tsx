@@ -51,8 +51,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
-            const { NavigationBar } = await import('@capacitor/navigation-bar' as any);
-            await NavigationBar.setColor({ color: bg, darkButtons: newTheme !== "dark" });
+            const { NavigationBar } = await import('@capgo/capacitor-navigation-bar');
+            await (NavigationBar as any).set({ color: bg, darkButtons: newTheme !== "dark" });
         } catch (e) {
             // NavigationBar plugin optional — Android only, safe to swallow on iOS
         }
