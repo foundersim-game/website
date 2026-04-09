@@ -17,6 +17,7 @@ let package = Package(
         .package(name: "CapacitorApp", path: "../../../node_modules/@capacitor/app"),
         .package(name: "CapacitorBrowser", path: "../../../node_modules/@capacitor/browser"),
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
+        .package(name: "CapgoCapacitorNavigationBar", path: "../../../node_modules/@capgo/capacitor-navigation-bar"),
         .package(name: "CapgoNativePurchases", path: "../../../node_modules/@capgo/native-purchases")
     ],
     targets: [
@@ -30,6 +31,7 @@ let package = Package(
                 .product(name: "CapacitorApp", package: "CapacitorApp"),
                 .product(name: "CapacitorBrowser", package: "CapacitorBrowser"),
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
+                .product(name: "CapgoCapacitorNavigationBar", package: "CapgoCapacitorNavigationBar"),
                 .product(name: "CapgoNativePurchases", package: "CapgoNativePurchases")
             ]
         )
