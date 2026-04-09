@@ -1905,7 +1905,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Investor Relations Programs */}
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Investor Relations</p>
 
-                {ONGOING_PROGRAMS.filter(p => p.category_ui === "Funding").map(prog => {
+                {ONGOING_PROGRAMS.filter(p => p.category_ui === "Funding" && p.id !== "fundraising_consultant" && p.id !== "cfo_fundraising_roadshow").map(prog => {
                     const active = ongoingPrograms.some(p => p.id === prog.id);
                     const ap = ongoingPrograms.find(p => p.id === prog.id);
                     return (
@@ -3335,7 +3335,7 @@ export default function Dashboard() {
         });
     };
 
-    const handleRateAndClaim = () => {
+    const handleRateAndClaim = async () => {
         if (!startup.hasRateRewardClaimed) {
             setStartup(prev => ({
                 ...prev,
@@ -3351,7 +3351,7 @@ export default function Dashboard() {
             const newFocusUsed = Math.max(0, focusHoursUsed - 50);
             setFocusHoursUsed(newFocusUsed);
 
-            toast.success("Support Applied!", { 
+            toast.success("Support Applied! 🎁", { 
                 description: "Gained $50k Cash, +50h focus refill, and +5 PMF for supporting the devs!" 
             });
             playSound("success");
@@ -3373,7 +3373,7 @@ export default function Dashboard() {
                 storyState
             }));
         }
-        openStoreListing();
+        await openStoreListing();
     };
 
     const addTimelineEvent = (text: string, monthOverride?: number) => {
@@ -4552,8 +4552,17 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-emerald-50 focus:text-emerald-600 font-bold transition-colors" onClick={() => setIsHowToPlayOpen(true)}>
                                     <HelpCircle className="mr-2 h-4 w-4" /> How To Play
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-amber-50 focus:text-amber-600 font-bold transition-colors" onClick={handleRateAndClaim}>
-                                    <Star className="mr-2 h-4 w-4" /> Rate & Support {!startup.hasRateRewardClaimed && "🎁"}
+                                <DropdownMenuItem 
+                                    className={cn(
+                                        "rounded-xl cursor-pointer py-2 font-bold transition-colors",
+                                        startup.hasRateRewardClaimed 
+                                            ? "opacity-60 focus:bg-slate-50 focus:text-slate-500" 
+                                            : "focus:bg-amber-50 focus:text-amber-600"
+                                    )} 
+                                    onClick={handleRateAndClaim}
+                                >
+                                    <Star className="mr-2 h-4 w-4" /> 
+                                    {startup.hasRateRewardClaimed ? "Rate & Support ✓" : "Rate & Support 🎁 (Claim $50k)"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
                                     <Rocket className="mr-2 h-4 w-4" /> V2 Roadmap (Coming Soon)

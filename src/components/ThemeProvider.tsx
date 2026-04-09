@@ -22,20 +22,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const updateNativeUI = useCallback(async (newTheme: Theme) => {
         if (typeof window === "undefined") return;
         
+        const darkBg = '#0f1117';  // matches CSS --background in dark
+        const lightBg = '#f7f8fc'; // matches CSS --background in light
+        const bg = newTheme === "dark" ? darkBg : lightBg;
+
+        // Update web meta tag for PWA
+        document.getElementById('theme-color-meta')?.setAttribute('content', bg);
+
         try {
             const { StatusBar, Style } = await import("@capacitor/status-bar");
-            if (newTheme === "dark") {
-                await StatusBar.setStyle({ style: Style.Dark });
-                // Match the oklch(0.12 0.015 240) background color which is ~#1a1c24
-                await StatusBar.setBackgroundColor({ color: '#1a1c24' });
-                document.getElementById('theme-color-meta')?.setAttribute('content', '#1a1c24');
-            } else {
-                await StatusBar.setStyle({ style: Style.Light });
-                await StatusBar.setBackgroundColor({ color: '#f7f8fc' });
-                document.getElementById('theme-color-meta')?.setAttribute('content', '#f7f8fc');
-            }
+            await StatusBar.setStyle({ style: newTheme === "dark" ? Style.Dark : Style.Light });
+            await StatusBar.setBackgroundColor({ color: bg });
         } catch (e) {
             console.warn("StatusBar plugin not available", e);
+        }
+
+        try {
+            const { NavigationBar } = await import('@capacitor/navigation-bar' as any);
+            await NavigationBar.setColor({ color: bg, darkButtons: newTheme !== "dark" });
+        } catch (e) {
+            // NavigationBar plugin optional — Android only, safe to swallow on iOS
         }
     }, []);
 

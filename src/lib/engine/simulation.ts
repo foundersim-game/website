@@ -783,11 +783,16 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const pmfMultiplier = Math.max(0.05, (metrics.pmf_score / 120));
     const annualBillingMult = metrics.annual_billing ? 0.70 : 1.0;
     
-    // Virality (loopPower) directly enhances organic baseline growth
-    const viralBonus = 1 + (loopPower * 0.05);
+    // Virality gated by product quality and PMF — a bad product doesn't go viral
+    // qualityViralMult: 0 quality = 0x viral, 50 quality = 0.5x, 100 quality = 1.0x
+    const qualityViralMult = Math.min(1, (metrics.product_quality || 0) / 80);
+    // pmfViralMult: PMF below 30 kills virality
+    const pmfViralMult = Math.max(0, Math.min(1, ((metrics.pmf_score || 0) - 15) / 45));
+    // Combined viral bonus: only high quality + good PMF products spread virally
+    const viralBonus = 1 + (loopPower * 0.05 * qualityViralMult * pmfViralMult);
 
     // Quality Penalty for Growth: People hate low-quality products
-    const qualityGrowthMult = metrics.product_quality < 20 ? 0.3 : metrics.product_quality < 40 ? 0.7 : 1.0;
+    const qualityGrowthMult = metrics.product_quality < 20 ? 0.2 : metrics.product_quality < 40 ? 0.6 : metrics.product_quality < 60 ? 0.85 : 1.0;
 
     const burnoutGrowthPenalty = metrics.founder_burnout > 50 ? (metrics.founder_burnout - 50) / 100 : 0;
     const monthsPassed = startup.history?.length || 0;
@@ -889,12 +894,25 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         const monthsActive = startup.history?.length || 0;
         const expectedQuality = Math.min(85, 20 + (monthsActive * 1.5));
         
-        // Quality gap penalty
-        if (metrics.product_quality < expectedQuality) currentChurn += (expectedQuality - metrics.product_quality) / 500;
-        if (metrics.pmf_score < 45) currentChurn += 0.08 * ((45 - metrics.pmf_score) / 45);
+        // Quality gap penalty — steeper curve: every 10 pts below expected = +2% churn
+        if (metrics.product_quality < expectedQuality) {
+            currentChurn += ((expectedQuality - metrics.product_quality) / 500);
+            // Extra hard hit below 30: buggy product hemorrhages users
+            if (metrics.product_quality < 30) currentChurn += 0.05;
+        }
+        // Low PMF means people aren't finding value — they leave quickly
+        if (metrics.pmf_score < 45) currentChurn += 0.10 * ((45 - metrics.pmf_score) / 45);
+        // Low reliability (bugs/downtime) drives away users directly
+        if ((metrics.reliability || 100) < 60) currentChurn += 0.05 * ((60 - (metrics.reliability || 100)) / 60);
+        // Poor team morale leads to poor support, increasing churn
+        if ((metrics.team_morale || 100) < 40) currentChurn += 0.02 * ((40 - (metrics.team_morale || 100)) / 40);
+
         if (scenarioRules.churnMultiplier) currentChurn *= scenarioRules.churnMultiplier;
-        
-        metrics.users = Math.max(0, metrics.users - Math.floor(metrics.users * currentChurn * (1 - (metrics.product_quality / 250))));
+
+        // Hard cap: never exceed 40% monthly churn even in disasters
+        currentChurn = Math.min(0.40, currentChurn);
+
+        metrics.users = Math.max(0, metrics.users - Math.floor(metrics.users * currentChurn));
     }
 
     // --- UNIT ECONOMICS SYNC ---
