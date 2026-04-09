@@ -51,6 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            // @ts-ignore - Dynamic import for native plugin
             const { NavigationBar } = await import('@capgo/capacitor-navigation-bar');
             await (NavigationBar as any).set({ color: bg, darkButtons: newTheme !== "dark" });
         } catch (e) {
