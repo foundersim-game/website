@@ -106,20 +106,32 @@ export default function Home() {
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     playSound("click");
+    try {
+      const { notificationService } = await import("@/lib/services/notificationService");
+      await notificationService.askPermissions();
+    } catch {}
     router.push("/dashboard");
   };
 
-  const handleNewGame = () => {
+  const handleNewGame = async () => {
     playSound("click");
+    try {
+      const { notificationService } = await import("@/lib/services/notificationService");
+      await notificationService.askPermissions();
+    } catch {}
     localStorage.removeItem("founder_sim_state");
     localStorage.removeItem("founder_data");
     router.push("/create-founder");
   };
 
-  const handleLoad = (save: SaveSlot) => {
+  const handleLoad = async (save: SaveSlot) => {
     playSound("click");
+    try {
+      const { notificationService } = await import("@/lib/services/notificationService");
+      await notificationService.askPermissions();
+    } catch {}
     localStorage.setItem("founder_sim_state", JSON.stringify({ 
       ...save.data, 
       founderMeta: { logo: save.logo, brandColor: save.brandColor } 
@@ -205,21 +217,19 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
         className="fixed z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-90"
-        style={{ top: 'calc(var(--sat, 0px) + 16px)', right: '16px' }}
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: '16px' }}
         aria-label="Toggle theme"
       >
         {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
 
-      {/* Main Content - Compact & Zero-Scroll */}
       <div 
         className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden"
         style={{ 
-          paddingTop: 'calc(var(--sat, 0px) + 16px)',
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
           paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '16px' : '76px'})`
         }}
       >
@@ -228,14 +238,14 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.8 }}
-          className="flex flex-col items-center flex-1 justify-center gap-1 min-h-0"
+          className="flex flex-col items-center flex-1 justify-center gap-1.5 pt-2 min-h-0 pb-2"
         >
           {/* Simple Premium Logo */}
-          <div className="relative group mb-2">
+          <div className="relative group mb-1 shrink min-w-16 min-h-16 h-[min(25vh,9rem)] w-[min(25vh,9rem)] aspect-square flex items-center justify-center">
             <div className="absolute inset-0 bg-indigo-500/10 blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500 rounded-full" />
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="w-36 h-36 rounded-[2.5rem] shadow-xl shadow-indigo-500/10 dark:shadow-indigo-950/40 overflow-hidden relative z-10"
+              className="w-full h-full rounded-[20%] shadow-xl shadow-indigo-500/10 dark:shadow-indigo-950/40 overflow-hidden relative z-10"
             >
               <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
             </motion.div>
@@ -248,7 +258,7 @@ export default function Home() {
           {/* Version tag - Refined v1.6 */}
           <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5">
             <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 1.6</span>
+            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 1.1.2</span>
           </div>
 
           {/* Career Stats - Compact Glassmorphic Cards */}
@@ -256,7 +266,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-6 grid grid-cols-2 gap-3 w-full"
+            className="mt-1 sm:mt-2 grid grid-cols-2 gap-3 w-full shrink-0"
           >
             <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-3 flex flex-col items-center shadow-sm relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
@@ -284,12 +294,12 @@ export default function Home() {
           </motion.div>
 
           {/* Hall of Fame - Compact */}
-          <div className="mt-6 w-full min-h-0 flex flex-col relative">
+          <div className="mt-2 sm:mt-4 w-full flex flex-col relative flex-1 min-h-0">
              <div className="absolute inset-0 bg-indigo-500/5 blur-2xl -z-10" />
              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-2 text-center flex items-center justify-center gap-2 shrink-0">
                <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
              </p>
-             <div className="space-y-2 overflow-y-auto max-h-[140px] custom-scrollbar pr-1 min-h-[60px]">
+             <div className="space-y-2 overflow-y-auto w-full custom-scrollbar pr-1 flex-1 min-h-0 max-h-[140px]">
                {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired').length > 0 ? (
                  legacyData.hallOfFame
                    .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired')
@@ -328,7 +338,7 @@ export default function Home() {
           </div>
 
           {/* Feature Pills - Compact */}
-          <div className="mt-6 flex flex-wrap gap-1.5 justify-center shrink-0">
+          <div className="mt-2 flex flex-wrap gap-1.5 justify-center shrink-0">
             {[
               { label: "Real Unit Economics", icon: "🏢" },
               { label: "100+ Events", icon: "📈" },

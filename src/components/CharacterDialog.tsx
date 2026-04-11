@@ -467,7 +467,7 @@ export function CharacterDialog({
                         {/* ── Content panel ── */}
                         <div style={{ 
                             background: isDark ? "#0f172a" : "#ffffff", 
-                            padding: `14px 20px ${isPremium ? '24px' : 'calc(24px + var(--sab, 0px) + 70px)'}`,
+                            padding: `14px 20px ${isPremium ? '24px' : 'calc(24px + env(safe-area-inset-bottom, 0px) + 70px)'}`,
                         }}>
 
                             {/* Title — pops in with scale */}

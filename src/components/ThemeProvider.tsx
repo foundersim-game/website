@@ -22,40 +22,49 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const updateNativeUI = useCallback(async (newTheme: Theme) => {
         if (typeof window === "undefined") return;
         
+        const isDark = newTheme === "dark";
         const darkBg = '#0f1117';  // matches CSS --background in dark
         const lightBg = '#f7f8fc'; // matches CSS --background in light
-        const bg = newTheme === "dark" ? darkBg : lightBg;
+        const bg = isDark ? darkBg : lightBg;
 
         // Update web meta tag for PWA
         document.getElementById('theme-color-meta')?.setAttribute('content', bg);
 
         try {
             const { StatusBar, Style } = await import("@capacitor/status-bar");
-            await StatusBar.setStyle({ style: newTheme === "dark" ? Style.Dark : Style.Light });
             
-            // On iOS, we make the status bar transparent and overlay the webview
-            // This ensures the top bar color matches the game header perfectly.
+            // 1. Set text/icon style
+            // Style.Dark = White icons (for dark bg)
+            // Style.Light = Black icons (for light bg)
+            await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+            
+            // 2. iOS Overlay Support
+            // Force content to go UNDER the status bar for a premium full-screen look
             try {
                 await StatusBar.setOverlaysWebView({ overlay: true });
             } catch (e) {
-                // setOverlaysWebView not available on all platforms, safe to ignore
+                // Not supported on Android, ignore
             }
 
-            if (newTheme === "dark") {
-                await StatusBar.setBackgroundColor({ color: darkBg });
-            } else {
-                await StatusBar.setBackgroundColor({ color: lightBg });
+            // 3. Android Background Color (ignored on iOS when overlay is true)
+            try {
+                await StatusBar.setBackgroundColor({ color: bg });
+            } catch (e) {
+                // Not supported on iOS, ignore
             }
         } catch (e) {
-            console.warn("StatusBar plugin not available", e);
+            console.warn("StatusBar plugin error:", e);
         }
 
         try {
             // @ts-ignore - Dynamic import for native plugin
             const { NavigationBar } = await import('@capgo/capacitor-navigation-bar');
-            await (NavigationBar as any).set({ color: bg, darkButtons: newTheme !== "dark" });
+            await (NavigationBar as any).set({ 
+                color: bg, 
+                darkButtons: !isDark // Black icons on light bg
+            });
         } catch (e) {
-            // NavigationBar plugin optional — Android only, safe to swallow on iOS
+            // NavigationBar plugin optional — Android only
         }
     }, []);
 

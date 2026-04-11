@@ -40,6 +40,7 @@ import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
 import { adService } from "@/lib/services/adService";
+import { analyticsService } from "@/lib/services/analyticsService";
 import { iapService } from "@/lib/services/iapService";
 import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook";
 import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
@@ -3713,8 +3714,15 @@ export default function Dashboard() {
                     return ns;
                 });
 
-                addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name}: ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
                 toast.success(`Raised ${formatMoney(raised)}!`, { description: `Post-money valuation: ${formatMoney(postMoney)}` });
+
+                analyticsService.logEvent("funding_secured", {
+                    stage: nextStage,
+                    raised: raised,
+                    valuation: postMoney,
+                    equity_given: equityGiven,
+                    investor: pendingInvestor.name
+                });
 
                 setFocusHoursUsed(curr => curr + 40);
                 setSelectedAction("none");
@@ -3767,6 +3775,15 @@ export default function Dashboard() {
 
             addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name} (Counter Accepted): ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
             toast.success(`Deal Closed!`, { description: `Raised ${formatMoney(raised)}` });
+
+            analyticsService.logEvent("funding_secured", {
+                stage: nextStage,
+                raised: raised,
+                valuation: postMoney,
+                equity_given: equityGiven,
+                investor: pendingInvestor.name,
+                is_counter: true
+            });
 
             setFocusHoursUsed(curr => curr + 30);
             setSelectedAction("none");
@@ -4004,10 +4021,16 @@ export default function Dashboard() {
                         playSound("success");
                         newStartup.outcome = "ipo";
                         const pts = recordExit(newStartup, founder.name);
-                        toast.success(`MARKET CAP EXPLOSION! +${pts} Legacy XP earned.`);
                         setStartup(newStartup);
                         setIsEndgameOpen(true);
                         setIsProcessing(false);
+
+                        analyticsService.logEvent("ipo_success", {
+                            valuation: finalValuation,
+                            payout: Math.floor(finalValuation * founderEquityPct),
+                            raised: cashRaised,
+                            industry: newStartup.industry
+                        });
                         return;
                     }
                 }
@@ -4052,6 +4075,18 @@ export default function Dashboard() {
                     storyState,
                     justFundraised
                 );
+
+                // --- ANALYTICS: Track Monthly Metrics ---
+                analyticsService.trackMonthlyMetrics({
+                    month: nextMonth,
+                    arr: (newStartup.metrics.revenue || 0) * 12,
+                    valuation: newStartup.valuation || 0,
+                    cash: newStartup.metrics.cash || 0,
+                    users: newStartup.metrics.users || 0,
+                    burnout: newStartup.metrics.founder_burnout || 0,
+                    industry: newStartup.industry
+                });
+
                 if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
                     // Log the storyline encounter to the timeline
                     const encounterText = storyDialog.character === "chad" 
@@ -4441,7 +4476,7 @@ export default function Dashboard() {
                 {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
                 <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
                     {/* HEADER */}
-                    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 8px)' : '8px' }}>
+                    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
                     
 
 
@@ -4890,7 +4925,7 @@ export default function Dashboard() {
                 <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{ 
                     position: "relative", 
                     zIndex: storyState.tutorialStep >= 2 ? 50 : 1, 
-                    paddingBottom: isNative ? `calc(var(--sab, env(safe-area-inset-bottom, 0px)) + ${isPremium ? '20px' : '85px'})` : '1rem' 
+                    paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})` : '1rem' 
                 }}>
                     <div className="grid grid-cols-4 gap-2">
                         {([

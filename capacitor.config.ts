@@ -5,11 +5,11 @@ const config: CapacitorConfig = {
     appName: 'Founder Sim',
     webDir: 'out',
     server: {
-        androidScheme: 'https'
+        androidScheme: 'https',
+        iosScheme: 'https'
     },
     ios: {
-        contentInset: 'automatic',
-        backgroundColor: '#0f1117'
+        contentInset: 'never'
     },
     plugins: {
         AdMob: {

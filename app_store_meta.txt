@@ -1,0 +1,48 @@
+Promotional Text (Max 170 chars):
+----------------------------------
+
+Build your tech empire! Master 11 unique industries in the ultimate startup CEO simulator. Code, hire, raise VC funding, and reach a billion-dollar IPO valuation! 🚀
+
+
+What's New (v1.1.1):
+----------------------------------
+
+This update brings critical native stability and UI polish for a true premium CEO experience.
+
+* ✨ IMMERSIVE UI OVERHAUL: We’ve polished the native experience! The app now flows edge-to-edge, removing those pesky black bars on iOS and Android for a truly immersive startup journey.
+* 🌓 THEME-SYNC PERFECTION: Switching between Light and Dark mode? The system status bar and navigation bars now sync instantly with your theme for a seamless look.
+* 📊 SMARTER GAME ENGINE: Under-the-hood improvements to our data tracking to help us bring you even better balance updates and legendary new story events!
+* 🐛 BUG SQUASHING: Fixed a rare issue where the status bar icons would hide in light mode.
+
+Love building your startup empire? Leave us a rating and let us know which industry you want to conquer next! Your reviews directly fuel our next updates.
+
+
+App Store Description:
+----------------------------------
+
+Have you ever wanted to build the next billion-dollar unicorn from scratch? Welcome to Founder Sim: The ultimate tech startup and CEO business simulator. Start from a tiny garage idea, hire a world-class team, raise millions in Venture Capital, and take your company public on Wall Street in this hyper-realistic Silicon Valley tycoon strategy game! 🚀
+
+As the Founder and CEO, every single decision rests on your shoulders. You aren't just clicking buttons; you are balancing Burn Rates, managing Tech Debt, fending off cutthroat corporate rivals, and navigating the brutal reality of the tech industry. It takes grit, strategy, and perfect execution to ring the IPO bell.
+
+🏢 CHOOSE FROM 11+ TECH INDUSTRIES
+Will you build a blazing-fast SaaS product or a heavily regulated FinTech banking app? Build a cutting-edge AI Platform, a vibrant Community Marketplace, a Dev Tools ecosystem, or an addictive Mobile Game. Every single industry features entirely unique revenue mathematics, growth levers, and hidden market challenges. Marketplaces require Network Effects, AI Platforms burn cash on massive server compute costs, and Mobile Games must balance Ad Intensity against user churn.
+
+📈 MASTER STARTUP GTM STRATEGY
+Your Go-To-Market (GTM) strategy changes how you play the game. Will you rely on Viral and Self-Serve growth to effortlessly scale to millions of free users? Or will you build an elite Enterprise B2B Sales team to slog through procurement and close massive corporate contracts? Watch your PMF (Product-Market Fit) closely—scaling a low-quality, buggy product will cause your churn rate to skyrocket and destroy your company.
+
+💼 HIRE & MANAGE YOUR DREAM TEAM
+You can't build a unicorn alone. Recruit elite Engineers to crush Tech Debt and push feature updates. Hire Marketers to dominate social media and lower your Customer Acquisition Cost (CAC). Bring on Sales Executives to manage your B2B deal pipelines. Later in the game, recruit an elite C-Suite including a CTO, CMO, and a CFO to unlock advanced fundraising roadshows. But treat them well—low team morale and a toxic culture will cause your best talent to resign!
+
+💰 SECURE VENTURE CAPITAL FUNDING
+Is your startup running out of cash? Pitch your vision to Angel Investors and top-tier Venture Capital firms to secure vital funding. Negotiate term sheets and valuations for Seed, Series A, Series B, and beyond. Every funding round brings you cash, but it heavily dilutes your equity. Can you balance your company's hyper-growth while maintaining enough ownership to become a billionaire at the exit?
+
+⚔️ OUTSMART RELENTLESS AI RIVALS
+The free market is ruthless. You will compete against relentless AI rivals (like the infamous "Chadly") who will try to poach your employees, launch negative PR campaigns to ruin your brand, and dramatically undercut your pricing. Strike back by analyzing their tech stack, stealing their key executives, and launching superior products. 
+
+📊 IN-DEPTH FINANCIALS & METRICS
+This is not a simple idle clicking game. This is a realistic economic simulation. Balance your Burn Rate, Monthly Recurring Revenue (MRR), Lifetime Value (LTV), and Customer Acquisition Cost (CAC). Don't forget to manage your own personal Founder Burnout. If you grind 100-hour weeks without resting, your health will crash, and you will take the entire company down with you!
+
+🏆 TWO PATHS TO GLORY
+Will you sell out early? Field lucrative Acquisition offers from massive tech conglomerates based on your current ARR multipliers. Or will you reject the buyouts, push through to $50M in Annual Recurring Revenue, and take your company public in a historic, wealth-generating IPO? 
+
+Whether you love business, economics, capitalism simulators, or deep strategy games, Founder Sim offers endless replayability. Download Founder Sim today, put on your CEO hat, and prove you are the ultimate entrepreneur!

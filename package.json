@@ -1,6 +1,6 @@
 {
   "name": "foundersim",
-  "version": "1.4.2",
+  "version": "1.1.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,10 +18,12 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/status-bar": "^8.0.1",
     "@capgo/capacitor-navigation-bar": "^8.0.25",
     "@capgo/native-purchases": "^8.2.3",
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@next/third-parties": "^16.2.3",
     "@supabase/supabase-js": "^2.99.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

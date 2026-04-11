@@ -1,91 +1,66 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import type { Viewport, Metadata } from "next";
+import { ClientLayout } from "./ClientLayout";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
+export const metadata: Metadata = {
+  title: "Founder Sim",
+  description: "Build, Grow, and Exit your dream startup in this ultimate founder simulation.",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    // 1. Handle Cold Launch
-    const hasLaunched = sessionStorage.getItem("app_launched");
-    if (!hasLaunched) {
-      sessionStorage.setItem("app_launched", "true");
-      const hasSave = typeof window !== 'undefined' && !!localStorage.getItem("founder_sim_state");
-      if (pathname !== "/" && !hasSave) {
-        router.push("/");
-      }
-    }
-
-    // 2. Handle Resume from Background
-    const setupAppListener = async () => {
-      try {
-        const { App } = await import("@capacitor/app");
-        App.addListener("appStateChange", ({ isActive }) => {
-          if (isActive) {
-            sessionStorage.removeItem("founder_sim_splash_seen");
-          }
-        });
-      } catch (e) {
-        console.warn("Capacitor App plugin not available", e);
-      }
-    };
-
-    setupAppListener();
-
-    // 3. Inject safe area insets as CSS vars
-    const injectSafeAreas = () => {
-      const div = document.createElement('div');
-      div.style.cssText = `
-        position: fixed;
-        top: env(safe-area-inset-top, 0px);
-        bottom: env(safe-area-inset-bottom, 0px);
-        left: env(safe-area-inset-left, 0px);
-        right: env(safe-area-inset-right, 0px);
-        pointer-events: none;
-        visibility: hidden;
-      `;
-      document.body.appendChild(div);
-      const cs = window.getComputedStyle(div);
-      document.documentElement.style.setProperty('--sat', cs.top);
-      document.documentElement.style.setProperty('--sab', cs.bottom);
-      document.body.removeChild(div);
-    };
-
-    injectSafeAreas();
-    window.addEventListener('resize', injectSafeAreas);
-
-    setIsInitialized(true);
-    return () => window.removeEventListener('resize', injectSafeAreas);
-  }, [router, pathname]);
-
   return (
     <html lang="en">
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-        />
         <meta name="theme-color" id="theme-color-meta" content="#0f1117" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-W7N2170J6N"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            var clientId = localStorage.getItem('ga_client_id_v2');
+            if (!clientId) {
+              clientId = 'cid_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+              localStorage.setItem('ga_client_id_v2', clientId);
+            }
+
+            var sessionId = sessionStorage.getItem('ga_session_id');
+            if (!sessionId) {
+              sessionId = Date.now().toString();
+              sessionStorage.setItem('ga_session_id', sessionId);
+            }
+
+            gtag('config', 'G-W7N2170J6N', {
+              client_id: clientId,
+              session_id: sessionId,
+              client_storage: 'none',
+              page_location: 'https://foundersim.fun' + window.location.pathname,
+              send_page_view: true
+            });
+          `
+        }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          {isInitialized ? children : <div className="bg-slate-950 fixed inset-0" />}
-        </ThemeProvider>
+      <body className={`${inter.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

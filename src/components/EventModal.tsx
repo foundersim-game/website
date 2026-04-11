@@ -263,7 +263,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                         {/* --- CONTENT PANEL --- */}
                         <div style={{ 
                             background: isDark ? "#0f172a" : "#ffffff", 
-                            padding: `16px 24px ${isPremium ? '32px' : 'calc(32px + var(--sab, 0px) + 70px)'}`
+                            padding: `16px 24px ${isPremium ? '32px' : 'calc(32px + env(safe-area-inset-bottom, 0px) + 70px)'}`
                         }}>
                             {!resolvedChoice ? (
                                 <>

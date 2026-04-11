@@ -396,7 +396,7 @@ export function applyEffectsToState(
             const cur = (newFounder.attributes as any)[key] || 50;
             (newFounder.attributes as any)[key] = Math.min(100, Math.max(0, cur + val));
         } else if (METRIC_KEYS.includes(key)) {
-            const isTopLevel = ["pmf_score", "culture_score"].includes(key);
+            const isTopLevel = ["culture_score"].includes(key);
             const cur = isTopLevel ? (newStartup as any)[key] || 0 : (newStartup.metrics as any)[key] || 0;
             
             let newVal = Math.max(0, cur + val);

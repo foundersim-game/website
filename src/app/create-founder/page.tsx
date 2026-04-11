@@ -9,6 +9,7 @@ import { toast, Toaster } from "sonner";
 import { PerkModal } from "@/components/PerkModal";
 import { getLegacyData, buyPerk, LegacyData } from "@/lib/engine/legacy";
 import { adService } from "@/lib/services/adService";
+import { analyticsService } from "@/lib/services/analyticsService";
 import { playSound, playSynthSound } from "@/lib/audio";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
@@ -23,22 +24,38 @@ const BACKGROUNDS = [
 ];
 
 const INDUSTRIES = [
-    { id: "SaaS Platform", label: "SaaS Platform", emoji: "☁️", diff: "Medium", capital: "Low", desc: "Subscription software solving B2B or B2C pain",
-      detail: { what: "Web/mobile software product solving a recurring pain point.", who: "PLG: SMBs & professionals. SLG: mid-large companies.", revenue: "Subscriptions — small payers (PLG) or large contracts (SLG).", cogs: "Low (15%) — Standard hosting & support costs.", opex: "Balanced — Engineering & marketing drive burn.", growth: "PLG: free trials & virality. SLG: outbound demos.", risk: "PLG: churn risk. SLG: long sales cycles." } },
-    { id: "AI Platform", label: "AI Platform", emoji: "🤖", diff: "Hard", capital: "High", desc: "Machine learning APIs, copilots, or AI-native tools",
-      detail: { what: "AI models or tools automating knowledge work.", who: "PLG: developers. SLG: enterprise CIOs.", revenue: "PLG: usage billing. SLG: fixed enterprise contracts.", cogs: "High (35%) — Heavy GPU compute levels eat margins.", opex: "Technical-Heavy — Model R&D & engineering.", growth: "PLG: dev community. SLG: enterprise sales.", risk: "PLG: high direct cost rate. SLG: long procurement." } },
-    { id: "OTT / Streaming", label: "OTT / Streaming", emoji: "📺", diff: "Hard", capital: "Very High", desc: "Video streaming or content subscription platform",
-      detail: { what: "Content streaming platform or media delivery infrastructure.", who: "PLG: individual subscribers. SLG: platforms buying licenses.", revenue: "PLG: user subs. SLG: content licensing deals.", cogs: "Medium (15%) — CDN bandwidth fees.", opex: "Heavy — Massive upfront content investment.", growth: "PLG: viral content. SLG: B2B partnerships.", risk: "PLG: massive content spend. SLG: capped upside." } },
-    { id: "Mobile Game", label: "Mobile Game", emoji: "🎮", diff: "Medium", capital: "Medium", desc: "F2P mobile game with in-app purchases & ads",
-      detail: { what: "Mobile game monetized through IAPs and ads.", who: "PLG: casual gamers. SLG: studios licensing your engine.", revenue: "PLG: ad revenue + 3% whale IAPs. SLG: engine licensing fees.", cogs: "Very Low (5%) — Low server overhead per player.", opex: "Creative-Heavy — Design, art, and ad spend.", growth: "PLG: app store, viral loops. SLG: brand deals.", risk: "PLG: hits-driven. SLG: royalties cut margin." } },
-    { id: "FinTech", label: "FinTech App", emoji: "💳", diff: "Hard", capital: "High", desc: "Payments, banking, or investment platform",
-      detail: { what: "Financial tooling — payments or infrastructure.", who: "PLG: consumers & freelancers. SLG: B2B platforms.", revenue: "PLG: interchange fees. SLG: monthly infra sub.", cogs: "Medium (20%) — Payment rail Interchange fees.", opex: "Heavy — Regulatory compliance & fraud audits.", growth: "PLG: referral bonuses. SLG: B2B integrations.", risk: "PLG: low margins. SLG: long legal reviews." } },
-    { id: "EdTech", label: "EdTech Platform", emoji: "📚", diff: "Medium", capital: "Low", desc: "Online learning, tutoring, or skill development",
-      detail: { what: "Online learning platform for courses or tutoring.", who: "PLG: individual learners. SLG: schools & HR deps.", revenue: "PLG: course sales. SLG: per-seat annual contracts.", cogs: "Low (15%) — Course hosting & bandwidth.", opex: "Ops-Heavy — Instructor payouts, content SEO.", growth: "PLG: SEO & organic previews. SLG: institutional teams.", risk: "PLG: high CAC. SLG: slow procurement." } },
-    { id: "Dev Tools", label: "Developer Tools", emoji: "⚡", diff: "Hard", capital: "Low", desc: "Infrastructure, APIs, or SDKs for developers",
-      detail: { what: "Tools helping devs write, ship, or monitor software.", who: "PLG: individual devs. SLG: enterprise engineering orgs.", revenue: "PLG: hosting sub. SLG: enterprise contracts.", cogs: "Low (15%) — Managed cloud server overhead.", opex: "Tech-Heavy — Product depth is the biggest cost.", growth: "PLG: GitHub, Hacker News. SLG: outbound sales.", risk: "PLG: hard to monetize free users. SLG: stalled roadmap." } },
-    { id: "Marketplace", label: "Marketplace", emoji: "🌐", diff: "Medium", capital: "Medium", desc: "Two-sided marketplace connecting buyers and sellers",
-      detail: { what: "Platform connecting service providers with buyers.", who: "PLG: organic buyers/sellers. SLG: verified vendors.", revenue: "PLG: take-rate % on GMV. SLG: monthly suppliers fee.", cogs: "Low (15%) — Transaction & verification costs.", opex: "Ops-Heavy — Support & manual vendor vetting.", growth: "PLG: SEO, Supply growth. SLG: direct onboarding.", risk: "PLG: cold-start gap. SLG: ops heavy." } },
+    {
+        id: "SaaS Platform", label: "SaaS Platform", emoji: "☁️", diff: "Medium", capital: "Low", desc: "Subscription software solving B2B or B2C pain",
+        detail: { what: "Web/mobile software product solving a recurring pain point.", who: "PLG: SMBs & professionals. SLG: mid-large companies.", revenue: "Subscriptions — small payers (PLG) or large contracts (SLG).", cogs: "Low (15%) — Standard hosting & support costs.", opex: "Balanced — Engineering & marketing drive burn.", growth: "PLG: free trials & virality. SLG: outbound demos.", risk: "PLG: churn risk. SLG: long sales cycles." }
+    },
+    {
+        id: "AI Platform", label: "AI Platform", emoji: "🤖", diff: "Hard", capital: "High", desc: "Machine learning APIs, copilots, or AI-native tools",
+        detail: { what: "AI models or tools automating knowledge work.", who: "PLG: developers. SLG: enterprise CIOs.", revenue: "PLG: usage billing. SLG: fixed enterprise contracts.", cogs: "High (35%) — Heavy GPU compute levels eat margins.", opex: "Technical-Heavy — Model R&D & engineering.", growth: "PLG: dev community. SLG: enterprise sales.", risk: "PLG: high direct cost rate. SLG: long procurement." }
+    },
+    {
+        id: "OTT / Streaming", label: "OTT / Streaming", emoji: "📺", diff: "Hard", capital: "Very High", desc: "Video streaming or content subscription platform",
+        detail: { what: "Content streaming platform or media delivery infrastructure.", who: "PLG: individual subscribers. SLG: platforms buying licenses.", revenue: "PLG: user subs. SLG: content licensing deals.", cogs: "Medium (15%) — CDN bandwidth fees.", opex: "Heavy — Massive upfront content investment.", growth: "PLG: viral content. SLG: B2B partnerships.", risk: "PLG: massive content spend. SLG: capped upside." }
+    },
+    {
+        id: "Mobile Game", label: "Mobile Game", emoji: "🎮", diff: "Medium", capital: "Medium", desc: "F2P mobile game with in-app purchases & ads",
+        detail: { what: "Mobile game monetized through IAPs and ads.", who: "PLG: casual gamers. SLG: studios licensing your engine.", revenue: "PLG: ad revenue + 3% whale IAPs. SLG: engine licensing fees.", cogs: "Very Low (5%) — Low server overhead per player.", opex: "Creative-Heavy — Design, art, and ad spend.", growth: "PLG: app store, viral loops. SLG: brand deals.", risk: "PLG: hits-driven. SLG: royalties cut margin." }
+    },
+    {
+        id: "FinTech", label: "FinTech App", emoji: "💳", diff: "Hard", capital: "High", desc: "Payments, banking, or investment platform",
+        detail: { what: "Financial tooling — payments or infrastructure.", who: "PLG: consumers & freelancers. SLG: B2B platforms.", revenue: "PLG: interchange fees. SLG: monthly infra sub.", cogs: "Medium (20%) — Payment rail Interchange fees.", opex: "Heavy — Regulatory compliance & fraud audits.", growth: "PLG: referral bonuses. SLG: B2B integrations.", risk: "PLG: low margins. SLG: long legal reviews." }
+    },
+    {
+        id: "EdTech", label: "EdTech Platform", emoji: "📚", diff: "Medium", capital: "Low", desc: "Online learning, tutoring, or skill development",
+        detail: { what: "Online learning platform for courses or tutoring.", who: "PLG: individual learners. SLG: schools & HR deps.", revenue: "PLG: course sales. SLG: per-seat annual contracts.", cogs: "Low (15%) — Course hosting & bandwidth.", opex: "Ops-Heavy — Instructor payouts, content SEO.", growth: "PLG: SEO & organic previews. SLG: institutional teams.", risk: "PLG: high CAC. SLG: slow procurement." }
+    },
+    {
+        id: "Dev Tools", label: "Developer Tools", emoji: "⚡", diff: "Hard", capital: "Low", desc: "Infrastructure, APIs, or SDKs for developers",
+        detail: { what: "Tools helping devs write, ship, or monitor software.", who: "PLG: individual devs. SLG: enterprise engineering orgs.", revenue: "PLG: hosting sub. SLG: enterprise contracts.", cogs: "Low (15%) — Managed cloud server overhead.", opex: "Tech-Heavy — Product depth is the biggest cost.", growth: "PLG: GitHub, Hacker News. SLG: outbound sales.", risk: "PLG: hard to monetize free users. SLG: stalled roadmap." }
+    },
+    {
+        id: "Marketplace", label: "Marketplace", emoji: "🌐", diff: "Medium", capital: "Medium", desc: "Two-sided marketplace connecting buyers and sellers",
+        detail: { what: "Platform connecting service providers with buyers.", who: "PLG: organic buyers/sellers. SLG: verified vendors.", revenue: "PLG: take-rate % on GMV. SLG: monthly suppliers fee.", cogs: "Low (15%) — Transaction & verification costs.", opex: "Ops-Heavy — Support & manual vendor vetting.", growth: "PLG: SEO, Supply growth. SLG: direct onboarding.", risk: "PLG: cold-start gap. SLG: ops heavy." }
+    },
 ];
 
 /*
@@ -163,6 +180,17 @@ export default function CreateFounder() {
     const handleLaunch = () => {
         playSound("click");
         playSynthSound("ui_launch");
+
+        // --- ANALYTICS: Track Industry & Game Start ---
+        analyticsService.logEvent("industry_selected", { industry: formData.industry });
+        analyticsService.logEvent("game_start", {
+            background: formData.background,
+            industry: formData.industry,
+            gtm_motion: formData.gtmMotion,
+            scenario: formData.scenario,
+            startup_name: formData.startupName
+        });
+
         localStorage.setItem("founder_data", JSON.stringify({ ...formData, perks: unlockedThisRun }));
         router.replace("/dashboard");
     };
@@ -193,10 +221,10 @@ export default function CreateFounder() {
                 <div className="flex justify-between mt-2 px-0.5">
                     {STEP_LABELS.map((label, i) => (
                         <div key={i} className={cn("flex flex-col items-center gap-0.5 cursor-pointer", i + 1 <= step ? "opacity-100" : "opacity-30")} onClick={() => i + 1 < step && setStep(i + 1)}>
-                            <div className={cn("w-1.5 h-1.5 rounded-full transition-all", 
-                                i + 1 < step ? "bg-indigo-500" : 
-                                i + 1 === step ? "bg-violet-500 ring-4 ring-violet-500/20 dark:ring-violet-500/10" : 
-                                "bg-slate-200 dark:bg-slate-700")} />
+                            <div className={cn("w-1.5 h-1.5 rounded-full transition-all",
+                                i + 1 < step ? "bg-indigo-500" :
+                                    i + 1 === step ? "bg-violet-500 ring-4 ring-violet-500/20 dark:ring-violet-500/10" :
+                                        "bg-slate-200 dark:bg-slate-700")} />
                         </div>
                     ))}
                 </div>
@@ -503,10 +531,10 @@ export default function CreateFounder() {
                                     >
                                         <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Preview</p>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border" 
-                                                style={{ 
-                                                    background: `${formData.brandColor}20`, 
-                                                    borderColor: `${formData.brandColor}40` 
+                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border"
+                                                style={{
+                                                    background: `${formData.brandColor}20`,
+                                                    borderColor: `${formData.brandColor}40`
                                                 }}
                                             >
                                                 {formData.logo}
