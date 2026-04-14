@@ -37,7 +37,9 @@ class AdService {
     private platform: 'ios' | 'android' | 'web' = 'web';
     private isPremium = false;
     private interstitialLoaded = false;
+    private interstitialLoading = false;
     private rewardedLoaded: Record<string, boolean> = {};
+    private rewardedLoading: Record<string, boolean> = {};
     private lastResumeTime = 0;
     private RESUME_DEBOUNCE = 3000; // 3 seconds
 
@@ -84,9 +86,10 @@ class AdService {
             this.initialized = true;
             console.log('AdMob Initialized successfully on', this.platform);
             
-            // Initial pre-load
+            // Initial pre-load: Only the interstitial, as it's the most common ad.
+            // Rewarded ads are now lazy-loaded on-demand to protect Show Rate.
             if (!this.isPremium) {
-                this.preLoadAll();
+                this.prepareInterstitial();
             }
         } catch (e: any) {
             console.error('AdMob Initialization failed:', e);
@@ -162,7 +165,9 @@ class AdService {
     async prepareInterstitial() {
         if (!this.initialized) await this.initialize();
         if (!this.isNative || this.isPremium) return;
+        if (this.interstitialLoaded || this.interstitialLoading) return;
 
+        this.interstitialLoading = true;
         const options: AdOptions = {
             adId: this.platform === 'ios' ? IDS.ios.interstitial : IDS.android.interstitial,
             isTesting: false
@@ -174,6 +179,8 @@ class AdService {
         } catch (e) {
             this.interstitialLoaded = false;
             console.error('Prepare Interstitial failed', e);
+        } finally {
+            this.interstitialLoading = false;
         }
     }
 
@@ -194,7 +201,9 @@ class AdService {
     async prepareRewarded(adType: 'cash' | 'energy' | 'mentor' | 'default' = 'default') {
         if (!this.initialized) await this.initialize();
         if (!this.isNative || this.isPremium) return;
+        if (this.rewardedLoaded[adType] || this.rewardedLoading[adType]) return;
 
+        this.rewardedLoading[adType] = true;
         let adId = this.platform === 'ios' ? IDS.ios.rewarded_energy : IDS.android.rewarded_energy;
         if (this.platform === 'ios') {
             if (adType === 'cash') adId = IDS.ios.rewarded_cash;
@@ -211,6 +220,8 @@ class AdService {
         } catch (e) {
             this.rewardedLoaded[adType] = false;
             console.warn(`Prepare Rewarded (${adType}) failed`, e);
+        } finally {
+            this.rewardedLoading[adType] = false;
         }
     }
 

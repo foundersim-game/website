@@ -2762,7 +2762,7 @@ export default function Dashboard() {
             if (!isPremium) {
                 adService.initialize().then(() => {
                     adService.showBanner();
-                    adService.prepareInterstitial();
+                    // AdService handles interstitial preloading internally
                 });
             }
         };
@@ -2793,7 +2793,6 @@ export default function Dashboard() {
             const timer = setTimeout(async () => {
                 await adService.showInterstitial();
                 setInterstitialAdOwed(false);
-                adService.prepareInterstitial();
                 toast.info("Connection Restored", { description: "Simulation synced and ready." });
             }, 2000);
             return () => clearTimeout(timer);
@@ -4318,7 +4317,6 @@ export default function Dashboard() {
                 if (month % 3 === 0 && !isPremium) {
                     if (isOnline) {
                         await adService.showInterstitial();
-                        adService.prepareInterstitial();
                     } else {
                         // Offline bypass attempt: queue the ad for when they reconnect
                         setInterstitialAdOwed(true);

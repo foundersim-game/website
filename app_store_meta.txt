@@ -5,14 +5,13 @@ Build your tech empire! Master 11 unique industries in the ultimate startup CEO 
 
 
 What's New (v1.1.1):
-----------------------------------
 
 This update brings critical native stability and UI polish for a true premium CEO experience.
 
-* ✨ IMMERSIVE UI OVERHAUL: We’ve polished the native experience! The app now flows edge-to-edge, removing those pesky black bars on iOS and Android for a truly immersive startup journey.
-* 🌓 THEME-SYNC PERFECTION: Switching between Light and Dark mode? The system status bar and navigation bars now sync instantly with your theme for a seamless look.
-* 📊 SMARTER GAME ENGINE: Under-the-hood improvements to our data tracking to help us bring you even better balance updates and legendary new story events!
-* 🐛 BUG SQUASHING: Fixed a rare issue where the status bar icons would hide in light mode.
+ ✨ IMMERSIVE UI OVERHAUL: We’ve polished the native experience! The app now flows edge-to-edge, removing those pesky black bars on iOS and Android for a truly immersive startup journey.
+ 🌓 THEME-SYNC PERFECTION: Switching between Light and Dark mode? The system status bar and navigation bars now sync instantly with your theme for a seamless look.
+ 📊 SMARTER GAME ENGINE: Under-the-hood improvements to our data tracking to help us bring you even better balance updates and legendary new story events!
+ 🐛 BUG SQUASHING: Fixed a rare issue where the status bar icons would hide in light mode.
 
 Love building your startup empire? Leave us a rating and let us know which industry you want to conquer next! Your reviews directly fuel our next updates.
 

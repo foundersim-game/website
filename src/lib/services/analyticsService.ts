@@ -1,14 +1,19 @@
 /**
  * Analytics Service
  * Unified interface for tracking gameplay and financial metrics in Founder Sim.
- * Currently uses GA4 via @next/third-parties/google.
+ *
+ * - On iOS/Android: Uses the native Firebase Analytics SDK via @capacitor-firebase/analytics
+ * - On Web: Falls back to GA4 via window.gtag
+ *
+ * SETUP REQUIRED: Drop GoogleService-Info.plist into ios/App/App/ in Xcode
+ * and google-services.json into android/app/ before building.
  */
 
 import { Capacitor } from "@capacitor/core";
 
 export const GA_MEASUREMENT_ID = "G-W7N2170J6N";
 
-export type EventName = 
+export type EventName =
   | "app_launch"
   | "game_start"
   | "industry_selected"
@@ -19,45 +24,85 @@ export type EventName =
   | "hiring_success"
   | "ad_view";
 
+// Lazy-load the native firebase analytics plugin only on native platforms.
+// This prevents the web build from crashing if the native module isn't available.
+let _firebaseAnalytics: any = null;
+
+async function getFirebaseAnalytics() {
+  if (_firebaseAnalytics) return _firebaseAnalytics;
+  try {
+    const { FirebaseAnalytics } = await import("@capacitor-firebase/analytics");
+    _firebaseAnalytics = FirebaseAnalytics;
+    return _firebaseAnalytics;
+  } catch (e) {
+    console.warn("[Analytics] Failed to load native Firebase Analytics:", e);
+    return null;
+  }
+}
+
 export const analyticsService = {
   /**
-   * Log a custom event to Google Analytics
+   * Log a custom event.
+   * Routes to native Firebase SDK on iOS/Android, or gtag on web.
    */
-  logEvent: (event: EventName, params?: Record<string, any>) => {
+  logEvent: async (event: EventName, params?: Record<string, any>) => {
     if (typeof window === "undefined") return;
-    
+
     const platform = Capacitor.getPlatform(); // 'ios', 'android', or 'web'
-    
+    const isNative = Capacitor.isNativePlatform();
+
+    // ── Native Path (iOS / Android) ──────────────────────────────────────────
+    if (isNative) {
+      const analytics = await getFirebaseAnalytics();
+      if (analytics) {
+        try {
+          await analytics.logEvent({
+            name: event,
+            params: {
+              platform,
+              ...params,
+            },
+          });
+        } catch (e) {
+          console.warn(`[Analytics] Native logEvent failed for "${event}":`, e);
+        }
+      }
+      return;
+    }
+
+    // ── Web Fallback (gtag / GA4) ────────────────────────────────────────────
     if (typeof (window as any).gtag === "function") {
-      let clientId = localStorage.getItem('ga_client_id_v2');
+      let clientId = localStorage.getItem("ga_client_id_v2");
       if (!clientId) {
-        clientId = 'cid_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        localStorage.setItem('ga_client_id_v2', clientId);
+        clientId =
+          "cid_" +
+          Math.random().toString(36).substring(2) +
+          Date.now().toString(36);
+        localStorage.setItem("ga_client_id_v2", clientId);
       }
 
-      let sessionId = sessionStorage.getItem('ga_session_id');
+      let sessionId = sessionStorage.getItem("ga_session_id");
       if (!sessionId) {
         sessionId = Date.now().toString();
-        sessionStorage.setItem('ga_session_id', sessionId);
+        sessionStorage.setItem("ga_session_id", sessionId);
       }
 
       (window as any).gtag("event", event, {
-        platform: platform,
-        page_location: 'https://foundersim.fun' + window.location.pathname,
+        platform,
+        page_location: "https://foundersim.fun" + window.location.pathname,
         client_id: clientId,
         session_id: sessionId,
         ...params,
       });
     }
 
-    
     if (process.env.NODE_ENV === "development") {
       console.log(`[Analytics] ${event} (${platform})`, params);
     }
   },
 
   /**
-   * Track monthly game state
+   * Track monthly game state snapshot
    */
   trackMonthlyMetrics: (metrics: {
     month: number;
@@ -70,16 +115,60 @@ export const analyticsService = {
   }) => {
     analyticsService.logEvent("month_advance", {
       ...metrics,
-      // Grouping by ranges can sometimes help in GA4 reporting
-      valuation_range: metrics.valuation > 1000000000 ? "unicorn" : metrics.valuation > 100000000 ? "centaur" : "early",
+      valuation_range:
+        metrics.valuation > 1_000_000_000
+          ? "unicorn"
+          : metrics.valuation > 100_000_000
+          ? "centaur"
+          : "early",
     });
   },
 
   /**
-   * Set user properties (ID, etc)
+   * Set user ID for cross-session tracking
    */
-  setUserId: (userId: string) => {
-    if (typeof window === "undefined" || typeof (window as any).gtag !== "function") return;
-    (window as any).gtag("config", GA_MEASUREMENT_ID, { user_id: userId });
-  }
+  setUserId: async (userId: string) => {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      const analytics = await getFirebaseAnalytics();
+      if (analytics) {
+        try {
+          await analytics.setUserId({ userId });
+        } catch (e) {
+          console.warn("[Analytics] setUserId failed:", e);
+        }
+      }
+      return;
+    }
+
+    // Web fallback
+    if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+      (window as any).gtag("config", GA_MEASUREMENT_ID, { user_id: userId });
+    }
+  },
+
+  /**
+   * Set a user property (e.g. preferred industry, game mode)
+   */
+  setUserProperty: async (name: string, value: string) => {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      const analytics = await getFirebaseAnalytics();
+      if (analytics) {
+        try {
+          await analytics.setUserProperty({ name, value });
+        } catch (e) {
+          console.warn("[Analytics] setUserProperty failed:", e);
+        }
+      }
+      return;
+    }
+
+    // Web fallback
+    if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+      (window as any).gtag("set", "user_properties", { [name]: value });
+    }
+  },
 };
