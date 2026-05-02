@@ -20,17 +20,23 @@ import { generateAIEvent, generateFounderStory, generateChadBanter } from "@/lib
 import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
 import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
 import { CharacterDialog } from "@/components/CharacterDialog";
+import { SamOnboardingModal } from "@/components/SamOnboardingModal";
+import { EarningsCallModal } from "@/components/EarningsCallModal";
 import { getStorylineDialog, StorylineState, StorylineDialog, getSamConsultDialog, TUTORIAL_STEPS } from "@/lib/engine/storyline";
+import { PublicMarketTicker } from "@/components/PublicMarketTicker";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
+import { initializeMarketStocks, processMarketMonth, executeTrade, checkMacroEventSpawn } from "@/lib/engine/publicMarket";
 import { calcDynamicImpact, applyEffectsToState, getDepartmentPower, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { ReviewTriggers } from "@/lib/services/reviewService";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS, type ActionDef } from "@/lib/engine/actions";
 import { processOngoingPrograms, startProgram, stopProgram, getStreakMultiplier, ongoingProgramsTotalEnergy, type ActiveProgram } from "@/lib/engine/ongoingPrograms";
+import { resolveCrisisChoice, getCurrentCrisisStage, CRISIS_LABELS, CRISIS_EMOJIS, getCeoReputationLabel, getCrisisStageCount } from "@/lib/engine/crisisEngine";
+import { SKILL_NODES, SKILL_NODE_MAP, SKILL_BRANCHES, getAvailableSkillPoints, calculateTotalSkillPoints, canUnlockNode, type SkillNode, type SkillBranch } from "@/lib/engine/skillWeb";
 import { EventModal, GameEvent, EventChoice, generateImpactSentence } from "@/components/EventModal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Founder, Startup, LuxuryAsset, LifestyleToggle } from "@/lib/types/database.types";
+import { Founder, Startup, LuxuryAsset, LifestyleToggle, EmployeeTrait, MarketStock } from "@/lib/types/database.types";
 import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
@@ -38,6 +44,30 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark } from "lucide-react";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 import { HowToPlayContent } from "@/components/HowToPlay";
+
+// ── TALENT ROSTER: TraitBadge component ───────────────────────────────────────────────
+const TRAIT_META: Record<EmployeeTrait, { label: string; color: string; description: string }> = {
+    toxic_genius:    { label: "⚡ Toxic Genius",    color: "bg-rose-100 text-rose-700 border-rose-200",         description: "+3 product quality/mo, -4 team morale/mo" },
+    loyalist:        { label: "🛡️ Loyalist",         color: "bg-blue-100 text-blue-700 border-blue-200",         description: "Will never resign. Requires formal firing." },
+    mercenary:       { label: "💸 Mercenary",        color: "bg-amber-100 text-amber-700 border-amber-200",      description: "Resigns if no raise for 6+ months." },
+    cultural_anchor: { label: "🌟 Cultural Anchor", color: "bg-emerald-100 text-emerald-700 border-emerald-200", description: "+3 team morale/mo for the whole team." },
+    bug_prone:       { label: "🐛 Bug Prone",       color: "bg-orange-100 text-orange-700 border-orange-200",   description: "+2 technical debt/mo." },
+    evangelist:      { label: "📢 Evangelist",      color: "bg-violet-100 text-violet-700 border-violet-200",   description: "+4 brand awareness/mo (marketers only)." },
+    burnout_magnet:  { label: "🔥 Burnout Magnet",  color: "bg-red-100 text-red-700 border-red-200",            description: "+2 founder burnout/mo." },
+};
+
+function TraitBadge({ trait }: { trait: EmployeeTrait }) {
+    const meta = TRAIT_META[trait];
+    if (!meta) return null;
+    return (
+        <span
+            title={meta.description}
+            className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[7px] font-black uppercase tracking-widest cursor-help select-none ${meta.color}`}
+        >
+            {meta.label}
+        </span>
+    );
+}
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
 import { adService } from "@/lib/services/adService";
 import { analyticsService } from "@/lib/services/analyticsService";
@@ -302,8 +332,8 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
     return (
         <div
             onClick={onToggle}
-            className={cn("rounded-2xl p-3 border transition-all cursor-pointer", 
-                color, 
+            className={cn("rounded-2xl p-3 border transition-all cursor-pointer",
+                color,
                 color.includes("bg-") && "dark:bg-slate-900/40 dark:border-slate-800",
                 isExpanded ? "ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]" : "hover:border-slate-300 dark:hover:border-slate-700")}
         >
@@ -311,7 +341,7 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
                 <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{icon} {label}</p>
                 <div className="flex items-center gap-1.5">
                     {onInfoClick && (
-                        <button 
+                        <button
                             onClick={(e) => { e.stopPropagation(); onInfoClick(e); }}
                             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                         >
@@ -417,7 +447,7 @@ function TypewriterText({ text, speed = 15 }: { text: string; speed?: number }) 
 }
 
 // ─── ActionSheet ──────────────────────────────────────────────────────────────
-type SheetCategory = "product" | "marketing" | "hiring" | "funding" | "stats" | "founder" | "market" | "lifestyle";
+type SheetCategory = "product" | "marketing" | "hiring" | "funding" | "stats" | "founder" | "market" | "lifestyle" | "trade_stock" | "personal_trade" | "options" | "analysts" | "sector" | "buyback" | "corporate_debt" | "manda_acquire" | "subsidiary" | "margin_loan" | "10b51" | "philanthropy" | "lobbying" | "board_mgmt" | "fines";
 
 type ActionSheetProps = {
     category: SheetCategory;
@@ -449,6 +479,9 @@ type ActionSheetProps = {
     handlePurchaseAsset: (asset: Omit<LuxuryAsset, "id" | "purchasePrice" | "currentValue">, price: number) => void;
     handleToggleLifestyle: (id: string) => void;
     setFocusHoursUsed: (n: number) => void;
+    setFounder: (f: any) => void;
+    marketStocks?: MarketStock[];
+    setMarketStocks?: (s: MarketStock[]) => void;
     handleActionClick: (action: StartupAction, forcedCandidate?: Candidate) => void;
     handleAllocateESOP: () => void;
     expandedMetric: string | null;
@@ -465,6 +498,7 @@ type ActionSheetProps = {
     allEmployees: any[];
     handleRivalryAction: (action: RivalryAction) => void;
     setActionCategory: (c: SheetCategory | null) => void;
+    onUnlockSkill: (nodeId: import("@/lib/types/database.types").SkillNodeId) => void;
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -473,7 +507,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks }: ActionSheetProps) {
 
     const employees = allEmployees;
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
@@ -487,9 +521,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     const renderActionCard = (action: ActionDef, category: string) => {
         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
         const isOver = (focusHoursUsed + action.energyCost) > maxHours * (category === 'founder' ? 1.0 : 1.2);
-        
+
         const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, { month, startup, founder, m });
-        
+
         const effectsList = Object.entries(scaledEffects)
             .filter(([k, v]) => v && v !== 0 && k !== "cash")
             .map(([k, v]) => {
@@ -507,7 +541,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     .replace("technical debt", "Debt")
                     .replace("reliability", "Rel")
                     .replace("brand awareness", "Brand");
-                
+
                 // Capitalize first letter of each word
                 label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                 return `${sign}${Math.abs(val) < 1 ? val.toFixed(1) : Math.round(val)} ${label}`;
@@ -579,13 +613,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         finalMult *= getPricingScale(startup.industry, startup.gtm_motion);
                     }
                 }
-                
+
                 let scaleVal = (val as number) > 0 ? Math.max(1, Math.round((val as number) * finalMult)) : Math.min(-1, Math.round((val as number) * finalMult));
                 scaleVal *= (applyPhaseScale ? phaseMult : 1);
-                
+
                 let uiKey = key;
                 if (isUsers && isSLG) uiKey = "leads";
-                
+
                 const sign = scaleVal > 0 ? "+" : "";
                 const label = uiKey.replace(/_/g, " ")
                     .replace("brand awareness", "Brand")
@@ -613,7 +647,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         return (
             <div>
                 {sheetHeader("🔧", "Product", "Instant technical execution")}
-                
+
                 {/* ── Engineering Capacity Meter ── */}
                 {(() => {
                     const power = getDepartmentPower("product", startup);
@@ -762,88 +796,88 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     {loopPower.toFixed(2)}x
                                                 </span>
                                             </div>
-                                    </div>
-                                );
-                            })()}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        );
+                    })()}
+                </div>
+
+                {/* Dynamic Pricing Insights */}
+                {(() => {
+                    const ind = startup.industry || "SaaS Platform";
+                    const isPLG = startup.gtm_motion === "PLG";
+                    const cfgBase = INDUSTRY_PRICING_CONFIG[ind] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+                    const cfg = isPLG ? cfgBase.PLG : cfgBase.SLG;
+                    const ratio = m.pricing / cfg.maxPrice;
+
+                    let label = "⚖️ Balanced Pricing";
+                    let pros = "Solid margins with steady, predictable growth.";
+                    let cons = "Standard competition levels apply.";
+
+                    if (ratio < 0.25) {
+                        label = "🚀 Growth Pricing (Under-priced)";
+                        pros = "Accelerated virality & high user conversion.";
+                        cons = "Low cash revenue per user limits burn capacity.";
+                    } else if (ratio > 0.75) {
+                        label = "💎 Premium Pricing (Over-priced)";
+                        pros = "Maximizes cash revenue and contract sizes.";
+                        cons = "Slows down organic virality & yields higher churn.";
+                    }
+
+                    return (
+                        <div className="w-full mt-3 px-2 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/50 rounded-xl">
+                            <p className="text-[8px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">{label}</p>
+                            <p className="text-[8px] text-emerald-600 mt-0.5"><span className="font-bold">Pro:</span> {pros}</p>
+                            <p className="text-[8px] text-rose-500"><span className="font-bold">Con:</span> {cons}</p>
                         </div>
                     );
                 })()}
-            </div>
 
-                {/* Dynamic Pricing Insights */}
-                    {(() => {
-                        const ind = startup.industry || "SaaS Platform";
-                        const isPLG = startup.gtm_motion === "PLG";
-                        const cfgBase = INDUSTRY_PRICING_CONFIG[ind] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
-                        const cfg = isPLG ? cfgBase.PLG : cfgBase.SLG;
-                        const ratio = m.pricing / cfg.maxPrice;
-                        
-                        let label = "⚖️ Balanced Pricing";
-                        let pros = "Solid margins with steady, predictable growth.";
-                        let cons = "Standard competition levels apply.";
-                        
-                        if (ratio < 0.25) {
-                            label = "🚀 Growth Pricing (Under-priced)";
-                            pros = "Accelerated virality & high user conversion.";
-                            cons = "Low cash revenue per user limits burn capacity.";
-                        } else if (ratio > 0.75) {
-                            label = "💎 Premium Pricing (Over-priced)";
-                            pros = "Maximizes cash revenue and contract sizes.";
-                            cons = "Slows down organic virality & yields higher churn.";
-                        }
-
-                        return (
-                            <div className="w-full mt-3 px-2 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/50 rounded-xl">
-                                <p className="text-[8px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">{label}</p>
-                                <p className="text-[8px] text-emerald-600 mt-0.5"><span className="font-bold">Pro:</span> {pros}</p>
-                                <p className="text-[8px] text-rose-500"><span className="font-bold">Con:</span> {cons}</p>
-                            </div>
-                        );
-                    })()}
-
-                    {/* Strategy Playbook Card */}
-                    {(() => {
-                        const key = `${startup.industry}_${startup.gtm_motion}`;
-                        const pb = STRATEGY_PLAYBOOK[key];
-                        if (!pb) return null;
-                        return (
-                            <div className="mt-3 bg-slate-800 dark:bg-slate-900 rounded-2xl p-4 border border-slate-700 dark:border-slate-800 shadow-md">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                    <span>📖</span> Strategy Playbook — {pb.model}
-                                </p>
-                                <div className="space-y-3">
-                                    <div className="flex gap-2.5">
-                                        <span className="text-base shrink-0 mt-0.5">👤</span>
-                                        <div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Your Customers</p>
-                                            <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.customers}</p>
-                                        </div>
+                {/* Strategy Playbook Card */}
+                {(() => {
+                    const key = `${startup.industry}_${startup.gtm_motion}`;
+                    const pb = STRATEGY_PLAYBOOK[key];
+                    if (!pb) return null;
+                    return (
+                        <div className="mt-3 bg-slate-800 dark:bg-slate-900 rounded-2xl p-4 border border-slate-700 dark:border-slate-800 shadow-md">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                <span>📖</span> Strategy Playbook — {pb.model}
+                            </p>
+                            <div className="space-y-3">
+                                <div className="flex gap-2.5">
+                                    <span className="text-base shrink-0 mt-0.5">👤</span>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Your Customers</p>
+                                        <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.customers}</p>
                                     </div>
-                                    <div className="flex gap-2.5">
-                                        <span className="text-base shrink-0 mt-0.5">💵</span>
-                                        <div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">MRR Formula</p>
-                                            <p className="text-[10px] text-emerald-400 font-bold leading-snug">{pb.mrrFormula}</p>
-                                        </div>
+                                </div>
+                                <div className="flex gap-2.5">
+                                    <span className="text-base shrink-0 mt-0.5">💵</span>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">MRR Formula</p>
+                                        <p className="text-[10px] text-emerald-400 font-bold leading-snug">{pb.mrrFormula}</p>
                                     </div>
-                                    <div className="flex gap-2.5">
-                                        <span className="text-base shrink-0 mt-0.5">🚀</span>
-                                        <div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Growth Lever</p>
-                                            <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.growthLever}</p>
-                                        </div>
+                                </div>
+                                <div className="flex gap-2.5">
+                                    <span className="text-base shrink-0 mt-0.5">🚀</span>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Growth Lever</p>
+                                        <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.growthLever}</p>
                                     </div>
-                                    <div className="flex gap-2.5">
-                                        <span className="text-base shrink-0 mt-0.5">⚠️</span>
-                                        <div>
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Main Risk</p>
-                                            <p className="text-[10px] text-rose-400 font-medium leading-snug">{pb.mainRisk}</p>
-                                        </div>
+                                </div>
+                                <div className="flex gap-2.5">
+                                    <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Main Risk</p>
+                                        <p className="text-[10px] text-rose-400 font-medium leading-snug">{pb.mainRisk}</p>
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })()}
+                        </div>
+                    );
+                })()}
 
                 {m.pricing > 199 && m.b2b_pipeline && (
                     <div className="mt-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 space-y-1">
@@ -1414,7 +1448,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const fundCost = 40;
 
         let nextRound = getNextFundingStage(stage);
-        
+
         // Smart Repair: Fix corrupted sequencing or "IPO Ready" overrides.
         const nonFounderInvestors = capTable.filter((e: any) => e.type !== "Founder" && e.type !== "Co-Founder");
         const hasSeriesC = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series c"));
@@ -1435,7 +1469,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         if (nextRound && founderEquity > 5) {
             let emoji = "📈";
             let sub = "Late Stage Growth Capital";
-            
+
             if (nextRound.includes("Angel")) { emoji = "👼"; sub = "$50K–$500K · 5–15% equity"; }
             else if (nextRound.includes("Seed")) { emoji = "🌱"; sub = "$500K–$2M · 15–25% equity"; }
             else if (nextRound === "Series A") { emoji = "⚡"; sub = "$2M–$15M · 20–30% equity"; }
@@ -1445,15 +1479,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 emoji = "🏛️";
                 sub = "Institutional Scaling Capital · 5-10% equity";
             }
-            
-            pitchActions.push({ 
-                action: "pitch_investors", 
-                emoji, 
-                label: `Pitch ${nextRound}`, 
-                sub: `${sub} · Dynamic Leads (Net, Rep, Inno)` 
+
+            pitchActions.push({
+                action: "pitch_investors",
+                emoji,
+                label: `Pitch ${nextRound}`,
+                sub: `${sub} · Dynamic Leads (Net, Rep, Inno)`
             });
         }
-        
+
         const maxed = !nextRound && founderEquity < 5;
 
         return (
@@ -1582,7 +1616,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                     </div>
                     <p className="text-[8px] text-amber-600 dark:text-amber-500 leading-tight">Pitch investors to grow your pipeline. Term sheets take 2-4 months to generate.</p>
-                    
+
                     {/* Access point to the negotiation game from the pipeline */}
                     {(m.investor_pipeline?.term_sheets || 0) > 0 && (
                         <button
@@ -1826,9 +1860,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             return (
                                                 <div key={pt.mult}
                                                     onClick={() => setStartup((s: any) => ({ ...s, ipo_price_mult: pt.mult }))}
-                                                    className={`flex items-center justify-between px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${
-                                                        isSelected ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-violet-200"
-                                                    }`}
+                                                    className={`flex items-center justify-between px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "bg-violet-100 dark:bg-violet-900/50 border-violet-400 dark:border-violet-600" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-violet-200"
+                                                        }`}
                                                 >
                                                     <div>
                                                         <p className="text-[9px] font-black text-slate-700 dark:text-slate-200">{pt.label}</p>
@@ -2064,12 +2097,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     />
                 </div>
 
-                <button 
-                    onClick={(e) => { 
+                <button
+                    onClick={(e) => {
                         e.stopPropagation();
                         setActionCategory(null);
-                        setExpandedMetric(null); 
-                        setIsFinancialsOpen(true); 
+                        setExpandedMetric(null);
+                        setIsFinancialsOpen(true);
                     }}
                     className="w-full py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-100 text-xs font-black uppercase hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
                 >
@@ -2134,34 +2167,34 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className={cn("text-[10px] font-black", energyPct > 80 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-300")}>{focusHoursUsed}h / {maxHours}h</span>
                         </div>
                         {focusHoursUsed > 0 && (() => {
-                                const hourAgo = Date.now() - 3600_000;
-                                const validRefills = (energyRefills || []).filter((t: number) => t > hourAgo);
-                                const isRefillLimited = validRefills.length >= 2;
-                                return (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline && !isPremium) && "grayscale opacity-50")}
-                                        disabled={isRefillLimited || (!isOnline && !isPremium)}
-                                        onClick={() => {
-                                            if (isRefillLimited) {
-                                                const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
-                                                toast.error("Refill Limit Reached", { description: `You can refill energy 2 times per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
-                                                return;
-                                            }
-                                            adService.showRewardedAd(() => {
-                                                setFocusHoursUsed(0);
-                                                setEnergyRefills([...validRefills, Date.now()]);
-                                                toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                            }, 'energy');
-                                        }}
-                                    >
-                                        {isRefillLimited ? (
-                                            <span className="font-bold">{formatCooldown(validRefills[0] + 60 * 60 * 1000, currentTime)}</span>
-                                        ) : "Refill Energy (Ads)"}
-                                    </Button>
-                                );
-                            })()}
+                            const hourAgo = Date.now() - 3600_000;
+                            const validRefills = (energyRefills || []).filter((t: number) => t > hourAgo);
+                            const isRefillLimited = validRefills.length >= 2;
+                            return (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline && !isPremium) && "grayscale opacity-50")}
+                                    disabled={isRefillLimited || (!isOnline && !isPremium)}
+                                    onClick={() => {
+                                        if (isRefillLimited) {
+                                            const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
+                                            toast.error("Refill Limit Reached", { description: `You can refill energy 2 times per hour. Ready in ${formatCooldown(nextAvail, currentTime)}.` });
+                                            return;
+                                        }
+                                        adService.showRewardedAd(() => {
+                                            setFocusHoursUsed(0);
+                                            setEnergyRefills([...validRefills, Date.now()]);
+                                            toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
+                                        }, 'energy');
+                                    }}
+                                >
+                                    {isRefillLimited ? (
+                                        <span className="font-bold">{formatCooldown(validRefills[0] + 60 * 60 * 1000, currentTime)}</span>
+                                    ) : "Refill Energy (Ads)"}
+                                </Button>
+                            );
+                        })()}
                     </div>
                     <div className="h-2 bg-rose-100 dark:bg-rose-900 rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full transition-all", energyPct > 80 ? "bg-rose-500" : "bg-rose-400")} style={{ width: `${energyPct}%` }} />
@@ -2251,6 +2284,100 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <HBar label="Sleep" v={m.sleep_quality ?? 100} color={(m.sleep_quality ?? 100) < 40 ? "bg-rose-500 animate-pulse" : "bg-blue-400"} />
                     </div>
                 </div>
+
+                {/* ── SKILL WEB PANEL ── */}
+                {(() => {
+                    const totalSP = calculateTotalSkillPoints(startup, founder, month);
+                    const availableSP = getAvailableSkillPoints(startup, founder, month);
+                    const unlockedNodes = founder.unlocked_skill_nodes || [];
+                    const branches: SkillBranch[] = ["Technical", "Marketing", "Leadership", "Fundraising"];
+
+                    const handleUnlockSkill = (nodeId: import("@/lib/types/database.types").SkillNodeId) => {
+                        // Delegate to the onUnlockSkill prop provided by the parent page
+                        onUnlockSkill(nodeId);
+                    };
+
+                    return (
+                        <div className="mb-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
+                                <div className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                    availableSP > 0
+                                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                        : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                }`}>
+                                    {availableSP} SP available ({totalSP} total)
+                                </div>
+                            </div>
+
+                            {/* Branch columns */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {branches.map(branch => {
+                                    const branchMeta = SKILL_BRANCHES[branch];
+                                    const tier1Nodes = SKILL_NODES.filter(n => n.branch === branch && n.tier === 1);
+                                    const tier2Nodes = SKILL_NODES.filter(n => n.branch === branch && n.tier === 2);
+
+                                    return (
+                                        <div key={branch} className={`rounded-xl border p-2 ${branchMeta.bgColor} ${branchMeta.borderColor}`}>
+                                            <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${branchMeta.color}`}>
+                                                {branchMeta.emoji} {branch}
+                                            </p>
+                                            {[...tier1Nodes, ...tier2Nodes].map(node => {
+                                                const isUnlocked = unlockedNodes.includes(node.id);
+                                                const { canUnlock, reason } = canUnlockNode(node.id, founder, startup, month);
+                                                const isBlocked = !isUnlocked && !canUnlock;
+
+                                                return (
+                                                    <button
+                                                        key={node.id}
+                                                        title={`${node.description}\n\n${isUnlocked ? '✅ Unlocked' : reason}`}
+                                                        onClick={() => !isUnlocked && (typeof onUnlockSkill !== 'undefined' ? onUnlockSkill(node.id) : handleUnlockSkill(node.id))}
+                                                        disabled={isUnlocked || isBlocked}
+                                                        className={cn(
+                                                            "w-full text-left p-1.5 rounded-lg mb-1 last:mb-0 transition-all border",
+                                                            node.tier === 2 && "ml-1",
+                                                            isUnlocked
+                                                                ? `bg-white dark:bg-slate-700 ${branchMeta.borderColor} opacity-90`
+                                                                : canUnlock
+                                                                    ? `bg-white/80 dark:bg-slate-700/80 ${branchMeta.borderColor} hover:opacity-90 cursor-pointer`
+                                                                    : "bg-white/40 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-start gap-1">
+                                                            <span className="text-[11px] shrink-0 mt-0.5">
+                                                                {isUnlocked ? '✅' : node.tier === 2 ? '↳' : node.emoji}
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <p className={cn(
+                                                                    "text-[8px] font-black leading-tight truncate",
+                                                                    isUnlocked ? branchMeta.color : isBlocked ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200'
+                                                                )}>
+                                                                    {node.label}
+                                                                </p>
+                                                                <p className="text-[7px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5 line-clamp-2">
+                                                                    {node.tagline}
+                                                                </p>
+                                                                {!isUnlocked && (
+                                                                    <p className={cn(
+                                                                        "text-[7px] font-black mt-0.5",
+                                                                        canUnlock ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'
+                                                                    )}>
+                                                                        {canUnlock ? `🔓 ${node.cost} SP — Tap to unlock` : reason}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* Founder Net Worth Card */}
                 <div className="mt-3 flex flex-col gap-2">
@@ -2396,7 +2523,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             return (
                                 <div key={comp.id} className="p-4 rounded-[2rem] border-2 border-indigo-200 dark:border-indigo-900 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-slate-900 dark:to-slate-950 shadow-xl shadow-indigo-100/20 dark:shadow-none relative overflow-hidden group mb-4">
                                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
-                                    
+
                                     <div className="flex items-start justify-between mb-4 relative z-10">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -2446,7 +2573,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             {RIVALRY_ACTIONS.map(action => {
                                                 const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
                                                 const isDisabled = (focusHoursUsed + action.energyCost > maxHours * 1.1) || (startup.metrics.cash < action.cashCost);
-                                                
+
                                                 return (
                                                     <button
                                                         key={action.id}
@@ -2473,7 +2600,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             })}
                                         </div>
                                     </div>
-                                    
+
                                     {comp.last_action && (
                                         <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50">
                                             <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Last Intel:</span>
@@ -2659,6 +2786,502 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             </div>
         );
     }
+
+    if (category === "trade_stock" || category === "personal_trade") {
+        const isPersonal = category === "personal_trade";
+        const founderWealth = founder.wealth_profile || { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+        
+        const availableCash = isPersonal ? founderWealth.cash : m.cash;
+        const currentPortfolio = isPersonal 
+            ? founderWealth.portfolio 
+            : (startup.public_company?.corporate_portfolio || []);
+
+        const handleTrade = (symbol: string, shares: number, currentPrice: number) => {
+            try {
+                const { newCash, newPortfolio } = executeTrade(
+                    currentPortfolio,
+                    availableCash,
+                    symbol,
+                    shares,
+                    currentPrice
+                );
+                
+                if (isPersonal) {
+                    const newFounder = { ...founder };
+                    if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+                    newFounder.wealth_profile.cash = newCash;
+                    newFounder.wealth_profile.portfolio = newPortfolio;
+                    if (setFounder) setFounder(newFounder);
+                } else {
+                    const newStartup = { ...startup };
+                    newStartup.metrics.cash = newCash;
+                    if (newStartup.public_company) newStartup.public_company.corporate_portfolio = newPortfolio;
+                    setStartup(newStartup);
+                }
+                
+                const actionVerb = shares > 0 ? "Bought" : "Sold";
+                addTimelineEvent(`📈 ${isPersonal ? "Personal Brokerage" : "Corporate Treasury"}: ${actionVerb} ${formatNumber(Math.abs(shares))} shares of ${symbol} at ${formatMoney(currentPrice)}`);
+                
+            } catch (err: any) {
+                console.error(err.message);
+            }
+        };
+
+        return (
+            <div className="flex flex-col gap-4 relative">
+                <div className="sticky top-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md pb-4 pt-2 z-10 -mx-4 px-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest">{isPersonal ? "Personal Brokerage" : "Corporate Treasury Trading"}</h3>
+                            <p className="text-[10px] text-slate-500">Available {isPersonal ? "Personal" : "Corporate"} Cash</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(availableCash)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {marketStocks?.map(stock => {
+                    if (!isPersonal && stock.symbol === (startup.symbol || "CORP")) return null; // Treasury can't buy own stock here (buybacks handled separately)
+                    
+                    const pos = currentPortfolio.find((p: any) => p.symbol === stock.symbol);
+                    const sharesToTrade = 10000;
+                    
+                    const rsiColor = stock.rsi > 70 ? "text-rose-500" : stock.rsi < 30 ? "text-emerald-500" : "text-slate-400";
+                    const minP = Math.min(...(stock.priceHistory || [stock.currentPrice]));
+                    const maxP = Math.max(...(stock.priceHistory || [stock.currentPrice]));
+                    const sparklinePoints = (stock.priceHistory || [stock.currentPrice]).map((p, i, arr) => 
+                        `${(i / Math.max(1, arr.length - 1)) * 100},${100 - ((p - minP) / Math.max(1, maxP - minP)) * 100}`
+                    ).join(" ");
+                    
+                    return (
+                        <div key={stock.symbol} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">{stock.symbol}</p>
+                                    <p className="text-[9px] text-slate-500 uppercase">{stock.companyName}</p>
+                                    <p className="text-[9px] font-bold text-slate-400 mt-0.5">{stock.sector} · RSI: <span className={rsiColor}>{Math.round(stock.rsi)}</span></p>
+                                </div>
+                                <div className="w-16 h-8 mx-2 mt-1">
+                                    <svg viewBox="0 -10 100 120" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                                        <polyline 
+                                            points={sparklinePoints} 
+                                            fill="none" 
+                                            stroke={stock.momentum >= 0 ? "#10b981" : "#f43f5e"} 
+                                            strokeWidth="8" 
+                                            strokeLinecap="round" 
+                                            strokeLinejoin="round" 
+                                        />
+                                    </svg>
+                                </div>
+                                <div className="text-right flex-1">
+                                    <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatMoney(stock.currentPrice)}</p>
+                                    <p className={`text-[10px] font-black ${stock.momentum >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                        {stock.momentum >= 0 ? "↑" : "↓"} {(stock.momentum * 100).toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {pos && pos.shares > 0 && (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg flex justify-between items-center mt-1">
+                                    <span className="text-[10px] text-slate-500 uppercase font-black">Owned: <span className="text-slate-700 dark:text-slate-300">{formatNumber(pos.shares)}</span></span>
+                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Avg Cost: {formatMoney(pos.averageCost)}</span>
+                                </div>
+                            )}
+
+                            <div className="flex gap-2 mt-1">
+                                <button 
+                                    onClick={() => handleTrade(stock.symbol, sharesToTrade, stock.currentPrice)}
+                                    disabled={availableCash < sharesToTrade * stock.currentPrice}
+                                    className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 py-2 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                >
+                                    Buy {formatNumber(sharesToTrade)}
+                                </button>
+                                {pos && pos.shares >= sharesToTrade && (
+                                    <button 
+                                        onClick={() => handleTrade(stock.symbol, -sharesToTrade, stock.currentPrice)}
+                                        className="flex-1 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 py-2 rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"
+                                    >
+                                        Sell {formatNumber(sharesToTrade)}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    if (category === "margin_loan") {
+        const founderWealth = founder.wealth_profile || { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+        
+        // Calculate borrowing power: 50% of stock value (ignoring options)
+        const myShares = startup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
+        const totalShares = startup.public_company?.shares_outstanding || 100_000_000;
+        const myShareCount = (myShares / 100) * totalShares;
+        const myStockValue = myShareCount * (startup.public_company?.share_price || 0);
+        
+        const personalPortfolioValue = founderWealth.portfolio?.reduce((acc: number, p: any) => acc + (p.shares * (marketStocks?.find((s: any) => s.symbol === p.symbol)?.currentPrice || p.averageCost)), 0) || 0;
+        
+        const totalCollateral = myStockValue + personalPortfolioValue;
+        const maxLoan = totalCollateral * 0.5; // 50% LTV limit
+        const currentLoan = founderWealth.margin_loan_balance || 0;
+        const availableLoan = Math.max(0, maxLoan - currentLoan);
+
+        const handleBorrow = (amount: number) => {
+            if (amount > availableLoan) return;
+            const newFounder = { ...founder };
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            newFounder.wealth_profile.cash += amount;
+            newFounder.wealth_profile.margin_loan_balance += amount;
+            
+            if (setFounder) setFounder(newFounder);
+            
+            addTimelineEvent(`💳 Drew ${formatMoney(amount)} from margin line. Current balance: ${formatMoney(newFounder.wealth_profile.margin_loan_balance)}`);
+        };
+
+        const handleRepay = (amount: number) => {
+            const repayAmount = Math.min(amount, founderWealth.cash, currentLoan);
+            if (repayAmount <= 0) return;
+            
+            const newFounder = { ...founder };
+            newFounder.wealth_profile.cash -= repayAmount;
+            newFounder.wealth_profile.margin_loan_balance -= repayAmount;
+            
+            if (setFounder) setFounder(newFounder);
+            addTimelineEvent(`💳 Repaid ${formatMoney(repayAmount)} to margin line.`);
+        };
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-2xl p-4">
+                    <div className="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 className="text-sm font-black text-indigo-900 dark:text-indigo-100 uppercase">Margin Account</h3>
+                            <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300">Borrow cash against your stock</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300 uppercase font-black">Personal Cash</p>
+                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(founderWealth.cash)}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg">
+                            <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Loan Balance (6% APR)</p>
+                            <p className="text-base font-black text-rose-600">{formatMoney(currentLoan)}</p>
+                        </div>
+                        <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg">
+                            <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Available to Borrow</p>
+                            <p className="text-base font-black text-emerald-600">{formatMoney(availableLoan)}</p>
+                        </div>
+                    </div>
+
+                    <div className="w-full bg-white/50 dark:bg-slate-900/50 rounded-full h-1.5 mb-1 overflow-hidden">
+                        <div className="bg-rose-500 h-full" style={{ width: `${Math.min(100, (currentLoan / Math.max(1, maxLoan)) * 100)}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-slate-500 uppercase font-black mb-4">
+                        <span>LTV Ratio</span>
+                        <span>{((currentLoan / Math.max(1, totalCollateral)) * 100).toFixed(1)}% / 50.0% Max</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => handleBorrow(1_000_000)}
+                            disabled={availableLoan < 1_000_000}
+                            className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                        >
+                            Borrow $1M
+                        </button>
+                        <button 
+                            onClick={() => handleRepay(1_000_000)}
+                            disabled={currentLoan <= 0 || founderWealth.cash <= 0}
+                            className="flex-1 bg-slate-800 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                        >
+                            Repay $1M
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "lobbying") {
+        const score = startup.public_company?.lobbying_score || 0;
+        const handleLobby = (amount: number, points: number) => {
+            if (m.cash < amount) return;
+            const newStartup = { ...startup };
+            newStartup.metrics.cash -= amount;
+            newStartup.public_company.lobbying_score = Math.min(100, (newStartup.public_company.lobbying_score || 0) + points);
+            setStartup(newStartup);
+            addTimelineEvent(`🏛️ Funded PAC with ${formatMoney(amount)}. Lobbying score +${points}`);
+        };
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">Regulatory Capture</h3>
+                    <p className="text-[10px] text-slate-500 mt-1">High lobbying scores reduce the chance of antitrust probes, SEC investigations, and can trigger tax incentives.</p>
+                    
+                    <div className="mt-4 mb-2 flex justify-between items-end">
+                        <p className="text-xs font-black uppercase text-slate-600">Influence Score</p>
+                        <p className="text-lg font-black text-indigo-600">{score} / 100</p>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mb-4 overflow-hidden">
+                        <div className="bg-indigo-500 h-full transition-all" style={{ width: `${score}%` }} />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <button onClick={() => handleLobby(5000000, 5)} disabled={m.cash < 5000000} className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 flex justify-between items-center transition-all">
+                            <div>
+                                <p className="text-xs font-black">Hire K-Street Firm</p>
+                                <p className="text-[10px] text-slate-500">-$5M Corporate Cash</p>
+                            </div>
+                            <span className="text-xs font-black text-emerald-600">+5 Score</span>
+                        </button>
+                        <button onClick={() => handleLobby(25000000, 30)} disabled={m.cash < 25000000} className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 flex justify-between items-center transition-all">
+                            <div>
+                                <p className="text-xs font-black">Super PAC Donation</p>
+                                <p className="text-[10px] text-slate-500">-$25M Corporate Cash</p>
+                            </div>
+                            <span className="text-xs font-black text-emerald-600">+30 Score</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "buyback") {
+        const pub = startup.public_company;
+        const sharesOut = pub?.shares_outstanding || 100000000;
+        const sharePrice = pub?.share_price || 0;
+        const auth = pub?.buyback_authorized || 0;
+
+        const handleAuthorize = (amount: number) => {
+            const newStartup = { ...startup };
+            newStartup.public_company.buyback_authorized = amount;
+            setStartup(newStartup);
+            addTimelineEvent(`💸 Board authorized a ${formatMoney(amount)} share repurchase program.`);
+        };
+
+        const handleExecuteBuyback = (amount: number) => {
+            if (m.cash < amount || auth < amount) return;
+            const newStartup = { ...startup };
+            const sharesRetired = amount / sharePrice;
+            newStartup.metrics.cash -= amount;
+            newStartup.public_company.buyback_authorized -= amount;
+            newStartup.public_company.shares_outstanding -= sharesRetired;
+            newStartup.public_company.float = Math.max(0, newStartup.public_company.float - sharesRetired);
+            newStartup.public_company.share_price *= 1.02; // Small price pop
+            setStartup(newStartup);
+            addTimelineEvent(`💸 Executed ${formatMoney(amount)} buyback, retiring ${formatNumber(sharesRetired)} shares.`);
+            
+            if (newStartup.public_company.buyback_authorized <= 0) {
+                toast.success("Buyback Program Complete", { description: "All authorized shares have been repurchased." });
+            }
+        };
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/50 rounded-xl p-4">
+                    <h3 className="text-sm font-black text-amber-900 dark:text-amber-100 uppercase">Share Repurchases</h3>
+                    <p className="text-[10px] text-amber-700/70 dark:text-amber-300/70 mt-1">Use corporate cash to buy back shares, reducing float and artificially boosting EPS and Share Price.</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-4 mb-4">
+                        <div>
+                            <p className="text-[10px] uppercase font-black text-slate-500">Authorized Program</p>
+                            <p className="text-lg font-black text-slate-800 dark:text-slate-200">{formatMoney(auth)}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-black text-slate-500">Shares Outstanding</p>
+                            <p className="text-lg font-black text-slate-800 dark:text-slate-200">{formatNumber(sharesOut)}</p>
+                        </div>
+                    </div>
+
+                    {!auth ? (
+                        <button onClick={() => handleAuthorize(50000000)} className="w-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 py-3 rounded-lg text-xs font-black uppercase hover:opacity-90 transition-all">
+                            Authorize $50M Program
+                        </button>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                            <button onClick={() => handleExecuteBuyback(10000000)} disabled={m.cash < 10000000 || auth < 10000000} className="w-full bg-emerald-500 text-white py-3 rounded-lg text-xs font-black uppercase hover:bg-emerald-600 disabled:opacity-30 transition-all">
+                                Execute $10M Buyback
+                            </button>
+                            <button onClick={() => handleExecuteBuyback(auth)} disabled={m.cash < auth} className="w-full bg-amber-500 text-white py-3 rounded-lg text-xs font-black uppercase hover:bg-amber-600 disabled:opacity-30 transition-all">
+                                Execute Full {formatMoney(auth)}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "10b51") {
+        const plans = founder.wealth_profile?.active_10b51_plans || [];
+        const myShares = startup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
+        const totalShares = startup.public_company?.shares_outstanding || 100_000_000;
+        const myShareCount = (myShares / 100) * totalShares;
+
+        const handleCreatePlan = () => {
+            const plan: import("@/lib/types/database.types").TenB51Plan = {
+                id: `10b51_${Date.now()}`,
+                sharesToSellTotal: 120000,
+                sharesSoldSoFar: 0,
+                monthsRemaining: 12,
+                monthlySellAmount: 10000,
+                targetPriceMinimum: 0, // sells at market
+            };
+            
+            const newFounder = { ...founder };
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            newFounder.wealth_profile.active_10b51_plans.push(plan);
+            if (setFounder) setFounder(newFounder);
+            addTimelineEvent(`📄 Executed a new 10b5-1 Trading Plan to sell 10k shares/mo for 12 months.`);
+            toast.success("10b5-1 Plan Active", { description: "You are now legally liquidating stock." });
+        };
+
+        const handleCancelPlan = (id: string) => {
+            const newFounder = { ...founder };
+            if (!newFounder.wealth_profile) return;
+            newFounder.wealth_profile.active_10b51_plans = newFounder.wealth_profile.active_10b51_plans.filter((p: any) => p.id !== id);
+            if (setFounder) setFounder(newFounder);
+            
+            const newStartup = { ...startup };
+            newStartup.metrics.legal_risk = true;
+            setStartup(newStartup);
+            
+            addTimelineEvent(`📄 Cancelled 10b5-1 Trading Plan prematurely.`);
+            toast.warning("Plan Cancelled", { description: "The SEC has noted your irregular trading behavior." });
+        };
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">10b5-1 Trading Plans</h3>
+                    <p className="text-[10px] text-slate-500 mt-1 mb-4">Legally liquidate your founder shares over time to avoid insider trading allegations.</p>
+                    
+                    <div className="flex justify-between items-end mb-4">
+                        <p className="text-[10px] uppercase font-black text-slate-500">Your Shares</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatNumber(myShareCount)} shrs</p>
+                    </div>
+
+                    {plans.length === 0 ? (
+                        <div className="flex flex-col gap-2">
+                            <p className="text-[10px] text-slate-500 italic text-center">Selling ~10k shares/mo × 12 months = ~120k shares total.</p>
+                            <button onClick={handleCreatePlan} className="w-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 py-3 rounded-lg text-xs font-black uppercase hover:opacity-90 transition-all">
+                                Setup Plan: Sell 10k/mo (12 mos)
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            <p className="text-[10px] uppercase font-black text-emerald-600">Active Plans</p>
+                            {plans.map((p: any) => (
+                                <div key={p.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">10k shares / mo</p>
+                                        <p className="text-[10px] font-bold text-slate-500">{p.monthsRemaining} mos left</p>
+                                    </div>
+                                    <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1.5 mb-2 overflow-hidden">
+                                        <div className="bg-emerald-500 h-full" style={{ width: `${(p.sharesSoldSoFar / Math.max(1, p.sharesToSellTotal)) * 100}%` }} />
+                                    </div>
+                                    <button onClick={() => handleCancelPlan(p.id)} className="w-full py-1.5 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-md text-[10px] font-black uppercase hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">
+                                        Cancel Plan
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "board_mgmt") {
+        const pub = startup.public_company;
+        
+        const handleStockSplit = () => {
+            if (!pub) return;
+            const newStartup = { ...startup };
+            
+            // Double shares
+            newStartup.public_company.shares_outstanding *= 2;
+            newStartup.public_company.float *= 2;
+            
+            // Halve prices
+            newStartup.public_company.share_price /= 2;
+            newStartup.public_company.ipo_price /= 2;
+            newStartup.public_company.eps_last_quarter /= 2;
+            newStartup.public_company.eps_guidance /= 2;
+            newStartup.public_company.consensus_eps /= 2;
+            
+            setStartup(newStartup);
+            
+            // Adjust Founder 10b5-1 plans if they exist
+            const newFounder = { ...founder };
+            if (newFounder.wealth_profile?.active_10b51_plans) {
+                newFounder.wealth_profile.active_10b51_plans = newFounder.wealth_profile.active_10b51_plans.map((p: any) => ({
+                    ...p,
+                    sharesToSellTotal: p.sharesToSellTotal * 2,
+                    sharesSoldSoFar: p.sharesSoldSoFar * 2,
+                    monthlySellAmount: p.monthlySellAmount * 2,
+                    targetPriceMinimum: p.targetPriceMinimum / 2
+                }));
+            }
+            if (setFounder) setFounder(newFounder);
+            
+            // Sync Ticker
+            if (setMarketStocks && marketStocks) {
+                setMarketStocks(marketStocks.map(s =>
+                    s.symbol === (startup.symbol || "CORP")
+                        ? { ...s, currentPrice: newStartup.public_company.share_price }
+                        : s
+                ));
+            }
+            
+            addTimelineEvent(`✂️ Board authorized a 2-for-1 Stock Split! Share price halved to ${formatMoney(newStartup.public_company.share_price)}.`);
+            toast.success("Stock Split Executed", { description: "Retail investors are piling in!" });
+        };
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">Board of Directors</h3>
+                    <p className="text-[10px] text-slate-500 mb-4">Execute high-level corporate governance actions.</p>
+                    
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">2-for-1 Stock Split</p>
+                                <p className="text-[9px] text-slate-500 mt-0.5">Halves share price, doubles share count. Psychological boost for retail investors.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={handleStockSplit}
+                            disabled={(pub?.share_price || 0) < 50}
+                            className="w-full mt-2 py-2 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-md text-[10px] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
+                        >
+                            {(pub?.share_price || 0) >= 50 ? "Execute Split" : "Requires $50+ Share Price"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ── PUBLIC COMPANY ERA (PLACEHOLDERS) ──────────────────────────────────────
+    if (["options", "analysts", "sector", "corporate_debt", "manda_acquire", "subsidiary", "philanthropy", "fines"].includes(category)) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center h-[40vh]">
+                <div className="text-4xl mb-4">🚧</div>
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">{category.replace("_", " ")}</h3>
+                <p className="text-xs text-slate-500 mt-2 max-w-xs">This module is under construction for the Public Company Era (Pillar 2).</p>
+            </div>
+        );
+    }
+
     return null;
 }
 
@@ -2689,6 +3312,13 @@ export default function Dashboard() {
     const [month, setMonth] = useState(1);
     const [eventsTimeline, setEventsTimeline] = useState<{ month: number; text: string }[]>([]);
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
+    
+    // Pillar 2 States
+    const [showPostIpoCinematic, setShowPostIpoCinematic] = useState(false);
+    const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance">("operations");
+    const [marketStocks, setMarketStocks] = useState<MarketStock[]>([]);
+    const [isEarningsCallOpen, setIsEarningsCallOpen] = useState(false);
+
     const [isSamModalOpen, setIsSamModalOpen] = useState(false);
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
     const [characterDialog, setCharacterDialog] = useState<StorylineDialog | null>(null);
@@ -2727,6 +3357,7 @@ export default function Dashboard() {
     const [actionCategory, setActionCategory] = useState<SheetCategory | null>(null);
     const [monthSummary, setMonthSummary] = useState<any | null>(null);
     const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
+    const [isCrisisWarRoomOpen, setIsCrisisWarRoomOpen] = useState(false);
     const [rejectedCandidates, setRejectedCandidates] = useState<string[]>([]);
     const [hiringOffer, setHiringOffer] = useState({ salary: 0, equity: 0 });
     const [isMilestoneExpanded, setIsMilestoneExpanded] = useState(false);
@@ -2820,11 +3451,11 @@ export default function Dashboard() {
     // ── Tutorial: fire active step on game load/reload ──────────────────────────
     useEffect(() => {
         if (!isLoaded || month !== 1 || storyState.tutorialStep < 0 || storyState.tutorialStep >= TUTORIAL_STEPS.length) return;
-        
+
         const dialog = TUTORIAL_STEPS[storyState.tutorialStep];
         // Only trigger if not already open AND we haven't seen this step's trigger yet
         const hasSeenCurrent = storyState.seenTriggers.includes(dialog.trigger);
-        
+
         if (!isCharacterDialogOpen && !hasSeenCurrent) {
             // No timer — user just clicked "NEXT STEP" on the dashboard, so show it immediately
             setCharacterDialog(dialog);
@@ -3315,7 +3946,7 @@ export default function Dashboard() {
             localStorage.removeItem("founder_sim_ad_owed");
             localStorage.removeItem("founder_sim_story_state");
             localStorage.removeItem("founder_sim_achievements");
-            
+
             // Force a full location reload to clear any in-memory module-level states (like AI keys)
             window.location.href = "/";
         };
@@ -3351,24 +3982,24 @@ export default function Dashboard() {
             const newFocusUsed = Math.max(0, focusHoursUsed - 50);
             setFocusHoursUsed(newFocusUsed);
 
-            toast.success("Support Applied! 🎁", { 
-                description: "Gained $50k Cash, +50h focus refill, and +5 PMF for supporting the devs!" 
+            toast.success("Support Applied! 🎁", {
+                description: "Gained $50k Cash, +50h focus refill, and +5 PMF for supporting the devs!"
             });
             playSound("success");
-            
+
             // Record to persistent storage immediately
             const updatedStartup = { ...startup, hasRateRewardClaimed: true };
-            localStorage.setItem("founder_sim_state", JSON.stringify({ 
-                startup: updatedStartup, 
-                founder, 
-                month, 
-                eventsTimeline, 
-                competitors, 
-                unlockedAchievements, 
-                ongoingPrograms, 
-                seenEventIds, 
-                founderMeta, 
-                focusHoursUsed: newFocusUsed, 
+            localStorage.setItem("founder_sim_state", JSON.stringify({
+                startup: updatedStartup,
+                founder,
+                month,
+                eventsTimeline,
+                competitors,
+                unlockedAchievements,
+                ongoingPrograms,
+                seenEventIds,
+                founderMeta,
+                focusHoursUsed: newFocusUsed,
                 actionUsageLog,
                 storyState
             }));
@@ -3445,7 +4076,7 @@ export default function Dashboard() {
         const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
         const energyCost = forceFree ? 0 : def.energyCost;
         const newHoursUsed = focusHoursUsed + energyCost;
-        
+
         if (!forceFree && newHoursUsed > maxHours) {
             toast.error("Not enough focus energy!", { description: "You cannot exceed maximum focus hours." });
             return;
@@ -3465,10 +4096,10 @@ export default function Dashboard() {
             .map(([k, v]) => `${(v as number) > 0 ? '+' : ''}${v} ${k.replace(/_/g, ' ')}`).join(' · ');
         const feedbackText = `${def.emoji} ${def.label}  ·  ${parts}${hint ? `  ·  ${hint}` : ''}`;
         setImmediateActionFeedback({ text: feedbackText, color: multiplier >= 1 ? '#16a34a' : multiplier >= 0.5 ? '#d97706' : '#dc2626' });
-        
+
         // Finalized Toast: Impact + Energy Cost as requested
-        toast.success(`${def.label}: Success!`, { 
-            description: `${parts} · Consumed ${energyCost}h Focus`, 
+        toast.success(`${def.label}: Success!`, {
+            description: `${parts} · Consumed ${energyCost}h Focus`,
             icon: def.emoji,
             duration: 4000
         });
@@ -3553,9 +4184,9 @@ export default function Dashboard() {
                 thisMonth: { ...prev.thisMonth, pitch_investors: (prev.thisMonth.pitch_investors || 0) + 1 }
             }));
 
-            toast.success("Pitching Started!", { 
+            toast.success("Pitching Started!", {
                 description: `Added ${newLeads} leads to your pipeline. (Based on Networking, Rep, and Innovation)`,
-                duration: 5000 
+                duration: 5000
             });
         } else if (action === "negotiate_round") {
             const nextStage = getNextFundingStage(startup.funding_stage);
@@ -3602,153 +4233,98 @@ export default function Dashboard() {
         toast.success(`Option Pool Expanded!`, { description: `Added ${amount}% to pool.` });
     };
 
-        const handleHiringConfirm = () => {
-            if (!pendingCandidate) return;
+    const handleHiringConfirm = () => {
+        if (!pendingCandidate) return;
 
-            // Energy check so they don't go into negative hours
-            // Energy check: hiring is intense, can't be done if already burned out
-            if (focusHoursUsed + 10 > maxHours * 1.1) {
-                toast.error("Not enough focus energy!", { description: "You are too burned out to manage new hires. Advance to next month to refill energy." });
-                return;
-            }
+        // Energy check so they don't go into negative hours
+        // Energy check: hiring is intense, can't be done if already burned out
+        if (focusHoursUsed + 10 > maxHours * 1.1) {
+            toast.error("Not enough focus energy!", { description: "You are too burned out to manage new hires. Advance to next month to refill energy." });
+            return;
+        }
 
-            const cohortSize = 1;
-            const totalEquity = hiringOffer.equity * cohortSize;
-            const poolAvailable = startup.metrics.option_pool || 0;
-            // Epsilon check: if they offer effectively 0%, don't block them
-            if (totalEquity > 0.001 && poolAvailable < totalEquity) {
-                toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity.toFixed(3)}% but only have ${poolAvailable.toFixed(3)}%` });
-                return;
-            }
+        const cohortSize = 1;
+        const totalEquity = hiringOffer.equity * cohortSize;
+        const poolAvailable = startup.metrics.option_pool || 0;
+        // Epsilon check: if they offer effectively 0%, don't block them
+        if (totalEquity > 0.001 && poolAvailable < totalEquity) {
+            toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity.toFixed(3)}% but only have ${poolAvailable.toFixed(3)}%` });
+            return;
+        }
 
-            const result = calculateHiringSuccess(pendingCandidate, hiringOffer, startup, founder);
-            if (result.success) {
-                toast.success("Hired!", { description: result.reason });
-                const skillBase = pendingCandidate.level === "Lead" ? 90 : pendingCandidate.level === "Senior" ? 75 : pendingCandidate.level === "Mid" ? 55 : 35;
-                const skillRandom = () => skillBase + Math.floor(Math.random() * 10);
+        const result = calculateHiringSuccess(pendingCandidate, hiringOffer, startup, founder);
+        if (result.success) {
+            toast.success("Hired!", { description: result.reason });
+            const skillBase = pendingCandidate.level === "Lead" ? 90 : pendingCandidate.level === "Senior" ? 75 : pendingCandidate.level === "Mid" ? 55 : 35;
+            const skillRandom = () => skillBase + Math.floor(Math.random() * 10);
 
-                const newEmployees = [{
-                    id: `emp_${Date.now()}`,
-                    name: pendingCandidate.name,
-                    role: pendingCandidate.role as "engineer" | "marketer" | "sales",
-                    level: pendingCandidate.level as "Senior" | "Mid" | "Junior" | "Lead",
-                    salary: hiringOffer.salary,
-                    equity: hiringOffer.equity,
-                    experience: pendingCandidate.experience,
-                    performance: 70 + Math.floor(Math.random() * 20),
-                    morale: 90 + Math.floor(Math.random() * 10),
-                    skills: {
-                        technical: pendingCandidate.role === "engineer" ? 60 : 20,
-                        marketing: pendingCandidate.role === "marketer" ? 60 : 20,
-                        sales: pendingCandidate.role === "sales" ? 60 : 20,
-                    },
-                    joined_at: month,
-                }];
+            const newEmployees = [{
+                id: `emp_${Date.now()}`,
+                name: pendingCandidate.name,
+                role: pendingCandidate.role as "engineer" | "marketer" | "sales",
+                level: pendingCandidate.level as "Senior" | "Mid" | "Junior" | "Lead",
+                salary: hiringOffer.salary,
+                equity: hiringOffer.equity,
+                experience: pendingCandidate.experience,
+                performance: 70 + Math.floor(Math.random() * 20),
+                morale: 90 + Math.floor(Math.random() * 10),
+                skills: {
+                    technical: pendingCandidate.role === "engineer" ? 60 : 20,
+                    marketing: pendingCandidate.role === "marketer" ? 60 : 20,
+                    sales: pendingCandidate.role === "sales" ? 60 : 20,
+                },
+                joined_at: month,
+                // ── Talent Roster: carry over hidden trait + legendary status ──
+                traits: [] as import("@/lib/types/database.types").EmployeeTrait[],
+                hiddenTrait: pendingCandidate.hiddenTrait,
+                isLegendary: pendingCandidate.isLegendary,
+                storyQuote: pendingCandidate.storyQuote,
+            }];
 
-                setStartup(s => {
-                    const ns = {
-                        ...s,
-                        employees: [...(s.employees || []), ...newEmployees],
-                        metrics: {
-                            ...s.metrics,
-                            employees: s.metrics.employees + cohortSize,
-                            option_pool: Math.max(0, (s.metrics.option_pool || 0) - (hiringOffer.equity * cohortSize))
-                        }
-                    };
-                    if (pendingCandidate.role === "engineer") ns.metrics.engineers += cohortSize;
-                    else if (pendingCandidate.role === "marketer") ns.metrics.marketers += cohortSize;
-                    else if (pendingCandidate.role === "sales") ns.metrics.sales += cohortSize;
-                    return ns;
-                });
-                const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
-                addTimelineEvent(`Personnel: ${`${pendingCandidate.name} as ${displayRole}`} joined.`);
-                setFocusHoursUsed(curr => curr + 20);
-                if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
-                setSelectedAction("none");
-                setPendingCandidate(null);
-                setHiringOffer({ salary: 0, equity: 0 });
-            } else {
-                toast.error("Offer Rejected", { description: result.reason });
-                const displayRole = getDisplayRoleName(pendingCandidate.role, false);
-                addTimelineEvent(`Personnel: Failed to hire ${displayRole}.`);
-                setFocusHoursUsed(curr => curr + 10);
-                if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
-                setSelectedAction("none");
-                setPendingCandidate(null);
-            }
-        };
-        const handleFundingConfirm = async () => {
-            if (!pendingInvestor) return;
-
-            const result = negotiateFunding(pendingInvestor, startup, fundingOffer.valuation, fundingOffer.equity);
-
-            toast.dismiss();
-            setInvestorMessage(result.message);
-
-            if (result.success) {
-                const nextStage = getNextFundingStage(startup.funding_stage) || startup.funding_stage;
-                const postMoney = fundingOffer.valuation;
-                const equityGiven = fundingOffer.equity;
-                const raised = Math.floor(postMoney * (equityGiven / 100));
-
-                setStartup((s: any) => {
-                    const ns = { ...s, valuation: postMoney, metrics: { ...s.metrics, cash: s.metrics.cash + raised } };
-                    ns.funding_stage = nextStage;
-                    ns.phase = getFundingPhase(nextStage);
-
-                    const investorEquity = equityGiven;
-
-                    
-                    ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
-                        if (e.type === "Founder") {
-                            return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
-                        }
-                        return e;
-                    });
-                    
-                    ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
-                    if (ns.metrics?.investor_pipeline) {
-                        ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
+            setStartup(s => {
+                const ns = {
+                    ...s,
+                    employees: [...(s.employees || []), ...newEmployees],
+                    metrics: {
+                        ...s.metrics,
+                        employees: s.metrics.employees + cohortSize,
+                        option_pool: Math.max(0, (s.metrics.option_pool || 0) - (hiringOffer.equity * cohortSize))
                     }
-                    return ns;
-                });
+                };
+                if (pendingCandidate.role === "engineer") ns.metrics.engineers += cohortSize;
+                else if (pendingCandidate.role === "marketer") ns.metrics.marketers += cohortSize;
+                else if (pendingCandidate.role === "sales") ns.metrics.sales += cohortSize;
+                return ns;
+            });
+            const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
+            addTimelineEvent(`Personnel: ${`${pendingCandidate.name} as ${displayRole}`} joined.`);
+            setFocusHoursUsed(curr => curr + 20);
+            if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+            setSelectedAction("none");
+            setPendingCandidate(null);
+            setHiringOffer({ salary: 0, equity: 0 });
+        } else {
+            toast.error("Offer Rejected", { description: result.reason });
+            const displayRole = getDisplayRoleName(pendingCandidate.role, false);
+            addTimelineEvent(`Personnel: Failed to hire ${displayRole}.`);
+            setFocusHoursUsed(curr => curr + 10);
+            if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+            setSelectedAction("none");
+            setPendingCandidate(null);
+        }
+    };
+    const handleFundingConfirm = async () => {
+        if (!pendingInvestor) return;
 
-                toast.success(`Raised ${formatMoney(raised)}!`, { description: `Post-money valuation: ${formatMoney(postMoney)}` });
+        const result = negotiateFunding(pendingInvestor, startup, fundingOffer.valuation, fundingOffer.equity);
 
-                analyticsService.logEvent("funding_secured", {
-                    stage: nextStage,
-                    raised: raised,
-                    valuation: postMoney,
-                    equity_given: equityGiven,
-                    investor: pendingInvestor.name
-                });
+        toast.dismiss();
+        setInvestorMessage(result.message);
 
-                setFocusHoursUsed(curr => curr + 40);
-                setSelectedAction("none");
-                setPendingInvestor(null);
-                setPendingCounterOffer(null);
-
-                // Review prompt at key funding milestones (peak happiness)
-                if (nextStage === "Seed Round" || nextStage === "Angel Investment") {
-                    ReviewTriggers.firstFundingRaise();
-                } else if (nextStage === "Series A") {
-                    ReviewTriggers.seriesARaise();
-                }
-            } else if (result.counterValuation) {
-                toast.info("Investor Countered", { description: "Review their terms below." });
-                setPendingCounterOffer({ valuation: result.counterValuation, equity: result.counterEquity! });
-            } else {
-                toast.error("Pitch Rejected", { description: result.message });
-                setFocusHoursUsed(curr => curr + 10);
-            }
-        };
-
-        const handleAcceptCounter = () => {
-            if (!pendingInvestor || !pendingCounterOffer) return;
-
+        if (result.success) {
             const nextStage = getNextFundingStage(startup.funding_stage) || startup.funding_stage;
-            const postMoney = pendingCounterOffer.valuation;
-            const equityGiven = pendingCounterOffer.equity;
+            const postMoney = fundingOffer.valuation;
+            const equityGiven = fundingOffer.equity;
             const raised = Math.floor(postMoney * (equityGiven / 100));
 
             setStartup((s: any) => {
@@ -3757,14 +4333,15 @@ export default function Dashboard() {
                 ns.phase = getFundingPhase(nextStage);
 
                 const investorEquity = equityGiven;
-                
+
+
                 ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
                     if (e.type === "Founder") {
                         return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
                     }
                     return e;
                 });
-                
+
                 ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
                 if (ns.metrics?.investor_pipeline) {
                     ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
@@ -3772,710 +4349,905 @@ export default function Dashboard() {
                 return ns;
             });
 
-            addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name} (Counter Accepted): ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
-            toast.success(`Deal Closed!`, { description: `Raised ${formatMoney(raised)}` });
+            toast.success(`Raised ${formatMoney(raised)}!`, { description: `Post-money valuation: ${formatMoney(postMoney)}` });
 
             analyticsService.logEvent("funding_secured", {
                 stage: nextStage,
                 raised: raised,
                 valuation: postMoney,
                 equity_given: equityGiven,
-                investor: pendingInvestor.name,
-                is_counter: true
+                investor: pendingInvestor.name
             });
 
-            setFocusHoursUsed(curr => curr + 30);
+            setFocusHoursUsed(curr => curr + 40);
             setSelectedAction("none");
             setPendingInvestor(null);
             setPendingCounterOffer(null);
-        };
 
-        const handleFireEmployee = (id: string) => {
-            const empToFire = startup.employees?.find(e => e.id === id);
-            if (!empToFire) return;
+            // Review prompt at key funding milestones (peak happiness)
+            if (nextStage === "Seed Round" || nextStage === "Angel Investment") {
+                ReviewTriggers.firstFundingRaise();
+            } else if (nextStage === "Series A") {
+                ReviewTriggers.seriesARaise();
+            }
+        } else if (result.counterValuation) {
+            toast.info("Investor Countered", { description: "Review their terms below." });
+            setPendingCounterOffer({ valuation: result.counterValuation, equity: result.counterEquity! });
+        } else {
+            toast.error("Pitch Rejected", { description: result.message });
+            setFocusHoursUsed(curr => curr + 10);
+        }
+    };
 
-            setConfirmDialog({
-                open: true,
-                title: `Fire ${empToFire.name}?`,
-                description: "This will hurt morale and you'll lose their specialized skills.",
-                confirmText: "FIRE EMPLOYEE",
-                type: "fire",
-                onConfirm: () => {
-                    setStartup(s => ({
-                        ...s,
-                        employees: s.employees?.filter(e => e.id !== id) || [],
-                        metrics: { ...s.metrics, team_morale: Math.max(0, s.metrics.team_morale - 15), employees: s.metrics.employees - 1 },
-                    }));
-                    toast.error("Employee Terminated");
+    const handleAcceptCounter = () => {
+        if (!pendingInvestor || !pendingCounterOffer) return;
+
+        const nextStage = getNextFundingStage(startup.funding_stage) || startup.funding_stage;
+        const postMoney = pendingCounterOffer.valuation;
+        const equityGiven = pendingCounterOffer.equity;
+        const raised = Math.floor(postMoney * (equityGiven / 100));
+
+        setStartup((s: any) => {
+            const ns = { ...s, valuation: postMoney, metrics: { ...s.metrics, cash: s.metrics.cash + raised } };
+            ns.funding_stage = nextStage;
+            ns.phase = getFundingPhase(nextStage);
+
+            const investorEquity = equityGiven;
+
+            ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
+                if (e.type === "Founder") {
+                    return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
                 }
+                return e;
             });
-        };
 
-        const handleTrainEmployee = (id: string) => {
-            const cost = 2000;
-            if (startup.metrics.cash < cost) { toast.error("Not enough cash!"); return; }
-            setStartup(s => ({
-                ...s,
-                metrics: { ...s.metrics, cash: s.metrics.cash - cost },
-                employees: s.employees?.map(e => e.id === id ? {
-                    ...e,
-                    performance: Math.min(100, e.performance + 10),
-                    morale: Math.min(100, (e.morale ?? 70) + 5),
-                    skills: {
-                        technical: e.role === "engineer" ? Math.min(100, e.skills.technical + 5) : e.skills.technical,
-                        marketing: e.role === "marketer" ? Math.min(100, e.skills.marketing + 5) : e.skills.marketing,
-                        sales: e.role === "sales" ? Math.min(100, e.skills.sales + 5) : e.skills.sales,
-                    }
-                } : e),
-            }));
-            toast.success("Training complete!", { description: "-$2,000" });
-        };
+            ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
+            if (ns.metrics?.investor_pipeline) {
+                ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
+            }
+            return ns;
+        });
 
-        const handlePromoteEmployee = (id: string) => {
-            setStartup(s => ({
-                ...s,
-                employees: s.employees?.map(e => {
-                    if (e.id !== id) return e;
-                    const levels: any = ["Junior", "Mid", "Senior", "Lead"];
-                    const idx = levels.indexOf(e.level);
-                    if (idx === levels.length - 1) {
-                        return {
-                            ...e,
-                            isCXO: true,
-                            salary: Math.floor(e.salary * 1.5),
-                            performance: Math.min(100, e.performance + 10),
-                            morale: 100
-                        };
-                    }
+        addTimelineEvent(`Raised ${nextStage} from ${pendingInvestor.name} (Counter Accepted): ${formatMoney(raised)} at ${formatMoney(postMoney)} post-money!`);
+        toast.success(`Deal Closed!`, { description: `Raised ${formatMoney(raised)}` });
+
+        analyticsService.logEvent("funding_secured", {
+            stage: nextStage,
+            raised: raised,
+            valuation: postMoney,
+            equity_given: equityGiven,
+            investor: pendingInvestor.name,
+            is_counter: true
+        });
+
+        setFocusHoursUsed(curr => curr + 30);
+        setSelectedAction("none");
+        setPendingInvestor(null);
+        setPendingCounterOffer(null);
+    };
+
+    const handleFireEmployee = (id: string) => {
+        const empToFire = startup.employees?.find(e => e.id === id);
+        if (!empToFire) return;
+
+        setConfirmDialog({
+            open: true,
+            title: `Fire ${empToFire.name}?`,
+            description: "This will hurt morale and you'll lose their specialized skills.",
+            confirmText: "FIRE EMPLOYEE",
+            type: "fire",
+            onConfirm: () => {
+                setStartup(s => ({
+                    ...s,
+                    employees: s.employees?.filter(e => e.id !== id) || [],
+                    metrics: { ...s.metrics, team_morale: Math.max(0, s.metrics.team_morale - 15), employees: s.metrics.employees - 1 },
+                }));
+                toast.error("Employee Terminated");
+            }
+        });
+    };
+
+    const handleTrainEmployee = (id: string) => {
+        const cost = 2000;
+        if (startup.metrics.cash < cost) { toast.error("Not enough cash!"); return; }
+        setStartup(s => ({
+            ...s,
+            metrics: { ...s.metrics, cash: s.metrics.cash - cost },
+            employees: s.employees?.map(e => e.id === id ? {
+                ...e,
+                performance: Math.min(100, e.performance + 10),
+                morale: Math.min(100, (e.morale ?? 70) + 5),
+                skills: {
+                    technical: e.role === "engineer" ? Math.min(100, e.skills.technical + 5) : e.skills.technical,
+                    marketing: e.role === "marketer" ? Math.min(100, e.skills.marketing + 5) : e.skills.marketing,
+                    sales: e.role === "sales" ? Math.min(100, e.skills.sales + 5) : e.skills.sales,
+                }
+            } : e),
+        }));
+        toast.success("Training complete!", { description: "-$2,000" });
+    };
+
+    const handlePromoteEmployee = (id: string) => {
+        setStartup(s => ({
+            ...s,
+            employees: s.employees?.map(e => {
+                if (e.id !== id) return e;
+                const levels: any = ["Junior", "Mid", "Senior", "Lead"];
+                const idx = levels.indexOf(e.level);
+                if (idx === levels.length - 1) {
                     return {
                         ...e,
-                        level: levels[idx + 1],
-                        salary: Math.floor(e.salary * 1.3),
-                        performance: Math.min(100, e.performance + 5),
-                        morale: Math.min(100, (e.morale ?? 70) + 10)
+                        isCXO: true,
+                        salary: Math.floor(e.salary * 1.5),
+                        performance: Math.min(100, e.performance + 10),
+                        morale: 100
                     };
-                }),
-            }));
-            toast.success("Promoted! Salary +30%");
-        };
-
-        const handleIncrementSalary = (id: string) => {
-            setStartup(s => ({
-                ...s,
-                employees: s.employees?.map(e => e.id === id ? {
+                }
+                return {
                     ...e,
-                    salary: Math.floor(e.salary * 1.15),
+                    level: levels[idx + 1],
+                    salary: Math.floor(e.salary * 1.3),
                     performance: Math.min(100, e.performance + 5),
-                    morale: Math.min(100, (e.morale ?? 70) + 20),
-                    last_increment_at: month
-                } : e),
-            }));
-            toast.success("Salary +15%", { description: "Employee morale stabilized." });
-        };
+                    morale: Math.min(100, (e.morale ?? 70) + 10)
+                };
+            }),
+        }));
+        toast.success("Promoted! Salary +30%");
+    };
 
-        const handleGrantEquity = (id: string, amount: number) => {
-            if ((startup.metrics.option_pool || 0) < amount) {
-                toast.error("Not enough equity in Option Pool!");
+    const handleIncrementSalary = (id: string) => {
+        setStartup(s => ({
+            ...s,
+            employees: s.employees?.map(e => e.id === id ? {
+                ...e,
+                salary: Math.floor(e.salary * 1.15),
+                performance: Math.min(100, e.performance + 5),
+                morale: Math.min(100, (e.morale ?? 70) + 20),
+                last_increment_at: month
+            } : e),
+        }));
+        toast.success("Salary +15%", { description: "Employee morale stabilized." });
+    };
+
+    const handleGrantEquity = (id: string, amount: number) => {
+        if ((startup.metrics.option_pool || 0) < amount) {
+            toast.error("Not enough equity in Option Pool!");
+            return;
+        }
+
+        setStartup(s => ({
+            ...s,
+            metrics: { ...s.metrics, option_pool: (s.metrics.option_pool || 0) - amount },
+            employees: s.employees?.map(e => e.id === id ? {
+                ...e,
+                equity: (e.equity || 0) + amount,
+                performance: Math.min(100, e.performance + 10),
+                morale: Math.min(100, (e.morale ?? 70) + 15)
+            } : e),
+        }));
+        toast.success(`Granted ${amount}% Equity!`, { description: "Retention and performance increased." });
+    };
+
+    // ── Next Month ─────────────────────────────────────────────────────────────
+    const handleRivalryAction = (action: RivalryAction) => {
+        const chadly = competitors.find(c => c.id === 'chadly');
+        if (!chadly) return;
+
+        if (startup.metrics.cash < action.cashCost) {
+            toast.error("Not enough cash!");
+            return;
+        }
+
+        const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        if (focusHoursUsed + action.energyCost > maxHours * 1.1) {
+            toast.error("Not enough focus energy!", { description: "You are too burned out. Advance to next month to refill energy." });
+            return;
+        }
+
+        // Roll for Success
+        const dice = Math.random();
+        const isSuccess = dice < action.successRate;
+
+        const outcome = isSuccess
+            ? action.effect({ startup, founder, chadly })
+            : action.onFailure({ startup, founder, chadly });
+
+        const { newStartup, newFounder, newChadly, message } = outcome;
+
+        setStartup(newStartup);
+        setFounder(newFounder);
+        setFocusHoursUsed(prev => prev + action.energyCost);
+        setCompetitors(prev => prev.map(c => c.id === 'chadly' ? newChadly : c));
+
+        addTimelineEvent(`⚔️ RIVALRY: ${message}`, month);
+
+        if (isSuccess) {
+            toast.success(message);
+            playSound('success');
+        } else {
+            toast.error(message, { description: "The attempt backfired." });
+            playSound('fail');
+        }
+    };
+
+    const handleNextMonth = async () => {
+        if (isProcessing) return;
+        if (startup.outcome && startup.outcome !== "active" && !dismissedEndgame) {
+            // Failsafe: if the user somehow clicks this inside a dead state, just re-open the model.
+            setIsEndgameOpen(true);
+            return;
+        }
+
+        setIsProcessing(true);
+        setActionCategory(null); // Auto-close any open action sheets (Hire, Strategy, etc) so they don't block modals
+        setRejectedCandidates([]);
+
+        try {
+            // Ensure the overlay has a frame to render before processing starts
+            await new Promise(r => setTimeout(r, 800));
+
+            const nextMonth = month + 1;
+
+
+            // Process ongoing programs first
+            const { startup: spAfter, founder: foAfter, log: progLog } = processOngoingPrograms(ongoingPrograms, month, startup, founder);
+            progLog.forEach(l => addTimelineEvent(`🔄 ${l}`, nextMonth));
+
+            // Apply burnout penalty if over-committed from ongoing programs
+            const maxEnergy = calcFocusHours(spAfter.metrics.founder_burnout || 0, spAfter.employees || [], (spAfter as any).hasCoFounder);
+            const currentCommitment = ongoingProgramsTotalEnergy(ongoingPrograms);
+            if (currentCommitment > maxEnergy) {
+                const penalty = (currentCommitment - maxEnergy) * 0.5;
+                spAfter.metrics.founder_burnout = Math.min(100, (spAfter.metrics.founder_burnout || 0) + penalty);
+                addTimelineEvent(`⚠️ Over-committed! Ongoing programs caused +${penalty.toFixed(1)} founder burnout.`, nextMonth);
+            }
+
+            const result = processMonth(foAfter, spAfter, selectedAction);
+            const newStartup = result.newStartup;
+            result.notices.forEach(n => addTimelineEvent(`⚠️ ${n}`, nextMonth));
+
+            // Macro Event & Market Processing
+            let currentMacro = newStartup.metrics.active_macro_event;
+            const newMacro = checkMacroEventSpawn(currentMacro, nextMonth);
+            if (!currentMacro && newMacro) {
+                addTimelineEvent(`🌎 MACRO EVENT: ${newMacro.name} - ${newMacro.description}`, nextMonth);
+            }
+            if (currentMacro && !newMacro) {
+                addTimelineEvent(`🌎 MACRO EVENT ENDED: The ${currentMacro.name} has concluded.`, nextMonth);
+            }
+            newStartup.metrics.active_macro_event = newMacro;
+
+            const updatedMarket = processMarketMonth(marketStocks, m.current_season || "Normal", newMacro);
+            setMarketStocks(updatedMarket);
+
+            if (newStartup.public_company) {
+                // Keep player company stock in sync with new valuation/sentiment
+                const playerStock = updatedMarket.find(s => s.symbol === (newStartup.symbol || "CORP"));
+                if (playerStock) {
+                    newStartup.public_company.share_price = playerStock.currentPrice;
+                }
+            }
+            
+            // Chadly Dynamic IPO
+            if (newStartup.metrics.chadly_ipo_readiness === undefined) {
+                newStartup.metrics.chadly_ipo_readiness = 0;
+            }
+            newStartup.metrics.chadly_ipo_readiness += (Math.random() * 5);
+            
+            if (newStartup.metrics.chadly_ipo_readiness > 100 && !updatedMarket.find(s => s.symbol === "CHAD")) {
+                addTimelineEvent(`🚨 RIVAL IPO: Chad Ventures has gone public!`, nextMonth);
+                updatedMarket.push({
+                    symbol: "CHAD",
+                    companyName: "Chad Ventures",
+                    sector: "Technology",
+                    currentPrice: 85.00 + (Math.random() * 40),
+                    sharesOutstanding: 150_000_000,
+                    peRatio: 45,
+                    momentum: 0.1,
+                    volatility: 0.08,
+                    rsi: 60,
+                    priceHistory: []
+                });
+                setMarketStocks(updatedMarket);
+            }
+
+            // --- IPO PROGRESSION ---
+            if (newStartup.ipo_stage && newStartup.ipo_stage > 0 && newStartup.ipo_stage < 4) {
+                newStartup.ipo_stage += 1;
+                const IPO_MESSAGES = [
+                    "",
+                    "📝 Pre-IPO Planning complete. CFO has set up data rooms & financial audits.",
+                    "📄 S-1 Filing submitted to SEC. Roadshow begins next month.",
+                    "💰 Roadshow complete. Select your pricing tier in the Funding tab before IPO Day!",
+                    "🏛️ IPO DAY! The opening bell is ringing!"
+                ];
+                addTimelineEvent(IPO_MESSAGES[newStartup.ipo_stage], nextMonth);
+
+                if (newStartup.ipo_stage === 4) {
+                    // Resolve IPO subscription pricing
+                    const priceMult = (newStartup as any).ipo_price_mult ?? 8;
+                    const liveArr = (newStartup.metrics.revenue || 0) * 12;
+                    const targetVal = liveArr * priceMult;
+                    const fairVal = liveArr * 8
+                        * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
+                        * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
+                    const ratio = fairVal / Math.max(1, targetVal);
+
+                    let finalValuation: number;
+                    let ipoEventMsg: string;
+                    if (ratio >= 1.5) {
+                        finalValuation = Math.floor(targetVal * 1.5);
+                        ipoEventMsg = `🚀 IPO OVERSUBSCRIBED 2×! Stock popped +50% on listing day. Final market cap: ${formatMoney(finalValuation)}`;
+                    } else if (ratio >= 1.2) {
+                        finalValuation = targetVal;
+                        ipoEventMsg = `✅ IPO Fully Subscribed at target. Market cap: ${formatMoney(finalValuation)}`;
+                    } else if (ratio >= 0.8) {
+                        finalValuation = Math.floor(targetVal * 0.85);
+                        ipoEventMsg = `⚠️ IPO Partially Subscribed. Priced at a 15% discount. Market cap: ${formatMoney(finalValuation)}`;
+                    } else {
+                        finalValuation = Math.floor(targetVal * 0.60);
+                        ipoEventMsg = `📉 IPO Undersubscribed. Priced at a 40% discount to attract buyers. Market cap: ${formatMoney(finalValuation)}`;
+                    }
+
+                    const founderEquityPct = (newStartup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 20) / 100;
+                    const cashRaised = Math.floor(finalValuation * 0.20); // 20% float
+                    newStartup.valuation = finalValuation;
+                    newStartup.metrics.cash = (newStartup.metrics.cash || 0) + cashRaised;
+
+                    addTimelineEvent(ipoEventMsg, nextMonth);
+                    addTimelineEvent(`💵 Raised ${formatMoney(cashRaised)} from public float (20%). Your stake is worth ${formatMoney(Math.floor(finalValuation * founderEquityPct))}.`, nextMonth);
+
+                    ReviewTriggers.ipoDay();
+                    playSound("success");
+                    
+                    // V2: Instead of ending the game, we transition to the Public Company Era
+                    newStartup.public_company = {
+                        shares_outstanding: 100_000_000,
+                        float: 20_000_000,
+                        share_price: finalValuation / 100_000_000,
+                        ipo_price: finalValuation / 100_000_000,
+                        eps_last_quarter: (newStartup.metrics.net_profit || 0) / 100_000_000,
+                        eps_guidance: ((newStartup.metrics.net_profit || 0) * 1.1) / 100_000_000,
+                        consensus_eps: ((newStartup.metrics.net_profit || 0) * 1.05) / 100_000_000,
+                        buyback_authorized: 0,
+                        short_interest: Math.floor(Math.random() * 10), // 0-10% starting short interest
+                        analyst_ratings: [
+                            { analystName: "Morgan P. Chase", firm: "Goldman Sachs Prime", rating: "Buy", priceTarget: (finalValuation / 100_000_000) * 1.3, lastUpdated: nextMonth },
+                            { analystName: "Sarah Weinstein", firm: "Morgan Capital", rating: "Hold", priceTarget: (finalValuation / 100_000_000) * 1.05, lastUpdated: nextMonth }
+                        ],
+                        quarterly_beats: 0,
+                        quarterly_misses: 0,
+                        lobbying_score: 0,
+                        corporate_portfolio: [],
+                        corporate_debt: [],
+                        subsidiaries: []
+                    };
+
+                    const newFounder = {
+                        ...founder,
+                        wealth_profile: {
+                            cash: 1_000_000, // Small starting personal cash pile
+                            portfolio: [],
+                            margin_loan_balance: 0,
+                            philanthropy_score: 0,
+                            active_10b51_plans: []
+                        }
+                    };
+
+                    const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalValuation / 100_000_000);
+                    setMarketStocks(newMarket);
+
+                    setFounder(newFounder);
+                    setStartup(newStartup);
+                    setShowPostIpoCinematic(true);
+                    setTerminalTab("operations");
+                    setIsProcessing(false);
+
+                    analyticsService.logEvent("ipo_success", {
+                        valuation: finalValuation,
+                        payout: Math.floor(finalValuation * founderEquityPct),
+                        raised: cashRaised,
+                        industry: newStartup.industry
+                    });
+                    return;
+                }
+            }
+
+            // Removed old queued selectedAction logic due to Instant Execution system
+            setSelectedAction("none");
+
+            // Runway alerts
+            const runway = newStartup.metrics.runway;
+            const profitable = (newStartup.metrics.net_profit || 0) >= 0;
+            if (!profitable && runway <= 3 && runway > 0) {
+                toast.error("⚠️ Critical Runway!", { description: `Only ${runway} months left!` });
+                addTimelineEvent(`Crisis: Runway below 3 months — emergency mode.`, nextMonth);
+            } else if (!profitable && runway <= 6) {
+                toast.warning("⚡ Low Runway", { description: `${runway} months remaining.` });
+            }
+
+            // Sam Mentor Advice Trigger (legacy educational advice only)
+            if (isOnline) {
+                const samAlert = getEducationalAdvice(newStartup, founder);
+                if (samAlert && !storyState.seenTriggers.includes(samAlert.trigger ?? "")) {
+                    setSamAdvice(samAlert);
+                    playSound("popup");
+                    setIsSamModalOpen(true);
+                }
+            }
+
+            // ── SAM & CHAD STORYLINE ENGINE ──
+            const justFundraised = ((newStartup as any).funding_rounds?.length ?? 0) > ((startup as any).funding_rounds?.length ?? 0);
+            const storyDialog = getStorylineDialog(
+                nextMonth,
+                {
+                    valuation: newStartup.valuation ?? 0,
+                    users: newStartup.metrics.users ?? 0,
+                    cash: newStartup.metrics.cash ?? 0,
+                    runway: newStartup.metrics.runway ?? 0,
+                    burnout: newStartup.metrics.founder_burnout ?? 0,
+                    growth_rate: newStartup.metrics.growth_rate ?? 0,
+                    net_profit: newStartup.metrics.net_profit ?? 0,
+                },
+                competitors,
+                storyState,
+                justFundraised
+            );
+
+            // --- ANALYTICS: Track Monthly Metrics ---
+            analyticsService.trackMonthlyMetrics({
+                month: nextMonth,
+                arr: (newStartup.metrics.revenue || 0) * 12,
+                valuation: newStartup.valuation || 0,
+                cash: newStartup.metrics.cash || 0,
+                users: newStartup.metrics.users || 0,
+                burnout: newStartup.metrics.founder_burnout || 0,
+                industry: newStartup.industry
+            });
+
+            if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
+                // Log the storyline encounter to the timeline
+                const encounterText = storyDialog.character === "chad"
+                    ? `⚔️ Rival Encounter: Chadly ${storyDialog.title || "challenged you"}.`
+                    : `💡 Mentor Guidance: Sam ${storyDialog.title || "shared some advice"}.`;
+                addTimelineEvent(encounterText, nextMonth);
+
+                setTimeout(() => {
+                    setCharacterDialog(storyDialog);
+                    setIsCharacterDialogOpen(true);
+                    playSound("popup");
+                    // If Sam dialog just fired, reset chadMustRespondNext
+                    if (storyDialog.character === "sam") {
+                        setStoryState(prev => ({ ...prev, chadMustRespondNext: false }));
+                    }
+                }, 800); // slight delay so month-end summary settles first
+            }
+
+            // Burnout game-over
+            if ((newStartup.metrics.founder_burnout || 0) >= 100) {
+                playSound("fail");
+                newStartup.outcome = "burnout";
+                setStartup(newStartup);
+                const pts = recordExit(newStartup, founder.name);
+                const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: Founder burned out completely. +${pts} XP earned.` }];
+                setEventsTimeline(finalTimeline);
+                toast("Game Over — Burnout", { description: `You worked yourself to the ground. Earned ${pts} XP.` });
+                setIsEndgameOpen(true); setIsProcessing(false);
                 return;
             }
 
-            setStartup(s => ({
-                ...s,
-                metrics: { ...s.metrics, option_pool: (s.metrics.option_pool || 0) - amount },
-                employees: s.employees?.map(e => e.id === id ? {
-                    ...e,
-                    equity: (e.equity || 0) + amount,
-                    performance: Math.min(100, e.performance + 10),
-                    morale: Math.min(100, (e.morale ?? 70) + 15)
-                } : e),
-            }));
-            toast.success(`Granted ${amount}% Equity!`, { description: "Retention and performance increased." });
-        };
-
-        // ── Next Month ─────────────────────────────────────────────────────────────
-        const handleRivalryAction = (action: RivalryAction) => {
-            const chadly = competitors.find(c => c.id === 'chadly');
-            if (!chadly) return;
-
-            if (startup.metrics.cash < action.cashCost) {
-                toast.error("Not enough cash!");
+            const endgame = checkEndgame(newStartup);
+            if (endgame) {
+                playSound(endgame === "acquired" ? "success" : "fail");
+                newStartup.outcome = endgame === "bankrupt" ? "bankrupt" : "other";
+                setStartup(newStartup);
+                const pts = recordExit(newStartup, founder.name);
+                const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: ${endgame.toUpperCase()}! +${pts} XP earned.` }];
+                setEventsTimeline(finalTimeline);
+                toast("Game Over - " + endgame.toUpperCase(), { description: `Generating your founder story... Earned ${pts} XP.` });
+                setIsEndgameOpen(true); setIsProcessing(false);
                 return;
             }
 
-            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
-            if (focusHoursUsed + action.energyCost > maxHours * 1.1) {
-                toast.error("Not enough focus energy!", { description: "You are too burned out. Advance to next month to refill energy." });
-                return;
+            // Random events (AI First, Fallback to Predefined)
+            // Mutex: Don't trigger random events if a storyline dialog is currently being shown
+
+            // Competitors Simulation (CRITICAL: Must happen before AI/Rivalry logic)
+            const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users, newStartup.valuation);
+            setCompetitors(updated);
+            news.forEach(n => addTimelineEvent(n, nextMonth));
+            const chadlyComp = updated.find(c => c.id === "chadly");
+
+            // --- AI & EXTERNAL EFFECTS (Parallelized) ---
+            // Trigger AI event and Chad banter simultaneously
+
+            let ev: GameEvent | null = null;
+            let aiBanter: any = null;
+
+            if (!storyDialog && isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
+                try {
+                    const [aiEventResult, aiBanterResult] = await Promise.all([
+                        generateAIEvent(newStartup, founder, seenEventIds),
+                        chadlyComp ? generateChadBanter(newStartup, founder, chadlyComp) : Promise.resolve(null)
+                    ]);
+
+                    if (aiEventResult) ev = aiEventResult as GameEvent;
+                    aiBanter = aiBanterResult;
+                } catch (e) {
+                    console.warn("AI Parallel generation failed", e);
+                }
             }
 
-            // Roll for Success
-            const dice = Math.random();
-            const isSuccess = dice < action.successRate;
+            // Fallback to local random event if AI failed or timed out
+            if (!ev && !storyDialog) {
+                ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
+            }
 
-            const outcome = isSuccess 
-                ? action.effect({ startup, founder, chadly })
-                : action.onFailure({ startup, founder, chadly });
+            if (ev) {
+                playSound("popup");
+                setActiveEvent(ev);
+                if (ev.event_id) setSeenEventIds(prev => [...prev, ev.event_id!]);
+                else if (ev.title) setSeenEventIds(prev => [...prev, ev.title]);
+            }
 
-            const { newStartup, newFounder, newChadly, message } = outcome;
+            let nextFounder = { ...founder, attributes: { ...founder.attributes } };
+
+            rivalActions.forEach(({ action, competitorName }) => {
+                if (competitorName.toLowerCase().includes("chadly")) {
+                    setChadAdvice({
+                        title: "⚔️ CHADLY ATTACKS!",
+                        message: aiBanter?.banter
+                            ? `"${aiBanter.banter}"\n\nChadly ${aiBanter.attackDescription || action.description}`
+                            : `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
+                        buttonText: "I'LL CRUSH HIM"
+                    });
+                    playSound("popup");
+                    setIsChadModalOpen(true);
+                }
+
+                // Specific handlers for comprehensive rival actions
+                if (action.type === "vulture_talent" && newStartup.employees.length > 0) {
+                    const targetIndex = Math.floor(Math.random() * newStartup.employees.length);
+                    const poached = newStartup.employees[targetIndex];
+                    newStartup.employees = newStartup.employees.filter((_, i) => i !== targetIndex);
+
+                    toast.error(`💔 Poached! ${poached.name} was hired by ${competitorName}`, {
+                        description: "You lost a valuable team member."
+                    });
+                    addTimelineEvent(`💔 Staff Poached: ${poached.name} left to join ${competitorName}`, nextMonth);
+                } else if (action.type === "price_cut") {
+                    if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                        const lostDeals = Math.max(1, Math.floor((newStartup.metrics.b2b_pipeline.closed_won || 0) * 0.05));
+                        newStartup.metrics.b2b_pipeline.closed_won = Math.max(0, (newStartup.metrics.b2b_pipeline.closed_won || 0) - lostDeals);
+                        toast.error(`💸 Lost ${lostDeals} Deals to ${competitorName}'s price cuts!`);
+                        addTimelineEvent(`💸 Lost ${lostDeals} Enterprise Deals to ${competitorName} (Price Cut)`, nextMonth);
+                    } else {
+                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.96)); // 4% churn
+                    }
+                    newStartup.metrics.pricing = Math.max(5, Math.floor(newStartup.metrics.pricing * 0.95)); // Pricing pressure
+                } else if (action.type === "massive_marketing") {
+                    newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 10);
+                    if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                        newStartup.metrics.b2b_pipeline.leads = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.leads || 0) * 0.8));
+                        toast.error(`📉 Lead Pipeline drained by ${competitorName}'s ad blitz!`);
+                    } else {
+                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // 6% churn
+                    }
+                } else if (action.type === "feature_launch") {
+                    newStartup.metrics.product_quality = Math.max(0, (newStartup.metrics.product_quality || 10) - 5);
+                    newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 5);
+                } else if (action.type === "ai_pivot") {
+                    newStartup.metrics.innovation = Math.max(0, (newStartup.metrics.innovation || 10) - 8);
+                    newStartup.metrics.technical_debt = Math.min(100, (newStartup.metrics.technical_debt || 0) + 5);
+                    newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 8);
+                } else if (action.type === "press_attack") {
+                    newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 15);
+                    newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 10);
+                    if (nextFounder.attributes) {
+                        nextFounder.attributes.reputation = Math.max(0, (nextFounder.attributes.reputation || 50) - 5);
+                    }
+                    if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                        newStartup.metrics.b2b_pipeline.active_deals = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.active_deals || 0) * 0.9));
+                    } else {
+                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.95));
+                    }
+                }
+
+                // Fallback generic multipliers (if any new actions are added without specific handlers)
+                if (!["price_cut", "massive_marketing", "feature_launch", "ai_pivot", "press_attack", "vulture_talent"].includes(action.type)) {
+                    if (action.impactUser !== 0) newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * (1 + action.impactUser)));
+                    if (action.impactMorale !== 0) newStartup.metrics.team_morale = Math.max(0, Math.min(100, newStartup.metrics.team_morale + action.impactMorale));
+                    if (action.impactBrand !== 0) newStartup.metrics.brand_awareness = Math.max(0, Math.min(100, (newStartup.metrics.brand_awareness || 0) + action.impactBrand));
+                }
+
+                // Real-time feedback for rival moves
+                toast.error(`⚔️ Rival Move: ${competitorName}`, {
+                    description: action.description,
+                    duration: 5000
+                });
+                addTimelineEvent(`⚔️ ${competitorName}: ${(action as any).title || action.description}`, nextMonth);
+            });
+
+            // --- LIFESTYLE & ASSETS ---
+
+            // 1. Lifestyle Toggles (Costs & Impacts)
+            let totalLifestyleCost = 0;
+            const activeServices = LIFESTYLE_TOGGLES.filter(t => (nextFounder.activeToggles || []).includes(t.id));
+            activeServices.forEach(s => {
+                totalLifestyleCost += s.monthlyCost;
+                if (s.impact.health) newStartup.metrics.founder_health = Math.min(100, Math.max(0, (newStartup.metrics.founder_health || 0) + s.impact.health));
+                if (s.impact.burnout) newStartup.metrics.founder_burnout = Math.min(100, Math.max(0, (newStartup.metrics.founder_burnout || 0) + s.impact.burnout));
+                if (s.impact.sleep) newStartup.metrics.sleep_quality = Math.min(100, Math.max(0, (newStartup.metrics.sleep_quality || 0) + s.impact.sleep));
+                if (s.impact.reputation) nextFounder.attributes.reputation = Math.min(100, Math.max(0, (nextFounder.attributes.reputation || 0) + s.impact.reputation));
+            });
+
+            if (totalLifestyleCost > nextFounder.personal_wealth) {
+                addTimelineEvent(`⚠️ Lifestyle cut! Insufficient funds to maintain active services.`, nextMonth);
+                nextFounder.activeToggles = []; // Cut all if can't afford
+            } else {
+                nextFounder.personal_wealth -= totalLifestyleCost;
+            }
+
+            // 1.5. 10b5-1 Plan Execution
+            if (newStartup.public_company && nextFounder.wealth_profile?.active_10b51_plans?.length) {
+                const pub = newStartup.public_company;
+                let totalSharesSold = 0;
+                let totalProceeds = 0;
+                
+                nextFounder.wealth_profile.active_10b51_plans.forEach(plan => {
+                    if (plan.monthsRemaining > 0 && pub.share_price >= plan.targetPriceMinimum) {
+                        const sharesToSell = Math.min(plan.monthlySellAmount, plan.sharesToSellTotal - plan.sharesSoldSoFar);
+                        const proceeds = sharesToSell * pub.share_price;
+                        
+                        plan.sharesSoldSoFar += sharesToSell;
+                        plan.monthsRemaining -= 1;
+                        
+                        totalSharesSold += sharesToSell;
+                        totalProceeds += proceeds;
+                    }
+                });
+                
+                // Remove completed plans
+                nextFounder.wealth_profile.active_10b51_plans = nextFounder.wealth_profile.active_10b51_plans.filter(p => p.monthsRemaining > 0);
+                
+                if (totalSharesSold > 0) {
+                    // Update Founder Cash
+                    nextFounder.wealth_profile.cash += totalProceeds;
+                    nextFounder.personal_wealth += totalProceeds;
+                    
+                    // Deduct from Cap Table
+                    if (newStartup.capTable) {
+                        const founderIndex = newStartup.capTable.findIndex(e => e.type === "Founder");
+                        if (founderIndex >= 0) {
+                            const currentEquityPct = newStartup.capTable[founderIndex].equity;
+                            const totalCompanyShares = pub.shares_outstanding;
+                            const currentShares = (currentEquityPct / 100) * totalCompanyShares;
+                            const newShares = Math.max(0, currentShares - totalSharesSold);
+                            newStartup.capTable[founderIndex].equity = (newShares / totalCompanyShares) * 100;
+                        }
+                    }
+                    
+                    addTimelineEvent(`📄 10b5-1 Plans executed: Sold ${formatNumber(totalSharesSold)} shares for ${formatMoney(totalProceeds)}.`, nextMonth);
+                }
+            }
+
+            // 2. Asset Appreciation/Depreciation
+            const updatedAssets = (nextFounder.assets || []).map(asset => {
+                // Find rate from catalog if missing (for legacy data)
+                const rate = asset.depreciationRate ?? (LUXURY_ASSETS.find(la => la.name === asset.name)?.depreciationRate || 0);
+                return {
+                    ...asset,
+                    depreciationRate: rate,
+                    currentValue: Math.max(0, asset.currentValue * (1 + rate))
+                };
+            });
+
+            setFounder({
+                ...nextFounder,
+                assets: updatedAssets
+            });
+
+            // Achievements
+            const newAchievements = checkAchievements(newStartup, unlockedAchievements);
+            newAchievements.forEach((a: Achievement) => {
+                toast.success(`Achievement: ${a.title}!`, { description: a.description });
+                addTimelineEvent(`🏆 Achievement: ${a.title}`, nextMonth);
+                setUnlockedAchievements(prev => [...prev, a.id]);
+            });
+
+            // Phase
+            const mu = newStartup.metrics.users; const mr = newStartup.metrics.revenue; const mv = newStartup.valuation;
+            let newPhase = newStartup.phase;
+            if (mv >= 100_000_000 || mu >= 100_000) newPhase = "Scaling";
+            else if (mv >= 10_000_000 || mr >= 50_000 || mu >= 10_000) newPhase = "Growth";
+            else if (mr >= 5_000 || mu >= 1_000) newPhase = "Traction";
+            else if (mu >= 100) newPhase = "Early Startup";
+            else newPhase = "Idea Phase";
+            if (newPhase !== newStartup.phase) {
+                addTimelineEvent(`⚡ Phase unlocked: ${newPhase}!`, nextMonth);
+                toast.success(`New Phase: ${newPhase}!`, { description: "Your startup just leveled up." });
+            }
+            newStartup.phase = newPhase as typeof newStartup.phase;
 
             setStartup(newStartup);
-            setFounder(newFounder);
-            setFocusHoursUsed(prev => prev + action.energyCost);
-            setCompetitors(prev => prev.map(c => c.id === 'chadly' ? newChadly : c));
-            
-            addTimelineEvent(`⚔️ RIVALRY: ${message}`, month);
-            
-            if (isSuccess) {
-                toast.success(message);
-                playSound('success');
-            } else {
-                toast.error(message, { description: "The attempt backfired." });
-                playSound('fail');
-            }
-        };
+            setFounder({ ...foAfter }); // Ensure founder state (wealth, skills) updates
+            setSelectedAction("none");
+            const committedEnergy = ongoingProgramsTotalEnergy(ongoingPrograms);
+            setFocusHoursUsed(committedEnergy);
+            setActionUsageLog(prev => ({ thisMonth: {}, lastUsedMonth: prev.lastUsedMonth }));
 
-        const handleNextMonth = async () => {
-            if (isProcessing) return;
-            if (startup.outcome && startup.outcome !== "active" && !dismissedEndgame) {
-                // Failsafe: if the user somehow clicks this inside a dead state, just re-open the model.
-                setIsEndgameOpen(true);
-                return;
+            // --- PILLAR 2: EARNINGS CALL ---
+            if (newStartup.public_company && nextMonth % 3 === 0) {
+                // Determine new actual EPS for the quarter before the call
+                const quarterlyProfit = (newStartup.metrics.net_profit || 0) * 3;
+                const newEps = quarterlyProfit / newStartup.public_company.shares_outstanding;
+                newStartup.public_company.eps_last_quarter = newEps;
+                setIsEarningsCallOpen(true);
             }
 
-            setIsProcessing(true);
-            setActionCategory(null); // Auto-close any open action sheets (Hire, Strategy, etc) so they don't block modals
-            setRejectedCandidates([]);
-            
-            try {
-                // Ensure the overlay has a frame to render before processing starts
-                await new Promise(r => setTimeout(r, 800));
-                
-                const nextMonth = month + 1;
 
-
-                // Process ongoing programs first
-                const { startup: spAfter, founder: foAfter, log: progLog } = processOngoingPrograms(ongoingPrograms, month, startup, founder);
-                progLog.forEach(l => addTimelineEvent(`🔄 ${l}`, nextMonth));
-
-                // Apply burnout penalty if over-committed from ongoing programs
-                const maxEnergy = calcFocusHours(spAfter.metrics.founder_burnout || 0, spAfter.employees || [], (spAfter as any).hasCoFounder);
-                const currentCommitment = ongoingProgramsTotalEnergy(ongoingPrograms);
-                if (currentCommitment > maxEnergy) {
-                    const penalty = (currentCommitment - maxEnergy) * 0.5;
-                    spAfter.metrics.founder_burnout = Math.min(100, (spAfter.metrics.founder_burnout || 0) + penalty);
-                    addTimelineEvent(`⚠️ Over-committed! Ongoing programs caused +${penalty.toFixed(1)} founder burnout.`, nextMonth);
-                }
-
-                const result = processMonth(foAfter, spAfter, selectedAction);
-                const newStartup = result.newStartup;
-                result.notices.forEach(n => addTimelineEvent(`⚠️ ${n}`, nextMonth));
-
-                // --- IPO PROGRESSION ---
-                if (newStartup.ipo_stage && newStartup.ipo_stage > 0 && newStartup.ipo_stage < 4) {
-                    newStartup.ipo_stage += 1;
-                    const IPO_MESSAGES = [
-                        "",
-                        "📝 Pre-IPO Planning complete. CFO has set up data rooms & financial audits.",
-                        "📄 S-1 Filing submitted to SEC. Roadshow begins next month.",
-                        "💰 Roadshow complete. Select your pricing tier in the Funding tab before IPO Day!",
-                        "🏛️ IPO DAY! The opening bell is ringing!"
-                    ];
-                    addTimelineEvent(IPO_MESSAGES[newStartup.ipo_stage], nextMonth);
-
-                    if (newStartup.ipo_stage === 4) {
-                        // Resolve IPO subscription pricing
-                        const priceMult = (newStartup as any).ipo_price_mult ?? 8;
-                        const liveArr = (newStartup.metrics.revenue || 0) * 12;
-                        const targetVal = liveArr * priceMult;
-                        const fairVal = liveArr * 8
-                            * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
-                            * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
-                        const ratio = fairVal / Math.max(1, targetVal);
-
-                        let finalValuation: number;
-                        let ipoEventMsg: string;
-                        if (ratio >= 1.5) {
-                            finalValuation = Math.floor(targetVal * 1.5);
-                            ipoEventMsg = `🚀 IPO OVERSUBSCRIBED 2×! Stock popped +50% on listing day. Final market cap: ${formatMoney(finalValuation)}`;
-                        } else if (ratio >= 1.2) {
-                            finalValuation = targetVal;
-                            ipoEventMsg = `✅ IPO Fully Subscribed at target. Market cap: ${formatMoney(finalValuation)}`;
-                        } else if (ratio >= 0.8) {
-                            finalValuation = Math.floor(targetVal * 0.85);
-                            ipoEventMsg = `⚠️ IPO Partially Subscribed. Priced at a 15% discount. Market cap: ${formatMoney(finalValuation)}`;
-                        } else {
-                            finalValuation = Math.floor(targetVal * 0.60);
-                            ipoEventMsg = `📉 IPO Undersubscribed. Priced at a 40% discount to attract buyers. Market cap: ${formatMoney(finalValuation)}`;
-                        }
-
-                        const founderEquityPct = (newStartup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 20) / 100;
-                        const cashRaised = Math.floor(finalValuation * 0.20); // 20% float
-                        newStartup.valuation = finalValuation;
-                        newStartup.metrics.cash = (newStartup.metrics.cash || 0) + cashRaised;
-
-                        addTimelineEvent(ipoEventMsg, nextMonth);
-                        addTimelineEvent(`💵 Raised ${formatMoney(cashRaised)} from public float (20%). Your stake is worth ${formatMoney(Math.floor(finalValuation * founderEquityPct))}.`, nextMonth);
-
-                        ReviewTriggers.ipoDay();
-                        playSound("success");
-                        newStartup.outcome = "ipo";
-                        const pts = recordExit(newStartup, founder.name);
-                        setStartup(newStartup);
-                        setIsEndgameOpen(true);
-                        setIsProcessing(false);
-
-                        analyticsService.logEvent("ipo_success", {
-                            valuation: finalValuation,
-                            payout: Math.floor(finalValuation * founderEquityPct),
-                            raised: cashRaised,
-                            industry: newStartup.industry
-                        });
-                        return;
-                    }
-                }
-
-                // Removed old queued selectedAction logic due to Instant Execution system
-                setSelectedAction("none");
-
-                // Runway alerts
-                const runway = newStartup.metrics.runway;
-                const profitable = (newStartup.metrics.net_profit || 0) >= 0;
-                if (!profitable && runway <= 3 && runway > 0) {
-                    toast.error("⚠️ Critical Runway!", { description: `Only ${runway} months left!` });
-                    addTimelineEvent(`Crisis: Runway below 3 months — emergency mode.`, nextMonth);
-                } else if (!profitable && runway <= 6) {
-                    toast.warning("⚡ Low Runway", { description: `${runway} months remaining.` });
-                }
-
-                // Sam Mentor Advice Trigger (legacy educational advice only)
+            if (month % 3 === 0 && !isPremium) {
                 if (isOnline) {
-                    const samAlert = getEducationalAdvice(newStartup, founder);
-                    if (samAlert && !storyState.seenTriggers.includes(samAlert.trigger ?? "")) {
-                        setSamAdvice(samAlert);
-                        playSound("popup");
-                        setIsSamModalOpen(true);
-                    }
-                }
-
-                // ── SAM & CHAD STORYLINE ENGINE ──
-                const justFundraised = ((newStartup as any).funding_rounds?.length ?? 0) > ((startup as any).funding_rounds?.length ?? 0);
-                const storyDialog = getStorylineDialog(
-                    nextMonth,
-                    {
-                        valuation: newStartup.valuation ?? 0,
-                        users: newStartup.metrics.users ?? 0,
-                        cash: newStartup.metrics.cash ?? 0,
-                        runway: newStartup.metrics.runway ?? 0,
-                        burnout: newStartup.metrics.founder_burnout ?? 0,
-                        growth_rate: newStartup.metrics.growth_rate ?? 0,
-                        net_profit: newStartup.metrics.net_profit ?? 0,
-                    },
-                    competitors,
-                    storyState,
-                    justFundraised
-                );
-
-                // --- ANALYTICS: Track Monthly Metrics ---
-                analyticsService.trackMonthlyMetrics({
-                    month: nextMonth,
-                    arr: (newStartup.metrics.revenue || 0) * 12,
-                    valuation: newStartup.valuation || 0,
-                    cash: newStartup.metrics.cash || 0,
-                    users: newStartup.metrics.users || 0,
-                    burnout: newStartup.metrics.founder_burnout || 0,
-                    industry: newStartup.industry
-                });
-
-                if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
-                    // Log the storyline encounter to the timeline
-                    const encounterText = storyDialog.character === "chad" 
-                        ? `⚔️ Rival Encounter: Chadly ${storyDialog.title || "challenged you"}.`
-                        : `💡 Mentor Guidance: Sam ${storyDialog.title || "shared some advice"}.`;
-                    addTimelineEvent(encounterText, nextMonth);
-
-                    setTimeout(() => {
-                        setCharacterDialog(storyDialog);
-                        setIsCharacterDialogOpen(true);
-                        playSound("popup");
-                        // If Sam dialog just fired, reset chadMustRespondNext
-                        if (storyDialog.character === "sam") {
-                            setStoryState(prev => ({ ...prev, chadMustRespondNext: false }));
-                        }
-                    }, 800); // slight delay so month-end summary settles first
-                }
-
-                // Burnout game-over
-                if ((newStartup.metrics.founder_burnout || 0) >= 100) {
-                    playSound("fail");
-                    newStartup.outcome = "burnout";
-                    setStartup(newStartup);
-                    const pts = recordExit(newStartup, founder.name);
-                    const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: Founder burned out completely. +${pts} XP earned.` }];
-                    setEventsTimeline(finalTimeline);
-                    toast("Game Over — Burnout", { description: `You worked yourself to the ground. Earned ${pts} XP.` });
-                    setIsEndgameOpen(true); setIsProcessing(false);
-                    return;
-                }
-
-                const endgame = checkEndgame(newStartup);
-                if (endgame) {
-                    playSound(endgame === "acquired" ? "success" : "fail");
-                    newStartup.outcome = endgame === "bankrupt" ? "bankrupt" : "other";
-                    setStartup(newStartup);
-                    const pts = recordExit(newStartup, founder.name);
-                    const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: ${endgame.toUpperCase()}! +${pts} XP earned.` }];
-                    setEventsTimeline(finalTimeline);
-                    toast("Game Over - " + endgame.toUpperCase(), { description: `Generating your founder story... Earned ${pts} XP.` });
-                    setIsEndgameOpen(true); setIsProcessing(false);
-                    return;
-                }
-
-                // Random events (AI First, Fallback to Predefined)
-                // Mutex: Don't trigger random events if a storyline dialog is currently being shown
-                
-                // Competitors Simulation (CRITICAL: Must happen before AI/Rivalry logic)
-                const { updated, news, rivalActions } = simulateCompetitors(competitors, newStartup.metrics.users, newStartup.valuation);
-                setCompetitors(updated);
-                news.forEach(n => addTimelineEvent(n, nextMonth));
-                const chadlyComp = updated.find(c => c.id === "chadly");
-
-                // --- AI & EXTERNAL EFFECTS (Parallelized) ---
-                // Trigger AI event and Chad banter simultaneously
-                
-                let ev: GameEvent | null = null;
-                let aiBanter: any = null;
-
-                if (!storyDialog && isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
-                    try {
-                        const [aiEventResult, aiBanterResult] = await Promise.all([
-                            generateAIEvent(newStartup, founder, seenEventIds),
-                            chadlyComp ? generateChadBanter(newStartup, founder, chadlyComp) : Promise.resolve(null)
-                        ]);
-                        
-                        if (aiEventResult) ev = aiEventResult as GameEvent;
-                        aiBanter = aiBanterResult;
-                    } catch (e) {
-                        console.warn("AI Parallel generation failed", e);
-                    }
-                }
-
-                // Fallback to local random event if AI failed or timed out
-                if (!ev && !storyDialog) {
-                    ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
-                }
-
-                if (ev) {
-                    playSound("popup");
-                    setActiveEvent(ev);
-                    if (ev.event_id) setSeenEventIds(prev => [...prev, ev.event_id!]);
-                    else if (ev.title) setSeenEventIds(prev => [...prev, ev.title]);
-                }
-
-                let nextFounder = { ...founder, attributes: { ...founder.attributes } };
-                
-                rivalActions.forEach(({ action, competitorName }) => {
-                    if (competitorName.toLowerCase().includes("chadly")) {
-                        setChadAdvice({
-                            title: "⚔️ CHADLY ATTACKS!",
-                            message: aiBanter?.banter 
-                                ? `"${aiBanter.banter}"\n\nChadly ${aiBanter.attackDescription || action.description}`
-                                : `"${(action as any).banter || ''}"\n\nChadly just ${action.description}`,
-                            buttonText: "I'LL CRUSH HIM"
-                        });
-                        playSound("popup");
-                        setIsChadModalOpen(true);
-                    }
-
-                    // Specific handlers for comprehensive rival actions
-                    if (action.type === "vulture_talent" && newStartup.employees.length > 0) {
-                        const targetIndex = Math.floor(Math.random() * newStartup.employees.length);
-                        const poached = newStartup.employees[targetIndex];
-                        newStartup.employees = newStartup.employees.filter((_, i) => i !== targetIndex);
-                        
-                        toast.error(`💔 Poached! ${poached.name} was hired by ${competitorName}`, {
-                            description: "You lost a valuable team member."
-                        });
-                        addTimelineEvent(`💔 Staff Poached: ${poached.name} left to join ${competitorName}`, nextMonth);
-                    } else if (action.type === "price_cut") {
-                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
-                            const lostDeals = Math.max(1, Math.floor((newStartup.metrics.b2b_pipeline.closed_won || 0) * 0.05));
-                            newStartup.metrics.b2b_pipeline.closed_won = Math.max(0, (newStartup.metrics.b2b_pipeline.closed_won || 0) - lostDeals);
-                            toast.error(`💸 Lost ${lostDeals} Deals to ${competitorName}'s price cuts!`);
-                            addTimelineEvent(`💸 Lost ${lostDeals} Enterprise Deals to ${competitorName} (Price Cut)`, nextMonth);
-                        } else {
-                            newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.96)); // 4% churn
-                        }
-                        newStartup.metrics.pricing = Math.max(5, Math.floor(newStartup.metrics.pricing * 0.95)); // Pricing pressure
-                    } else if (action.type === "massive_marketing") {
-                        newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 10);
-                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
-                            newStartup.metrics.b2b_pipeline.leads = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.leads || 0) * 0.8));
-                            toast.error(`📉 Lead Pipeline drained by ${competitorName}'s ad blitz!`);
-                        } else {
-                            newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // 6% churn
-                        }
-                    } else if (action.type === "feature_launch") {
-                        newStartup.metrics.product_quality = Math.max(0, (newStartup.metrics.product_quality || 10) - 5);
-                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 5);
-                    } else if (action.type === "ai_pivot") {
-                        newStartup.metrics.innovation = Math.max(0, (newStartup.metrics.innovation || 10) - 8);
-                        newStartup.metrics.technical_debt = Math.min(100, (newStartup.metrics.technical_debt || 0) + 5);
-                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 8);
-                    } else if (action.type === "press_attack") {
-                        newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 15);
-                        newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 50) - 10);
-                        if (nextFounder.attributes) {
-                            nextFounder.attributes.reputation = Math.max(0, (nextFounder.attributes.reputation || 50) - 5);
-                        }
-                        if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
-                             newStartup.metrics.b2b_pipeline.active_deals = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.active_deals || 0) * 0.9));
-                        } else {
-                             newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.95));
-                        }
-                    }
-
-                    // Fallback generic multipliers (if any new actions are added without specific handlers)
-                    if (!["price_cut", "massive_marketing", "feature_launch", "ai_pivot", "press_attack", "vulture_talent"].includes(action.type)) {
-                        if (action.impactUser !== 0) newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * (1 + action.impactUser)));
-                        if (action.impactMorale !== 0) newStartup.metrics.team_morale = Math.max(0, Math.min(100, newStartup.metrics.team_morale + action.impactMorale));
-                        if (action.impactBrand !== 0) newStartup.metrics.brand_awareness = Math.max(0, Math.min(100, (newStartup.metrics.brand_awareness || 0) + action.impactBrand));
-                    }
-
-                    // Real-time feedback for rival moves
-                    toast.error(`⚔️ Rival Move: ${competitorName}`, {
-                        description: action.description,
-                        duration: 5000
-                    });
-                    addTimelineEvent(`⚔️ ${competitorName}: ${(action as any).title || action.description}`, nextMonth);
-                });
-
-                // --- LIFESTYLE & ASSETS ---
-
-                // 1. Lifestyle Toggles (Costs & Impacts)
-                let totalLifestyleCost = 0;
-                const activeServices = LIFESTYLE_TOGGLES.filter(t => (nextFounder.activeToggles || []).includes(t.id));
-                activeServices.forEach(s => {
-                    totalLifestyleCost += s.monthlyCost;
-                    if (s.impact.health) newStartup.metrics.founder_health = Math.min(100, Math.max(0, (newStartup.metrics.founder_health || 0) + s.impact.health));
-                    if (s.impact.burnout) newStartup.metrics.founder_burnout = Math.min(100, Math.max(0, (newStartup.metrics.founder_burnout || 0) + s.impact.burnout));
-                    if (s.impact.sleep) newStartup.metrics.sleep_quality = Math.min(100, Math.max(0, (newStartup.metrics.sleep_quality || 0) + s.impact.sleep));
-                    if (s.impact.reputation) nextFounder.attributes.reputation = Math.min(100, Math.max(0, (nextFounder.attributes.reputation || 0) + s.impact.reputation));
-                });
-
-                if (totalLifestyleCost > nextFounder.personal_wealth) {
-                    addTimelineEvent(`⚠️ Lifestyle cut! Insufficient funds to maintain active services.`, nextMonth);
-                    nextFounder.activeToggles = []; // Cut all if can't afford
+                    await adService.showInterstitial();
                 } else {
-                    nextFounder.personal_wealth -= totalLifestyleCost;
+                    // Offline bypass attempt: queue the ad for when they reconnect
+                    setInterstitialAdOwed(true);
+                    toast.info("Offline Mode", { description: "Mandatory check-in queued for next connection." });
                 }
-
-                // 2. Asset Appreciation/Depreciation
-                const updatedAssets = (nextFounder.assets || []).map(asset => {
-                    // Find rate from catalog if missing (for legacy data)
-                    const rate = asset.depreciationRate ?? (LUXURY_ASSETS.find(la => la.name === asset.name)?.depreciationRate || 0);
-                    return {
-                        ...asset,
-                        depreciationRate: rate,
-                        currentValue: Math.max(0, asset.currentValue * (1 + rate))
-                    };
-                });
-
-                setFounder({
-                    ...nextFounder,
-                    assets: updatedAssets
-                });
-
-                // Achievements
-                const newAchievements = checkAchievements(newStartup, unlockedAchievements);
-                newAchievements.forEach((a: Achievement) => {
-                    toast.success(`Achievement: ${a.title}!`, { description: a.description });
-                    addTimelineEvent(`🏆 Achievement: ${a.title}`, nextMonth);
-                    setUnlockedAchievements(prev => [...prev, a.id]);
-                });
-
-                // Phase
-                const mu = newStartup.metrics.users; const mr = newStartup.metrics.revenue; const mv = newStartup.valuation;
-                let newPhase = newStartup.phase;
-                if (mv >= 100_000_000 || mu >= 100_000) newPhase = "Scaling";
-                else if (mv >= 10_000_000 || mr >= 50_000 || mu >= 10_000) newPhase = "Growth";
-                else if (mr >= 5_000 || mu >= 1_000) newPhase = "Traction";
-                else if (mu >= 100) newPhase = "Early Startup";
-                else newPhase = "Idea Phase";
-                if (newPhase !== newStartup.phase) {
-                    addTimelineEvent(`⚡ Phase unlocked: ${newPhase}!`, nextMonth);
-                    toast.success(`New Phase: ${newPhase}!`, { description: "Your startup just leveled up." });
-                }
-                newStartup.phase = newPhase as typeof newStartup.phase;
-
-                setStartup(newStartup);
-                setFounder({ ...foAfter }); // Ensure founder state (wealth, skills) updates
-                setSelectedAction("none");
-                const committedEnergy = ongoingProgramsTotalEnergy(ongoingPrograms);
-                setFocusHoursUsed(committedEnergy);
-                setActionUsageLog(prev => ({ thisMonth: {}, lastUsedMonth: prev.lastUsedMonth }));
-
-                if (month % 3 === 0 && !isPremium) {
-                    if (isOnline) {
-                        await adService.showInterstitial();
-                    } else {
-                        // Offline bypass attempt: queue the ad for when they reconnect
-                        setInterstitialAdOwed(true);
-                        toast.info("Offline Mode", { description: "Mandatory check-in queued for next connection." });
-                    }
-                }
-
-                setMonth(nextMonth);
-
-                // M&A Offer Generation Check
-                const newOffer = generateAcquisitionOffer(newStartup, founder);
-                if (newOffer) {
-                    setStartup(s => ({
-                        ...s,
-                        acquisition_offers: [...(s.acquisition_offers || []), newOffer]
-                    }));
-                    toast("🤝 Incoming Acquisition Offer!", {
-                        description: `${newOffer.acquirer} is interested in buying ${newStartup.name} for ${formatMoney(newOffer.offer_amount)}!`,
-                        duration: 10000
-                    });
-                    addTimelineEvent(`Negotiation: Received acquisition offer from ${newOffer.acquirer}.`, nextMonth);
-                }
-            } catch (error) {
-                toast.error("Error processing turn");
-            } finally {
-                setIsProcessing(false);
             }
-        };
 
-        const handleEventResolution = (choice: EventChoice) => {
-            const multiplier = eventMultiplier;
-            const impactString = generateImpactSentence(choice.text, choice.effects, multiplier, activeEvent?.title);
+            setMonth(nextMonth);
 
-            // Explicit allowlists — avoids 'key in obj' failing for uninitialized optional fields
-            const METRIC_KEYS = new Set([
-                'cash', 'burn_rate', 'revenue', 'users', 'paid_users', 'growth_rate',
-                'brand_awareness', 'employees', 'engineers', 'marketers', 'sales',
-                'team_morale', 'technical_debt', 'reliability', 'innovation', 'pmf_score',
-                'product_quality', 'feature_completion', 'founder_burnout', 'founder_health',
-                'sleep_quality', 'founder_salary', 'option_pool',
-                'culture_score', 'pricing', 'unit_sales', 'cac', 'ltv', 'aov',
-                'cogs', 'opex', 'net_profit'
-            ]);
-            const ATTR_KEYS = new Set([
-                'intelligence', 'technical_skill', 'leadership', 'networking',
-                'marketing_skill', 'sales_skill', 'risk_appetite', 'stress_tolerance', 'reputation',
-            ]);
-
-            setStartup(prevStartup => {
-                const metrics = { ...prevStartup.metrics };
-
-                Object.entries(choice.effects).forEach(([key, val]) => {
-                    const numVal = Number(val);
-                    if (isNaN(numVal)) return;
-
-                    if (!METRIC_KEYS.has(key)) return; // not a metric key, skip
-
-                    let adjustedVal = numVal;
-                    if (['cash', 'burn_rate', 'revenue'].includes(key)) {
-                        adjustedVal *= multiplier;
-                    }
-
-                    const cur = ((metrics as any)[key] as number) || 0;
-                    (metrics as any)[key] = cur + adjustedVal;
+            // M&A Offer Generation Check
+            const newOffer = generateAcquisitionOffer(newStartup, founder);
+            if (newOffer) {
+                setStartup(s => ({
+                    ...s,
+                    acquisition_offers: [...(s.acquisition_offers || []), newOffer]
+                }));
+                toast("🤝 Incoming Acquisition Offer!", {
+                    description: `${newOffer.acquirer} is interested in buying ${newStartup.name} for ${formatMoney(newOffer.offer_amount)}!`,
+                    duration: 10000
                 });
+                addTimelineEvent(`Negotiation: Received acquisition offer from ${newOffer.acquirer}.`, nextMonth);
+            }
+        } catch (error) {
+            toast.error("Error processing turn");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
-                // Clamp metrics
-                ['team_morale', 'reliability', 'product_quality', 'pmf_score', 'founder_burnout', 'founder_health', 'sleep_quality', 'innovation'].forEach(k => {
-                    if ((metrics as any)[k] !== undefined) {
-                        (metrics as any)[k] = Math.min(100, Math.max(0, (metrics as any)[k]));
-                    }
-                });
-                ['users', 'revenue', 'cash', 'brand_awareness', 'technical_debt', 'burn_rate'].forEach(k => {
-                    if ((metrics as any)[k] !== undefined) {
-                        (metrics as any)[k] = Math.max(0, (metrics as any)[k]);
-                    }
-                });
+    const handleEventResolution = (choice: EventChoice) => {
+        const multiplier = eventMultiplier;
+        const impactString = generateImpactSentence(choice.text, choice.effects, multiplier, activeEvent?.title);
 
-                return { ...prevStartup, metrics };
+        // Explicit allowlists — avoids 'key in obj' failing for uninitialized optional fields
+        const METRIC_KEYS = new Set([
+            'cash', 'burn_rate', 'revenue', 'users', 'paid_users', 'growth_rate',
+            'brand_awareness', 'employees', 'engineers', 'marketers', 'sales',
+            'team_morale', 'technical_debt', 'reliability', 'innovation', 'pmf_score',
+            'product_quality', 'feature_completion', 'founder_burnout', 'founder_health',
+            'sleep_quality', 'founder_salary', 'option_pool',
+            'culture_score', 'pricing', 'unit_sales', 'cac', 'ltv', 'aov',
+            'cogs', 'opex', 'net_profit'
+        ]);
+        const ATTR_KEYS = new Set([
+            'intelligence', 'technical_skill', 'leadership', 'networking',
+            'marketing_skill', 'sales_skill', 'risk_appetite', 'stress_tolerance', 'reputation',
+        ]);
+
+        setStartup(prevStartup => {
+            const metrics = { ...prevStartup.metrics };
+
+            Object.entries(choice.effects).forEach(([key, val]) => {
+                const numVal = Number(val);
+                if (isNaN(numVal)) return;
+
+                if (!METRIC_KEYS.has(key)) return; // not a metric key, skip
+
+                let adjustedVal = numVal;
+                if (['cash', 'burn_rate', 'revenue'].includes(key)) {
+                    adjustedVal *= multiplier;
+                }
+
+                const cur = ((metrics as any)[key] as number) || 0;
+                (metrics as any)[key] = cur + adjustedVal;
             });
 
-            setFounder(prevFounder => {
-                const attrs = { ...prevFounder.attributes };
-                Object.entries(choice.effects).forEach(([key, val]) => {
-                    const numVal = Number(val);
-                    if (!isNaN(numVal) && ATTR_KEYS.has(key)) {
-                        (attrs as any)[key] = Math.min(100, Math.max(0, ((attrs as any)[key] || 0) + numVal));
-                    }
-                });
-                return { ...prevFounder, attributes: attrs };
+            // Clamp metrics
+            ['team_morale', 'reliability', 'product_quality', 'pmf_score', 'founder_burnout', 'founder_health', 'sleep_quality', 'innovation'].forEach(k => {
+                if ((metrics as any)[k] !== undefined) {
+                    (metrics as any)[k] = Math.min(100, Math.max(0, (metrics as any)[k]));
+                }
+            });
+            ['users', 'revenue', 'cash', 'brand_awareness', 'technical_debt', 'burn_rate'].forEach(k => {
+                if ((metrics as any)[k] !== undefined) {
+                    (metrics as any)[k] = Math.max(0, (metrics as any)[k]);
+                }
             });
 
-            addTimelineEvent(impactString);
-        };
+            return { ...prevStartup, metrics };
+        });
 
-        const m = startup.metrics;
-        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, opexBreakdown } = calculateFinancials(startup, founder);
-        const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
-        const profitable = liveNetProfit >= 0;
-        const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
-        const liveRunway = liveBurn > 0 ? Math.floor(m.cash / liveBurn) : Infinity;
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
-        const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
+        setFounder(prevFounder => {
+            const attrs = { ...prevFounder.attributes };
+            Object.entries(choice.effects).forEach(([key, val]) => {
+                const numVal = Number(val);
+                if (!isNaN(numVal) && ATTR_KEYS.has(key)) {
+                    (attrs as any)[key] = Math.min(100, Math.max(0, ((attrs as any)[key] || 0) + numVal));
+                }
+            });
+            return { ...prevFounder, attributes: attrs };
+        });
 
-        return (
-            <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0 bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
+        addTimelineEvent(impactString);
+    };
 
-                {/* GLOBAL BLOCKING OVERLAY (DURING SIMULATION) */}
-                <AnimatePresence>
-                    {isProcessing && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[10000] flex flex-col items-center justify-center p-6 text-center"
-                        >
-                            <div className="relative w-24 h-24 mb-8">
-                                {/* Inner Spin */}
-                                <div className="absolute inset-0 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-                                {/* Outer Pulse */}
-                                <motion.div 
-                                    animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-                                    transition={{ repeat: Infinity, duration: 2 }}
-                                    className="absolute inset-0 border-8 border-emerald-500/10 rounded-full"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Landmark className="w-8 h-8 text-emerald-400" />
-                                </div>
-                            </div>
-                            
+    const m = startup.metrics;
+    const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, opexBreakdown } = calculateFinancials(startup, founder);
+    const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
+    const profitable = liveNetProfit >= 0;
+    const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
+    const liveRunway = liveBurn > 0 ? Math.floor(m.cash / liveBurn) : Infinity;
+    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+    const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
+
+    return (
+        <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0 bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
+
+            {/* GLOBAL BLOCKING OVERLAY (DURING SIMULATION) */}
+            <AnimatePresence>
+                {isProcessing && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[10000] flex flex-col items-center justify-center p-6 text-center"
+                    >
+                        <div className="relative w-24 h-24 mb-8">
+                            {/* Inner Spin */}
+                            <div className="absolute inset-0 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                            {/* Outer Pulse */}
                             <motion.div
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Simulating Month {month}...</h3>
-                                <p className="text-emerald-400/80 font-black text-xs uppercase tracking-widest animate-pulse">Running GTM Strategy • Synthesizing Market Data</p>
-                            </motion.div>
-                            
-                            {/* Status Dots */}
-                            <div className="flex gap-2 mt-8">
-                                {[0, 1, 2].map(i => (
-                                    <motion.div 
-                                        key={i}
-                                        animate={{ scale: [1, 1.5, 1], opacity: [0.2, 1, 0.2] }}
-                                        transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
-                                        className="w-2 h-2 rounded-full bg-emerald-500"
-                                    />
-                                ))}
+                                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                                transition={{ repeat: Infinity, duration: 2 }}
+                                className="absolute inset-0 border-8 border-emerald-500/10 rounded-full"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Landmark className="w-8 h-8 text-emerald-400" />
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        </div>
 
-                {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
-                <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
-                    {/* HEADER */}
-                    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
-                    
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Simulating Month {month}...</h3>
+                            <p className="text-emerald-400/80 font-black text-xs uppercase tracking-widest animate-pulse">Running GTM Strategy • Synthesizing Market Data</p>
+                        </motion.div>
+
+                        {/* Status Dots */}
+                        <div className="flex gap-2 mt-8">
+                            {[0, 1, 2].map(i => (
+                                <motion.div
+                                    key={i}
+                                    animate={{ scale: [1, 1.5, 1], opacity: [0.2, 1, 0.2] }}
+                                    transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
+                                    className="w-2 h-2 rounded-full bg-emerald-500"
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
+            <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
+                {/* HEADER */}
+                <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
+
 
 
                     <div className="flex items-center gap-2.5">
@@ -4557,7 +5329,7 @@ export default function Dashboard() {
                             <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 mr-2 shadow-xl border-slate-200">
                                 <div className="px-2 py-1.5 font-black text-xs text-slate-400 uppercase tracking-widest cursor-default select-none">Game Menu</div>
                                 <DropdownMenuSeparator className="bg-slate-100" />
-                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={handleOpenSaveModal}>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-indigo-50 focus:text-indigo-600 font-bold transition-colors" onClick={handleOpenSaveModal}>
                                     <Save className="mr-2 h-4 w-4" /> Save Game
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={handleSaveAndQuit}>
@@ -4585,16 +5357,16 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-emerald-50 focus:text-emerald-600 font-bold transition-colors" onClick={() => setIsHowToPlayOpen(true)}>
                                     <HelpCircle className="mr-2 h-4 w-4" /> How To Play
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                     className={cn(
                                         "rounded-xl cursor-pointer py-2 font-bold transition-colors",
-                                        startup.hasRateRewardClaimed 
-                                            ? "opacity-60 focus:bg-slate-50 focus:text-slate-500" 
+                                        startup.hasRateRewardClaimed
+                                            ? "opacity-60 focus:bg-slate-50 focus:text-slate-500"
                                             : "focus:bg-amber-50 focus:text-amber-600"
-                                    )} 
+                                    )}
                                     onClick={handleRateAndClaim}
                                 >
-                                    <Star className="mr-2 h-4 w-4" /> 
+                                    <Star className="mr-2 h-4 w-4" />
                                     {startup.hasRateRewardClaimed ? "Rate & Support ✓" : "Rate & Support 🎁 (Claim $50k)"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
@@ -4610,15 +5382,22 @@ export default function Dashboard() {
                     </div>
                 </div>
 
+                {/* PUBLIC MARKET TICKER */}
+                <PublicMarketTicker 
+                    publicState={startup.public_company} 
+                    companyName={startup.name || "CORP"} 
+                    marketStocks={marketStocks}
+                    activeMacroEvent={startup.metrics.active_macro_event}
+                />
+
                 {/* MACRO SEASON BANNER */}
                 {m.current_season && m.current_season !== "Normal" && (
-                    <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${
-                        m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
-                        m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
-                        m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
-                        m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
-                        "bg-slate-800 text-white"
-                    }`}>
+                    <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
+                            m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
+                                m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
+                                    m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
+                                        "bg-slate-800 text-white"
+                        }`}>
                         {m.current_season === "Bull Market" && "📈 Bull Market: Fundraising Sentiment High"}
                         {m.current_season === "Bear Market" && "📉 Bear Market: Investors Risk Averse"}
                         {m.current_season === "AI Boom" && "🤖 AI Boom: Tech Speed +20% / Salaries Surge"}
@@ -4626,29 +5405,29 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                                                {/* Collapsible Milestone Card */}
-                <div 
-                    onClick={() => setIsMilestoneExpanded(!isMilestoneExpanded)} 
+                {/* Collapsible Milestone Card */}
+                <div
+                    onClick={() => setIsMilestoneExpanded(!isMilestoneExpanded)}
                     className="shrink-0 bg-white dark:bg-slate-900 p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all select-none"
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl">{
-                                startup.funding_stage === "Bootstrapping" ? "🏠" : 
-                                startup.funding_stage === "Angel Investment" ? "🚀" : 
-                                startup.funding_stage === "Seed Round" ? "📈" : "🏢"
+                                startup.funding_stage === "Bootstrapping" ? "🏠" :
+                                    startup.funding_stage === "Angel Investment" ? "🚀" :
+                                        startup.funding_stage === "Seed Round" ? "📈" : "🏢"
                             }</span>
                             <div>
                                 <p className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
                                 <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                                    {startup.funding_stage === "Bootstrapping" ? "Garage" : 
-                                     startup.funding_stage === "Angel Investment" ? "Traction" : 
-                                     startup.funding_stage === "Seed Round" ? "PMF" : "Scaling"} 
+                                    {startup.funding_stage === "Bootstrapping" ? "Garage" :
+                                        startup.funding_stage === "Angel Investment" ? "Traction" :
+                                            startup.funding_stage === "Seed Round" ? "PMF" : "Scaling"}
                                     <span className="text-slate-300 font-medium text-[9px] ml-1">
                                         → Next: {
-                                            startup.funding_stage === "Bootstrapping" ? "Traction" : 
-                                            startup.funding_stage === "Angel Investment" ? "PMF" : 
-                                            startup.funding_stage === "Seed Round" ? "Scaling" : "Exit / IPO 🦄"
+                                            startup.funding_stage === "Bootstrapping" ? "Traction" :
+                                                startup.funding_stage === "Angel Investment" ? "PMF" :
+                                                    startup.funding_stage === "Seed Round" ? "Scaling" : "Exit / IPO 🦄"
                                         }
                                     </span>
                                 </p>
@@ -4658,10 +5437,10 @@ export default function Dashboard() {
 
                             <div className="flex items-center gap-2">
                                 <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-indigo-500 rounded-full" style={{ 
-                                        width: startup.funding_stage === "Bootstrapping" ? "25%" : 
-                                               startup.funding_stage === "Angel Investment" ? "50%" : 
-                                               startup.funding_stage === "Seed Round" ? "75%" : "100%" 
+                                    <div className="h-full bg-indigo-500 rounded-full" style={{
+                                        width: startup.funding_stage === "Bootstrapping" ? "25%" :
+                                            startup.funding_stage === "Angel Investment" ? "50%" :
+                                                startup.funding_stage === "Seed Round" ? "75%" : "100%"
                                     }} />
                                 </div>
                                 <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isMilestoneExpanded ? "rotate-180" : "")} />
@@ -4672,10 +5451,10 @@ export default function Dashboard() {
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 mt-1">
                             <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
                                 {
-                                    startup.funding_stage === "Bootstrapping" ? "You are building the foundation in your garage. Validate your idea, build the MVP, and gather initial organic users to prove demand." : 
-                                    startup.funding_stage === "Angel Investment" ? "You've got initial validation. Now test channels, expand user onboarding streams, and prepare to scale server operations." : 
-                                    startup.funding_stage === "Seed Round" ? "Institutional backing setup. Accelerate growth rates, expand active marketing departments, and scale structural hires." : 
-                                    "Scale aggressively, optimize unit economics, and prepare for market domination or exit opportunities."
+                                    startup.funding_stage === "Bootstrapping" ? "You are building the foundation in your garage. Validate your idea, build the MVP, and gather initial organic users to prove demand." :
+                                        startup.funding_stage === "Angel Investment" ? "You've got initial validation. Now test channels, expand user onboarding streams, and prepare to scale server operations." :
+                                            startup.funding_stage === "Seed Round" ? "Institutional backing setup. Accelerate growth rates, expand active marketing departments, and scale structural hires." :
+                                                "Scale aggressively, optimize unit economics, and prepare for market domination or exit opportunities."
                                 }
                             </p>
                         </div>
@@ -4710,31 +5489,31 @@ export default function Dashboard() {
                                 <span className="text-sm font-bold text-indigo-400">/ {maxHours}</span>
                             </div>
                             {focusHoursUsed > 0 && (() => {
-                                    const hourAgo = Date.now() - 3600_000;
-                                    const validRefills = (energyRefills || []).filter(t => t > hourAgo);
-                                    const isRefillLimited = validRefills.length >= 1;
-                                    return (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
-                                            disabled={isRefillLimited}
-                                            onClick={() => {
-                                                if (isRefillLimited) {
-                                                    toast.error("Refill Limit Reached", { description: "You can refill energy once per hour." });
-                                                    return;
-                                                }
-                                                adService.showRewardedAd(() => {
-                                                    setFocusHoursUsed(0);
-                                                    setEnergyRefills([...validRefills, Date.now()]);
-                                                    toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
-                                                }, 'energy');
-                                            }}
-                                        >
-                                            {isRefillLimited ? "Cooldown (1/hr)" : "Refill ⚡"}
-                                        </Button>
-                                    );
-                                })()}
+                                const hourAgo = Date.now() - 3600_000;
+                                const validRefills = (energyRefills || []).filter(t => t > hourAgo);
+                                const isRefillLimited = validRefills.length >= 1;
+                                return (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
+                                        disabled={isRefillLimited}
+                                        onClick={() => {
+                                            if (isRefillLimited) {
+                                                toast.error("Refill Limit Reached", { description: "You can refill energy once per hour." });
+                                                return;
+                                            }
+                                            adService.showRewardedAd(() => {
+                                                setFocusHoursUsed(0);
+                                                setEnergyRefills([...validRefills, Date.now()]);
+                                                toast.success("Energy Refilled!", { description: "You've earned a fresh 100% focus for this month!", icon: "⚡" });
+                                            }, 'energy');
+                                        }}
+                                    >
+                                        {isRefillLimited ? "Cooldown (1/hr)" : "Refill ⚡"}
+                                    </Button>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -4742,16 +5521,21 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                         {[
                             { icon: '👤', label: formatNumber(m.users), sub: 'Users', color: 'text-slate-800 dark:text-slate-100' },
-                            { 
-                                icon: '💵', 
-                                label: formatMoney(liveRevenue), 
-                                sub: 'MRR', 
+                            {
+                                icon: '💵',
+                                label: formatMoney(liveRevenue),
+                                sub: 'MRR',
                                 color: 'text-emerald-700 dark:text-emerald-400'
                             },
                             { icon: '🔥', label: `${Math.round(m.founder_burnout || 0)}%`, sub: 'Burnout', color: (m.founder_burnout || 0) > 60 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' },
+                            (() => {
+                                const rep = startup.ceo_reputation ?? 80;
+                                const repMeta = getCeoReputationLabel(rep);
+                                return { icon: '🏅', label: repMeta.grade, sub: 'CEO Rep', color: repMeta.color };
+                            })(),
                         ].map((stat, i) => (
-                            <div 
-                                key={i} 
+                            <div
+                                key={i}
                                 className={cn(
                                     "flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[90px]"
                                 )}
@@ -4765,1628 +5549,1912 @@ export default function Dashboard() {
                         ))}
                     </div>
                 </div>
+            </div>
+
+
+            {/* IMMEDIATE ACTION FEEDBACK BANNER */}
+            {immediateActionFeedback && (
+                <div className="shrink-0 px-3 py-1.5 border-b border-slate-100" style={{ backgroundColor: immediateActionFeedback.color + '15' }}>
+                    <p className="text-[10px] font-bold text-center" style={{ color: immediateActionFeedback.color }}>{immediateActionFeedback.text}</p>
                 </div>
+            )}
 
-
-                {/* IMMEDIATE ACTION FEEDBACK BANNER */}
-                {immediateActionFeedback && (
-                    <div className="shrink-0 px-3 py-1.5 border-b border-slate-100" style={{ backgroundColor: immediateActionFeedback.color + '15' }}>
-                        <p className="text-[10px] font-bold text-center" style={{ color: immediateActionFeedback.color }}>{immediateActionFeedback.text}</p>
+            {/* LOGS FEED — BitLife Style: events grouped by month */}
+            <div className={cn("flex flex-col-reverse overflow-y-auto px-3 pt-3 pb-5", startup.public_company ? "shrink-0 max-h-[35vh] border-b border-slate-200 dark:border-slate-800" : "flex-1")}>
+                {eventsTimeline.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                        <div className="text-4xl mb-3">⚡</div>
+                        <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Your journey begins</p>
+                        <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">Take actions below or advance to the next month</p>
                     </div>
-                )}
+                ) : (() => {
+                    // Group events by month, show most recent month first
+                    const byMonth: Record<number, typeof eventsTimeline> = {};
+                    eventsTimeline.forEach(ev => {
+                        if (!byMonth[ev.month]) byMonth[ev.month] = [];
+                        byMonth[ev.month].push(ev);
+                    });
 
-                {/* LOGS FEED — BitLife Style: events grouped by month */}
-                <div className="flex-1 flex flex-col-reverse overflow-y-auto px-3 pt-3 pb-5">
-                    {eventsTimeline.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                            <div className="text-4xl mb-3">⚡</div>
-                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Your journey begins</p>
-                            <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">Take actions below or advance to the next month</p>
-                        </div>
-                    ) : (() => {
-                        // Group events by month, show most recent month first
-                        const byMonth: Record<number, typeof eventsTimeline> = {};
-                        eventsTimeline.forEach(ev => {
-                            if (!byMonth[ev.month]) byMonth[ev.month] = [];
-                            byMonth[ev.month].push(ev);
-                        });
-                        
-                        // Ensure every month from 1 to current appears in the timeline even if empty
-                        const allMonths = Array.from({ length: month }, (_, i) => i + 1);
-                        const sortedMonths = [...new Set([...allMonths, ...Object.keys(byMonth).map(Number)])].sort((a, b) => b - a);
+                    // Ensure every month from 1 to current appears in the timeline even if empty
+                    const allMonths = Array.from({ length: month }, (_, i) => i + 1);
+                    const sortedMonths = [...new Set([...allMonths, ...Object.keys(byMonth).map(Number)])].sort((a, b) => b - a);
 
-                        const getEventStyle = (text: string) => {
-                            if (text.includes("Raised") || text.includes("Funding") || text.includes("Series")) return { strip: "#7c3aed", bg: "#faf5ff", label: "Funding" };
-                            if (text.includes("⚠️") || text.includes("Crisis") || text.includes("Emergency") || text.includes("Burnout")) return { strip: "#dc2626", bg: "#fff1f2", label: "Crisis" };
-                            if (text.includes("🏆") || text.includes("Achievement") || text.includes("Milestone") || text.includes("Champion")) return { strip: "#d97706", bg: "#fffbeb", label: "Win" };
-                            if (text.includes("hired") || text.includes("Hire") || text.includes("🤝") || text.includes("team")) return { strip: "#0284c7", bg: "#f0f9ff", label: "Team" };
-                            if (text.includes("Founded") || text.includes("Phase") || text.includes("⚡")) return { strip: "#059669", bg: "#f0fdf4", label: "Milestone" };
-                            if (text.includes("competitor") || text.includes("rival") || text.includes("⚔️")) return { strip: "#ea580c", bg: "#fff7ed", label: "Market" };
-                            return { strip: "#6366f1", bg: "#eef2ff", label: "Event" };
-                        };
+                    const getEventStyle = (text: string) => {
+                        if (text.includes("Raised") || text.includes("Funding") || text.includes("Series")) return { strip: "#7c3aed", bg: "#faf5ff", label: "Funding" };
+                        if (text.includes("⚠️") || text.includes("Crisis") || text.includes("Emergency") || text.includes("Burnout")) return { strip: "#dc2626", bg: "#fff1f2", label: "Crisis" };
+                        if (text.includes("🏆") || text.includes("Achievement") || text.includes("Milestone") || text.includes("Champion")) return { strip: "#d97706", bg: "#fffbeb", label: "Win" };
+                        if (text.includes("hired") || text.includes("Hire") || text.includes("🤝") || text.includes("team")) return { strip: "#0284c7", bg: "#f0f9ff", label: "Team" };
+                        if (text.includes("Founded") || text.includes("Phase") || text.includes("⚡")) return { strip: "#059669", bg: "#f0fdf4", label: "Milestone" };
+                        if (text.includes("competitor") || text.includes("rival") || text.includes("⚔️")) return { strip: "#ea580c", bg: "#fff7ed", label: "Market" };
+                        return { strip: "#6366f1", bg: "#eef2ff", label: "Event" };
+                    };
 
-                        const items = sortedMonths.map(monthNum => {
-                            const events = byMonth[monthNum] || [];
-                            const isCurrentMonth = monthNum === month;
-                            return (
-                                <div key={monthNum} className="mb-4">
-                                    {/* Month Header — BitLife style */}
-                                    <div className={`flex items-center gap-2 mb-2 py-1 ${isCurrentMonth ? "" : ""}`}>
-                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isCurrentMonth ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-indigo-900/40" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
-                                            Month {monthNum}{isCurrentMonth ? " · Now" : ""}
-                                        </div>
-                                        <div className="flex-1 h-px bg-slate-100" />
+                    const items = sortedMonths.map(monthNum => {
+                        const events = byMonth[monthNum] || [];
+                        const isCurrentMonth = monthNum === month;
+                        return (
+                            <div key={monthNum} className="mb-4">
+                                {/* Month Header — BitLife style */}
+                                <div className={`flex items-center gap-2 mb-2 py-1 ${isCurrentMonth ? "" : ""}`}>
+                                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isCurrentMonth ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-indigo-900/40" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
+                                        Month {monthNum}{isCurrentMonth ? " · Now" : ""}
                                     </div>
+                                    <div className="flex-1 h-px bg-slate-100" />
+                                </div>
 
-                                    {/* Events in this month */}
-                                    <div className="space-y-2">
-                                        {events.map((ev, i) => {
-                                            const style = getEventStyle(ev.text);
-                                            return (
-                                                <div key={i} className="flex gap-0 items-stretch rounded-lg overflow-hidden border border-slate-100 shadow-sm">
-                                                    {/* Colored left strip — BitLife signature */}
-                                                    <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: style.strip }} />
-                                                    <div className="flex-1 px-3 py-2.5" style={{ backgroundColor: style.bg }}>
-                                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
-                                                        </div>
-                                                        <p className="text-xs text-slate-800 font-semibold leading-snug">{ev.text}</p>
+                                {/* Events in this month */}
+                                <div className="space-y-2">
+                                    {events.map((ev, i) => {
+                                        const style = getEventStyle(ev.text);
+                                        return (
+                                            <div key={i} className="flex gap-0 items-stretch rounded-lg overflow-hidden border border-slate-100 shadow-sm">
+                                                {/* Colored left strip — BitLife signature */}
+                                                <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: style.strip }} />
+                                                <div className="flex-1 px-3 py-2.5" style={{ backgroundColor: style.bg }}>
+                                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                                        <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
                                                     </div>
+                                                    <p className="text-xs text-slate-800 font-semibold leading-snug">{ev.text}</p>
                                                 </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    });
+                    return items;
+                })()}
+            </div>
+
+            {/* TERMINAL NAVIGATION TABS */}
+            <div className="shrink-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex overflow-x-auto scrollbar-none px-2 py-2 gap-1.5 shadow-inner">
+                {[
+                    { id: "operations", label: "Operations", icon: "🏢" },
+                    { id: "market", label: "Market", icon: "📈" },
+                    ...(startup.public_company ? [{ id: "treasury", label: "Treasury", icon: "🏦" }] : []),
+                    { id: "personal", label: "Wealth", icon: "💎" },
+                    ...(startup.public_company ? [{ id: "compliance", label: "Compliance", icon: "🏛️" }] : []),
+                ].map(t => {
+                    const isActive = terminalTab === t.id;
+                    return (
+                        <button
+                            key={t.id}
+                            onClick={() => {
+                                setTerminalTab(t.id as any);
+                                setActionCategory(null);
+                            }}
+                            className={cn(
+                                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap transition-all flex-1 justify-center",
+                                isActive
+                                    ? "bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700"
+                                    : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                            )}
+                        >
+                            <span className="text-sm">{t.icon}</span> <span className="hidden sm:inline">{t.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Tutorial lock overlay — blocks all taps on game content above */}
+            {storyState.tutorialStep >= 0 && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 40,
+                        background: "rgba(15,23,42,0.45)",
+                        backdropFilter: "blur(1px)",
+                        pointerEvents: "all",
+                    }}
+                />
+            )}
+
+            {/* PROCEED / NEXT STEP BUTTON */}
+            <div className="shrink-0 px-3 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800" style={{ position: "relative", zIndex: 50 }}>
+                {!isLoaded ? (
+                    <div className="w-full h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 animate-pulse flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
+                    </div>
+                ) : (
+                    <>
+                        {selectedAction !== "none" && storyState.tutorialStep < 0 && (
+                            <div className="flex items-center justify-center mb-1.5">
+                                <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-indigo-700 uppercase">{selectedAction.replaceAll("_", " ")} queued for month end</span>
+                                    <button onClick={() => setSelectedAction("none")} className="text-indigo-400 text-[10px] ml-1">✕</button>
+                                </div>
+                            </div>
+                        )}
+                        {(storyState.tutorialStep >= 0 && !isCharacterDialogOpen) ? (
+                            /* ── Tutorial: Next Step button ── */
+                            <button
+                                onClick={() => {
+                                    const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
+                                    const next = storyState.tutorialStep + 1;
+
+                                    setStoryState(prev => {
+                                        const updatedSeen = prev.seenTriggers.includes(currentTrigger)
+                                            ? prev.seenTriggers
+                                            : [...prev.seenTriggers, currentTrigger];
+
+                                        if (next >= TUTORIAL_STEPS.length) {
+                                            return { ...prev, tutorialStep: -1, seenTriggers: updatedSeen };
+                                        }
+                                        return { ...prev, tutorialStep: next, seenTriggers: updatedSeen };
+                                    });
+                                }}
+                                className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                                style={{
+                                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+                                    boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
+                                    position: "relative",
+                                    zIndex: 50,
+                                }}
+                            >
+                                {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
+                                    ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
+                                    : "FINISH TUTORIAL & START 🚀"
+                                }
+                            </button>
+                        ) : (
+                            /* ── Normal: Advance Month button ── */
+                            <button onClick={handleNextMonth} disabled={isProcessing || isCharacterDialogOpen}
+                                className={cn("w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg",
+                                    isCharacterDialogOpen && "opacity-0 pointer-events-none"
+                                )}
+                                style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
+                                {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
+                            </button>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* ACTION GRID */}
+            <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{
+                position: "relative",
+                zIndex: storyState.tutorialStep >= 2 ? 50 : 1,
+                paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})` : '1rem'
+            }}>
+                <div className="grid grid-cols-4 gap-2">
+                    {(() => {
+                        // Action Grid Context based on Public Company Tab
+                        if (terminalTab === "operations") {
+                            return [
+                                { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
+                                { id: "marketing", emoji: "📈", label: "Growth", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d" },
+                                { id: "market", emoji: "⚔️", label: "Rivals", color: "#fff7ed", border: "#ffedd5", text: "#9a3412" },
+                                { id: "hiring", emoji: "👥", label: "Hire", color: "#fefce8", border: "#fde68a", text: "#b45309" },
+                                { id: "funding", emoji: "💰", label: "Funding", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce" },
+                                { id: "stats", emoji: "📊", label: "Stats", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
+                                { id: "founder", emoji: "👤", label: "Founder", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
+                            ] as const;
+                        } else if (terminalTab === "market") {
+                            return [
+                                { id: "sector", emoji: "🌐", label: "Sector", color: "#f0fdf4", border: "#bbf7d0", text: "#16a34a" },
+                                { id: "analysts", emoji: "🎙️", label: "PR/Comms", color: "#f5f3ff", border: "#ddd6fe", text: "#7c3aed" },
+                                ...(startup.public_company ? [{ id: "options", emoji: "🎲", label: "Options", color: "#fff7ed", border: "#ffedd5", text: "#ea580c" }] as const : []),
+                            ] as const;
+                        } else if (terminalTab === "treasury") {
+                            return [
+                                { id: "trade_stock", emoji: "📉", label: "Trade", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
+                                { id: "buyback", emoji: "💸", label: "Buyback", color: "#fefce8", border: "#fde68a", text: "#b45309" },
+                                { id: "corporate_debt", emoji: "🏦", label: "Debt", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
+                                { id: "manda_acquire", emoji: "🦈", label: "Acquire", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
+                                { id: "subsidiary", emoji: "🏢", label: "Manage", color: "#f8fafc", border: "#cbd5e1", text: "#475569" },
+                            ] as const;
+                        } else if (terminalTab === "personal") {
+                            return [
+                                { id: "personal_trade", emoji: "📉", label: "Brokerage", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
+                                ...(startup.public_company ? [
+                                    { id: "margin_loan", emoji: "💳", label: "Margin", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d" },
+                                    { id: "10b51", emoji: "📄", label: "10b51", color: "#fff7ed", border: "#ffedd5", text: "#9a3412" }
+                                ] as const : []),
+                                { id: "philanthropy", emoji: "🕊️", label: "Donate", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce" },
+                                { id: "lifestyle", emoji: "💎", label: "Lifestyle", color: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9" },
+                            ] as const;
+                        } else if (terminalTab === "compliance") {
+                            return [
+                                { id: "lobbying", emoji: "🏛️", label: "Lobbying", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
+                                { id: "board_mgmt", emoji: "🪑", label: "Board", color: "#fefce8", border: "#fde68a", text: "#b45309" },
+                                { id: "fines", emoji: "⚖️", label: "Legal", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
+                            ] as const;
+                        }
+                        return [] as any;
+                    })().map((cat: {id: string; emoji: string; label: string; color: string; border: string; text: string}) => {
+                        const isActive = actionCategory === cat.id;
+                        // In dark mode, we use a darker base but keep the brand border/text colors
+                        const darkBg = isActive ? "rgba(30, 41, 59, 0.9)" : "rgba(15, 23, 42, 0.6)";
+                        const lightBg = isActive ? cat.border : cat.color;
+
+                        return (
+                            <button key={cat.id} onClick={() => setActionCategory(actionCategory === cat.id ? null : cat.id as SheetCategory)}
+                                className="h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: isDark ? darkBg : lightBg,
+                                    borderColor: isActive ? cat.text : (isDark ? "rgba(51, 65, 85, 0.5)" : cat.border)
+                                }}>
+                                <span className="text-lg leading-none">{cat.emoji}</span>
+                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: isDark ? (isActive ? "white" : "rgba(203, 213, 225, 0.8)") : cat.text }}>{cat.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* BOTTOM SHEET */}
+            <AnimatePresence>
+                {actionCategory !== null && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-[55]" />
+                        <motion.div
+                            drag="y"
+                            dragConstraints={{ top: 0, bottom: 0 }}
+                            dragElastic={0.4}
+                            onDragEnd={(_, info) => {
+                                if (info.offset.y > 100) setActionCategory(null);
+                            }}
+                            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+                            className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 outline-none"
+                            style={{
+                                maxHeight: '85vh',
+                                paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})`
+                            }}>
+                            <div className="flex justify-center pt-2.5 pb-2">
+                                <div className="w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                            </div>
+                            <div
+                                className="overflow-y-auto px-4 pb-8"
+                                style={{ maxHeight: 'calc(80vh - 40px)' }}
+                                onPointerDown={(e) => e.stopPropagation()}
+                            >
+                                <ActionSheet
+                                    category={actionCategory}
+                                    startup={startup}
+                                    founder={founder}
+                                    m={m}
+                                    allEmployees={allEmployees}
+                                    selectedAction={selectedAction}
+                                    rejectedCandidates={rejectedCandidates}
+                                    setSelectedAction={(action) => {
+                                        handleActionClick(action as any);
+                                        const c = actionCategory || "";
+                                        if (!["product", "marketing", "hiring", "funding", "market"].includes(c)) {
+                                            setActionCategory(null);
+                                        }
+                                    }}
+                                    selectedEmpIdx={selectedEmpIdx}
+                                    setSelectedEmpIdx={setSelectedEmpIdx}
+                                    handleTrainEmployee={handleTrainEmployee}
+                                    handlePromoteEmployee={handlePromoteEmployee}
+                                    handleFireEmployee={handleFireEmployee}
+                                    handleIncrementSalary={handleIncrementSalary}
+                                    setIsTeamOpen={setIsTeamOpen}
+                                    setIsFinancialsOpen={setIsFinancialsOpen}
+                                    setIsBurnBreakdownOpen={setIsBurnBreakdownOpen}
+                                    setActionCategory={setActionCategory}
+                                    competitors={competitors}
+                                    expandedMetric={expandedMetric}
+                                    setExpandedMetric={setExpandedMetric}
+                                    handleImmediateAction={handleImmediateAction}
+                                    handleToggleOngoingProgram={handleToggleOngoingProgram}
+                                    ongoingPrograms={ongoingPrograms}
+                                    actionUsageLog={actionUsageLog}
+                                    focusHoursUsed={focusHoursUsed}
+                                    setFocusHoursUsed={setFocusHoursUsed}
+                                    setStartup={setStartup}
+                                    addTimelineEvent={addTimelineEvent}
+                                    setIsEndgameOpen={setIsEndgameOpen}
+                                    month={month}
+                                    salaryInput={salaryInput}
+                                    setSalaryInput={setSalaryInput}
+                                    setIsBoardModalOpen={setIsBoardModalOpen}
+                                    setLastProposalResult={setLastProposalResult}
+                                    setVotingMembers={setVotingMembers}
+                                    handlePurchaseAsset={handlePurchaseAsset}
+                                    handleToggleLifestyle={handleToggleLifestyle}
+                                    setFounder={setFounder}
+                                    marketStocks={marketStocks}
+                                    setMarketStocks={setMarketStocks}
+                                    handleActionClick={handleActionClick}
+                                    handleAllocateESOP={handleAllocateESOP}
+                                    currentTime={currentTime}
+                                    cashGrants={cashGrants}
+                                    setCashGrants={setCashGrants}
+                                    energyRefills={energyRefills}
+                                    setEnergyRefills={setEnergyRefills}
+                                    setConfirmDialog={setConfirmDialog}
+                                    isOnline={isOnline}
+                                    isPremium={isPremium}
+                                    handleRivalryAction={handleRivalryAction}
+                                    onUnlockSkill={(nodeId) => {
+                                        const node = SKILL_NODE_MAP[nodeId];
+                                        const { canUnlock, reason } = canUnlockNode(nodeId, founder, startup, month);
+                                        if (!canUnlock) { toast.error("Cannot unlock", { description: reason }); return; }
+                                        setFounder(f => ({ ...f, unlocked_skill_nodes: [...(f.unlocked_skill_nodes || []), nodeId] }));
+                                        addTimelineEvent(`📚 Skill Unlocked: ${node?.emoji} ${node?.label}`);
+                                        toast.success(`${node?.emoji ?? ''} ${node?.label ?? ''} Unlocked!`, { description: node?.tagline });
+                                    }}
+                                />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* MANDATORY CONNECTION OVERLAY */}
+            <NetworkStatusOverlay
+                isOnline={isOnline}
+                onRetry={async () => {
+                    const loadingToast = toast.loading("Checking connection...");
+                    try {
+                        // Try to fetch a tiny resource to truly verify connectivity
+                        await fetch("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-store" });
+                        setIsOnline(true);
+                        toast.dismiss(loadingToast);
+                        toast.success("Back online!");
+                    } catch (e) {
+                        setIsOnline(false);
+                        toast.dismiss(loadingToast);
+                        toast.error("Still offline. Check your connection.");
+                    }
+                }}
+            />
+
+            {/* SAM & CHAD CHARACTER DIALOG */}
+            {(() => {
+                if (!isCharacterDialogOpen || !characterDialog) return null;
+                const isChadDialog = characterDialog.character === "chad";
+                return (
+                    <CharacterDialog
+                        key={`tutorial-${storyState.tutorialStep}-${characterDialog.trigger}`}
+                        isOpen={isCharacterDialogOpen}
+                        character={characterDialog.character}
+                        title={characterDialog.title.replace(/{name}/g, founder.name || "Founder")}
+                        message={characterDialog.message.replace(/{name}/g, founder.name || "Founder")}
+                        buttonText={characterDialog.buttonText}
+                        choiceA={characterDialog.hasChoices && characterDialog.choiceALabel ? {
+                            label: characterDialog.choiceALabel,
+                            description: characterDialog.choiceADescription || "",
+                            onSelect: () => {
+                                if (characterDialog.choiceAActionId) {
+                                    handleImmediateAction(characterDialog.choiceAActionId, true);
+                                }
+                                setStoryState(prev => ({
+                                    ...prev,
+                                    seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                    chadMustRespondNext: isChadDialog,
+                                    lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                }));
+                            }
+                        } : undefined}
+                        choiceB={characterDialog.hasChoices && characterDialog.choiceBLabel ? {
+                            label: characterDialog.choiceBLabel,
+                            description: characterDialog.choiceBDescription || "",
+                            onSelect: () => {
+                                if (characterDialog.choiceBActionId) {
+                                    handleImmediateAction(characterDialog.choiceBActionId, true);
+                                }
+                                setStoryState(prev => ({
+                                    ...prev,
+                                    seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                    chadMustRespondNext: isChadDialog,
+                                    lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                }));
+                            }
+                        } : undefined}
+                        onDismiss={() => {
+                            // Close the dialog, marking current step as seen in storyState
+                            setIsCharacterDialogOpen(false);
+                            setStoryState(prev => {
+                                const trigger = characterDialog.trigger;
+                                const isIslandFarewell = trigger === "sam_island_farewell";
+
+                                return {
+                                    ...prev,
+                                    samGoneToIsland: isIslandFarewell ? true : prev.samGoneToIsland,
+                                    seenTriggers: prev.seenTriggers.includes(trigger)
+                                        ? prev.seenTriggers
+                                        : [...prev.seenTriggers, trigger],
+                                    chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
+                                    lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
+                                };
+                            });
+                        }}
+                        isPremium={isPremium}
+                    />
+                );
+            })()}
+
+            {/* FOCUS BREAKDOWN MODAL */}
+            <Dialog open={isFocusBreakdownOpen} onOpenChange={setIsFocusBreakdownOpen}>
+                <DialogContent className="sm:max-w-[400px] rounded-3xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">
+                            ⚡ Focus Breakdown
+                        </DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            Monthly Capacity vs. Commitments
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <ScrollArea className="mt-4 max-h-[50vh] pr-4">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Capacity (Max: {maxHours}h)</h3>
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-2">
+                                    <BreakdownRow label="Base Focus" value={100} sign="+" color="text-emerald-600 dark:text-emerald-400" />
+                                    {m.founder_burnout > 0 && (
+                                        <BreakdownRow label={`Burnout Penalty (${Math.round(m.founder_burnout)}%)`} value={-Math.round(Math.max(0, m.founder_burnout) * 1.2)} sign="" color="text-rose-600 dark:text-rose-400" />
+                                    )}
+                                    {(startup as any).hasCoFounder && (
+                                        <BreakdownRow label="Co-Founder Focus" value={50} sign="+" color="text-indigo-600 dark:text-indigo-400" />
+                                    )}
+                                    {startup.employees?.some((e: any) => e.role?.toUpperCase() === "COO") && (
+                                        <BreakdownRow label="COO Delegation Bonus" value={40} sign="+" color="text-indigo-600 dark:text-indigo-400" />
+                                    )}
+                                    {startup.employees?.some((e: any) => e.role?.toUpperCase() === "EA") && (
+                                        <BreakdownRow label="EA Efficiency Bonus" value={30} sign="+" color="text-indigo-600 dark:text-indigo-400" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {ongoingPrograms.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Ongoing Programs (-{focusHoursUsed}h)</h3>
+                                    <div className="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl p-3 space-y-2">
+                                        {ongoingPrograms.map(p => {
+                                            const def = getOngoingProgramDef(p.id);
+                                            return (
+                                                <BreakdownRow
+                                                    key={p.id}
+                                                    label={def?.label || p.id}
+                                                    value={-(def?.monthlyEnergy || 0)}
+                                                    sign=""
+                                                    color="text-indigo-700 dark:text-indigo-300"
+                                                />
                                             );
                                         })}
                                     </div>
                                 </div>
-                            );
-                        });
-                        return items;
-                    })()}
-                </div>
+                            )}
 
-                {/* Tutorial lock overlay — blocks all taps on game content above */}
-                {storyState.tutorialStep >= 0 && (
-                    <div
-                        style={{
-                            position: "fixed",
-                            inset: 0,
-                            zIndex: 40,
-                            background: "rgba(15,23,42,0.45)",
-                            backdropFilter: "blur(1px)",
-                            pointerEvents: "all",
-                        }}
-                    />
-                )}
-
-                {/* PROCEED / NEXT STEP BUTTON */}
-                <div className="shrink-0 px-3 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800" style={{ position: "relative", zIndex: 50 }}>
-                    {!isLoaded ? (
-                        <div className="w-full h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 animate-pulse flex items-center justify-center">
-                            <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center px-1">
+                                <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Available Focus</span>
+                                <span className="text-xl font-black text-indigo-700 dark:text-indigo-400">{maxHours - focusHoursUsed}h</span>
+                            </div>
                         </div>
-                    ) : (
-                        <>
-                            {selectedAction !== "none" && storyState.tutorialStep < 0 && (
-                                <div className="flex items-center justify-center mb-1.5">
-                                    <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                        <span className="text-[9px] font-black text-indigo-700 uppercase">{selectedAction.replaceAll("_", " ")} queued for month end</span>
-                                        <button onClick={() => setSelectedAction("none")} className="text-indigo-400 text-[10px] ml-1">✕</button>
-                                    </div>
-                                </div>
-                            )}
-                            {(storyState.tutorialStep >= 0 && !isCharacterDialogOpen) ? (
-                                /* ── Tutorial: Next Step button ── */
-                                <button
-                                    onClick={() => {
-                                        const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
-                                        const next = storyState.tutorialStep + 1;
-                                        
-                                        setStoryState(prev => {
-                                            const updatedSeen = prev.seenTriggers.includes(currentTrigger) 
-                                                ? prev.seenTriggers 
-                                                : [...prev.seenTriggers, currentTrigger];
-                                                
-                                            if (next >= TUTORIAL_STEPS.length) {
-                                                return { ...prev, tutorialStep: -1, seenTriggers: updatedSeen };
-                                            }
-                                            return { ...prev, tutorialStep: next, seenTriggers: updatedSeen };
-                                        });
-                                    }}
-                                    className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
-                                    style={{
-                                        background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                                        boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
-                                        position: "relative",
-                                        zIndex: 50,
-                                    }}
-                                >
-                                    {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
-                                        ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
-                                        : "FINISH TUTORIAL & START 🚀"
-                                    }
-                                </button>
-                            ) : (
-                                /* ── Normal: Advance Month button ── */
-                                <button onClick={handleNextMonth} disabled={isProcessing || isCharacterDialogOpen}
-                                    className={cn("w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg",
-                                        isCharacterDialogOpen && "opacity-0 pointer-events-none"
-                                    )}
-                                    style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
-                                    {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
-                                </button>
-                            )}
-                        </>
-                    )}
-                </div>
+                    </ScrollArea>
 
-                {/* ACTION GRID */}
-                <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{ 
-                    position: "relative", 
-                    zIndex: storyState.tutorialStep >= 2 ? 50 : 1, 
-                    paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})` : '1rem' 
-                }}>
-                    <div className="grid grid-cols-4 gap-2">
-                        {([
-                            { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-                            { id: "marketing", emoji: "📈", label: "Growth", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d" },
-                            { id: "market", emoji: "⚔️", label: "Rivals", color: "#fff7ed", border: "#ffedd5", text: "#9a3412" },
-                            { id: "hiring", emoji: "👥", label: "Hire", color: "#fefce8", border: "#fde68a", text: "#b45309" },
-                            { id: "funding", emoji: "💰", label: "Funding", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce" },
-                            { id: "stats", emoji: "📊", label: "Stats", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
-                            { id: "founder", emoji: "👤", label: "Founder", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
-                            { id: "lifestyle", emoji: "💎", label: "Lifestyle", color: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9" },
-                        ] as const).map(cat => {
-                            const isActive = actionCategory === cat.id;
-                            // In dark mode, we use a darker base but keep the brand border/text colors
-                            const darkBg = isActive ? "rgba(30, 41, 59, 0.9)" : "rgba(15, 23, 42, 0.6)";
-                            const lightBg = isActive ? cat.border : cat.color;
-                            
-                            return (
-                                <button key={cat.id} onClick={() => setActionCategory(actionCategory === cat.id ? null : cat.id)}
-                                    className="h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95"
-                                    style={{ 
-                                        backgroundColor: isDark ? darkBg : lightBg, 
-                                        borderColor: isActive ? cat.text : (isDark ? "rgba(51, 65, 85, 0.5)" : cat.border) 
-                                    }}>
-                                    <span className="text-lg leading-none">{cat.emoji}</span>
-                                    <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: isDark ? (isActive ? "white" : "rgba(203, 213, 225, 0.8)") : cat.text }}>{cat.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                    <Button
+                        className="mt-6 w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl"
+                        onClick={() => setIsFocusBreakdownOpen(false)}
+                    >
+                        Close
+                    </Button>
+                </DialogContent>
+            </Dialog>
 
-                {/* BOTTOM SHEET */}
-                <AnimatePresence>
-                    {actionCategory !== null && (
-                        <>
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-[55]" />
-                            <motion.div 
-                                drag="y"
-                                dragConstraints={{ top: 0, bottom: 0 }}
-                                dragElastic={0.4}
-                                onDragEnd={(_, info) => {
-                                    if (info.offset.y > 100) setActionCategory(null);
-                                }}
-                                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                                transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                                className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 outline-none"
-                                style={{ 
-                                    maxHeight: '85vh',
-                                    paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})`
-                                }}>
-                                <div className="flex justify-center pt-2.5 pb-2">
-                                    <div className="w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
-                                </div>
-                                <div 
-                                    className="overflow-y-auto px-4 pb-8" 
-                                    style={{ maxHeight: 'calc(80vh - 40px)' }}
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                >
-                                    <ActionSheet
-                                        category={actionCategory}
-                                        startup={startup}
-                                        founder={founder}
-                                        m={m}
-                                        allEmployees={allEmployees}
-                                        selectedAction={selectedAction}
-                                        rejectedCandidates={rejectedCandidates}
-                                        setSelectedAction={(action) => {
-                                            handleActionClick(action as any);
-                                            const c = actionCategory || "";
-                                            if (!["product", "marketing", "hiring", "funding", "market"].includes(c)) {
-                                                setActionCategory(null);
-                                            }
-                                        }}
-                                        selectedEmpIdx={selectedEmpIdx}
-                                        setSelectedEmpIdx={setSelectedEmpIdx}
-                                        handleTrainEmployee={handleTrainEmployee}
-                                        handlePromoteEmployee={handlePromoteEmployee}
-                                        handleFireEmployee={handleFireEmployee}
-                                        handleIncrementSalary={handleIncrementSalary}
-                                        setIsTeamOpen={setIsTeamOpen}
-                                        setIsFinancialsOpen={setIsFinancialsOpen}
-                                        setIsBurnBreakdownOpen={setIsBurnBreakdownOpen}
-                                        setActionCategory={setActionCategory}
-                                        competitors={competitors}
-                                        expandedMetric={expandedMetric}
-                                        setExpandedMetric={setExpandedMetric}
-                                        handleImmediateAction={handleImmediateAction}
-                                        handleToggleOngoingProgram={handleToggleOngoingProgram}
-                                        ongoingPrograms={ongoingPrograms}
-                                        actionUsageLog={actionUsageLog}
-                                        focusHoursUsed={focusHoursUsed}
-                                        setFocusHoursUsed={setFocusHoursUsed}
-                                        setStartup={setStartup}
-                                        addTimelineEvent={addTimelineEvent}
-                                        setIsEndgameOpen={setIsEndgameOpen}
-                                        month={month}
-                                        salaryInput={salaryInput}
-                                        setSalaryInput={setSalaryInput}
-                                        setIsBoardModalOpen={setIsBoardModalOpen}
-                                        setLastProposalResult={setLastProposalResult}
-                                        setVotingMembers={setVotingMembers}
-                                        handlePurchaseAsset={handlePurchaseAsset}
-                                        handleToggleLifestyle={handleToggleLifestyle}
-                                        handleActionClick={handleActionClick}
-                                        handleAllocateESOP={handleAllocateESOP}
-                                        currentTime={currentTime}
-                                        cashGrants={cashGrants}
-                                        setCashGrants={setCashGrants}
-                                        energyRefills={energyRefills}
-                                        setEnergyRefills={setEnergyRefills}
-                                        setConfirmDialog={setConfirmDialog}
-                                        isOnline={isOnline}
-                                        isPremium={isPremium}
-                                        handleRivalryAction={handleRivalryAction}
-                                    />
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
+            {/* WAR ROOM MODAL — Crisis Response */}
+            {isCrisisWarRoomOpen && startup.active_crisis && !startup.active_crisis.resolved && (() => {
+                const crisis = startup.active_crisis!;
+                const stage = getCurrentCrisisStage(crisis);
+                if (!stage) return null;
+                const emoji = CRISIS_EMOJIS[crisis.type];
+                const stageNum = crisis.currentStage + 1;
+                const totalStages = getCrisisStageCount(crisis.type);
+                const severityGradients = ["",
+                    "from-amber-400 to-yellow-500",
+                    "from-orange-500 to-amber-500",
+                    "from-rose-600 to-red-500",
+                    "from-red-700 to-rose-800",
+                ];
+                const grad = severityGradients[stage.severity];
 
-                {/* MANDATORY CONNECTION OVERLAY */}
-                <NetworkStatusOverlay 
-                    isOnline={isOnline} 
-                    onRetry={async () => {
-                        const loadingToast = toast.loading("Checking connection...");
-                        try {
-                            // Try to fetch a tiny resource to truly verify connectivity
-                            await fetch("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-store" });
-                            setIsOnline(true);
-                            toast.dismiss(loadingToast);
-                            toast.success("Back online!");
-                        } catch (e) {
-                            setIsOnline(false);
-                            toast.dismiss(loadingToast);
-                            toast.error("Still offline. Check your connection.");
-                        }
-                    }} 
-                />
-
-                {/* SAM & CHAD CHARACTER DIALOG */}
-                {(() => {
-                    if (!isCharacterDialogOpen || !characterDialog) return null;
-                    const isChadDialog = characterDialog.character === "chad";
-                    return (
-                        <CharacterDialog
-                            key={`tutorial-${storyState.tutorialStep}-${characterDialog.trigger}`}
-                            isOpen={isCharacterDialogOpen}
-                            character={characterDialog.character}
-                            title={characterDialog.title.replace(/{name}/g, founder.name || "Founder")}
-                            message={characterDialog.message.replace(/{name}/g, founder.name || "Founder")}
-                            buttonText={characterDialog.buttonText}
-                            choiceA={characterDialog.hasChoices && characterDialog.choiceALabel ? {
-                                label: characterDialog.choiceALabel,
-                                description: characterDialog.choiceADescription || "",
-                                onSelect: () => {
-                                    if (characterDialog.choiceAActionId) {
-                                        handleImmediateAction(characterDialog.choiceAActionId, true);
-                                    }
-                                    setStoryState(prev => ({
-                                        ...prev,
-                                        seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
-                                        chadMustRespondNext: isChadDialog,
-                                        lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
-                                    }));
-                                }
-                            } : undefined}
-                            choiceB={characterDialog.hasChoices && characterDialog.choiceBLabel ? {
-                                label: characterDialog.choiceBLabel,
-                                description: characterDialog.choiceBDescription || "",
-                                onSelect: () => {
-                                    if (characterDialog.choiceBActionId) {
-                                        handleImmediateAction(characterDialog.choiceBActionId, true);
-                                    }
-                                    setStoryState(prev => ({
-                                        ...prev,
-                                        seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
-                                        chadMustRespondNext: isChadDialog,
-                                        lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
-                                    }));
-                                }
-                            } : undefined}
-                             onDismiss={() => {
-                                 // Close the dialog, marking current step as seen in storyState
-                                 setIsCharacterDialogOpen(false);
-                                 setStoryState(prev => {
-                                     const trigger = characterDialog.trigger;
-                                     const isIslandFarewell = trigger === "sam_island_farewell";
-                                     
-                                     return {
-                                         ...prev,
-                                         samGoneToIsland: isIslandFarewell ? true : prev.samGoneToIsland,
-                                         seenTriggers: prev.seenTriggers.includes(trigger)
-                                             ? prev.seenTriggers
-                                             : [...prev.seenTriggers, trigger],
-                                         chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
-                                         lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
-                                     };
-                                 });
-                             }}
-                            isPremium={isPremium}
-                        />
+                const handleCrisisChoice = (choiceId: string) => {
+                    const choice = stage.choices.find(c => c.id === choiceId);
+                    if (!choice) return;
+                    const result = resolveCrisisChoice(
+                        crisis,
+                        choiceId,
+                        !!startup.metrics.has_legal_dept,
+                        startup.history?.length ?? 0
                     );
-                })()}
-
-                {/* FOCUS BREAKDOWN MODAL */}
-                <Dialog open={isFocusBreakdownOpen} onOpenChange={setIsFocusBreakdownOpen}>
-                    <DialogContent className="sm:max-w-[400px] rounded-3xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">
-                                ⚡ Focus Breakdown
-                            </DialogTitle>
-                            <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                Monthly Capacity vs. Commitments
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <ScrollArea className="mt-4 max-h-[50vh] pr-4">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Capacity (Max: {maxHours}h)</h3>
-                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-2">
-                                        <BreakdownRow label="Base Focus" value={100} sign="+" color="text-emerald-600 dark:text-emerald-400" />
-                                        {m.founder_burnout > 0 && (
-                                            <BreakdownRow label={`Burnout Penalty (${Math.round(m.founder_burnout)}%)`} value={-Math.round(Math.max(0, m.founder_burnout) * 1.2)} sign="" color="text-rose-600 dark:text-rose-400" />
-                                        )}
-                                        {(startup as any).hasCoFounder && (
-                                            <BreakdownRow label="Co-Founder Focus" value={50} sign="+" color="text-indigo-600 dark:text-indigo-400" />
-                                        )}
-                                        {startup.employees?.some((e: any) => e.role?.toUpperCase() === "COO") && (
-                                            <BreakdownRow label="COO Delegation Bonus" value={40} sign="+" color="text-indigo-600 dark:text-indigo-400" />
-                                        )}
-                                        {startup.employees?.some((e: any) => e.role?.toUpperCase() === "EA") && (
-                                            <BreakdownRow label="EA Efficiency Bonus" value={30} sign="+" color="text-indigo-600 dark:text-indigo-400" />
-                                        )}
-                                    </div>
-                                </div>
-
-                                {ongoingPrograms.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Ongoing Programs (-{focusHoursUsed}h)</h3>
-                                        <div className="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl p-3 space-y-2">
-                                            {ongoingPrograms.map(p => {
-                                                const def = getOngoingProgramDef(p.id);
-                                                return (
-                                                    <BreakdownRow
-                                                        key={p.id}
-                                                        label={def?.label || p.id}
-                                                        value={-(def?.monthlyEnergy || 0)}
-                                                        sign=""
-                                                        color="text-indigo-700 dark:text-indigo-300"
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center px-1">
-                                    <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Available Focus</span>
-                                    <span className="text-xl font-black text-indigo-700 dark:text-indigo-400">{maxHours - focusHoursUsed}h</span>
-                                </div>
-                            </div>
-                        </ScrollArea>
-
-                        <Button
-                            className="mt-6 w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl"
-                            onClick={() => setIsFocusBreakdownOpen(false)}
-                        >
-                            Close
-                        </Button>
-                    </DialogContent>
-                </Dialog>
-
-                {/* HIRING MODAL */}
-                <Dialog open={!!pendingCandidate} onOpenChange={(open) => !open && setPendingCandidate(null)}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-indigo-500 border-4 rounded-[2rem] p-6 shadow-2xl">
-                        <DialogHeader>
-                            <div className="flex items-center justify-between">
-                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic">
-                                    Negotiate: {pendingCandidate?.name}
-                                </DialogTitle>
-                                <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/50">
-                                    Pool: {(startup.metrics.option_pool || 0).toFixed(1)}%
-                                </div>
-                            </div>
-                            <DialogDescription className="text-xs font-bold text-slate-500 uppercase">
-                                
-                                {pendingCandidate?.level} {getDisplayRoleName(pendingCandidate?.role || "", false)} · {pendingCandidate?.experience}Y exp
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-2">
-                            {(() => {
-                                const cohortSize = 1;
-                                return (
-                                    <>
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-xs font-black uppercase text-slate-400">Monthly Salary</label>
-                                                <span className="text-sm font-black text-indigo-600">{formatMoney(Math.floor(hiringOffer.salary * cohortSize / 12))}/mo</span>
-                                            </div>
-                                            <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 4.0 / 12)} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-1">
-                                                <label className="text-xs font-black uppercase text-slate-400">Equity Grant</label>
-                                                <span className="text-sm font-black text-indigo-600">{(hiringOffer.equity * cohortSize).toFixed(1)}%</span>
-                                            </div>
-                                            <input type="range" min={0} max={cohortSize > 1 ? (10 / cohortSize) : 5.0} step={0.01} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
-                                        </div>
-                                    </>
-                                );
-                            })()}
-                        </div>
-                        {pendingCandidate && (() => {
-                            let score = 50;
-                            const EQUITY_VALUE = startup.valuation * 0.01;
-
-                            let salaryWeight = 1.2;
-                            let equityWeight = 0.8;
-
-                            if (pendingCandidate.personality === "Stable") {
-                                salaryWeight = 1.5;
-                                equityWeight = 0.3;
-                            } else if (pendingCandidate.personality === "Ambitious") {
-                                salaryWeight = 0.8;
-                                equityWeight = 1.2;
-                            } else if (pendingCandidate.personality === "Creative") {
-                                salaryWeight = 1.0;
-                                equityWeight = 1.0;
+                    // Apply metric effects
+                    setStartup(s => {
+                        const ns = { ...s, active_crisis: result.updatedCrisis };
+                        const fx = result.effects;
+                        if (fx.brand_awareness) ns.metrics = { ...ns.metrics, brand_awareness: Math.max(0, Math.min(100, (ns.metrics.brand_awareness || 0) + fx.brand_awareness)) };
+                        if (fx.team_morale)    ns.metrics = { ...ns.metrics, team_morale:    Math.max(0, Math.min(100, (ns.metrics.team_morale || 50) + fx.team_morale)) };
+                        if (fx.cash_hit)       ns.metrics = { ...ns.metrics, cash: (ns.metrics.cash || 0) + fx.cash_hit! };
+                        if (fx.ceo_reputation) ns.ceo_reputation = Math.max(0, Math.min(100, (ns.ceo_reputation ?? 80) + fx.ceo_reputation));
+                        if (fx.valuation_mult) {
+                            ns.valuation = Math.floor(ns.valuation * fx.valuation_mult!);
+                            if (ns.public_company) {
+                                ns.public_company.share_price = Math.max(0.01, ns.public_company.share_price * fx.valuation_mult!);
                             }
+                        }
+                        if (fx.user_churn_bonus) ns.metrics = { ...ns.metrics, users: Math.max(0, Math.floor((ns.metrics.users || 0) * (1 - fx.user_churn_bonus!))) };
+                        return ns;
+                    });
+                    if (result.notice) addTimelineEvent(result.notice);
+                    if (result.success) {
+                        toast.success("Crisis Contained!", { description: result.notice, duration: 5000 });
+                    } else if (result.crisisResolved) {
+                        toast.error("Crisis Unresolved", { description: result.notice, duration: 6000 });
+                    } else {
+                        toast.warning("Crisis Escalated", { description: result.notice, duration: 5000 });
+                    }
+                    setIsCrisisWarRoomOpen(false);
+                };
 
-                            // Calculate independent ratios
-                            // Calculate independent ratios
-                            const salaryRatio = hiringOffer.salary / pendingCandidate.expectedSalary;
-                            const equityRatio = (pendingCandidate.expectedEquity || 0) > 0 
-                                ? hiringOffer.equity / pendingCandidate.expectedEquity
-                                : 1.0;
+                return (
+                    <Dialog open={isCrisisWarRoomOpen} onOpenChange={setIsCrisisWarRoomOpen}>
+                        <DialogContent className="sm:max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] p-0 overflow-hidden border-0 shadow-2xl">
+                            {/* Header */}
+                            <div className={`bg-gradient-to-br ${grad} p-5 text-white`}>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <span className="text-3xl">{emoji}</span>
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest opacity-75">Crisis — Stage {stageNum} of {totalStages}</p>
+                                        <p className="text-lg font-black leading-tight">{CRISIS_LABELS[crisis.type]}</p>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] font-black uppercase tracking-widest opacity-70 mt-2">{stage.title}</p>
+                            </div>
+                            {/* Body */}
+                            <div className="p-5 space-y-4">
+                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {stage.description.replace("{{company}}", startup.name)}
+                                </p>
+                                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl px-3 py-2 border border-amber-200 dark:border-amber-800">
+                                    <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">
+                                        ⚠️ If ignored: auto-escalates in {stage.autoEscalatesAfterMonths} month{stage.autoEscalatesAfterMonths > 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Choose Your Response</p>
+                                    {stage.choices.map(choice => (
+                                        <button
+                                            key={choice.id}
+                                            onClick={() => handleCrisisChoice(choice.id)}
+                                            className="w-full text-left p-3 rounded-2xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all group"
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <p className="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{choice.label}</p>
+                                                <div className="shrink-0 flex flex-col items-end gap-0.5">
+                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
+                                                        choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
+                                                        choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-rose-100 text-rose-700'
+                                                    }`}>
+                                                        {Math.round(choice.successRate * 100)}% success
+                                                    </span>
+                                                    {(choice.cost ?? 0) > 0 && (
+                                                        <span className="text-[8px] font-black text-slate-400">{formatMoney(choice.cost!)}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">{choice.description}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => setIsCrisisWarRoomOpen(false)}
+                                    className="w-full py-2 rounded-xl border border-slate-200 text-slate-500 text-xs font-bold hover:bg-slate-50 transition-all"
+                                >
+                                    Dismiss for now (crisis continues)
+                                </button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                );
+            })()}
 
-                            // Salary Score: Match (1.0x) = 70. High-end (2.0x) = 100.
-                            const salaryScore = salaryRatio >= 1 
-                                ? 70 + Math.min(30, (salaryRatio - 1) * 30)
-                                : 70 * Math.pow(salaryRatio, 1.5);
+            {/* HIRING MODAL */}
+            <Dialog open={!!pendingCandidate} onOpenChange={(open) => !open && setPendingCandidate(null)}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-indigo-500 border-4 rounded-[2rem] p-6 shadow-2xl">
+                    <DialogHeader>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic">
+                                Negotiate: {pendingCandidate?.name}
+                            </DialogTitle>
+                            <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/50">
+                                Pool: {(startup.metrics.option_pool || 0).toFixed(1)}%
+                            </div>
+                        </div>
+                        {/* Legendary Candidate Banner */}
+                        {pendingCandidate?.isLegendary && (
+                            <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-white shadow-lg">
+                                <p className="text-[9px] font-black uppercase tracking-widest opacity-80">⭐ Legendary Candidate</p>
+                                <p className="text-[11px] font-semibold mt-0.5 italic leading-snug opacity-95">"{pendingCandidate.storyQuote}"</p>
+                            </div>
+                        )}
+                        <DialogDescription className="text-xs font-bold text-slate-500 uppercase">
 
-                            // Equity Score: Relative to expectation
-                            const equityScore = equityRatio >= 1
-                                ? 70 + Math.min(30, (equityRatio - 1) * 30)
-                                : 70 * equityRatio;
-
-                            // Weights based on personality
-                            let sw = 1.0, ew = 1.0;
-                            if (pendingCandidate.personality === "Stable") { sw = 1.5; ew = 0.5; }
-                            else if (pendingCandidate.personality === "Ambitious") { sw = 0.7; ew = 1.3; }
-
-                            let combinedScore = (salaryScore * sw + equityScore * ew) / (sw + ew);
-
-                            // Compensation Trade-off floors
-                            if (salaryRatio >= 2.0) combinedScore = Math.max(combinedScore, 95);
-                            else if (salaryRatio >= 1.5) combinedScore = Math.max(combinedScore, 80);
-                            else if (salaryRatio >= 1.2) combinedScore = Math.max(combinedScore, 65);
-                            else if (salaryRatio >= 1.0 && (hiringOffer.equity || 0) <= 0.001) combinedScore = Math.max(combinedScore, 45); // Floor for matching salary with 0% equity
-
-                            score = combinedScore + ((founder.attributes.reputation || 50) - 50) / 2;
-                            score = Math.min(100, Math.max(0, score));
-
-                            let sentimentText = "";
-                            let sentimentColor = "";
-                            if (score >= 80) { sentimentText = `Very High Chance (${Math.round(score)}%)`; sentimentColor = "text-emerald-700 bg-emerald-50 border-emerald-200"; }
-                            else if (score >= 60) { sentimentText = `Good Chance (${Math.round(score)}%)`; sentimentColor = "text-green-700 bg-green-50 border-green-200"; }
-                            else if (score >= 40) { sentimentText = `Fair Chance (${Math.round(score)}%)`; sentimentColor = "text-amber-700 bg-amber-50 border-amber-200"; }
-                            else if (score >= 20) { sentimentText = `Low Chance (${Math.round(score)}%)`; sentimentColor = "text-orange-700 bg-orange-50 border-orange-200"; }
-                            else { sentimentText = `Very Low Chance (${Math.round(score)}%)`; sentimentColor = "text-rose-700 bg-rose-50 border-rose-200"; }
-
+                            {pendingCandidate?.level} {getDisplayRoleName(pendingCandidate?.role || "", false)} · {pendingCandidate?.experience}Y exp
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        {(() => {
+                            const cohortSize = 1;
                             return (
                                 <>
-                                    <div className={cn("mt-4 p-2.5 rounded-xl border flex items-center justify-between", sentimentColor)}>
-                                        <span className="text-[10px] font-black uppercase tracking-wider">Candidate Sentiment</span>
-                                        <span className={"text-xs font-black"}>{sentimentText}</span>
+                                    <div>
+                                        <div className="flex justify-between mb-1">
+                                            <label className="text-xs font-black uppercase text-slate-400">Monthly Salary</label>
+                                            <span className="text-sm font-black text-indigo-600">{formatMoney(Math.floor(hiringOffer.salary * cohortSize / 12))}/mo</span>
+                                        </div>
+                                        <input type="range" min={Math.floor((pendingCandidate?.expectedSalary || 40000) * 0.6 / 12)} max={Math.floor((pendingCandidate?.expectedSalary || 200000) * 4.0 / 12)} value={Math.floor(hiringOffer.salary / 12)} onChange={(e) => setHiringOffer({ ...hiringOffer, salary: parseInt(e.target.value) * 12 })} className="w-full accent-indigo-500" />
                                     </div>
-
-                                    {(() => {
-                                        const required = hiringOffer.equity;
-                                        const available = startup.metrics.option_pool || 0;
-                                        // Epsilon check to hide "Insufficient" banner if offer is 0%
-                                        if (required > 0.001 && available < required) {
-                                            return (
-                                                <div className="mt-4 p-3 bg-rose-50 border-2 border-rose-200 rounded-2xl animate-in zoom-in-95 duration-200">
-                                                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                                        <AlertCircle className="w-3.5 h-3.5" /> Insufficient Option Pool
-                                                    </p>
-                                                    <p className="text-[9px] text-rose-500 leading-tight mb-3 font-medium">
-                                                        You need {required}% but only have {available.toFixed(1)}% available.
-                                                    </p>
-                                                    <Button 
-                                                        onClick={handleAllocateESOP}
-                                                        className="w-full h-9 bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase rounded-xl border-b-4 border-rose-800 active:border-b-0 transition-all"
-                                                    >
-                                                        Expand Pool (+10% Dilution)
-                                                    </Button>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-
-                                    {/* ── Vesting Disclaimer Note ── */}
-                                    <div className="mt-4 bg-indigo-50/50 border border-indigo-100 rounded-xl px-3 py-2 flex items-start gap-1.5">
-                                        <span className="text-sm">💡</span>
-                                        <p className="text-[8px] font-medium text-slate-600 leading-tight">
-                                            <span className="font-bold text-indigo-700">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
-                                        </p>
+                                    <div>
+                                        <div className="flex justify-between mb-1">
+                                            <label className="text-xs font-black uppercase text-slate-400">Equity Grant</label>
+                                            <span className="text-sm font-black text-indigo-600">{(hiringOffer.equity * cohortSize).toFixed(1)}%</span>
+                                        </div>
+                                        <input type="range" min={0} max={cohortSize > 1 ? (10 / cohortSize) : 5.0} step={0.01} value={hiringOffer.equity} onChange={(e) => setHiringOffer({ ...hiringOffer, equity: parseFloat(e.target.value) })} className="w-full accent-indigo-500" />
                                     </div>
                                 </>
                             );
                         })()}
-                        <div className="flex gap-3 pt-4">
-                            <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setPendingCandidate(null)}>Withdraw</Button>
-                            <Button className="flex-1 rounded-xl h-12 font-black bg-indigo-600 hover:bg-indigo-700 uppercase" onClick={handleHiringConfirm}>Extend Offer (⚡10-20h)</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                    </div>
+                    {pendingCandidate && (() => {
+                        let score = 50;
+                        const EQUITY_VALUE = startup.valuation * 0.01;
 
-                {/* FUNDING MODAL — Restyled */}
-                <Dialog open={!!pendingInvestor} onOpenChange={(open) => !open && setPendingInvestor(null)}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl overflow-hidden">
-                        {/* Dark colored header strip */}
-                        <div className="bg-gradient-to-r from-violet-700 to-purple-700 px-6 pt-6 pb-10 relative">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-sm">
-                                    💼
-                                </div>
-                                <div>
-                                    <p className="text-white font-black text-lg leading-tight">{pendingInvestor?.name}</p>
-                                    <p className="text-purple-200 text-[11px] font-bold">{pendingInvestor?.firm} · {pendingInvestor?.type}</p>
-                                </div>
-                            </div>
-                            {investorMessage && (
-                                <div className="mt-4 bg-white/10 rounded-2xl px-4 py-3 text-white text-xs font-semibold italic leading-relaxed border border-white/20">
-                                    “{investorMessage}”
-                                </div>
-                            )}
-                        </div>
+                        let salaryWeight = 1.2;
+                        let equityWeight = 0.8;
 
-                        {/* Content card overlapping the header */}
-                        <div className="-mt-5 bg-white dark:bg-slate-900 rounded-t-3xl px-6 pt-5 pb-6 space-y-5">
+                        if (pendingCandidate.personality === "Stable") {
+                            salaryWeight = 1.5;
+                            equityWeight = 0.3;
+                        } else if (pendingCandidate.personality === "Ambitious") {
+                            salaryWeight = 0.8;
+                            equityWeight = 1.2;
+                        } else if (pendingCandidate.personality === "Creative") {
+                            salaryWeight = 1.0;
+                            equityWeight = 1.0;
+                        }
 
-                            {/* Counter-Offer Alert Section */}
-                            {pendingCounterOffer && (
-                                <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center">
-                                        <Zap className="w-3.5 h-3.5 fill-amber-500" /> Investor Counter-Offer
+                        // Calculate independent ratios
+                        // Calculate independent ratios
+                        const salaryRatio = hiringOffer.salary / pendingCandidate.expectedSalary;
+                        const equityRatio = (pendingCandidate.expectedEquity || 0) > 0
+                            ? hiringOffer.equity / pendingCandidate.expectedEquity
+                            : 1.0;
+
+                        // Salary Score: Match (1.0x) = 70. High-end (2.0x) = 100.
+                        const salaryScore = salaryRatio >= 1
+                            ? 70 + Math.min(30, (salaryRatio - 1) * 30)
+                            : 70 * Math.pow(salaryRatio, 1.5);
+
+                        // Equity Score: Relative to expectation
+                        const equityScore = equityRatio >= 1
+                            ? 70 + Math.min(30, (equityRatio - 1) * 30)
+                            : 70 * equityRatio;
+
+                        // Weights based on personality
+                        let sw = 1.0, ew = 1.0;
+                        if (pendingCandidate.personality === "Stable") { sw = 1.5; ew = 0.5; }
+                        else if (pendingCandidate.personality === "Ambitious") { sw = 0.7; ew = 1.3; }
+
+                        let combinedScore = (salaryScore * sw + equityScore * ew) / (sw + ew);
+
+                        // Compensation Trade-off floors
+                        if (salaryRatio >= 2.0) combinedScore = Math.max(combinedScore, 95);
+                        else if (salaryRatio >= 1.5) combinedScore = Math.max(combinedScore, 80);
+                        else if (salaryRatio >= 1.2) combinedScore = Math.max(combinedScore, 65);
+                        else if (salaryRatio >= 1.0 && (hiringOffer.equity || 0) <= 0.001) combinedScore = Math.max(combinedScore, 45); // Floor for matching salary with 0% equity
+
+                        score = combinedScore + ((founder.attributes.reputation || 50) - 50) / 2;
+                        score = Math.min(100, Math.max(0, score));
+
+                        let sentimentText = "";
+                        let sentimentColor = "";
+                        if (score >= 80) { sentimentText = `Very High Chance (${Math.round(score)}%)`; sentimentColor = "text-emerald-700 bg-emerald-50 border-emerald-200"; }
+                        else if (score >= 60) { sentimentText = `Good Chance (${Math.round(score)}%)`; sentimentColor = "text-green-700 bg-green-50 border-green-200"; }
+                        else if (score >= 40) { sentimentText = `Fair Chance (${Math.round(score)}%)`; sentimentColor = "text-amber-700 bg-amber-50 border-amber-200"; }
+                        else if (score >= 20) { sentimentText = `Low Chance (${Math.round(score)}%)`; sentimentColor = "text-orange-700 bg-orange-50 border-orange-200"; }
+                        else { sentimentText = `Very Low Chance (${Math.round(score)}%)`; sentimentColor = "text-rose-700 bg-rose-50 border-rose-200"; }
+
+                        return (
+                            <>
+                                <div className={cn("mt-4 p-2.5 rounded-xl border flex items-center justify-between", sentimentColor)}>
+                                    <span className="text-[10px] font-black uppercase tracking-wider">Candidate Sentiment</span>
+                                    <span className={"text-xs font-black"}>{sentimentText}</span>
+                                </div>
+
+                                {(() => {
+                                    const required = hiringOffer.equity;
+                                    const available = startup.metrics.option_pool || 0;
+                                    // Epsilon check to hide "Insufficient" banner if offer is 0%
+                                    if (required > 0.001 && available < required) {
+                                        return (
+                                            <div className="mt-4 p-3 bg-rose-50 border-2 border-rose-200 rounded-2xl animate-in zoom-in-95 duration-200">
+                                                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                                    <AlertCircle className="w-3.5 h-3.5" /> Insufficient Option Pool
+                                                </p>
+                                                <p className="text-[9px] text-rose-500 leading-tight mb-3 font-medium">
+                                                    You need {required}% but only have {available.toFixed(1)}% available.
+                                                </p>
+                                                <Button
+                                                    onClick={handleAllocateESOP}
+                                                    className="w-full h-9 bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase rounded-xl border-b-4 border-rose-800 active:border-b-0 transition-all"
+                                                >
+                                                    Expand Pool (+10% Dilution)
+                                                </Button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
+                                {/* ── Vesting Disclaimer Note ── */}
+                                <div className="mt-4 bg-indigo-50/50 border border-indigo-100 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                                    <span className="text-sm">💡</span>
+                                    <p className="text-[8px] font-medium text-slate-600 leading-tight">
+                                        <span className="font-bold text-indigo-700">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
                                     </p>
-                                    <div className="flex justify-between items-center bg-white/70 backdrop-blur-sm px-4 py-3 rounded-2xl border border-amber-100 mb-4 shadow-sm">
-                                        <div className="text-center flex-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Valuation</p>
-                                            <p className="text-base font-black text-amber-700">{formatMoney(pendingCounterOffer.valuation)}</p>
-                                        </div>
-                                        <div className="w-px h-8 bg-amber-200/50 mx-2" />
-                                        <div className="text-center flex-1">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Equity</p>
-                                            <p className="text-base font-black text-amber-700">{pendingCounterOffer.equity}%</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black h-12 rounded-2xl uppercase text-[11px] tracking-wider shadow-lg shadow-amber-200/50 active:scale-95 transition-all"
-                                        onClick={handleAcceptCounter}
-                                    >
-                                        Accept Counter-Offer
-                                    </Button>
                                 </div>
-                            )}
+                            </>
+                        );
+                    })()}
+                    <div className="flex gap-3 pt-4">
+                        <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setPendingCandidate(null)}>Withdraw</Button>
+                        <Button className="flex-1 rounded-xl h-12 font-black bg-indigo-600 hover:bg-indigo-700 uppercase" onClick={handleHiringConfirm}>Extend Offer (⚡10-20h)</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-                            {/* Equity bar visual */}
-                            <div className={cn(pendingCounterOffer ? "opacity-50 pointer-events-none grayscale-[0.3]" : "")}>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ownership After Deal</span>
-                                </div>
-                                <div className="h-6 rounded-full overflow-hidden flex shadow-inner bg-slate-100">
-                                    <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center transition-all duration-500" style={{ width: `${Math.max(0, 100 - fundingOffer.equity)}%` }}>
-                                        <span className="text-[9px] font-black text-white">{Math.max(0, 100 - fundingOffer.equity)}% You</span>
-                                    </div>
-                                    <div className="h-full bg-gradient-to-r from-purple-400 to-purple-500 flex items-center justify-center transition-all duration-500" style={{ width: `${fundingOffer.equity}%` }}>
-                                        {fundingOffer.equity > 5 && <span className="text-[9px] font-black text-white">{fundingOffer.equity}% Inv</span>}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Sliders */}
-                            <div>
-                                <div className="flex justify-between mb-1"><label className="text-xs font-black uppercase text-slate-500">Post-Money Valuation</label><span className="text-sm font-black text-violet-600">{formatMoney(fundingOffer.valuation)}</span></div>
-                                <input type="range" min={Math.floor(startup.valuation * 0.5)} max={Math.floor(startup.valuation * 2.5)} step={100000} value={fundingOffer.valuation} onChange={(e) => setFundingOffer({ ...fundingOffer, valuation: parseInt(e.target.value) })} className="w-full accent-violet-600" />
+            {/* FUNDING MODAL — Restyled */}
+            <Dialog open={!!pendingInvestor} onOpenChange={(open) => !open && setPendingInvestor(null)}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl overflow-hidden">
+                    {/* Dark colored header strip */}
+                    <div className="bg-gradient-to-r from-violet-700 to-purple-700 px-6 pt-6 pb-10 relative">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-sm">
+                                💼
                             </div>
                             <div>
-                                <div className="flex justify-between mb-1"><label className="text-xs font-black uppercase text-slate-500">Equity to Investor</label><span className="text-sm font-black text-violet-600">{fundingOffer.equity}%</span></div>
-                                <input type="range" min={1} max={40} step={1} value={fundingOffer.equity} onChange={(e) => setFundingOffer({ ...fundingOffer, equity: parseInt(e.target.value) })} className="w-full accent-violet-600" />
-                            </div>
-
-                            {/* Investment amount display */}
-                            <div className="bg-violet-50 border border-violet-100 rounded-2xl p-3 flex items-center justify-between">
-                                <span className="text-xs font-black text-violet-600 uppercase">Investment Amount</span>
-                                <span className="text-base font-black text-violet-700">{formatMoney((fundingOffer.valuation * fundingOffer.equity) / 100)}</span>
-                            </div>
-
-                            {/* CTA Buttons */}
-                            <div className="flex gap-3">
-                                <button onClick={() => {
-                                    setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, investor_pipeline: { ...(s.metrics.investor_pipeline || {}), term_sheets: Math.max(0, (s.metrics.investor_pipeline?.term_sheets || 0) - 1) } } }));
-                                    setPendingInvestor(null);
-                                }} className="flex-1 h-13 py-3 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm uppercase tracking-wide active:scale-95 transition-all">Walk Away</button>
-                                <button onClick={handleFundingConfirm} className="flex-1 h-13 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-black text-sm uppercase tracking-wide shadow-lg shadow-violet-200 active:scale-95 transition-all">Submit Pitch</button>
+                                <p className="text-white font-black text-lg leading-tight">{pendingInvestor?.name}</p>
+                                <p className="text-purple-200 text-[11px] font-bold">{pendingInvestor?.firm} · {pendingInvestor?.type}</p>
                             </div>
                         </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* BOARD VOTING MODAL */}
-                <Dialog open={isBoardModalOpen} onOpenChange={setIsBoardModalOpen}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl overflow-hidden">
-                        <div className={cn("px-6 py-8 text-center", lastProposalResult?.status === "approved" ? "bg-emerald-500" : "bg-rose-500")}>
-                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
-                                {lastProposalResult?.status === "approved" ? "✅" : "❌"}
+                        {investorMessage && (
+                            <div className="mt-4 bg-white/10 rounded-2xl px-4 py-3 text-white text-xs font-semibold italic leading-relaxed border border-white/20">
+                                “{investorMessage}”
                             </div>
-                            <h2 className="text-2xl font-black text-white tracking-tighter uppercase whitespace-pre-wrap">
-                                {lastProposalResult?.status === "approved" ? "Salary Approved!" : "Proposal Rejected"}
-                            </h2>
-                            <p className="text-white/80 font-bold text-xs mt-1 uppercase tracking-widest">
-                                Board Resolution · {formatMoney(parseInt(salaryInput || "0"))} / mo
-                            </p>
+                        )}
+                    </div>
+
+                    {/* Content card overlapping the header */}
+                    <div className="-mt-5 bg-white dark:bg-slate-900 rounded-t-3xl px-6 pt-5 pb-6 space-y-5">
+
+                        {/* Counter-Offer Alert Section */}
+                        {pendingCounterOffer && (
+                            <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center">
+                                    <Zap className="w-3.5 h-3.5 fill-amber-500" /> Investor Counter-Offer
+                                </p>
+                                <div className="flex justify-between items-center bg-white/70 backdrop-blur-sm px-4 py-3 rounded-2xl border border-amber-100 mb-4 shadow-sm">
+                                    <div className="text-center flex-1">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Valuation</p>
+                                        <p className="text-base font-black text-amber-700">{formatMoney(pendingCounterOffer.valuation)}</p>
+                                    </div>
+                                    <div className="w-px h-8 bg-amber-200/50 mx-2" />
+                                    <div className="text-center flex-1">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Equity</p>
+                                        <p className="text-base font-black text-amber-700">{pendingCounterOffer.equity}%</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black h-12 rounded-2xl uppercase text-[11px] tracking-wider shadow-lg shadow-amber-200/50 active:scale-95 transition-all"
+                                    onClick={handleAcceptCounter}
+                                >
+                                    Accept Counter-Offer
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Equity bar visual */}
+                        <div className={cn(pendingCounterOffer ? "opacity-50 pointer-events-none grayscale-[0.3]" : "")}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ownership After Deal</span>
+                            </div>
+                            <div className="h-6 rounded-full overflow-hidden flex shadow-inner bg-slate-100">
+                                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center transition-all duration-500" style={{ width: `${Math.max(0, 100 - fundingOffer.equity)}%` }}>
+                                    <span className="text-[9px] font-black text-white">{Math.max(0, 100 - fundingOffer.equity)}% You</span>
+                                </div>
+                                <div className="h-full bg-gradient-to-r from-purple-400 to-purple-500 flex items-center justify-center transition-all duration-500" style={{ width: `${fundingOffer.equity}%` }}>
+                                    {fundingOffer.equity > 5 && <span className="text-[9px] font-black text-white">{fundingOffer.equity}% Inv</span>}
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                            <div className="flex items-center justify-between px-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Board Member</span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vote</span>
-                            </div>
+                        {/* Sliders */}
+                        <div>
+                            <div className="flex justify-between mb-1"><label className="text-xs font-black uppercase text-slate-500">Post-Money Valuation</label><span className="text-sm font-black text-violet-600">{formatMoney(fundingOffer.valuation)}</span></div>
+                            <input type="range" min={Math.floor(startup.valuation * 0.5)} max={Math.floor(startup.valuation * 2.5)} step={100000} value={fundingOffer.valuation} onChange={(e) => setFundingOffer({ ...fundingOffer, valuation: parseInt(e.target.value) })} className="w-full accent-violet-600" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between mb-1"><label className="text-xs font-black uppercase text-slate-500">Equity to Investor</label><span className="text-sm font-black text-violet-600">{fundingOffer.equity}%</span></div>
+                            <input type="range" min={1} max={40} step={1} value={fundingOffer.equity} onChange={(e) => setFundingOffer({ ...fundingOffer, equity: parseInt(e.target.value) })} className="w-full accent-violet-600" />
+                        </div>
 
-                            {votingMembers.map((member, idx) => {
-                                const voteData = lastProposalResult?.votes?.find((v: any) => v.memberId === member.id);
+                        {/* Investment amount display */}
+                        <div className="bg-violet-50 border border-violet-100 rounded-2xl p-3 flex items-center justify-between">
+                            <span className="text-xs font-black text-violet-600 uppercase">Investment Amount</span>
+                            <span className="text-base font-black text-violet-700">{formatMoney((fundingOffer.valuation * fundingOffer.equity) / 100)}</span>
+                        </div>
+
+                        {/* CTA Buttons */}
+                        <div className="flex gap-3">
+                            <button onClick={() => {
+                                setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, investor_pipeline: { ...(s.metrics.investor_pipeline || {}), term_sheets: Math.max(0, (s.metrics.investor_pipeline?.term_sheets || 0) - 1) } } }));
+                                setPendingInvestor(null);
+                            }} className="flex-1 h-13 py-3 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm uppercase tracking-wide active:scale-95 transition-all">Walk Away</button>
+                            <button onClick={handleFundingConfirm} className="flex-1 h-13 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-black text-sm uppercase tracking-wide shadow-lg shadow-violet-200 active:scale-95 transition-all">Submit Pitch</button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* BOARD VOTING MODAL */}
+            <Dialog open={isBoardModalOpen} onOpenChange={setIsBoardModalOpen}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl overflow-hidden">
+                    <div className={cn("px-6 py-8 text-center", lastProposalResult?.status === "approved" ? "bg-emerald-500" : "bg-rose-500")}>
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
+                            {lastProposalResult?.status === "approved" ? "✅" : "❌"}
+                        </div>
+                        <h2 className="text-2xl font-black text-white tracking-tighter uppercase whitespace-pre-wrap">
+                            {lastProposalResult?.status === "approved" ? "Salary Approved!" : "Proposal Rejected"}
+                        </h2>
+                        <p className="text-white/80 font-bold text-xs mt-1 uppercase tracking-widest">
+                            Board Resolution · {formatMoney(parseInt(salaryInput || "0"))} / mo
+                        </p>
+                    </div>
+
+                    <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                        <div className="flex items-center justify-between px-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Board Member</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vote</span>
+                        </div>
+
+                        {votingMembers.map((member, idx) => {
+                            const voteData = lastProposalResult?.votes?.find((v: any) => v.memberId === member.id);
+                            return (
+                                <div key={member.id} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start gap-4 transition-all hover:bg-white hover:shadow-md">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100 shrink-0">
+                                        {member.avatar}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <p className="font-black text-sm text-slate-800 truncate">{member.name}</p>
+                                            {voteData?.vote === "yes" ? (
+                                                <div className="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase">
+                                                    <Check className="w-3 h-3" /> Yes
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 text-rose-500 font-black text-[10px] uppercase">
+                                                    <X className="w-3 h-3" /> No
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mb-2">
+                                            {member.type} · Stake: {member.equityWeight.toFixed(1)}%
+                                        </p>
+                                        <div className="bg-white/60 p-2 rounded-lg border border-slate-100 italic text-[10px] text-slate-600 leading-relaxed font-medium">
+                                            “{voteData?.reason || "No comment."}”
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
+                        <Button
+                            className="w-full h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
+                            onClick={() => setIsBoardModalOpen(false)}
+                        >
+                            Understood
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* TEAM MODAL - REDESIGNED */}
+            <Dialog open={isTeamOpen} onOpenChange={(open) => { setIsTeamOpen(open); if (!open) { setTeamSearch(""); setTeamDeptFilter("cxo"); } }}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-emerald-500 border-4 rounded-[2rem] p-0 shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[85vh] min-h-0">
+                    <DialogHeader className="p-6 pb-0">
+                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic flex items-center justify-between">
+                            <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
+                            <div className="flex gap-2">
+                                <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
+                                    😊 Morale: {Math.round(startup.metrics.team_morale)}%
+                                </span>
+                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                                    ESOP: {(startup.metrics.option_pool || 0).toFixed(1)}%
+                                </span>
+                                {((startup.metrics as any).former_employee_equity || 0) > 0 && (
+                                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                                        Alumni: {((startup.metrics as any).former_employee_equity as number).toFixed(1)}%
+                                    </span>
+                                )}
+                            </div>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {/* Filters */}
+                    {/* Filters */}
+                    <div className="p-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/50 border-y border-slate-100 dark:border-slate-800 mt-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search employees..."
+                                value={teamSearch}
+                                onChange={(e) => setTeamSearch(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all dark:text-slate-200"
+                            // className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                            />
+                            <Menu className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pb-1">
+                            {["cxo", "engineer", "marketer", "sales"].map((dept) => {
+                                const label = dept === "cxo" ? "CXOs" : getDisplayRoleName(dept, true);
                                 return (
-                                    <div key={member.id} className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start gap-4 transition-all hover:bg-white hover:shadow-md">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100 shrink-0">
-                                            {member.avatar}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-0.5">
-                                                <p className="font-black text-sm text-slate-800 truncate">{member.name}</p>
-                                                {voteData?.vote === "yes" ? (
-                                                    <div className="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase">
-                                                        <Check className="w-3 h-3" /> Yes
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-1 text-rose-500 font-black text-[10px] uppercase">
-                                                        <X className="w-3 h-3" /> No
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mb-2">
-                                                {member.type} · Stake: {member.equityWeight.toFixed(1)}%
-                                            </p>
-                                            <div className="bg-white/60 p-2 rounded-lg border border-slate-100 italic text-[10px] text-slate-600 leading-relaxed font-medium">
-                                                “{voteData?.reason || "No comment."}”
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <button
+                                        key={dept}
+                                        onClick={() => setTeamDeptFilter(dept)}
+                                        className={cn(
+                                            "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
+                                            teamDeptFilter === dept
+                                                ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
+                                                : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
+                                        )}
+                                    >
+                                        {label}
+                                    </button>
                                 );
                             })}
                         </div>
+                    </div>
 
-                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
-                            <Button
-                                className="w-full h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95"
-                                onClick={() => setIsBoardModalOpen(false)}
-                            >
-                                Understood
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                    <ScrollArea className="flex-1 px-4 py-2 min-h-0">
+                        {(() => {
+                            const allEmployeesForRoster = allEmployees;
 
-                {/* TEAM MODAL - REDESIGNED */}
-                <Dialog open={isTeamOpen} onOpenChange={(open) => { setIsTeamOpen(open); if (!open) { setTeamSearch(""); setTeamDeptFilter("cxo"); } }}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-emerald-500 border-4 rounded-[2rem] p-0 shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[85vh] min-h-0">
-                        <DialogHeader className="p-6 pb-0">
-                            <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
-                                <div className="flex gap-2">
-                                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
-                                        😊 Morale: {Math.round(startup.metrics.team_morale)}%
-                                    </span>
-                                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                                        ESOP: {(startup.metrics.option_pool || 0).toFixed(1)}%
-                                    </span>
-                                    {((startup.metrics as any).former_employee_equity || 0) > 0 && (
-                                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-                                            Alumni: {((startup.metrics as any).former_employee_equity as number).toFixed(1)}%
-                                        </span>
-                                    )}
-                                </div>
-                            </DialogTitle>
-                        </DialogHeader>
+                            const filtered = allEmployeesForRoster.filter((e: any) => {
+                                const matchesSearch = e.name.toLowerCase().includes(teamSearch.toLowerCase());
+                                const matchesDept = teamDeptFilter === "cxo" ? e.isCXO : e.role === teamDeptFilter;
+                                return matchesSearch && matchesDept;
+                            });
 
-                        {/* Filters */}
-                        {/* Filters */}
-                        <div className="p-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/50 border-y border-slate-100 dark:border-slate-800 mt-4">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search employees..."
-                                    value={teamSearch}
-                                    onChange={(e) => setTeamSearch(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all dark:text-slate-200"
-                                // className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                                />
-                                <Menu className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 pb-1">
-                                {["cxo", "engineer", "marketer", "sales"].map((dept) => {
-                                    const label = dept === "cxo" ? "CXOs" : getDisplayRoleName(dept, true);
-                                    return (
-                                        <button
-                                            key={dept}
-                                            onClick={() => setTeamDeptFilter(dept)}
-                                            className={cn(
-                                                "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
-                                                teamDeptFilter === dept
-                                                    ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
-                                                    : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
-                                            )}
-                                        >
-                                            {label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <ScrollArea className="flex-1 px-4 py-2 min-h-0">
-                            {(() => {
-                                const allEmployeesForRoster = allEmployees;
-
-                                const filtered = allEmployeesForRoster.filter((e: any) => {
-                                    const matchesSearch = e.name.toLowerCase().includes(teamSearch.toLowerCase());
-                                    const matchesDept = teamDeptFilter === "cxo" ? e.isCXO : e.role === teamDeptFilter;
-                                    return matchesSearch && matchesDept;
-                                });
-
-                                if (filtered.length === 0) {
-                                    return (
-                                        <div className="text-center py-12">
-                                            <p className="text-sm font-bold text-slate-400">No matching employees found.</p>
-                                        </div>
-                                    );
-                                }
-
-                                const cxos = filtered.filter((e: any) => e.isCXO);
-                                const staff = filtered.filter((e: any) => !e.isCXO);
-
-                                const renderCXOCard = (emp: any) => {
-                                    const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
-                                    const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
-                                    const isDissatisfied = monthsSinceRaise > 12;
-                                    const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
-
-                                    return (
-                                        <div key={emp.id} className="rounded-2xl border-2 border-emerald-100 bg-white p-3 flex flex-col gap-2 relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-transparent">
-                                            {/* Header */}
-                                            <div className="flex items-center gap-3">
-                                                <div className={cn(
-                                                    "w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl shrink-0 outline outline-2 outline-white shadow-sm",
-                                                    emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
-                                                )}>
-                                                    {emp.name.charAt(0)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <p className="font-black text-slate-900 text-xs truncate uppercase">{emp.name}</p>
-                                                        <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
-                                                            {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
-                                                        👑 {getDisplayRoleName(emp.role, false).replace(" Specialist", " (EXEC)")}
-                                                    </p>
-                                                    <p className="text-[8px] font-bold text-slate-400 mt-0.5">{formatMoney(Math.floor(emp.salary / 12))}/mo</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Perf</p>
-                                                    <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
-                                                        {emp.performance}%
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Metrics Grid */}
-                                            <div className="grid grid-cols-4 gap-1.5 mt-1 border-t border-dashed border-slate-100 pt-2">
-                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Skill</p>
-                                                    <p className="text-[11px] font-black text-indigo-600">{skillVal}%</p>
-                                                </div>
-                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Morale</p>
-                                                    <p className={cn("text-[11px] font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
-                                                        {Math.round(emp.morale || 70)}%
-                                                    </p>
-                                                </div>
-                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Equity</p>
-                                                    <p className="text-[11px] font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
-                                                </div>
-                                                <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase">Tenure</p>
-                                                    <p className="text-[11px] font-black text-slate-600">{tenure}mo</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="grid grid-cols-2 gap-1 mt-1 border-t border-dashed border-slate-100 pt-2">
-                                                <button onClick={() => handleTrainEmployee(emp.id)} className="py-1 rounded-lg bg-white text-indigo-600 text-[8px] font-black uppercase border border-indigo-100 hover:bg-indigo-50 transition-all">Train</button>
-                                                <button onClick={() => handlePromoteEmployee(emp.id)} className="py-1 rounded-lg bg-white text-amber-600 text-[8px] font-black uppercase border border-amber-100 hover:bg-amber-50 transition-all">Promote</button>
-                                                <button
-                                                    onClick={() => handleIncrementSalary(emp.id)}
-                                                    className={cn(
-                                                        "py-1 rounded-lg text-[8px] font-black uppercase border transition-all",
-                                                        isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-100 hover:bg-emerald-50"
-                                                    )}
-                                                >
-                                                    +15% Pay
-                                                </button>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger className="py-1 px-2 rounded-lg bg-white text-slate-500 text-[8px] font-black uppercase border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
-                                                        Manage <Plus className="size-3" />
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
-                                                        <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </div>
-                                    );
-                                };
-
-                                const renderStaffCard = (emp: any) => {
-                                    const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
-                                    const isExpanded = selectedEmpIdx === startup.employees.findIndex(original => original.id === emp.id);
-                                    const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
-                                    const isDissatisfied = monthsSinceRaise > 12;
-                                    const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
-
-                                    return (
-                                        <div key={emp.id} className={cn(
-                                            "rounded-2xl border-2 transition-all overflow-hidden mb-2",
-                                            isExpanded ? "border-emerald-200 shadow-md transform scale-[1.01]" : "border-slate-50 bg-white hover:border-slate-100"
-                                        )}>
-                                            <button
-                                                onClick={() => setSelectedEmpIdx(isExpanded ? -1 : startup.employees.findIndex(original => original.id === emp.id))}
-                                                className="w-full text-left p-3 cursor-pointer flex items-center gap-3 bg-white"
-                                            >
-                                                <div className={cn(
-                                                    "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
-                                                    emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
-                                                )}>
-                                                    {emp.name.charAt(0)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-black text-slate-900 text-sm truncate uppercase">{emp.name}</p>
-                                                        <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
-                                                            {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
-                                                        </span>
-                                                        {isDissatisfied && <span className="text-[8px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE</span>}
-                                                    </div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                        {emp.level} {getDisplayRoleName(emp.role, false)} · {formatMoney(Math.floor(emp.salary / 12))}/mo
-                                                    </p>
-                                                </div>
-                                                <div className="text-right shrink-0">
-                                                    <p className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
-                                                    <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
-                                                        {emp.performance}%
-                                                    </p>
-                                                </div>
-                                            </button>
-
-                                            <AnimatePresence>
-                                                {isExpanded && (
-                                                    <motion.div
-                                                        initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-                                                        className="px-3 pb-3 pt-1 border-t border-slate-50 bg-slate-50/30"
-                                                    >
-                                                        <div className="grid grid-cols-4 gap-2 mb-3 mt-2">
-                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Skill</p>
-                                                                <p className="text-sm font-black text-indigo-600">{skillVal}%</p>
-                                                            </div>
-                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Morale</p>
-                                                                <p className={cn("text-sm font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
-                                                                    {Math.round(emp.morale || 70)}%
-                                                                </p>
-                                                            </div>
-                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Equity</p>
-                                                                <p className="text-sm font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
-                                                            </div>
-                                                            <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase">Tenure</p>
-                                                                <p className="text-sm font-black text-slate-600">{tenure}mo</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[9px] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
-                                                            <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[9px] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
-                                                            <button
-                                                                onClick={() => handleIncrementSalary(emp.id)}
-                                                                className={cn(
-                                                                    "py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all",
-                                                                    isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-50 hover:bg-emerald-50"
-                                                                )}
-                                                            >
-                                                                +15% Salary
-                                                            </button>
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[9px] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
-                                                                    Manage <Plus className="size-3" />
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
-                                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    );
-                                };
-
+                            if (filtered.length === 0) {
                                 return (
-                                    <div className="space-y-4 pb-6">
-                                        {cxos.length > 0 && (
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 flex items-center gap-1">
-                                                    👑 Core Team (CXOs)
-                                                </p>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                                    {cxos.map(renderCXOCard)}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {staff.length > 0 && (
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 mt-4 flex items-center gap-1">
-                                                    👥 General Staff
-                                                </p>
-                                                <div className="space-y-2">
-                                                    {staff.map(renderStaffCard)}
-                                                </div>
-                                            </div>
-                                        )}
+                                    <div className="text-center py-12">
+                                        <p className="text-sm font-bold text-slate-400">No matching employees found.</p>
                                     </div>
                                 );
-                            })()}
+                            }
 
-                        </ScrollArea>
-                    </DialogContent>
-                </Dialog>
+                            const cxos = filtered.filter((e: any) => e.isCXO);
+                            const staff = filtered.filter((e: any) => !e.isCXO);
 
-                {/* BURN BREAKDOWN DIALOG */}
-                <Dialog open={isBurnBreakdownOpen} onOpenChange={setIsBurnBreakdownOpen}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-6 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-2xl">🔥</div>
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Monthly Burn</h2>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Financial Breakdown</p>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                                    <span className="text-xs font-bold text-slate-500">Monthly Revenue</span>
-                                    <span className="text-sm font-black text-emerald-600">+{formatMoney(liveRevenue)}</span>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Cost of Sales (COGS)</span>
-                                        <span className="text-xs font-black text-rose-500">-{formatMoney(monthlyCogs || 0)}</span>
+                            const renderCXOCard = (emp: any) => {
+                                const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
+                                const isDissatisfied = monthsSinceRaise > 12;
+                                const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
+
+                                return (
+                                    <div key={emp.id} className="rounded-2xl border-2 border-emerald-100 bg-white p-3 flex flex-col gap-2 relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-transparent">
+                                        {/* Header */}
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn(
+                                                "w-11 h-11 rounded-xl flex items-center justify-center font-black text-xl shrink-0 outline outline-2 outline-white shadow-sm",
+                                                emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
+                                            )}>
+                                                {emp.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <p className="font-black text-slate-900 text-xs truncate uppercase">{emp.name}</p>
+                                                    <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
+                                                        {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                                                    👑 {getDisplayRoleName(emp.role, false).replace(" Specialist", " (EXEC)")}
+                                                </p>
+                                                <p className="text-[8px] font-bold text-slate-400 mt-0.5">{formatMoney(Math.floor(emp.salary / 12))}/mo</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Perf</p>
+                                                <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
+                                                    {emp.performance}%
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Metrics Grid */}
+                                        <div className="grid grid-cols-4 gap-1.5 mt-1 border-t border-dashed border-slate-100 pt-2">
+                                            <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                <p className="text-[7px] font-black text-slate-400 uppercase">Skill</p>
+                                                <p className="text-[11px] font-black text-indigo-600">{skillVal}%</p>
+                                            </div>
+                                            <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                <p className="text-[7px] font-black text-slate-400 uppercase">Morale</p>
+                                                <p className={cn("text-[11px] font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
+                                                    {Math.round(emp.morale || 70)}%
+                                                </p>
+                                            </div>
+                                            <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                <p className="text-[7px] font-black text-slate-400 uppercase">Equity</p>
+                                                <p className="text-[11px] font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
+                                            </div>
+                                            <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
+                                                <p className="text-[7px] font-black text-slate-400 uppercase">Tenure</p>
+                                                <p className="text-[11px] font-black text-slate-600">{tenure}mo</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Trait Badges (CXO — compact card) */}
+                                        {(emp.traits || []).length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-dashed border-slate-100">
+                                                {emp.traits!.map((trait: EmployeeTrait) => <TraitBadge key={trait} trait={trait} />)}
+                                            </div>
+                                        )}
+                                        {!emp.traitRevealedMonth && emp.hiddenTrait && (
+                                            <div className="mt-1.5 pt-1.5 border-t border-dashed border-slate-100">
+                                                <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
+                                            </div>
+                                        )}
+
+                                        {/* Actions */}
+                                        <div className="grid grid-cols-2 gap-1 mt-1 border-t border-dashed border-slate-100 pt-2">
+                                            <button onClick={() => handleTrainEmployee(emp.id)} className="py-1 rounded-lg bg-white text-indigo-600 text-[8px] font-black uppercase border border-indigo-100 hover:bg-indigo-50 transition-all">Train</button>
+                                            <button onClick={() => handlePromoteEmployee(emp.id)} className="py-1 rounded-lg bg-white text-amber-600 text-[8px] font-black uppercase border border-amber-100 hover:bg-amber-50 transition-all">Promote</button>
+                                            <button
+                                                onClick={() => handleIncrementSalary(emp.id)}
+                                                className={cn(
+                                                    "py-1 rounded-lg text-[8px] font-black uppercase border transition-all",
+                                                    isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-100 hover:bg-emerald-50"
+                                                )}
+                                            >
+                                                +15% Pay
+                                            </button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger className="py-1 px-2 rounded-lg bg-white text-slate-500 text-[8px] font-black uppercase border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                    Manage <Plus className="size-3" />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
+                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">{startup.employees?.length > 0 ? "Salaries & Benefits" : "Base Startup Operating Cost"}</span>
-                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.salaries || 0)}</span>
+                                );
+                            };
+
+                            const renderStaffCard = (emp: any) => {
+                                const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                const isExpanded = selectedEmpIdx === startup.employees.findIndex(original => original.id === emp.id);
+                                const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
+                                const isDissatisfied = monthsSinceRaise > 12;
+                                const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
+
+                                return (
+                                    <div key={emp.id} className={cn(
+                                        "rounded-2xl border-2 transition-all overflow-hidden mb-2",
+                                        isExpanded ? "border-emerald-200 shadow-md transform scale-[1.01]" : "border-slate-50 bg-white hover:border-slate-100"
+                                    )}>
+                                        <button
+                                            onClick={() => setSelectedEmpIdx(isExpanded ? -1 : startup.employees.findIndex(original => original.id === emp.id))}
+                                            className="w-full text-left p-3 cursor-pointer flex items-center gap-3 bg-white"
+                                        >
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
+                                                emp.role === "engineer" ? "bg-blue-100 text-blue-600" : emp.role === "marketer" ? "bg-pink-100 text-pink-600" : "bg-emerald-100 text-emerald-600"
+                                            )}>
+                                                {emp.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-black text-slate-900 text-sm truncate uppercase">{emp.name}</p>
+                                                    <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
+                                                        {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
+                                                    </span>
+                                                    {isDissatisfied && <span className="text-[8px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE</span>}
+                                                </div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                    {emp.level} {getDisplayRoleName(emp.role, false)} · {formatMoney(Math.floor(emp.salary / 12))}/mo
+                                                </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
+                                                <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
+                                                    {emp.performance}%
+                                                </p>
+                                            </div>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+                                                    className="px-3 pb-3 pt-1 border-t border-slate-50 bg-slate-50/30"
+                                                >
+                                                    <div className="grid grid-cols-4 gap-2 mb-3 mt-2">
+                                                        <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Skill</p>
+                                                            <p className="text-sm font-black text-indigo-600">{skillVal}%</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Morale</p>
+                                                            <p className={cn("text-sm font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
+                                                                {Math.round(emp.morale || 70)}%
+                                                            </p>
+                                                        </div>
+                                                        <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Equity</p>
+                                                            <p className="text-sm font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
+                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Tenure</p>
+                                                            <p className="text-sm font-black text-slate-600">{tenure}mo</p>
+                                                        </div>
+                                                    </div>
+                                                    {/* Trait Badges (Staff — expanded card) */}
+                                                    {(emp.traits || []).length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-dashed border-slate-100">
+                                                            {emp.traits!.map((trait: EmployeeTrait) => <TraitBadge key={trait} trait={trait} />)}
+                                                        </div>
+                                                    )}
+                                                    {!emp.traitRevealedMonth && emp.hiddenTrait && (
+                                                        <div className="pt-2 border-t border-dashed border-slate-100">
+                                                            <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[9px] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
+                                                        <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[9px] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
+                                                        <button
+                                                            onClick={() => handleIncrementSalary(emp.id)}
+                                                            className={cn(
+                                                                "py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all",
+                                                                isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-50 hover:bg-emerald-50"
+                                                            )}
+                                                        >
+                                                            +15% Salary
+                                                        </button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[9px] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                                Manage <Plus className="size-3" />
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
+                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Infrastructure & SaaS</span>
-                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.infra || 0)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Founder Living Cost</span>
-                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.founderLiving || 0)}</span>
-                                    </div>
-                                    {(opexBreakdown?.misc || 0) > 0 && (
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs font-bold text-slate-500">Misc & Program Costs</span>
-                                            <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.misc || 0)}</span>
+                                );
+                            };
+
+                            return (
+                                <div className="space-y-4 pb-6">
+                                    {cxos.length > 0 && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 flex items-center gap-1">
+                                                👑 Core Team (CXOs)
+                                            </p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                {cxos.map(renderCXOCard)}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {staff.length > 0 && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 mt-4 flex items-center gap-1">
+                                                👥 General Staff
+                                            </p>
+                                            <div className="space-y-2">
+                                                {staff.map(renderStaffCard)}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Net Cash Flow</span>
-                                    <span className={`text-sm font-black ${liveNetProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                                        {liveNetProfit >= 0 ? "+" : ""}{formatMoney(liveNetProfit)}
-                                    </span>
-                                </div>
+                            );
+                        })()}
+
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            {/* BURN BREAKDOWN DIALOG */}
+            <Dialog open={isBurnBreakdownOpen} onOpenChange={setIsBurnBreakdownOpen}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-6 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-2xl">🔥</div>
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Monthly Burn</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Financial Breakdown</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                                <span className="text-xs font-bold text-slate-500">Monthly Revenue</span>
+                                <span className="text-sm font-black text-emerald-600">+{formatMoney(liveRevenue)}</span>
                             </div>
-                            
-                            <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">📅</span>
-                                    <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Est. Runway</span>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Cost of Sales (COGS)</span>
+                                    <span className="text-xs font-black text-rose-500">-{formatMoney(monthlyCogs || 0)}</span>
                                 </div>
-                                <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">
-                                    {profitable ? "∞ Profitable" : `${liveRunway} Months`}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">{startup.employees?.length > 0 ? "Salaries & Benefits" : "Base Startup Operating Cost"}</span>
+                                    <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.salaries || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Infrastructure & SaaS</span>
+                                    <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.infra || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Founder Living Cost</span>
+                                    <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.founderLiving || 0)}</span>
+                                </div>
+                                {(opexBreakdown?.misc || 0) > 0 && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500">Misc & Program Costs</span>
+                                        <span className="text-xs font-black text-rose-500">-{formatMoney(opexBreakdown?.misc || 0)}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Net Cash Flow</span>
+                                <span className={`text-sm font-black ${liveNetProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                    {liveNetProfit >= 0 ? "+" : ""}{formatMoney(liveNetProfit)}
                                 </span>
                             </div>
                         </div>
-                        
-                        <Button className="w-full h-12 mt-6 bg-slate-900 border-b-4 border-slate-800 rounded-2xl font-black uppercase tracking-widest text-white" onClick={() => setIsBurnBreakdownOpen(false)}>
-                            GOT IT
-                        </Button>
-                    </DialogContent>
-                </Dialog>
 
-                {/* FINANCIALS MODAL */}
-                <Dialog open={isFinancialsOpen} onOpenChange={setIsFinancialsOpen}>
-                    <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-5 pb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">📊</div>
-                                <div>
-                                    <p className="text-white font-black text-base">{startup.name} Financials</p>
-                                    <p className="text-blue-200 text-[11px] font-bold">Month {month} · {startup.funding_stage}</p>
-                                </div>
+                        <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">📅</span>
+                                <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Est. Runway</span>
+                            </div>
+                            <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">
+                                {profitable ? "∞ Profitable" : `${liveRunway} Months`}
+                            </span>
+                        </div>
+                    </div>
+
+                    <Button className="w-full h-12 mt-6 bg-slate-900 border-b-4 border-slate-800 rounded-2xl font-black uppercase tracking-widest text-white" onClick={() => setIsBurnBreakdownOpen(false)}>
+                        GOT IT
+                    </Button>
+                </DialogContent>
+            </Dialog>
+
+            {/* FINANCIALS MODAL */}
+            <Dialog open={isFinancialsOpen} onOpenChange={setIsFinancialsOpen}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-0 rounded-3xl p-0 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-5 pb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">📊</div>
+                            <div>
+                                <p className="text-white font-black text-base">{startup.name} Financials</p>
+                                <p className="text-blue-200 text-[11px] font-bold">Month {month} · {startup.funding_stage}</p>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Tab bar */}
-                        <div className="-mt-4 mx-4 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 flex p-1 shrink-0">
-                            <button onClick={() => setFinancialTab("summary")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "summary" ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
-                                Overview
-                            </button>
-                            <button onClick={() => setFinancialTab("pnl")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "pnl" ? "bg-emerald-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
-                                P&amp;L
-                            </button>
-                            <button onClick={() => setFinancialTab("captable")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "captable" ? "bg-violet-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
-                                Cap Table
-                            </button>
-                        </div>
+                    {/* Tab bar */}
+                    <div className="-mt-4 mx-4 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 flex p-1 shrink-0">
+                        <button onClick={() => setFinancialTab("summary")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "summary" ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                            Overview
+                        </button>
+                        <button onClick={() => setFinancialTab("pnl")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "pnl" ? "bg-emerald-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                            P&amp;L
+                        </button>
+                        <button onClick={() => setFinancialTab("captable")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "captable" ? "bg-violet-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                            Cap Table
+                        </button>
+                    </div>
 
-                        <div className="space-y-2 mt-4 px-4 pb-6 overflow-y-auto flex-1">
-                            {financialTab === "summary" && (
-                                <div className="space-y-2">
-                                    {/* Key metrics grid */}
-                                    {(() => {
-                                        const netProfit = m.net_profit ?? 0;
-                                        const { monthlyRevenue: financialsMRR } = calculateFinancials(startup, founder);
-                                        return (
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {[
-                                                    { label: "Cash", val: formatMoney(m.cash), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50", explanation: "Your company bank account. Maintain at least 3 months of runway." },
-                                                    { label: "MRR", val: formatMoney(financialsMRR), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Monthly Recurring Revenue. Lifeblood of the business." },
-                                                    { label: "Valuation", val: formatMoney(startup.valuation), color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30 border-violet-100 dark:border-violet-900/50", explanation: "Calculated based on MRR, growth, and product quality." },
-                                                    { label: "Runway", val: netProfit > 0 ? "∞ Profitable" : (netProfit < 0 ? `${m.runway}mo` : "—"), color: netProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (netProfit < 0 ? (m.runway <= 3 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400") : "text-slate-400 dark:text-slate-500"), bg: netProfit > 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50" : (netProfit < 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"), explanation: "Time until cash runs out. Increase this by raising funds or reaching profitability." },
-                                                ].map(r => (
-                                                    <div
-                                                        key={r.label}
-                                                        onClick={() => setExpandedMetric(expandedMetric === r.label ? null : r.label)}
-                                                        className={cn("p-3 rounded-2xl border transition-all cursor-pointer", r.bg, expandedMetric === r.label ? "ring-2 ring-blue-500 scale-[1.02]" : "hover:shadow-sm")}
-                                                    >
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{r.label}</p>
-                                                            <span className="text-[9px] text-slate-300">?</span>
-                                                        </div>
-                                                        <p className={`text-base font-black ${r.color}`}>{r.val}</p>
-                                                        <AnimatePresence>
-                                                            {expandedMetric === r.label && (
-                                                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                                                    <p className="text-[9px] text-slate-600 mt-2 pt-2 border-t border-black/5 leading-tight">{r.explanation}</p>
-                                                                </motion.div>
-                                                            )}
-                                                        </AnimatePresence>
+                    <div className="space-y-2 mt-4 px-4 pb-6 overflow-y-auto flex-1">
+                        {financialTab === "summary" && (
+                            <div className="space-y-2">
+                                {/* Key metrics grid */}
+                                {(() => {
+                                    const netProfit = m.net_profit ?? 0;
+                                    const { monthlyRevenue: financialsMRR } = calculateFinancials(startup, founder);
+                                    return (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { label: "Cash", val: formatMoney(m.cash), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50", explanation: "Your company bank account. Maintain at least 3 months of runway." },
+                                                { label: "MRR", val: formatMoney(financialsMRR), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Monthly Recurring Revenue. Lifeblood of the business." },
+                                                { label: "Valuation", val: formatMoney(startup.valuation), color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30 border-violet-100 dark:border-violet-900/50", explanation: "Calculated based on MRR, growth, and product quality." },
+                                                { label: "Runway", val: netProfit > 0 ? "∞ Profitable" : (netProfit < 0 ? `${m.runway}mo` : "—"), color: netProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (netProfit < 0 ? (m.runway <= 3 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400") : "text-slate-400 dark:text-slate-500"), bg: netProfit > 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50" : (netProfit < 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"), explanation: "Time until cash runs out. Increase this by raising funds or reaching profitability." },
+                                            ].map(r => (
+                                                <div
+                                                    key={r.label}
+                                                    onClick={() => setExpandedMetric(expandedMetric === r.label ? null : r.label)}
+                                                    className={cn("p-3 rounded-2xl border transition-all cursor-pointer", r.bg, expandedMetric === r.label ? "ring-2 ring-blue-500 scale-[1.02]" : "hover:shadow-sm")}
+                                                >
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{r.label}</p>
+                                                        <span className="text-[9px] text-slate-300">?</span>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        );
-                                    })()}
-                                    {/* Detail rows */}
-                                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
-                                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">Unit Economics</p>
-                                        {(() => {
-                                            const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
-                                            return (
-                                                <>
-                                                    <StatRow label="Gross Margin" value={m.cogs ? `${Math.round(((liveRevenue - m.cogs) / (liveRevenue + 1)) * 100)}%` : "—"} color="text-emerald-600 dark:text-emerald-400"
-                                                        explanation="Revenue minus direct costs (COGS). Higher is better." isExpanded={expandedMetric === "gm"} onToggle={() => toggle("gm")} />
-                                                    <StatRow label="COGS" value={formatMoney(m.cogs || 0)} color="text-rose-500 dark:text-rose-400"
-                                                        explanation="Cost of Goods Sold. Direct expenses like server costs and API fees." isExpanded={expandedMetric === "cogs"} onToggle={() => toggle("cogs")} />
-                                                    <StatRow label="OpEx" value={formatMoney(m.opex || 0)} color="text-rose-400 dark:text-rose-300"
-                                                        explanation="Operating Expenses. Indirect costs like office rent and software." isExpanded={expandedMetric === "opex"} onToggle={() => toggle("opex")} />
-                                                    <StatRow label={"Net " + (liveNetProfit > 0 ? "Profit" : (liveNetProfit < 0 ? "Loss" : "Income"))} value={formatMoney(liveNetProfit || 0)} color={liveNetProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (liveNetProfit < 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500")}
-                                                        explanation="Total monthly profit or loss after all expenses." isExpanded={expandedMetric === "net"} onToggle={() => toggle("net")} />
-                                                    <StatRow label="CAC" value={m.cac ? formatMoney(m.cac) : "N/A"} color="text-slate-500 dark:text-slate-400"
-                                                        explanation="Customer Acquisition Cost. Marketing spend per new user." isExpanded={expandedMetric === "cac"} onToggle={() => toggle("cac")} />
-                                                    <StatRow label="LTV" value={m.ltv ? formatMoney(m.ltv) : "N/A"} color="text-blue-600 dark:text-blue-400"
-                                                        explanation="Lifetime Value. Total revenue expected from a user." isExpanded={expandedMetric === "ltv"} onToggle={() => toggle("ltv")} />
-                                                    <StatRow label="LTV:CAC" value={m.cac && m.ltv ? `${(m.ltv / m.cac).toFixed(1)}x` : "N/A"} color={(m.cac && m.ltv && m.ltv / m.cac >= 3) ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
-                                                        explanation="Ratio of LTV to CAC. 3x+ is healthy business. Hire a CFO to optimize." isExpanded={expandedMetric === "ltvcac"} onToggle={() => toggle("ltvcac")} />
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-                            {financialTab === "captable" && (
-                                <>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Ownership Distribution</p>
-                                    {/* Visual bar */}
-                                    <div className="h-6 rounded-full overflow-hidden flex mb-3">
-                                        {(startup.capTable || []).map((e: any, i: number) => {
-                                            const colors = ["bg-indigo-500", "bg-violet-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-sky-500"];
-                                            return <div key={i} className={`h-full ${colors[i % colors.length]} transition-all`} style={{ width: `${e.equity}%` }} title={`${e.name}: ${e.equity.toFixed(0)}%`} />;
-                                        })}
-                                    </div>
-                                    {(startup.capTable || []).map((e: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                                            <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-sm", 
-                                                e.type === "Founder" ? "bg-indigo-100 dark:bg-indigo-900/40" : "bg-amber-100 dark:bg-amber-900/40")}>
-                                                {e.type === "Founder" ? "👤" : "💼"}
-                                            </span>
-                                            <span className="text-sm text-slate-700 dark:text-slate-300 flex-1 font-semibold">{e.name}</span>
-                                            <span className="text-sm font-black text-slate-800 dark:text-slate-100">{e.equity.toFixed(1)}%</span>
-                                        </div>
-                                    ))}
-                                </>
-                            )}
-                            {financialTab === "pnl" && (
-                                <>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Monthly P&amp;L (Last 6 Months)</p>
-                                    <div className="space-y-3">
-                                        {(startup.history || []).slice(-6).reverse().map((entry: any, i: number) => (
-                                            <div key={i} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
-                                                <div className={`h-1 w-full ${entry.netIncome >= 0 ? "bg-emerald-400" : "bg-rose-400"}`} />
-                                                <div className="p-3">
-                                                    <p className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2">Month {entry.month}</p>
-                                                    <StatRow label="Revenue" value={formatMoney(entry.revenue)} color="text-green-600 dark:text-green-400" />
-                                                    <StatRow label="COGS" value={formatMoney(-entry.cogs)} color="text-rose-400 dark:text-rose-300" />
-                                                    <StatRow label="Gross Profit" value={formatMoney(entry.grossProfit)} color="text-slate-700 dark:text-slate-300" />
-                                                    <StatRow label="OpEx" value={formatMoney(-entry.opex)} color="text-rose-500 dark:text-rose-400" />
-                                                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between">
-                                                        <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Net Income</span>
-                                                        <span className={cn("text-xs font-black", entry.netIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{entry.netIncome >= 0 ? "+" : ""}{formatMoney(entry.netIncome)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {(!startup.history || startup.history.length === 0) && (
-                                            <div className="text-center py-8 text-slate-400 text-xs font-bold">No history yet. Advance to next month.</div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* ════════════ ENDGAME MODAL ════════════ */}
-                {isEndgameOpen && (() => {
-                    const { computeLegacyScore } = require("../../lib/engine/legacyScore");
-                    const outcome = startup.outcome ?? (endgameStory ? "wound_down" : "active");
-                    const monthsPlayed = startup.history?.length ?? 0;
-                    const legacy = computeLegacyScore(founder, startup, monthsPlayed);
-                    const founderTake = startup.acquisition_offers?.find((o: any) => o.negotiated)?.founder_take
-                        ?? (outcome === "ipo" ? Math.floor(startup.valuation * 0.20 * ((startup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 80) / 100)) : 0);
-
-                    const OUTCOME_META: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
-                        ipo: { emoji: "🏛️", label: "IPO Success!", bg: "bg-violet-600", text: "text-violet-600" },
-                        acquired: { emoji: "🤝", label: "Acquired!", bg: "bg-emerald-600", text: "text-emerald-600" },
-                        wound_down: { emoji: "🔒", label: "Wound Down", bg: "bg-amber-500", text: "text-amber-600" },
-                        bankrupt: { emoji: "💀", label: "Bankrupt", bg: "bg-rose-600", text: "text-rose-600" },
-                        active: { emoji: "🏁", label: "Game Over", bg: "bg-slate-600", text: "text-slate-600" },
-                    };
-                    const meta = OUTCOME_META[outcome] ?? OUTCOME_META["active"];
-
-                    return (
-                        <div className="fixed inset-0 z-[10000] bg-black/90 flex items-end justify-center sm:items-center p-4">
-                            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border-4 border-slate-100 dark:border-slate-800">
-                                {/* Header - fixed height */}
-                                <div className={`${meta.bg} shrink-0 p-5 text-center`}>
-                                    <p className="text-5xl mb-2">{meta.emoji}</p>
-                                    <p className="text-white font-black text-xl uppercase tracking-wide">{meta.label}</p>
-                                    <p className="text-white/80 text-sm mt-1">{startup.name} · Month {monthsPlayed}</p>
-                                </div>
-
-                                {/* Content - scrollable */}
-                                <div className="p-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
-                                    {/* Founder Take */}
-                                    {founderTake > 0 && (
-                                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
-                                            <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Your Personal Payout</p>
-                                            <p className="text-3xl font-black text-emerald-700 mt-1">
-                                                {formatMoney(founderTake)}
-                                            </p>
-                                            <p className="text-[9px] text-emerald-500 mt-0.5">after dilution</p>
-                                        </div>
-                                    )}
-
-                                    {/* Peak Metrics */}
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-slate-50 rounded-2xl p-3 text-center">
-                                            <p className="text-sm font-black text-slate-800">{formatMoney(startup.peak_valuation ?? startup.valuation)}</p>
-                                            <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Value</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-2xl p-3 text-center">
-                                            <p className="text-sm font-black text-slate-800">{formatNumber(startup.peak_users ?? startup.metrics.users)}</p>
-                                            <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Users</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-2xl p-3 text-center">
-                                            <p className="text-sm font-black text-slate-800">{allEmployees.length}</p>
-                                            <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Team Size</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Legacy Score */}
-                                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div>
-                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Legacy Score</p>
-                                                <p className="text-3xl font-black text-indigo-800">{legacy.score}<span className="text-sm font-normal text-indigo-400">/100</span></p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-2xl">{legacy.tier.emoji}</p>
-                                                <p className="text-xs font-black text-indigo-700">{legacy.tier.name}</p>
-                                            </div>
-                                        </div>
-                                        {/* Score bar */}
-                                        <div className="w-full h-2 bg-indigo-100 rounded-full overflow-hidden mb-3">
-                                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${legacy.score}%` }} />
-                                        </div>
-                                        {/* Breakdown */}
-                                        <div className="space-y-1">
-                                            {Object.entries(legacy.breakdown).map(([k, v]) => (
-                                                <div key={k} className="flex justify-between items-center">
-                                                    <p className="text-[9px] text-indigo-500">{k}</p>
-                                                    <p className="text-[9px] font-black text-indigo-700">{v as number} pts</p>
+                                                    <p className={`text-base font-black ${r.color}`}>{r.val}</p>
+                                                    <AnimatePresence>
+                                                        {expandedMetric === r.label && (
+                                                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                                                <p className="text-[9px] text-slate-600 mt-2 pt-2 border-t border-black/5 leading-tight">{r.explanation}</p>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
                                             ))}
                                         </div>
+                                    );
+                                })()}
+                                {/* Detail rows */}
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
+                                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">Unit Economics</p>
+                                    {(() => {
+                                        const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
+                                        return (
+                                            <>
+                                                <StatRow label="Gross Margin" value={m.cogs ? `${Math.round(((liveRevenue - m.cogs) / (liveRevenue + 1)) * 100)}%` : "—"} color="text-emerald-600 dark:text-emerald-400"
+                                                    explanation="Revenue minus direct costs (COGS). Higher is better." isExpanded={expandedMetric === "gm"} onToggle={() => toggle("gm")} />
+                                                <StatRow label="COGS" value={formatMoney(m.cogs || 0)} color="text-rose-500 dark:text-rose-400"
+                                                    explanation="Cost of Goods Sold. Direct expenses like server costs and API fees." isExpanded={expandedMetric === "cogs"} onToggle={() => toggle("cogs")} />
+                                                <StatRow label="OpEx" value={formatMoney(m.opex || 0)} color="text-rose-400 dark:text-rose-300"
+                                                    explanation="Operating Expenses. Indirect costs like office rent and software." isExpanded={expandedMetric === "opex"} onToggle={() => toggle("opex")} />
+                                                <StatRow label={"Net " + (liveNetProfit > 0 ? "Profit" : (liveNetProfit < 0 ? "Loss" : "Income"))} value={formatMoney(liveNetProfit || 0)} color={liveNetProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (liveNetProfit < 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500")}
+                                                    explanation="Total monthly profit or loss after all expenses." isExpanded={expandedMetric === "net"} onToggle={() => toggle("net")} />
+                                                <StatRow label="CAC" value={m.cac ? formatMoney(m.cac) : "N/A"} color="text-slate-500 dark:text-slate-400"
+                                                    explanation="Customer Acquisition Cost. Marketing spend per new user." isExpanded={expandedMetric === "cac"} onToggle={() => toggle("cac")} />
+                                                <StatRow label="LTV" value={m.ltv ? formatMoney(m.ltv) : "N/A"} color="text-blue-600 dark:text-blue-400"
+                                                    explanation="Lifetime Value. Total revenue expected from a user." isExpanded={expandedMetric === "ltv"} onToggle={() => toggle("ltv")} />
+                                                <StatRow label="LTV:CAC" value={m.cac && m.ltv ? `${(m.ltv / m.cac).toFixed(1)}x` : "N/A"} color={(m.cac && m.ltv && m.ltv / m.cac >= 3) ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
+                                                    explanation="Ratio of LTV to CAC. 3x+ is healthy business. Hire a CFO to optimize." isExpanded={expandedMetric === "ltvcac"} onToggle={() => toggle("ltvcac")} />
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+                        {financialTab === "captable" && (
+                            <>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Ownership Distribution</p>
+                                {/* Visual bar */}
+                                <div className="h-6 rounded-full overflow-hidden flex mb-3">
+                                    {(startup.capTable || []).map((e: any, i: number) => {
+                                        const colors = ["bg-indigo-500", "bg-violet-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-sky-500"];
+                                        return <div key={i} className={`h-full ${colors[i % colors.length]} transition-all`} style={{ width: `${e.equity}%` }} title={`${e.name}: ${e.equity.toFixed(0)}%`} />;
+                                    })}
+                                </div>
+                                {(startup.capTable || []).map((e: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                                        <span className={cn("w-8 h-8 rounded-xl flex items-center justify-center text-sm",
+                                            e.type === "Founder" ? "bg-indigo-100 dark:bg-indigo-900/40" : "bg-amber-100 dark:bg-amber-900/40")}>
+                                            {e.type === "Founder" ? "👤" : "💼"}
+                                        </span>
+                                        <span className="text-sm text-slate-700 dark:text-slate-300 flex-1 font-semibold">{e.name}</span>
+                                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">{e.equity.toFixed(1)}%</span>
                                     </div>
+                                ))}
+                            </>
+                        )}
+                        {financialTab === "pnl" && (
+                            <>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Monthly P&amp;L (Last 6 Months)</p>
+                                <div className="space-y-3">
+                                    {(startup.history || []).slice(-6).reverse().map((entry: any, i: number) => (
+                                        <div key={i} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+                                            <div className={`h-1 w-full ${entry.netIncome >= 0 ? "bg-emerald-400" : "bg-rose-400"}`} />
+                                            <div className="p-3">
+                                                <p className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2">Month {entry.month}</p>
+                                                <StatRow label="Revenue" value={formatMoney(entry.revenue)} color="text-green-600 dark:text-green-400" />
+                                                <StatRow label="COGS" value={formatMoney(-entry.cogs)} color="text-rose-400 dark:text-rose-300" />
+                                                <StatRow label="Gross Profit" value={formatMoney(entry.grossProfit)} color="text-slate-700 dark:text-slate-300" />
+                                                <StatRow label="OpEx" value={formatMoney(-entry.opex)} color="text-rose-500 dark:text-rose-400" />
+                                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between">
+                                                    <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Net Income</span>
+                                                    <span className={cn("text-xs font-black", entry.netIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{entry.netIncome >= 0 ? "+" : ""}{formatMoney(entry.netIncome)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!startup.history || startup.history.length === 0) && (
+                                        <div className="text-center py-8 text-slate-400 text-xs font-bold">No history yet. Advance to next month.</div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-                                    {/* Flavour Text */}
-                                    <div className="bg-slate-50 rounded-2xl p-4">
-                                        <p className="text-xs text-slate-600 leading-relaxed italic">{legacy.tier.flavourText}</p>
-                                        <div className="mt-3 bg-white border border-amber-200 rounded-xl px-3 py-2">
-                                            <p className="text-[8px] font-black text-amber-600 uppercase">Next Run Perk 🎁</p>
-                                            <p className="text-[9px] text-slate-600 mt-0.5">{legacy.tier.perk}</p>
+            {/* ════════════ ENDGAME MODAL ════════════ */}
+            {isEndgameOpen && (() => {
+                const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+                const outcome = startup.outcome ?? (endgameStory ? "wound_down" : "active");
+                const monthsPlayed = startup.history?.length ?? 0;
+                const legacy = computeLegacyScore(founder, startup, monthsPlayed);
+                const founderTake = startup.acquisition_offers?.find((o: any) => o.negotiated)?.founder_take
+                    ?? (outcome === "ipo" ? Math.floor(startup.valuation * 0.20 * ((startup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 80) / 100)) : 0);
+
+                const OUTCOME_META: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
+                    ipo: { emoji: "🏛️", label: "IPO Success!", bg: "bg-violet-600", text: "text-violet-600" },
+                    acquired: { emoji: "🤝", label: "Acquired!", bg: "bg-emerald-600", text: "text-emerald-600" },
+                    wound_down: { emoji: "🔒", label: "Wound Down", bg: "bg-amber-500", text: "text-amber-600" },
+                    bankrupt: { emoji: "💀", label: "Bankrupt", bg: "bg-rose-600", text: "text-rose-600" },
+                    active: { emoji: "🏁", label: "Game Over", bg: "bg-slate-600", text: "text-slate-600" },
+                };
+                const meta = OUTCOME_META[outcome] ?? OUTCOME_META["active"];
+
+                return (
+                    <div className="fixed inset-0 z-[10000] bg-black/90 flex items-end justify-center sm:items-center p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-sm max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border-4 border-slate-100 dark:border-slate-800">
+                            {/* Header - fixed height */}
+                            <div className={`${meta.bg} shrink-0 p-5 text-center`}>
+                                <p className="text-5xl mb-2">{meta.emoji}</p>
+                                <p className="text-white font-black text-xl uppercase tracking-wide">{meta.label}</p>
+                                <p className="text-white/80 text-sm mt-1">{startup.name} · Month {monthsPlayed}</p>
+                            </div>
+
+                            {/* Content - scrollable */}
+                            <div className="p-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
+                                {/* Founder Take */}
+                                {founderTake > 0 && (
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+                                        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Your Personal Payout</p>
+                                        <p className="text-3xl font-black text-emerald-700 mt-1">
+                                            {formatMoney(founderTake)}
+                                        </p>
+                                        <p className="text-[9px] text-emerald-500 mt-0.5">after dilution</p>
+                                    </div>
+                                )}
+
+                                {/* Peak Metrics */}
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-slate-50 rounded-2xl p-3 text-center">
+                                        <p className="text-sm font-black text-slate-800">{formatMoney(startup.peak_valuation ?? startup.valuation)}</p>
+                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Value</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-2xl p-3 text-center">
+                                        <p className="text-sm font-black text-slate-800">{formatNumber(startup.peak_users ?? startup.metrics.users)}</p>
+                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Users</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-2xl p-3 text-center">
+                                        <p className="text-sm font-black text-slate-800">{allEmployees.length}</p>
+                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Team Size</p>
+                                    </div>
+                                </div>
+
+                                {/* Legacy Score */}
+                                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Legacy Score</p>
+                                            <p className="text-3xl font-black text-indigo-800">{legacy.score}<span className="text-sm font-normal text-indigo-400">/100</span></p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-2xl">{legacy.tier.emoji}</p>
+                                            <p className="text-xs font-black text-indigo-700">{legacy.tier.name}</p>
                                         </div>
                                     </div>
-
-                                    {/* Founder Story */}
-                                    <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
-                                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                            📖 Your Story
-                                            {!endgameStory && <Loader2 className="h-3 w-3 animate-spin text-indigo-400" />}
-                                        </p>
-                                        {endgameStory ? (
-                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{endgameStory}</p>
-                                        ) : (
-                                            <div className="space-y-2 mt-2">
-                                                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
-                                                <div className="h-2 w-5/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
-                                                <div className="h-2 w-4/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
-                                            </div>
-                                        )}
+                                    {/* Score bar */}
+                                    <div className="w-full h-2 bg-indigo-100 rounded-full overflow-hidden mb-3">
+                                        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${legacy.score}%` }} />
                                     </div>
-
-                                    {/* V2 Teaser — IPO only */}
-                                    {outcome === "ipo" && (
-                                        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-4 relative overflow-hidden">
-                                            <div className="absolute -top-4 -right-4 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
-                                            <div className="relative z-10">
-                                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest mb-2">
-                                                    🧩 Your Story Doesn't End Here
-                                                </div>
-                                                <p className="text-white font-bold text-sm leading-snug mb-1">
-                                                    You've just listed on the stock exchange.
-                                                </p>
-                                                <p className="text-indigo-100 text-[10px] leading-relaxed mb-3">
-                                                    But running a publicly traded company is a whole new game. The V2 update continues your journey — quarterly earnings calls, activist investors, board battles, and the pressure of performing in front of Wall Street.
-                                                </p>
-                                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 w-fit">
-                                                    <span className="text-xs">🕐</span>
-                                                    <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
-                                                </div>
+                                    {/* Breakdown */}
+                                    <div className="space-y-1">
+                                        {Object.entries(legacy.breakdown).map(([k, v]) => (
+                                            <div key={k} className="flex justify-between items-center">
+                                                <p className="text-[9px] text-indigo-500">{k}</p>
+                                                <p className="text-[9px] font-black text-indigo-700">{v as number} pts</p>
                                             </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Flavour Text */}
+                                <div className="bg-slate-50 rounded-2xl p-4">
+                                    <p className="text-xs text-slate-600 leading-relaxed italic">{legacy.tier.flavourText}</p>
+                                    <div className="mt-3 bg-white border border-amber-200 rounded-xl px-3 py-2">
+                                        <p className="text-[8px] font-black text-amber-600 uppercase">Next Run Perk 🎁</p>
+                                        <p className="text-[9px] text-slate-600 mt-0.5">{legacy.tier.perk}</p>
+                                    </div>
+                                </div>
+
+                                {/* Founder Story */}
+                                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
+                                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        📖 Your Story
+                                        {!endgameStory && <Loader2 className="h-3 w-3 animate-spin text-indigo-400" />}
+                                    </p>
+                                    {endgameStory ? (
+                                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{endgameStory}</p>
+                                    ) : (
+                                        <div className="space-y-2 mt-2">
+                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
+                                            <div className="h-2 w-5/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
+                                            <div className="h-2 w-4/6 bg-slate-100 dark:bg-slate-700/50 rounded animate-pulse" />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Footer buttons - fixed bottom with safe area */}
-                                <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
-
-
-                                    <button
-                                        onClick={() => handleResetGame(true)}
-                                        className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
-                                    >
-                                        Start New Game →
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })()}
-
-                <Toaster position="top-center" duration={3000} style={{ marginTop: '60px' }} toastOptions={{ className: 'font-sans shadow-xl' }} />
-                {/* HOW TO PLAY MODAL */}
-                <Dialog open={isHowToPlayOpen} onOpenChange={setIsHowToPlayOpen}>
-                    <DialogContent className="sm:max-w-2xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 border-4 rounded-[2rem] p-0 shadow-2xl max-h-[85vh] overflow-hidden flex flex-col items-stretch [&>button]:hidden">
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-6 py-8 relative">
-                            <div className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer" onClick={() => setIsHowToPlayOpen(false)}>✕</div>
-                            <h2 className="text-2xl font-black tracking-tight text-white mb-1 leading-none">How To Play</h2>
-                            <p className="text-indigo-200 text-sm font-medium">Your guide to building a unicorn.</p>
-                        </div>
-
-                        <HowToPlayContent />
-
-                        <div className="px-6 py-4 bg-white dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                            <Button className="rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 h-12 w-full sm:w-auto px-10 shadow-lg shadow-indigo-600/20" onClick={() => setIsHowToPlayOpen(false)}>GOT IT, LET'S BUILD</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* V2 ROADMAP MODAL */}
-                <Dialog open={isRoadmapOpen} onOpenChange={setIsRoadmapOpen}>
-                    <DialogContent className="sm:max-w-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 border-4 rounded-[2.5rem] p-0 shadow-2xl overflow-hidden [&>button]:hidden font-sans max-h-[92vh] flex flex-col">
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-8 py-10 relative overflow-hidden shrink-0">
-                            {/* Decorative background element */}
-                            <div className="absolute -top-10 -right-10 text-[12rem] font-black text-white/10 select-none pointer-events-none italic">V2</div>
-                            
-                            <div className="absolute top-6 right-6 text-white/50 hover:text-white cursor-pointer select-none bg-black/10 rounded-full p-2 transition-colors" onClick={() => setIsRoadmapOpen(false)}>
-                                <X className="size-5" />
-                            </div>
-
-                            <div className="relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
-                                    <Rocket className="size-3" /> Upcoming Expansion
-                                </div>
-                                <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
-                                <p className="text-indigo-100 text-sm font-medium max-w-md">V2 picks up where you left off — run your publicly listed company, build a global empire, and face challenges no bootstrapped founder ever imagined.</p>
-                            </div>
-                        </div>
-
-                        <div className="p-8 bg-slate-50 dark:bg-slate-900/50 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
-                            {/* Post-IPO Chapter — Featured First Card */}
-                            <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 p-5 rounded-3xl shadow-lg shadow-violet-600/20 relative overflow-hidden">
-                                <div className="absolute -top-6 -right-6 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
-                                <div className="relative z-10">
-                                    <div className="flex gap-2 mb-3">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest">New Chapter</span>
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 text-amber-100 text-[8px] font-black uppercase tracking-widest">Continues Your Story</span>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <div className="size-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏛️</div>
-                                        <div>
-                                            <p className="text-base font-black text-white mb-1">Post-IPO: The Public Company Era</p>
-                                            <p className="text-xs text-indigo-100 font-medium leading-relaxed">Your IPO was just the beginning. The V2 update picks up where Founder Sim leaves off — you'll run your company as a publicly listed entity. Manage quarterly earnings, deal with shareholder activism, navigate board politics, and face the brutally realistic world of public markets.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-3">
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25">
-                                            <span className="text-xs">🕐</span>
-                                            <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
-                                <div className="flex gap-4">
-                                    <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
-                                    <div>
-                                        <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">The Talent Roster Update</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unique executive traits, legendary hires, and internal politics. Will you hire the toxic genius who builds 10x faster but destroys your team's soul?</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                                <div className="flex gap-4">
-                                    <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
-                                    <div>
-                                        <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">The Empire Expansion</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate divisions to your VPs, execute hostile takeovers of rivals, lobby regulators, and expand into international markets.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                                <div className="flex gap-4">
-                                    <div className="size-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
-                                    <div>
-                                        <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Dynamic Crisis Engine</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Data breaches, activist short-sellers, viral PR disasters, and regulatory investigations. Every quarter on the public markets brings a new fire to put out.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                                <div className="flex gap-4">
-                                    <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
-                                    <div>
-                                        <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Founder Skill Web</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A massive RPG-style skill tree. Spec into "Growth Hacking", "Product Visionary", or "Cold-Blooded Dealmaker" to unlock unique perks.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q3 2026 Drop</p>
-                            <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
-                                LET'S SCALE →
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* SAVE GAME MODAL */}
-                <AnimatePresence>
-                    {isSaveModalOpen && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-sm"
-                            onClick={() => { setIsSaveModalOpen(false); setSaveConfirmOverwrite(null); }}
-                        >
-                            <motion.div
-                                initial={{ y: 100, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: 100, opacity: 0 }}
-                                transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                                className="w-full max-w-sm bg-white rounded-t-[2rem] p-6 shadow-2xl max-h-[85dvh] flex flex-col"
-                                onClick={e => e.stopPropagation()}
-                            >
-                                <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
-                                <h2 className="text-lg font-black text-slate-900 mb-1">Save Game</h2>
-                                <p className="text-[11px] text-slate-400 mb-4">{availableSaves.length}/{MAX_SLOTS} slots used</p>
-
-                                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                                    {/* Filled Slots */}
-                                    {availableSaves.map(save => (
-                                        <div key={save.id} className="relative">
-                                            {saveConfirmOverwrite === save.id ? (
-                                                <div className="p-4 rounded-2xl border-2 border-amber-200 bg-amber-50 flex items-center justify-between">
-                                                    <p className="text-sm font-bold text-amber-900">Overwrite this save?</p>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => setSaveConfirmOverwrite(null)} className="text-xs font-bold text-slate-500 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-sm active:scale-95 transition-all">Cancel</button>
-                                                        <button onClick={() => handleSaveGame(save.id)} className="text-xs font-bold text-white px-3 py-1.5 rounded-xl bg-amber-500 shadow-sm shadow-amber-500/30 active:scale-95 transition-all">Overwrite</button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    onClick={() => setSaveConfirmOverwrite(save.id)}
-                                                    className="p-4 rounded-2xl border-2 border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 active:scale-[0.98] transition-all cursor-pointer group relative overflow-hidden"
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: save.brandColor ? `${save.brandColor}20` : '#eef2ff' }}>
-                                                            {save.logo || '⚡'}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-black text-slate-900 text-sm truncate">{save.companyName}</p>
-                                                            <p className="text-[10px] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
-                                                            <div className="flex items-center gap-2 mt-2">
-                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${STAGE_COLORS[save.stage] || "bg-slate-100 text-slate-600"}`}>
-                                                                    {save.stage}
-                                                                </span>
-                                                                <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                                                    {formatMoney(save.valuation)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteSave(save.id); }}
-                                                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-400 transition-colors shrink-0 z-10"
-                                                        >
-                                                            <Trash2 className="size-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    {/* Empty Slots */}
-                                    {Array.from({ length: MAX_SLOTS - availableSaves.length }).map((_, i) => (
-                                        <div
-                                            key={`empty-${i}`}
-                                            className="p-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center gap-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors active:scale-[0.98]"
-                                            onClick={() => handleSaveGame()}
-                                        >
-                                            <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                                                <Plus className="size-4" />
+                                {/* V2 Teaser — IPO only */}
+                                {outcome === "ipo" && (
+                                    <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-4 relative overflow-hidden">
+                                        <div className="absolute -top-4 -right-4 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
+                                        <div className="relative z-10">
+                                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest mb-2">
+                                                🧩 Your Story Doesn't End Here
                                             </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Empty Slot</p>
-                                                <p className="text-[10px] text-slate-400 mt-0.5">Click to save game</p>
+                                            <p className="text-white font-bold text-sm leading-snug mb-1">
+                                                You've just listed on the stock exchange.
+                                            </p>
+                                            <p className="text-indigo-100 text-[10px] leading-relaxed mb-3">
+                                                But running a publicly traded company is a whole new game. The V2 update continues your journey — quarterly earnings calls, activist investors, board battles, and the pressure of performing in front of Wall Street.
+                                            </p>
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 w-fit">
+                                                <span className="text-xs">🕐</span>
+                                                <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer buttons - fixed bottom with safe area */}
+                            <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
+
 
                                 <button
-                                    onClick={() => { setIsSaveModalOpen(false); setSaveConfirmOverwrite(null); }}
-                                    className="mt-4 w-full h-12 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-colors active:scale-[0.98]"
+                                    onClick={() => handleResetGame(true)}
+                                    className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
                                 >
-                                    Cancel
+                                    Start New Game →
                                 </button>
-                            </motion.div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            <Toaster position="top-center" duration={3000} style={{ marginTop: '60px' }} toastOptions={{ className: 'font-sans shadow-xl' }} />
+            {/* HOW TO PLAY MODAL */}
+            <Dialog open={isHowToPlayOpen} onOpenChange={setIsHowToPlayOpen}>
+                <DialogContent className="sm:max-w-2xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 border-4 rounded-[2rem] p-0 shadow-2xl max-h-[85vh] overflow-hidden flex flex-col items-stretch [&>button]:hidden">
+                    <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-6 py-8 relative">
+                        <div className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer" onClick={() => setIsHowToPlayOpen(false)}>✕</div>
+                        <h2 className="text-2xl font-black tracking-tight text-white mb-1 leading-none">How To Play</h2>
+                        <p className="text-indigo-200 text-sm font-medium">Your guide to building a unicorn.</p>
+                    </div>
+
+                    <HowToPlayContent />
+
+                    <div className="px-6 py-4 bg-white dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                        <Button className="rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 h-12 w-full sm:w-auto px-10 shadow-lg shadow-indigo-600/20" onClick={() => setIsHowToPlayOpen(false)}>GOT IT, LET'S BUILD</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* V2 ROADMAP MODAL */}
+            <Dialog open={isRoadmapOpen} onOpenChange={setIsRoadmapOpen}>
+                <DialogContent className="sm:max-w-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 border-4 rounded-[2.5rem] p-0 shadow-2xl overflow-hidden [&>button]:hidden font-sans max-h-[92vh] flex flex-col">
+                    <div className="bg-gradient-to-br from-indigo-600 to-purple-700 px-8 py-10 relative overflow-hidden shrink-0">
+                        {/* Decorative background element */}
+                        <div className="absolute -top-10 -right-10 text-[12rem] font-black text-white/10 select-none pointer-events-none italic">V2</div>
+
+                        <div className="absolute top-6 right-6 text-white/50 hover:text-white cursor-pointer select-none bg-black/10 rounded-full p-2 transition-colors" onClick={() => setIsRoadmapOpen(false)}>
+                            <X className="size-5" />
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
+                                <Rocket className="size-3" /> Upcoming Expansion
+                            </div>
+                            <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
+                            <p className="text-indigo-100 text-sm font-medium max-w-md">V2 picks up where you left off — run your publicly listed company, build a global empire, and face challenges no bootstrapped founder ever imagined.</p>
+                        </div>
+                    </div>
+
+                    <div className="p-8 bg-slate-50 dark:bg-slate-900/50 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
+                        {/* Post-IPO Chapter — Featured First Card */}
+                        <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 p-5 rounded-3xl shadow-lg shadow-violet-600/20 relative overflow-hidden">
+                            <div className="absolute -top-6 -right-6 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
+                            <div className="relative z-10">
+                                <div className="flex gap-2 mb-3">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest">New Chapter</span>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 text-amber-100 text-[8px] font-black uppercase tracking-widest">Continues Your Story</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="size-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏛️</div>
+                                    <div>
+                                        <p className="text-base font-black text-white mb-1">Post-IPO: The Public Company Era</p>
+                                        <p className="text-xs text-indigo-100 font-medium leading-relaxed">Your IPO was just the beginning. The V2 update picks up where Founder Sim leaves off — you'll run your company as a publicly listed entity. Manage quarterly earnings, deal with shareholder activism, navigate board politics, and face the brutally realistic world of public markets.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-3">
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25">
+                                        <span className="text-xs">🕐</span>
+                                        <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
+                            <div className="flex gap-4">
+                                <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
+                                <div>
+                                    <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">The Talent Roster Update</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unique executive traits, legendary hires, and internal politics. Will you hire the toxic genius who builds 10x faster but destroys your team's soul?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="flex gap-4">
+                                <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
+                                <div>
+                                    <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">The Empire Expansion</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate divisions to your VPs, execute hostile takeovers of rivals, lobby regulators, and expand into international markets.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="flex gap-4">
+                                <div className="size-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
+                                <div>
+                                    <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Dynamic Crisis Engine</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Data breaches, activist short-sellers, viral PR disasters, and regulatory investigations. Every quarter on the public markets brings a new fire to put out.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="flex gap-4">
+                                <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
+                                <div>
+                                    <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Founder Skill Web</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A massive RPG-style skill tree. Spec into "Growth Hacking", "Product Visionary", or "Cold-Blooded Dealmaker" to unlock unique perks.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q3 2026 Drop</p>
+                        <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
+                            LET'S SCALE →
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* SAVE GAME MODAL */}
+            <AnimatePresence>
+                {isSaveModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-sm"
+                        onClick={() => { setIsSaveModalOpen(false); setSaveConfirmOverwrite(null); }}
+                    >
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                            className="w-full max-w-sm bg-white rounded-t-[2rem] p-6 shadow-2xl max-h-[85dvh] flex flex-col"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+                            <h2 className="text-lg font-black text-slate-900 mb-1">Save Game</h2>
+                            <p className="text-[11px] text-slate-400 mb-4">{availableSaves.length}/{MAX_SLOTS} slots used</p>
+
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                {/* Filled Slots */}
+                                {availableSaves.map(save => (
+                                    <div key={save.id} className="relative">
+                                        {saveConfirmOverwrite === save.id ? (
+                                            <div className="p-4 rounded-2xl border-2 border-amber-200 bg-amber-50 flex items-center justify-between">
+                                                <p className="text-sm font-bold text-amber-900">Overwrite this save?</p>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => setSaveConfirmOverwrite(null)} className="text-xs font-bold text-slate-500 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-sm active:scale-95 transition-all">Cancel</button>
+                                                    <button onClick={() => handleSaveGame(save.id)} className="text-xs font-bold text-white px-3 py-1.5 rounded-xl bg-amber-500 shadow-sm shadow-amber-500/30 active:scale-95 transition-all">Overwrite</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={() => setSaveConfirmOverwrite(save.id)}
+                                                className="p-4 rounded-2xl border-2 border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 active:scale-[0.98] transition-all cursor-pointer group relative overflow-hidden"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: save.brandColor ? `${save.brandColor}20` : '#eef2ff' }}>
+                                                        {save.logo || '⚡'}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-black text-slate-900 text-sm truncate">{save.companyName}</p>
+                                                        <p className="text-[10px] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${STAGE_COLORS[save.stage] || "bg-slate-100 text-slate-600"}`}>
+                                                                {save.stage}
+                                                            </span>
+                                                            <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                                                {formatMoney(save.valuation)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSave(save.id); }}
+                                                        className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-400 transition-colors shrink-0 z-10"
+                                                    >
+                                                        <Trash2 className="size-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Empty Slots */}
+                                {Array.from({ length: MAX_SLOTS - availableSaves.length }).map((_, i) => (
+                                    <div
+                                        key={`empty-${i}`}
+                                        className="p-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center gap-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors active:scale-[0.98]"
+                                        onClick={() => handleSaveGame()}
+                                    >
+                                        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                            <Plus className="size-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Empty Slot</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">Click to save game</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => { setIsSaveModalOpen(false); setSaveConfirmOverwrite(null); }}
+                                className="mt-4 w-full h-12 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-colors active:scale-[0.98]"
+                            >
+                                Cancel
+                            </button>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* CONFIRMATION MODAL */}
-                <ConfirmModal
-                    isOpen={confirmDialog.open}
-                    onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
-                    title={confirmDialog.title}
-                    description={confirmDialog.description}
-                    confirmText={confirmDialog.confirmText}
-                    type={confirmDialog.type}
-                    onConfirm={confirmDialog.onConfirm}
-                />
-
-                {!isCharacterDialogOpen && (
-                    <EventModal
-                        event={activeEvent}
-                        onResolve={handleEventResolution}
-                        onClose={() => setActiveEvent(null)}
-                        multiplier={eventMultiplier}
-                        isPremium={isPremium}
-                    />
+                    </motion.div>
                 )}
-            </div>
-        );
-    }
+            </AnimatePresence>
+
+            {/* CONFIRMATION MODAL */}
+            <ConfirmModal
+                isOpen={confirmDialog.open}
+                onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
+                title={confirmDialog.title}
+                description={confirmDialog.description}
+                confirmText={confirmDialog.confirmText}
+                type={confirmDialog.type}
+                onConfirm={confirmDialog.onConfirm}
+            />
+
+            {!isCharacterDialogOpen && (
+                <EventModal
+                    event={activeEvent}
+                    onResolve={handleEventResolution}
+                    onClose={() => setActiveEvent(null)}
+                    multiplier={eventMultiplier}
+                    isPremium={isPremium}
+                />
+            )}
+
+            <SamOnboardingModal 
+                isOpen={showPostIpoCinematic} 
+                onComplete={() => setShowPostIpoCinematic(false)} 
+            />
+
+            <EarningsCallModal
+                open={isEarningsCallOpen}
+                startup={startup}
+                founder={founder}
+                month={month}
+                onComplete={(results) => {
+                    const newStartup = { ...startup };
+                    if (newStartup.public_company) {
+                        const pub = newStartup.public_company;
+                        
+                        // Apply price impact
+                        pub.share_price = Math.max(0.01, pub.share_price * (1 + results.priceImpactPct));
+                        
+                        // Update consensus and guidance for next quarter
+                        const currentEps = pub.eps_last_quarter;
+                        const oldConsensus = pub.consensus_eps;
+                        
+                        let nextGuidance = currentEps;
+                        if (results.guidance === "bullish") nextGuidance = currentEps * 1.15;
+                        if (results.guidance === "bearish") nextGuidance = currentEps * 0.85;
+                        if (results.guidance === "realistic") nextGuidance = currentEps * 1.05;
+                        
+                        pub.eps_guidance = nextGuidance;
+                        // Street consensus meets you halfway
+                        pub.consensus_eps = (currentEps + nextGuidance) / 2;
+                        
+                        // Record streak
+                        if (pub.eps_last_quarter >= oldConsensus) {
+                            pub.quarterly_beats++;
+                            pub.quarterly_misses = 0;
+                        } else {
+                            pub.quarterly_misses++;
+                            pub.quarterly_beats = 0;
+                        }
+                        
+                        // Sync ticker
+                        setMarketStocks(prev => prev.map(s => 
+                            s.symbol === (startup.symbol || "CORP") ? { ...s, currentPrice: pub.share_price } : s
+                        ));
+                    }
+                    
+                    setStartup(newStartup);
+                    addTimelineEvent(results.message, month);
+                    
+                    if (results.priceImpactPct > 0) {
+                        toast.success("Earnings Call Concluded", { description: "Stock reacted positively." });
+                        playSound("success");
+                    } else {
+                        toast.error("Earnings Call Concluded", { description: "Stock took a hit." });
+                        playSound("fail");
+                    }
+                    
+                    setIsEarningsCallOpen(false);
+                }}
+            />
+        </div>
+    );
+}

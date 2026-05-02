@@ -1,4 +1,4 @@
-import { Startup, Founder } from "../types/database.types";
+import { Startup, Founder, EmployeeTrait } from "../types/database.types";
 import { formatMoney } from "../utils";
 
 export type Candidate = {
@@ -10,12 +10,29 @@ export type Candidate = {
     expectedEquity: number;
     personality: "Ambitious" | "Stable" | "Workaholic" | "Creative";
     candId?: string;
+    // ── Talent Roster additions ──
+    hiddenTrait?: EmployeeTrait;  // Assigned at generation, hidden until revealed in-game
+    isLegendary?: boolean;        // Milestone-gated: only spawns at Series A+
+    storyQuote?: string;          // Flavor text shown for legendary hires
 };
 
 export const CANDIDATE_NAMES = [
     "Aarav", "Priya", "Jordan", "Mei", "Samuel", "Aisha", 
     "Liam", "Riya", "Chris", "Nadia", "Tyler", "Zara",
     "Alex", "Taylor", "Morgan", "Casey", "Riley", "Sam", "Charlie"
+];
+
+// ── TALENT ROSTER: Trait pools ─────────────────────────────────────────────
+const POSITIVE_TRAITS: EmployeeTrait[] = ["loyalist", "cultural_anchor", "evangelist"];
+const NEGATIVE_TRAITS: EmployeeTrait[] = ["mercenary", "bug_prone", "burnout_magnet"];
+
+const LEGENDARY_QUOTES = [
+    "Ex-Stripe infra lead. Now building something that actually matters.",
+    "Exited her last startup for $80M at 28. Looking for the next obsession.",
+    "3x YC founder. This one's going to be different.",
+    "Former Google L7. Left to prove big companies can't innovate.",
+    "Led growth at Figma from 0 to $2B ARR. Ready for another chapter.",
+    "Ex-McKinsey, ex-Robinhood, ex-excuses. Full-time builder.",
 ];
 
 export function generateCandidate(role: string, startupStage: string, forcedDetails?: Partial<Candidate>): Candidate {
@@ -56,14 +73,42 @@ export function generateCandidate(role: string, startupStage: string, forcedDeta
     const baseEquity = (level === "Lead" ? 2.5 : level === "Senior" ? 1.0 : level === "Mid" ? 0.3 : 0.1) / stageEquityDivisor;
     const expectedEquity = forcedDetails?.expectedEquity || Number((baseEquity * (0.8 + Math.random() * 0.4)).toFixed(2));
 
+    // ── TALENT ROSTER: Trait Assignment (hidden until revealed in-game) ────────────
+    let hiddenTrait: EmployeeTrait | undefined = forcedDetails?.hiddenTrait;
+    if (!hiddenTrait) {
+        const traitRoll = Math.random();
+        if (traitRoll < 0.25) {
+            // 25% chance of a positive trait
+            hiddenTrait = POSITIVE_TRAITS[Math.floor(Math.random() * POSITIVE_TRAITS.length)];
+        } else if (traitRoll < 0.55) {
+            // 30% chance of a negative trait
+            hiddenTrait = NEGATIVE_TRAITS[Math.floor(Math.random() * NEGATIVE_TRAITS.length)];
+        } else if (traitRoll < 0.58) {
+            // 3% chance of the rare Toxic Genius
+            hiddenTrait = "toxic_genius";
+        }
+        // 42% chance of no trait
+    }
+
+    // ── TALENT ROSTER: Legendary Hire (milestone-gated: Series A+) ────────────
+    const isLegendaryStage = ![
+        "Bootstrapping", "Angel Investment", "Seed Round"
+    ].includes(startupStage);
+    const isLegendary = forcedDetails?.isLegendary ?? (isLegendaryStage && Math.random() < 0.02);
+    const storyQuote = forcedDetails?.storyQuote ??
+        (isLegendary ? LEGENDARY_QUOTES[Math.floor(Math.random() * LEGENDARY_QUOTES.length)] : undefined);
+
     return {
         name: forcedDetails?.name || (CANDIDATE_NAMES[Math.floor(Math.random() * CANDIDATE_NAMES.length)] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + "."),
         role,
-        level,
-        experience,
-        expectedSalary: Math.floor(expectedSalary),
-        expectedEquity,
-        personality: forcedDetails?.personality || (["Ambitious", "Stable", "Workaholic", "Creative"][Math.floor(Math.random() * 4)] as Candidate["personality"])
+        level: isLegendary ? "Lead" : level, // Legendary hires are always Lead-level
+        experience: isLegendary ? Math.max(experience, 12) : experience,
+        expectedSalary: Math.floor(isLegendary ? expectedSalary * 1.25 : expectedSalary),
+        expectedEquity: isLegendary ? Number((expectedEquity * 1.5).toFixed(2)) : expectedEquity,
+        personality: forcedDetails?.personality || (["Ambitious", "Stable", "Workaholic", "Creative"][Math.floor(Math.random() * 4)] as Candidate["personality"]),
+        hiddenTrait,
+        isLegendary,
+        storyQuote,
     };
 }
 

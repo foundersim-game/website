@@ -1,5 +1,8 @@
-import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry, SeasonType } from "../types/database.types";
+import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry, SeasonType, EmployeeTrait } from "../types/database.types";
 import { SCENARIOS, ScenarioId } from "./legacy";
+import { TRAIT_REVEAL_NOTICES, formatTraitNotice } from "./traitNotices";
+import { checkCrisisSpawn, processCrisisEscalation, CRISIS_LABELS, CRISIS_EMOJIS, getCurrentCrisisStage } from "./crisisEngine";
+import { applySkillNodeEffects } from "./skillWeb";
 
 export interface PricingConfigNode {
     maxPrice: number;
@@ -647,6 +650,31 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.reliability = Math.max(0, Math.min(100, (metrics.reliability || 80) + reliabilityBoost - (metrics.technical_debt / 10)));
     metrics.innovation = Math.max(0, Math.min(100, (metrics.innovation || 10) + innovationBoost));
 
+    // ── SKILL WEB: Passive monthly bonuses from unlocked nodes ────────────────────
+    // Note: monthsPassed is computed later in the function; we derive it early here
+    const _monthsPassedEarly = startup.history?.length || 0;
+    const skillEffects = applySkillNodeEffects(founder, newStartup, metrics, _monthsPassedEarly);
+
+    // Tech debt reduction (system_design node)
+    if (skillEffects.techDebtReduction > 0) {
+        metrics.technical_debt = Math.max(0, metrics.technical_debt * (1 - skillEffects.techDebtReduction));
+    }
+    // Product quality + reliability (distributed_systems, code_quality nodes)
+    if (skillEffects.productQualityBonus > 0) {
+        metrics.product_quality = Math.min(100, (metrics.product_quality || 0) + skillEffects.productQualityBonus);
+    }
+    if (skillEffects.reliabilityBonus > 0) {
+        metrics.reliability = Math.min(100, (metrics.reliability || 80) + skillEffects.reliabilityBonus);
+    }
+    // Brand awareness (brand_strategy node)
+    if (skillEffects.brandAwarenessBonus > 0) {
+        metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + skillEffects.brandAwarenessBonus);
+    }
+    // Team morale (people_management node)
+    if (skillEffects.teamMoraleBonus > 0) {
+        metrics.team_morale = Math.min(100, (metrics.team_morale || 50) + skillEffects.teamMoraleBonus);
+    }
+
     // Improved CXO Detection
     const employees = newStartup.employees || [];
     const cxoTeam: Record<string, boolean> = (startup as any).cxoTeam || {};
@@ -815,7 +843,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     let grossNewUsers = 0;
 
     // Baseline Organic Traction (Fixes the 0-100 user cold start)
-    const baselineOrganic = Math.max(0, (metrics.product_quality * 0.08) + (totalMarketingPower * 0.04));
+    // Skill web: viral_loops doubles baseline, growth_hacking adds 15%
+    const baselineOrganicRaw = Math.max(0, (metrics.product_quality * 0.08) + (totalMarketingPower * 0.04));
+    const baselineOrganic = baselineOrganicRaw * skillEffects.organicUserMultiplier;
 
     if (isSLG) {
         if (!metrics.b2b_pipeline) metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
@@ -928,6 +958,126 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + (10 * (scenarioRules.techDebtGrowthMultiplier - 1)));
         }
     }
+
+    // ── TRAIT EFFECTS PASS ──────────────────────────────────────────────────────────
+    // Only apply effects for employees with already-revealed traits.
+    // hiddenTrait is intentionally NOT processed here — it stays invisible until revealed.
+    const revealedTraitEmployees = (newStartup.employees || []).filter(
+        e => (e.traits || []).length > 0
+    );
+
+    let toxicGeniusCount = 0;
+    for (const emp of revealedTraitEmployees) {
+        for (const trait of (emp.traits || [])) {
+            switch (trait as EmployeeTrait) {
+                case "toxic_genius":
+                    toxicGeniusCount++;
+                    // Brilliant output (+3 product quality) but drains team morale hard (-4)
+                    // culture_builder skill reduces the damage
+                    {
+                        const moraleDrain = Math.round(4 * (1 - skillEffects.cultureDampenPct));
+                        metrics.product_quality = Math.min(100, (metrics.product_quality || 0) + 3);
+                        metrics.team_morale = Math.max(0, (metrics.team_morale || 50) - moraleDrain);
+                        if (Math.random() < 0.6) {
+                            notices.push(`${emp.name}'s brilliance is pushing the product forward — but the team is paying for it in morale.`);
+                        }
+                    }
+                    break;
+                case "cultural_anchor":
+                    // Quietly lifts the whole team
+                    metrics.team_morale = Math.min(100, (metrics.team_morale || 50) + 3);
+                    break;
+                case "bug_prone":
+                    // Ships fast, ships broken
+                    metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 2);
+                    break;
+                case "evangelist":
+                    if (emp.role === "marketer") {
+                        metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + 4);
+                    }
+                    break;
+                case "burnout_magnet":
+                    // High performer, but culture_builder skill reduces the drain
+                    {
+                        const burnoutDrain = Math.round(2 * (1 - skillEffects.cultureDampenPct));
+                        metrics.founder_burnout = Math.min(100, (metrics.founder_burnout || 0) + burnoutDrain);
+                    }
+                    break;
+                // loyalist and mercenary are passive — no monthly metric effect
+            }
+        }
+    }
+
+    // ── MERCENARY RESIGNATION CHECK ──────────────────────────────────────────────
+    // Mercenaries quit if they haven't received a raise in 6 months.
+    // Loyalists are immune — they stay regardless.
+    const resigningMercenaries: string[] = [];
+    newStartup.employees = (newStartup.employees || []).filter(emp => {
+        const hasMercenaryTrait = (emp.traits || []).includes("mercenary");
+        const hasLoyalistTrait = (emp.traits || []).includes("loyalist");
+        if (!hasMercenaryTrait || hasLoyalistTrait) return true; // Keep
+
+        const monthsSinceRaise = monthsPassed - (emp.last_increment_at ?? emp.joined_at ?? 0);
+        if (monthsSinceRaise > 6) {
+            resigningMercenaries.push(emp.name);
+            return false; // Remove from roster
+        }
+        return true;
+    });
+
+    for (const name of resigningMercenaries) {
+        metrics.team_morale = Math.max(0, (metrics.team_morale || 50) - 8);
+        notices.push(`💸 ${name} resigned and accepted a better offer elsewhere. They hadn't received a raise in over 6 months.`);
+    }
+
+    // ── CRISIS ENGINE ────────────────────────────────────────────────────────────
+    // Step 1: Try to spawn a new crisis (only if none active)
+    // security_first skill reduces data breach probability
+    const crisisStartupContext = skillEffects.datBreachProbReduction > 0
+        ? { ...newStartup, _securitySkillReduction: skillEffects.datBreachProbReduction }
+        : newStartup;
+    const newCrisis = checkCrisisSpawn(crisisStartupContext as any, monthsPassed);
+    if (newCrisis) {
+        newStartup.active_crisis = newCrisis;
+        const stage = getCurrentCrisisStage(newCrisis);
+        notices.push(stage?.stageNotice || `${CRISIS_EMOJIS[newCrisis.type]} CRISIS: ${CRISIS_LABELS[newCrisis.type]} has erupted.`);
+    }
+
+    // Step 2: Auto-escalate existing crisis if player has not responded
+    if (newStartup.active_crisis && !newStartup.active_crisis.resolved) {
+        const escalation = processCrisisEscalation(
+            newStartup.active_crisis,
+            monthsPassed,
+            !!startup.metrics.has_legal_dept
+        );
+        if (escalation.escalated) {
+            if (escalation.newStage === -1) {
+                // Crisis maxed out — resolved badly
+                newStartup.active_crisis = { ...newStartup.active_crisis, resolved: true, resolvedByPlayer: false };
+            } else {
+                newStartup.active_crisis = {
+                    ...newStartup.active_crisis,
+                    currentStage: escalation.newStage,
+                    stageStartedMonth: monthsPassed,
+                    ceoReputationHit: newStartup.active_crisis.ceoReputationHit + 10,
+                };
+            }
+            // Apply escalation metric effects
+            const fx = escalation.effects;
+            if (fx.brand_awareness) metrics.brand_awareness = Math.max(0, (metrics.brand_awareness || 0) + fx.brand_awareness);
+            if (fx.team_morale)    metrics.team_morale = Math.max(0, (metrics.team_morale || 50) + fx.team_morale);
+            if (fx.cash_hit)       metrics.cash = Math.max(-Infinity, (metrics.cash || 0) + fx.cash_hit);
+            if (fx.valuation_mult) newStartup.valuation = Math.floor(newStartup.valuation * fx.valuation_mult);
+            if (fx.ceo_reputation) newStartup.ceo_reputation = Math.max(0, Math.min(100, (newStartup.ceo_reputation ?? 80) + fx.ceo_reputation));
+            if (fx.user_churn_bonus) metrics.users = Math.max(0, Math.floor(metrics.users * (1 - fx.user_churn_bonus)));
+            if (escalation.notice) notices.push(escalation.notice);
+        }
+    }
+
+    // Step 3: Passively update CEO reputation (slow natural drift toward 75)
+    const currentRep = newStartup.ceo_reputation ?? 80;
+    const repDrift = currentRep > 75 ? -0.5 : currentRep < 75 ? 0.5 : 0;
+    newStartup.ceo_reputation = Math.max(0, Math.min(100, currentRep + repDrift));
 
     // --- FOUNDER STATS ---
     const burnoutPenalty = metrics.founder_burnout > 60 ? (metrics.founder_burnout - 60) / 40 : 0;
@@ -1080,6 +1230,31 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             }
         };
     });
+
+    // ── TRAIT REVELATION ────────────────────────────────────────────────────────────
+    // Hidden traits are revealed slowly over 2-3 months after hire.
+    // This mirrors real hiring: you don't know someone is a Mercenary until they hand in notice.
+    newStartup.employees = newStartup.employees.map(emp => {
+        // Only process employees with an unrevealed hidden trait
+        if (!emp.hiddenTrait || emp.traitRevealedMonth !== undefined) return emp;
+
+        const monthsEmployed = monthsPassed - (emp.joined_at ?? 0);
+        // Slow reveal: reveal happens between month 2 and month 3 of employment
+        // Each employee gets a unique threshold (2 or 3) seeded by their id
+        const revealThreshold = emp.id.charCodeAt(0) % 2 === 0 ? 2 : 3;
+
+        if (monthsEmployed >= revealThreshold) {
+            // Move the hidden trait to the visible traits array
+            const notice = formatTraitNotice(emp.hiddenTrait, emp.name);
+            notices.push(`${notice.emoji} ${notice.title}: ${notice.message}`);
+            return {
+                ...emp,
+                traits: [...(emp.traits || []), emp.hiddenTrait],
+                traitRevealedMonth: monthsPassed,
+            };
+        }
+        return emp;
+    });
     
     // --- INVESTOR PIPELINE PROGRESSION ---
     const pipeline = metrics.investor_pipeline;
@@ -1161,6 +1336,7 @@ export function getBoardMembers(startup: Startup): BoardMember[] {
 export function evaluateSalaryProposal(startup: Startup, founder: Founder, amount: number): SalaryProposal {
     const members = getBoardMembers(startup);
     const m = startup.metrics;
+    const stage = (m as any).funding_stage ?? "";
     const runway = m.runway;
     const isProfitable = (m.net_profit || 0) > 0;
     const currentSalary = m.founder_salary || 0;
