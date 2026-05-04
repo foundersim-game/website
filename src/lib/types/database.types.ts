@@ -58,7 +58,7 @@ export type Founder = {
     unlocked_skill_nodes?: SkillNodeId[];
 
     // ── PUBLIC COMPANY ERA ───────────────────────────────────────────────────
-    wealth_profile?: FounderPersonalWealth;
+    wealth_profile: FounderPersonalWealth;
 };
 
 export interface LuxuryAsset {
@@ -442,7 +442,6 @@ export type PublicCompanyState = {
 };
 
 export type FounderPersonalWealth = {
-    cash: number;
     portfolio: PortfolioPosition[];
     margin_loan_balance: number;
     philanthropy_score: number;

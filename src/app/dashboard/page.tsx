@@ -47,13 +47,13 @@ import { HowToPlayContent } from "@/components/HowToPlay";
 
 // ── TALENT ROSTER: TraitBadge component ───────────────────────────────────────────────
 const TRAIT_META: Record<EmployeeTrait, { label: string; color: string; description: string }> = {
-    toxic_genius:    { label: "⚡ Toxic Genius",    color: "bg-rose-100 text-rose-700 border-rose-200",         description: "+3 product quality/mo, -4 team morale/mo" },
-    loyalist:        { label: "🛡️ Loyalist",         color: "bg-blue-100 text-blue-700 border-blue-200",         description: "Will never resign. Requires formal firing." },
-    mercenary:       { label: "💸 Mercenary",        color: "bg-amber-100 text-amber-700 border-amber-200",      description: "Resigns if no raise for 6+ months." },
+    toxic_genius: { label: "⚡ Toxic Genius", color: "bg-rose-100 text-rose-700 border-rose-200", description: "+3 product quality/mo, -4 team morale/mo" },
+    loyalist: { label: "🛡️ Loyalist", color: "bg-blue-100 text-blue-700 border-blue-200", description: "Will never resign. Requires formal firing." },
+    mercenary: { label: "💸 Mercenary", color: "bg-amber-100 text-amber-700 border-amber-200", description: "Resigns if no raise for 6+ months." },
     cultural_anchor: { label: "🌟 Cultural Anchor", color: "bg-emerald-100 text-emerald-700 border-emerald-200", description: "+3 team morale/mo for the whole team." },
-    bug_prone:       { label: "🐛 Bug Prone",       color: "bg-orange-100 text-orange-700 border-orange-200",   description: "+2 technical debt/mo." },
-    evangelist:      { label: "📢 Evangelist",      color: "bg-violet-100 text-violet-700 border-violet-200",   description: "+4 brand awareness/mo (marketers only)." },
-    burnout_magnet:  { label: "🔥 Burnout Magnet",  color: "bg-red-100 text-red-700 border-red-200",            description: "+2 founder burnout/mo." },
+    bug_prone: { label: "🐛 Bug Prone", color: "bg-orange-100 text-orange-700 border-orange-200", description: "+2 technical debt/mo." },
+    evangelist: { label: "📢 Evangelist", color: "bg-violet-100 text-violet-700 border-violet-200", description: "+4 brand awareness/mo (marketers only)." },
+    burnout_magnet: { label: "🔥 Burnout Magnet", color: "bg-red-100 text-red-700 border-red-200", description: "+2 founder burnout/mo." },
 };
 
 function TraitBadge({ trait }: { trait: EmployeeTrait }) {
@@ -259,6 +259,12 @@ const FOUNDER_BASE = {
     personal_wealth: 25000,
     assets: [],
     activeToggles: [],
+    wealth_profile: {
+        portfolio: [],
+        margin_loan_balance: 0,
+        philanthropy_score: 0,
+        active_10b51_plans: []
+    }
 } as unknown as Founder;
 
 // ─── Luxury & Lifestyle Catalog ──────────────────────────────────────────
@@ -499,6 +505,11 @@ type ActionSheetProps = {
     handleRivalryAction: (action: RivalryAction) => void;
     setActionCategory: (c: SheetCategory | null) => void;
     onUnlockSkill: (nodeId: import("@/lib/types/database.types").SkillNodeId) => void;
+    hrSearchRole: "engineer" | "marketer" | "sales";
+    setHrSearchRole: (r: "engineer" | "marketer" | "sales") => void;
+    hrCandidates: any[];
+    setHrCandidates: (c: any[]) => void;
+    isProcessing: boolean;
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -507,7 +518,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks,
+    hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing }: ActionSheetProps) {
 
     const employees = allEmployees;
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
@@ -1027,6 +1039,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── HIRING ──────────────────────────────────────────────────────────────────────────────
     if (category === "hiring") {
         const employees = allEmployees;
+        const hasCHRO = (startup as any).cxoTeam?.["CHRO"];
         const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
 
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
@@ -1041,6 +1054,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
         const seed = (startup.name.length + (employees?.length || 0) + (m?.users || 0)); // deterministic-ish seed
         const SKILL_TIERS = [
+            { label: "Lead", skillBase: 88, salaryBase: 14000, cultureFit: 88 },
             { label: "Senior", skillBase: 75, salaryBase: 10000, cultureFit: 85 },
             { label: "Mid", skillBase: 55, salaryBase: 7000, cultureFit: 72 },
             { label: "Junior", skillBase: 35, salaryBase: 4000, cultureFit: 65 },
@@ -1200,81 +1214,273 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 })()}
 
 
-                {/* 3-candidate pipeline per role */}
-                {ROLE_DEFS.map((roleDef, ri) => (
-                    <div key={roleDef.role} className="mb-5">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{roleDef.emoji} {roleDef.label} — Choose a Candidate</p>
-                        <div className="space-y-2">
-                            {SKILL_TIERS.map((tier, ti) => {
-                                const candId = `${ri}-${ti}`;
-                                if (rejectedCandidates.includes(candId)) return null;
+                {/* === PIPELINE === */}
+                {!hasCHRO ? (
+                    <>
+                        <div className="mb-4 bg-fuchsia-50 dark:bg-fuchsia-950/20 border-2 border-fuchsia-200 dark:border-fuchsia-900/50 rounded-2xl p-4 flex items-start gap-3 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-100 dark:bg-fuchsia-900/20 rounded-full blur-2xl -translate-y-10 translate-x-10 group-hover:scale-110 transition-transform" />
+                            <span className="text-3xl relative z-10">🤝</span>
+                            <div className="relative z-10">
+                                <h3 className="text-xs font-black text-fuchsia-900 dark:text-fuchsia-100 uppercase tracking-widest">Advanced Recruiting Locked</h3>
+                                <p className="text-[10px] text-fuchsia-700/80 dark:text-fuchsia-300 mt-1 leading-relaxed">
+                                    You are currently relying on inbound organic applications. To unlock targeted sourcing, run dedicated hiring campaigns, and guarantee A-Tier talent, hire a <strong>Chief Human Resources Officer (CHRO)</strong> from the Leadership section below.
+                                </p>
+                            </div>
+                        </div>
 
-                                const nameIdx = (seed + ri * 3 + ti) % CANDIDATE_NAMES.length;
-                                const skillVariance = ((seed + ri + ti) % 15) - 7;
-                                const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
-                                const salary = tier.salaryBase + ((seed + ti) % 500);
-                                const cultureFit = Math.max(50, Math.min(99, tier.cultureFit + ((seed + ri) % 15) - 7));
-                                const isOver = focusHoursUsed + 20 > maxHours * 1.2;
-                                const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : "hire_sales";
-                                return (
-                                    <div
-                                        key={ti}
-                                        onClick={() => {
-                                            if (isOver) return;
+                        {/* Basic 3-candidate pipeline per role */}
+                        {ROLE_DEFS.map((roleDef, ri) => (
+                            <div key={roleDef.role} className="mb-5">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{roleDef.emoji} {roleDef.label} — Choose a Candidate</p>
+                                <div className="space-y-2">
+                                    {SKILL_TIERS.map((tier, ti) => {
+                                        const candId = `${ri}-${ti}`;
+                                        if (rejectedCandidates.includes(candId)) return null;
+
+                                        const nameIdx = (seed + ri * 3 + ti) % CANDIDATE_NAMES.length;
+                                        const skillVariance = ((seed + ri + ti) % 15) - 7;
+                                        const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
+                                        const salary = tier.salaryBase + ((seed + ti) % 500);
+                                        const cultureFit = Math.max(50, Math.min(99, tier.cultureFit + ((seed + ri) % 15) - 7));
+                                        const isOver = focusHoursUsed + 20 > maxHours * 1.2;
+                                        const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : "hire_sales";
+                                        return (
+                                            <div
+                                                key={ti}
+                                                onClick={() => {
+                                                    if (isOver) return;
+
+                                                    const basePct = tier.label === "Lead" ? 0.8 : tier.label === "Senior" ? 0.4 : tier.label === "Mid" ? 0.2 : 0.1;
+                                                    const vScale = Math.sqrt(Math.max(1, startup.valuation / 1000000));
+                                                    let expectedPct = basePct / vScale;
+
+                                                    // Cap the total dollar value of the equity grant (4-year package)
+                                                    // This provides a baseline expectation that can be traded for salary.
+                                                    const maxValue = tier.label === "Lead" ? 600000 : tier.label === "Senior" ? 350000 : tier.label === "Mid" ? 150000 : 75000;
+                                                    const currentValue = (expectedPct / 100) * startup.valuation;
+                                                    if (currentValue > maxValue) {
+                                                        expectedPct = (maxValue / startup.valuation) * 100;
+                                                    }
+
+                                                    const personalities: ("Stable" | "Ambitious" | "Creative")[] = ["Stable", "Ambitious", "Creative"];
+
+                                                    const candidate: Candidate = {
+                                                        name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
+                                                        role: roleDef.role,
+                                                        level: tier.label as any,
+                                                        experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
+                                                        expectedSalary: salary * 12,
+                                                        expectedEquity: parseFloat(Math.max(0.001, expectedPct).toFixed(3)),
+                                                        personality: personalities[(seed + ri + ti) % personalities.length],
+                                                        candId: candId
+                                                    };
+
+                                                    handleActionClick(candidateAction as any, candidate);
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                                    isOver ? "opacity-30 cursor-not-allowed border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50" : `${roleDef.bg} ${roleDef.border} dark:bg-slate-900/50 dark:border-slate-800 hover:shadow-sm`
+                                                )}
+                                            >
+                                                <div className={`w-9 h-9 rounded-xl ${roleDef.tagBg} dark:bg-slate-800 flex items-center justify-center font-black text-sm ${roleDef.text} shrink-0`}>
+                                                    {CANDIDATE_NAMES[nameIdx].charAt(0)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">{CANDIDATE_NAMES[nameIdx]} · <span className={roleDef.text}>{tier.label}</span></p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[9px] text-slate-500 dark:text-slate-500">💪 {skill}%</span>
+                                                        <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
+                                                        <span className="text-[9px] text-slate-500 dark:text-slate-500">❤️ {cultureFit}% fit</span>
+                                                        <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
+                                                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">${salary.toLocaleString()}/mo</span>
+                                                    </div>
+                                                    <p className="text-[8px] text-slate-400 dark:text-slate-600 mt-0.5">4yr vest · 1yr cliff</p>
+                                                </div>
+                                                <span className={cn("text-[9px] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                ) : (
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xl">🤝</span>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">Advanced Recruiting Engine</h3>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 flex gap-2 mb-4">
+                            {ROLE_DEFS.map(roleDef => (
+                                <button
+                                    key={roleDef.role}
+                                    onClick={() => setHrSearchRole(roleDef.role)}
+                                    className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", hrSearchRole === roleDef.role ? `${roleDef.bg} ${roleDef.text} ${roleDef.border} border-2 shadow-sm scale-100` : "bg-white dark:bg-slate-800 text-slate-400 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700 scale-95 opacity-80")}
+                                >
+                                    {roleDef.emoji} {roleDef.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-2 mb-4">
+                            <button
+                                onClick={() => {
+                                    if (isProcessing) return;
+                                    if (focusHoursUsed + 15 > maxHours * 1.2) {
+                                        toast.error("Not enough Focus Energy!");
+                                        return;
+                                    }
+                                    const newCandidates: Candidate[] = [];
+                                    const roleDef = ROLE_DEFS.find(r => r.role === hrSearchRole)!;
+                                    const baseSeed = Date.now();
+
+                                    // Generate 5 random candidates, leaning slightly lower tier
+                                    for (let i = 0; i < 5; i++) {
+                                        const rnd = Math.random();
+                                        const tierLabel = rnd > 0.85 ? "Lead" : rnd > 0.6 ? "Senior" : rnd > 0.3 ? "Mid" : "Junior";
+                                        const tier = SKILL_TIERS.find(t => t.label === tierLabel)!;
+
+                                        const nameIdx = (baseSeed + i) % CANDIDATE_NAMES.length;
+                                        const skillVariance = Math.floor(Math.random() * 20) - 10;
+                                        const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
+                                        const salary = tier.salaryBase + Math.floor(Math.random() * 1000);
+                                        const cultureFit = Math.max(20, Math.min(99, tier.cultureFit + Math.floor(Math.random() * 30) - 15));
+
+                                        const basePct = tier.label === "Lead" ? 0.8 : tier.label === "Senior" ? 0.4 : tier.label === "Mid" ? 0.2 : 0.1;
+                                        const vScale = Math.sqrt(Math.max(1, startup.valuation / 1000000));
+                                        let expectedPct = basePct / vScale;
+                                        const maxValue = tier.label === "Lead" ? 600000 : tier.label === "Senior" ? 350000 : tier.label === "Mid" ? 150000 : 75000;
+                                        if ((expectedPct / 100) * startup.valuation > maxValue) expectedPct = (maxValue / startup.valuation) * 100;
+
+                                        const personalities: ("Stable" | "Ambitious" | "Creative")[] = ["Stable", "Ambitious", "Creative"];
+
+                                        newCandidates.push({
+                                            name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
+                                            role: hrSearchRole,
+                                            level: tier.label as any,
+                                            experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
+                                            expectedSalary: salary * 12,
+                                            expectedEquity: parseFloat(Math.max(0.001, expectedPct).toFixed(3)),
+                                            personality: personalities[Math.floor(Math.random() * personalities.length)],
+                                            candId: `hr-${Date.now()}-${i}`,
+                                            // temporary storage for UI rendering
+                                            _skill: skill,
+                                            _culture: cultureFit
+                                        } as any);
+                                    }
+
+                                    // Sort by skill descending
+                                    newCandidates.sort((a: any, b: any) => b._skill - a._skill);
+
+                                    setHrCandidates(newCandidates);
+                                    setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, focus_hours_used: (s.metrics.focus_hours_used || 0) + 15 } }));
+                                    addTimelineEvent(`🤝 Sourced 5 new candidates for ${roleDef.label}`);
+                                }}
+                                className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 rounded-xl p-3 text-center transition-all active:scale-[0.98]"
+                            >
+                                <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-1">Standard Search</p>
+                                <p className="text-[9px] font-bold text-amber-500 uppercase">⚡ 15 Energy</p>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    if (isProcessing) return;
+                                    adService.showRewardedAd(() => {
+                                        const newCandidates: Candidate[] = [];
+                                        const roleDef = ROLE_DEFS.find(r => r.role === hrSearchRole)!;
+                                        const baseSeed = Date.now();
+
+                                        // Generate 6 candidates, guaranteed high tier and high culture fit
+                                        for (let i = 0; i < 6; i++) {
+                                            const tierLabel = i < 2 ? "Lead" : i < 4 ? "Senior" : "Mid"; // Top heavy
+                                            const tier = SKILL_TIERS.find(t => t.label === tierLabel)!;
+
+                                            const nameIdx = (baseSeed + i) % CANDIDATE_NAMES.length;
+                                            const skillVariance = Math.floor(Math.random() * 15); // Positive variance
+                                            const skill = Math.max(80, Math.min(99, tier.skillBase + skillVariance));
+                                            const salary = tier.salaryBase + Math.floor(Math.random() * 500); // Slightly cheaper
+                                            const cultureFit = Math.max(85, Math.min(99, tier.cultureFit + Math.floor(Math.random() * 15))); // Guaranteed high fit
 
                                             const basePct = tier.label === "Lead" ? 0.8 : tier.label === "Senior" ? 0.4 : tier.label === "Mid" ? 0.2 : 0.1;
                                             const vScale = Math.sqrt(Math.max(1, startup.valuation / 1000000));
                                             let expectedPct = basePct / vScale;
-
-                                            // Cap the total dollar value of the equity grant (4-year package)
-                                            // This provides a baseline expectation that can be traded for salary.
                                             const maxValue = tier.label === "Lead" ? 600000 : tier.label === "Senior" ? 350000 : tier.label === "Mid" ? 150000 : 75000;
-                                            const currentValue = (expectedPct / 100) * startup.valuation;
-                                            if (currentValue > maxValue) {
-                                                expectedPct = (maxValue / startup.valuation) * 100;
-                                            }
+                                            if ((expectedPct / 100) * startup.valuation > maxValue) expectedPct = (maxValue / startup.valuation) * 100;
 
-                                            const personalities: ("Stable" | "Ambitious" | "Creative")[] = ["Stable", "Ambitious", "Creative"];
-
-                                            const candidate: Candidate = {
+                                            newCandidates.push({
                                                 name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
-                                                role: roleDef.role,
+                                                role: hrSearchRole,
                                                 level: tier.label as any,
                                                 experience: tier.label === "Lead" ? 10 : tier.label === "Senior" ? 7 : tier.label === "Mid" ? 4 : 1,
                                                 expectedSalary: salary * 12,
                                                 expectedEquity: parseFloat(Math.max(0.001, expectedPct).toFixed(3)),
-                                                personality: personalities[(seed + ri + ti) % personalities.length],
-                                                candId: candId
-                                            };
+                                                personality: "Stable", // Guaranteed no drama
+                                                candId: `hr-premium-${Date.now()}-${i}`,
+                                                _skill: skill,
+                                                _culture: cultureFit
+                                            } as any);
+                                        }
 
-                                            handleActionClick(candidateAction as any, candidate);
-                                        }}
-                                        className={cn(
-                                            "flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                            isOver ? "opacity-30 cursor-not-allowed border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50" : `${roleDef.bg} ${roleDef.border} dark:bg-slate-900/50 dark:border-slate-800 hover:shadow-sm`
-                                        )}
-                                    >
-                                        <div className={`w-9 h-9 rounded-xl ${roleDef.tagBg} dark:bg-slate-800 flex items-center justify-center font-black text-sm ${roleDef.text} shrink-0`}>
-                                            {CANDIDATE_NAMES[nameIdx].charAt(0)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{CANDIDATE_NAMES[nameIdx]} · <span className={roleDef.text}>{tier.label}</span></p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[9px] text-slate-500 dark:text-slate-500">💪 {skill}%</span>
-                                                <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                <span className="text-[9px] text-slate-500 dark:text-slate-500">❤️ {cultureFit}% fit</span>
-                                                <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">${salary.toLocaleString()}/mo</span>
-                                            </div>
-                                            <p className="text-[8px] text-slate-400 dark:text-slate-600 mt-0.5">4yr vest · 1yr cliff</p>
-                                        </div>
-                                        <span className={cn("text-[9px] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
-                                    </div>
-                                );
-                            })}
+                                        newCandidates.sort((a: any, b: any) => b._skill - a._skill);
+                                        setHrCandidates(newCandidates);
+                                        addTimelineEvent(`🤝 Executive Search sourced 6 A-Tier candidates for ${roleDef.label}`);
+                                    });
+                                }}
+                                className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-700 border-2 border-fuchsia-600 rounded-xl p-3 text-center transition-all active:scale-[0.98] shadow-lg shadow-fuchsia-600/20"
+                            >
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">⭐</span> Exec Search</p>
+                                <p className="text-[9px] font-bold text-fuchsia-200 uppercase tracking-wider">Watch Ad · 0 Energy</p>
+                            </button>
                         </div>
+
+                        {hrCandidates.length > 0 ? (
+                            <div className="space-y-2">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Candidate Pool</p>
+                                {hrCandidates.map((cand: any) => {
+                                    const roleDef = ROLE_DEFS.find(r => r.role === cand.role)!;
+                                    const isOver = focusHoursUsed + 20 > maxHours * 1.2;
+                                    const candidateAction = cand.role === "engineer" ? "hire_engineer" : cand.role === "marketer" ? "hire_marketer" : "hire_sales";
+
+                                    return (
+                                        <div
+                                            key={cand.candId}
+                                            onClick={() => {
+                                                if (isOver) return;
+                                                handleActionClick(candidateAction as any, cand);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                                isOver ? "opacity-30 cursor-not-allowed border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50" : `${roleDef.bg} ${roleDef.border} dark:bg-slate-900/50 dark:border-slate-800 hover:shadow-sm`
+                                            )}
+                                        >
+                                            <div className={`w-9 h-9 rounded-xl ${roleDef.tagBg} dark:bg-slate-800 flex items-center justify-center font-black text-sm ${roleDef.text} shrink-0`}>
+                                                {cand.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">{cand.name} · <span className={roleDef.text}>{cand.level}</span></p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-500">💪 {cand._skill}%</span>
+                                                    <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
+                                                    <span className="text-[9px] text-slate-500 dark:text-slate-500">❤️ {cand._culture}% fit</span>
+                                                    <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
+                                                    <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">${(cand.expectedSalary / 12).toLocaleString()}/mo</span>
+                                                </div>
+                                            </div>
+                                            <span className={cn("text-[9px] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
+                                <span className="text-2xl mb-2 opacity-50 block">🗂️</span>
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No Active Candidates</p>
+                                <p className="text-[9px] text-slate-400 mt-1">Run a Sourcing Campaign to fill the pipeline.</p>
+                            </div>
+                        )}
                     </div>
-                ))}
+                )}
 
 
 
@@ -1333,6 +1539,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         { role: "COO", emoji: "⚙️", desc: "Reduces burnout · boosts focus (+40h)", salary: 16000, bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
                         { role: "CFO", emoji: "📊", desc: "Optimises burn · runs fundraising roadshow · required for IPO", salary: 14000, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
                         { role: "CPO", emoji: "🎯", desc: "Accelerates features · improves PMF", salary: 15000, bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
+                        { role: "CHRO", emoji: "🤝", desc: "Unlocks advanced talent sourcing & recruiting", salary: 12000, bg: "bg-fuchsia-50", border: "border-fuchsia-200", text: "text-fuchsia-700" },
                         { role: "EA", emoji: "📅", desc: "Executive Assistant · boosts focus (+30h)", salary: 8000, bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700" },
                     ] as const).map(cxo => {
                         const cxoTeam: Record<string, boolean> = (startup as any).cxoTeam || {};
@@ -1493,6 +1700,42 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         return (
             <div>
                 {sheetHeader("🏦", "Funding", `Stage: ${stage} · ${founderEquity.toFixed(0)}% founder equity`)}
+                {startup.ipo_stage === 3 && (
+                    <div className="bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-2xl">🏛️</span>
+                            <div>
+                                <h3 className="text-sm font-black text-indigo-900 dark:text-indigo-100 uppercase">IPO Pricing Target</h3>
+                                <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300">Set the valuation multiple for your public offering.</p>
+                            </div>
+                        </div>
+                        <div className="space-y-2 mt-4">
+                            {[
+                                { mult: 12, label: "Aggressive", desc: "12x ARR. High risk of undersubscription." },
+                                { mult: 8, label: "Standard", desc: "8x ARR. Balanced risk/reward." },
+                                { mult: 5, label: "Conservative", desc: "5x ARR. High chance of a day 1 pop." }
+                            ].map(tier => {
+                                const isSelected = ((startup as any).ipo_price_mult || 8) === tier.mult;
+                                return (
+                                    <button key={tier.mult}
+                                        onClick={() => {
+                                            const newStartup = { ...startup, ipo_price_mult: tier.mult };
+                                            setStartup(newStartup);
+                                            addTimelineEvent(`🏛️ Set IPO Pricing Target to ${tier.label} (${tier.mult}x ARR).`);
+                                        }}
+                                        className={cn("w-full text-left p-3 rounded-xl border-2 transition-all", isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white dark:bg-slate-900 border-indigo-100 dark:border-indigo-800 hover:border-indigo-300")}
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <span className={cn("text-xs font-black uppercase", isSelected ? "text-white" : "text-indigo-900 dark:text-indigo-100")}>{tier.label}</span>
+                                            <span className={cn("text-xs font-black", isSelected ? "text-indigo-200" : "text-indigo-600 dark:text-indigo-400")}>{tier.mult}x ARR</span>
+                                        </div>
+                                        <p className={cn("text-[9px] mt-0.5", isSelected ? "text-indigo-100" : "text-slate-500")}>{tier.desc}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 {maxed ? (
                     <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 text-center">
                         <p className="text-2xl mb-2">🦄</p>
@@ -2118,15 +2361,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const burnout = m.founder_burnout || 0;
         const health = m.founder_health || 100;
         const HBar = ({ label, v, bonus = 0, color }: { label: string; v: number; bonus?: number; color: string }) => {
-            const total = Math.min(100, v + bonus);
-            const basePct = (v / total) * 100;
+            const safeV = v || 0;
+            const safeBonus = bonus || 0;
+            const total = Math.min(100, safeV + safeBonus);
+            const basePct = total > 0 ? (safeV / total) * 100 : 0;
             return (
                 <div className="flex items-center gap-2 py-1.5 border-b border-slate-50 dark:border-slate-800 last:border-0 grow">
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
                     <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
-                        <div className={cn("h-full", color)} style={{ width: `${Math.round((v / 100) * 100)}%` }} />
-                        {bonus > 0 && (
-                            <div className="h-full bg-white/40 animate-pulse" style={{ width: `${Math.round((bonus / 100) * 100)}%` }} />
+                        <div className={cn("h-full", color)} style={{ width: `${Math.round((safeV / 100) * 100)}%` }} />
+                        {safeBonus > 0 && (
+                            <div className="h-full bg-white/40 animate-pulse" style={{ width: `${Math.round((safeBonus / 100) * 100)}%` }} />
                         )}
                     </div>
                     <span className={cn("text-[10px] font-black w-6 text-right shrink-0", color.replace("bg-", "text-"))}>{Math.round(total)}</span>
@@ -2302,11 +2547,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             {/* Header */}
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
-                                <div className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                    availableSP > 0
+                                <div className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${availableSP > 0
                                         ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                                         : 'bg-slate-100 text-slate-400 border border-slate-200'
-                                }`}>
+                                    }`}>
                                     {availableSP} SP available ({totalSP} total)
                                 </div>
                             </div>
@@ -2789,11 +3033,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     if (category === "trade_stock" || category === "personal_trade") {
         const isPersonal = category === "personal_trade";
-        const founderWealth = founder.wealth_profile || { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
-        
-        const availableCash = isPersonal ? founderWealth.cash : m.cash;
-        const currentPortfolio = isPersonal 
-            ? founderWealth.portfolio 
+        const founderWealth = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+
+        const availableCash = isPersonal ? (founder.personal_wealth || 0) : m.cash;
+        const currentPortfolio = isPersonal
+            ? founderWealth.portfolio
             : (startup.public_company?.corporate_portfolio || []);
 
         const handleTrade = (symbol: string, shares: number, currentPrice: number) => {
@@ -2805,11 +3049,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     shares,
                     currentPrice
                 );
-                
+
                 if (isPersonal) {
                     const newFounder = { ...founder };
-                    if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
-                    newFounder.wealth_profile.cash = newCash;
+                    if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+                    newFounder.personal_wealth = newCash;
                     newFounder.wealth_profile.portfolio = newPortfolio;
                     if (setFounder) setFounder(newFounder);
                 } else {
@@ -2818,10 +3062,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     if (newStartup.public_company) newStartup.public_company.corporate_portfolio = newPortfolio;
                     setStartup(newStartup);
                 }
-                
+
                 const actionVerb = shares > 0 ? "Bought" : "Sold";
                 addTimelineEvent(`📈 ${isPersonal ? "Personal Brokerage" : "Corporate Treasury"}: ${actionVerb} ${formatNumber(Math.abs(shares))} shares of ${symbol} at ${formatMoney(currentPrice)}`);
-                
+
             } catch (err: any) {
                 console.error(err.message);
             }
@@ -2843,17 +3087,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {marketStocks?.map(stock => {
                     if (!isPersonal && stock.symbol === (startup.symbol || "CORP")) return null; // Treasury can't buy own stock here (buybacks handled separately)
-                    
+
                     const pos = currentPortfolio.find((p: any) => p.symbol === stock.symbol);
                     const sharesToTrade = 10000;
-                    
+
                     const rsiColor = stock.rsi > 70 ? "text-rose-500" : stock.rsi < 30 ? "text-emerald-500" : "text-slate-400";
                     const minP = Math.min(...(stock.priceHistory || [stock.currentPrice]));
                     const maxP = Math.max(...(stock.priceHistory || [stock.currentPrice]));
-                    const sparklinePoints = (stock.priceHistory || [stock.currentPrice]).map((p, i, arr) => 
+                    const sparklinePoints = (stock.priceHistory || [stock.currentPrice]).map((p, i, arr) =>
                         `${(i / Math.max(1, arr.length - 1)) * 100},${100 - ((p - minP) / Math.max(1, maxP - minP)) * 100}`
                     ).join(" ");
-                    
+
                     return (
                         <div key={stock.symbol} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2">
                             <div className="flex justify-between items-start">
@@ -2864,13 +3108,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 </div>
                                 <div className="w-16 h-8 mx-2 mt-1">
                                     <svg viewBox="0 -10 100 120" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                                        <polyline 
-                                            points={sparklinePoints} 
-                                            fill="none" 
-                                            stroke={stock.momentum >= 0 ? "#10b981" : "#f43f5e"} 
-                                            strokeWidth="8" 
-                                            strokeLinecap="round" 
-                                            strokeLinejoin="round" 
+                                        <polyline
+                                            points={sparklinePoints}
+                                            fill="none"
+                                            stroke={stock.momentum >= 0 ? "#10b981" : "#f43f5e"}
+                                            strokeWidth="8"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
                                         />
                                     </svg>
                                 </div>
@@ -2881,7 +3125,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     </p>
                                 </div>
                             </div>
-                            
+
                             {pos && pos.shares > 0 && (
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg flex justify-between items-center mt-1">
                                     <span className="text-[10px] text-slate-500 uppercase font-black">Owned: <span className="text-slate-700 dark:text-slate-300">{formatNumber(pos.shares)}</span></span>
@@ -2890,7 +3134,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             )}
 
                             <div className="flex gap-2 mt-1">
-                                <button 
+                                <button
                                     onClick={() => handleTrade(stock.symbol, sharesToTrade, stock.currentPrice)}
                                     disabled={availableCash < sharesToTrade * stock.currentPrice}
                                     className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 py-2 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
@@ -2898,7 +3142,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     Buy {formatNumber(sharesToTrade)}
                                 </button>
                                 {pos && pos.shares >= sharesToTrade && (
-                                    <button 
+                                    <button
                                         onClick={() => handleTrade(stock.symbol, -sharesToTrade, stock.currentPrice)}
                                         className="flex-1 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 py-2 rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"
                                     >
@@ -2914,16 +3158,16 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     }
 
     if (category === "margin_loan") {
-        const founderWealth = founder.wealth_profile || { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
-        
+        const founderWealth = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+
         // Calculate borrowing power: 50% of stock value (ignoring options)
         const myShares = startup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
         const totalShares = startup.public_company?.shares_outstanding || 100_000_000;
         const myShareCount = (myShares / 100) * totalShares;
         const myStockValue = myShareCount * (startup.public_company?.share_price || 0);
-        
+
         const personalPortfolioValue = founderWealth.portfolio?.reduce((acc: number, p: any) => acc + (p.shares * (marketStocks?.find((s: any) => s.symbol === p.symbol)?.currentPrice || p.averageCost)), 0) || 0;
-        
+
         const totalCollateral = myStockValue + personalPortfolioValue;
         const maxLoan = totalCollateral * 0.5; // 50% LTV limit
         const currentLoan = founderWealth.margin_loan_balance || 0;
@@ -2932,23 +3176,25 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const handleBorrow = (amount: number) => {
             if (amount > availableLoan) return;
             const newFounder = { ...founder };
-            if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
-            newFounder.wealth_profile.cash += amount;
-            newFounder.wealth_profile.margin_loan_balance += amount;
-            
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            newFounder.personal_wealth = (newFounder.personal_wealth || 0) + amount;
+            newFounder.wealth_profile.margin_loan_balance = (newFounder.wealth_profile.margin_loan_balance || 0) + amount;
+
             if (setFounder) setFounder(newFounder);
-            
+
             addTimelineEvent(`💳 Drew ${formatMoney(amount)} from margin line. Current balance: ${formatMoney(newFounder.wealth_profile.margin_loan_balance)}`);
         };
 
         const handleRepay = (amount: number) => {
-            const repayAmount = Math.min(amount, founderWealth.cash, currentLoan);
+            const repayAmount = Math.min(amount, founder.personal_wealth || 0, currentLoan);
             if (repayAmount <= 0) return;
-            
+
             const newFounder = { ...founder };
-            newFounder.wealth_profile.cash -= repayAmount;
-            newFounder.wealth_profile.margin_loan_balance -= repayAmount;
-            
+            newFounder.personal_wealth = Math.max(0, (newFounder.personal_wealth || 0) - repayAmount);
+            if (newFounder.wealth_profile) {
+                newFounder.wealth_profile.margin_loan_balance = Math.max(0, (newFounder.wealth_profile.margin_loan_balance || 0) - repayAmount);
+            }
+
             if (setFounder) setFounder(newFounder);
             addTimelineEvent(`💳 Repaid ${formatMoney(repayAmount)} to margin line.`);
         };
@@ -2963,7 +3209,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300 uppercase font-black">Personal Cash</p>
-                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(founderWealth.cash)}</p>
+                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(founder.personal_wealth || 0)}</p>
                         </div>
                     </div>
 
@@ -2987,16 +3233,16 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </div>
 
                     <div className="flex gap-2">
-                        <button 
+                        <button
                             onClick={() => handleBorrow(1_000_000)}
                             disabled={availableLoan < 1_000_000}
                             className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                         >
                             Borrow $1M
                         </button>
-                        <button 
+                        <button
                             onClick={() => handleRepay(1_000_000)}
-                            disabled={currentLoan <= 0 || founderWealth.cash <= 0}
+                            disabled={currentLoan <= 0 || (founder.personal_wealth || 0) <= 0}
                             className="flex-1 bg-slate-800 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                         >
                             Repay $1M
@@ -3023,7 +3269,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">Regulatory Capture</h3>
                     <p className="text-[10px] text-slate-500 mt-1">High lobbying scores reduce the chance of antitrust probes, SEC investigations, and can trigger tax incentives.</p>
-                    
+
                     <div className="mt-4 mb-2 flex justify-between items-end">
                         <p className="text-xs font-black uppercase text-slate-600">Influence Score</p>
                         <p className="text-lg font-black text-indigo-600">{score} / 100</p>
@@ -3077,7 +3323,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             newStartup.public_company.share_price *= 1.02; // Small price pop
             setStartup(newStartup);
             addTimelineEvent(`💸 Executed ${formatMoney(amount)} buyback, retiring ${formatNumber(sharesRetired)} shares.`);
-            
+
             if (newStartup.public_company.buyback_authorized <= 0) {
                 toast.success("Buyback Program Complete", { description: "All authorized shares have been repurchased." });
             }
@@ -3088,7 +3334,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/50 rounded-xl p-4">
                     <h3 className="text-sm font-black text-amber-900 dark:text-amber-100 uppercase">Share Repurchases</h3>
                     <p className="text-[10px] text-amber-700/70 dark:text-amber-300/70 mt-1">Use corporate cash to buy back shares, reducing float and artificially boosting EPS and Share Price.</p>
-                    
+
                     <div className="grid grid-cols-2 gap-4 mt-4 mb-4">
                         <div>
                             <p className="text-[10px] uppercase font-black text-slate-500">Authorized Program</p>
@@ -3134,9 +3380,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 monthlySellAmount: 10000,
                 targetPriceMinimum: 0, // sells at market
             };
-            
+
             const newFounder = { ...founder };
-            if (!newFounder.wealth_profile) newFounder.wealth_profile = { cash: 0, portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
             newFounder.wealth_profile.active_10b51_plans.push(plan);
             if (setFounder) setFounder(newFounder);
             addTimelineEvent(`📄 Executed a new 10b5-1 Trading Plan to sell 10k shares/mo for 12 months.`);
@@ -3148,11 +3394,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             if (!newFounder.wealth_profile) return;
             newFounder.wealth_profile.active_10b51_plans = newFounder.wealth_profile.active_10b51_plans.filter((p: any) => p.id !== id);
             if (setFounder) setFounder(newFounder);
-            
+
             const newStartup = { ...startup };
             newStartup.metrics.legal_risk = true;
             setStartup(newStartup);
-            
+
             addTimelineEvent(`📄 Cancelled 10b5-1 Trading Plan prematurely.`);
             toast.warning("Plan Cancelled", { description: "The SEC has noted your irregular trading behavior." });
         };
@@ -3162,7 +3408,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">10b5-1 Trading Plans</h3>
                     <p className="text-[10px] text-slate-500 mt-1 mb-4">Legally liquidate your founder shares over time to avoid insider trading allegations.</p>
-                    
+
                     <div className="flex justify-between items-end mb-4">
                         <p className="text-[10px] uppercase font-black text-slate-500">Your Shares</p>
                         <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatNumber(myShareCount)} shrs</p>
@@ -3201,24 +3447,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     if (category === "board_mgmt") {
         const pub = startup.public_company;
-        
+
         const handleStockSplit = () => {
             if (!pub) return;
             const newStartup = { ...startup };
-            
+
             // Double shares
             newStartup.public_company.shares_outstanding *= 2;
             newStartup.public_company.float *= 2;
-            
+
             // Halve prices
             newStartup.public_company.share_price /= 2;
             newStartup.public_company.ipo_price /= 2;
             newStartup.public_company.eps_last_quarter /= 2;
             newStartup.public_company.eps_guidance /= 2;
             newStartup.public_company.consensus_eps /= 2;
-            
+
             setStartup(newStartup);
-            
+
             // Adjust Founder 10b5-1 plans if they exist
             const newFounder = { ...founder };
             if (newFounder.wealth_profile?.active_10b51_plans) {
@@ -3231,7 +3477,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 }));
             }
             if (setFounder) setFounder(newFounder);
-            
+
             // Sync Ticker
             if (setMarketStocks && marketStocks) {
                 setMarketStocks(marketStocks.map(s =>
@@ -3240,7 +3486,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         : s
                 ));
             }
-            
+
             addTimelineEvent(`✂️ Board authorized a 2-for-1 Stock Split! Share price halved to ${formatMoney(newStartup.public_company.share_price)}.`);
             toast.success("Stock Split Executed", { description: "Retail investors are piling in!" });
         };
@@ -3250,7 +3496,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">Board of Directors</h3>
                     <p className="text-[10px] text-slate-500 mb-4">Execute high-level corporate governance actions.</p>
-                    
+
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
                         <div className="flex justify-between items-start mb-2">
                             <div>
@@ -3258,7 +3504,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <p className="text-[9px] text-slate-500 mt-0.5">Halves share price, doubles share count. Psychological boost for retail investors.</p>
                             </div>
                         </div>
-                        <button 
+                        <button
                             onClick={handleStockSplit}
                             disabled={(pub?.share_price || 0) < 50}
                             className="w-full mt-2 py-2 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-md text-[10px] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
@@ -3312,7 +3558,7 @@ export default function Dashboard() {
     const [month, setMonth] = useState(1);
     const [eventsTimeline, setEventsTimeline] = useState<{ month: number; text: string }[]>([]);
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
-    
+
     // Pillar 2 States
     const [showPostIpoCinematic, setShowPostIpoCinematic] = useState(false);
     const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance">("operations");
@@ -3366,6 +3612,8 @@ export default function Dashboard() {
     const [pendingCounterOffer, setPendingCounterOffer] = useState<{ valuation: number; equity: number } | null>(null);
     const [confirmedFunding, setConfirmedFunding] = useState<{ valuation: number; equity: number } | null>(null);
     const [confirmedHire, setConfirmedHire] = useState<Candidate | null>(null);
+    const [hrSearchRole, setHrSearchRole] = useState<"engineer" | "marketer" | "sales">("engineer");
+    const [hrCandidates, setHrCandidates] = useState<Candidate[]>([]);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         title: string;
@@ -3530,6 +3778,7 @@ export default function Dashboard() {
             { role: "COO", name: "COO (Executive)", salary: 16000 },
             { role: "CFO", name: "CFO (Executive)", salary: 14000 },
             { role: "CPO", name: "CPO (Executive)", salary: 15000 },
+            { role: "CHRO", name: "Head of HR", salary: 12000 },
             { role: "EA", name: "Executive Assistant", salary: 8000 },
         ];
         const activeCxos = cxoConfig.filter(cxo => (startup as any).cxoTeam?.[cxo.role]);
@@ -3995,7 +4244,6 @@ export default function Dashboard() {
                 month,
                 eventsTimeline,
                 competitors,
-                unlockedAchievements,
                 ongoingPrograms,
                 seenEventIds,
                 founderMeta,
@@ -4299,7 +4547,10 @@ export default function Dashboard() {
             const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
             addTimelineEvent(`Personnel: ${`${pendingCandidate.name} as ${displayRole}`} joined.`);
             setFocusHoursUsed(curr => curr + 20);
-            if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+            if (pendingCandidate.candId) {
+                setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+                setHrCandidates(prev => prev.filter(c => c.candId !== pendingCandidate.candId)); // Filter persistent list
+            }
             setSelectedAction("none");
             setPendingCandidate(null);
             setHiringOffer({ salary: 0, equity: 0 });
@@ -4308,7 +4559,10 @@ export default function Dashboard() {
             const displayRole = getDisplayRoleName(pendingCandidate.role, false);
             addTimelineEvent(`Personnel: Failed to hire ${displayRole}.`);
             setFocusHoursUsed(curr => curr + 10);
-            if (pendingCandidate.candId) setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+            if (pendingCandidate.candId) {
+                setRejectedCandidates(prev => [...prev, pendingCandidate.candId as string]); // Remove from list
+                setHrCandidates(prev => prev.filter(c => c.candId !== pendingCandidate.candId)); // Filter persistent list
+            }
             setSelectedAction("none");
             setPendingCandidate(null);
         }
@@ -4335,14 +4589,13 @@ export default function Dashboard() {
                 const investorEquity = equityGiven;
 
 
-                ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
-                    if (e.type === "Founder") {
-                        return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
-                    }
-                    return e;
-                });
+                const dilutionFactor = (100 - equityGiven) / 100;
+                ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => ({
+                    ...e,
+                    equity: parseFloat((e.equity * dilutionFactor).toFixed(1))
+                }));
 
-                ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
+                ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(equityGiven.toFixed(1)), type: "Investor" });
                 if (ns.metrics?.investor_pipeline) {
                     ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
                 }
@@ -4394,14 +4647,13 @@ export default function Dashboard() {
 
             const investorEquity = equityGiven;
 
-            ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => {
-                if (e.type === "Founder") {
-                    return { ...e, equity: parseFloat((e.equity - investorEquity).toFixed(1)) };
-                }
-                return e;
-            });
+            const dilutionFactor = (100 - equityGiven) / 100;
+            ns.capTable = (ns.capTable || [{ name: "Founder", equity: 100, type: "Founder" }]).map((e: any) => ({
+                ...e,
+                equity: parseFloat((e.equity * dilutionFactor).toFixed(1))
+            }));
 
-            ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(investorEquity.toFixed(1)), type: "Investor" });
+            ns.capTable.push({ name: pendingInvestor.name, equity: parseFloat(equityGiven.toFixed(1)), type: "Investor" });
             if (ns.metrics?.investor_pipeline) {
                 ns.metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
             }
@@ -4625,15 +4877,16 @@ export default function Dashboard() {
                 const playerStock = updatedMarket.find(s => s.symbol === (newStartup.symbol || "CORP"));
                 if (playerStock) {
                     newStartup.public_company.share_price = playerStock.currentPrice;
+                    newStartup.valuation = newStartup.public_company.shares_outstanding * playerStock.currentPrice;
                 }
             }
-            
+
             // Chadly Dynamic IPO
             if (newStartup.metrics.chadly_ipo_readiness === undefined) {
                 newStartup.metrics.chadly_ipo_readiness = 0;
             }
             newStartup.metrics.chadly_ipo_readiness += (Math.random() * 5);
-            
+
             if (newStartup.metrics.chadly_ipo_readiness > 100 && !updatedMarket.find(s => s.symbol === "CHAD")) {
                 addTimelineEvent(`🚨 RIVAL IPO: Chad Ventures has gone public!`, nextMonth);
                 updatedMarket.push({
@@ -4699,16 +4952,16 @@ export default function Dashboard() {
 
                     ReviewTriggers.ipoDay();
                     playSound("success");
-                    
+
                     // V2: Instead of ending the game, we transition to the Public Company Era
                     newStartup.public_company = {
                         shares_outstanding: 100_000_000,
                         float: 20_000_000,
                         share_price: finalValuation / 100_000_000,
                         ipo_price: finalValuation / 100_000_000,
-                        eps_last_quarter: (newStartup.metrics.net_profit || 0) / 100_000_000,
-                        eps_guidance: ((newStartup.metrics.net_profit || 0) * 1.1) / 100_000_000,
-                        consensus_eps: ((newStartup.metrics.net_profit || 0) * 1.05) / 100_000_000,
+                        eps_last_quarter: ((newStartup.metrics.net_profit || 0) * 3) / 100_000_000,
+                        eps_guidance: (((newStartup.metrics.net_profit || 0) * 3) * 1.1) / 100_000_000,
+                        consensus_eps: (((newStartup.metrics.net_profit || 0) * 3) * 1.05) / 100_000_000,
                         buyback_authorized: 0,
                         short_interest: Math.floor(Math.random() * 10), // 0-10% starting short interest
                         analyst_ratings: [
@@ -4725,13 +4978,7 @@ export default function Dashboard() {
 
                     const newFounder = {
                         ...founder,
-                        wealth_profile: {
-                            cash: 1_000_000, // Small starting personal cash pile
-                            portfolio: [],
-                            margin_loan_balance: 0,
-                            philanthropy_score: 0,
-                            active_10b51_plans: []
-                        }
+                        personal_wealth: (founder.personal_wealth || 0) + 1_000_000, // $1M bonus for IPO
                     };
 
                     const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalValuation / 100_000_000);
@@ -4740,6 +4987,11 @@ export default function Dashboard() {
                     setFounder(newFounder);
                     setStartup(newStartup);
                     setShowPostIpoCinematic(true);
+
+                    // Trigger the cinematic victory screen
+                    newStartup.outcome = "ipo";
+                    setIsEndgameOpen(true);
+
                     setTerminalTab("operations");
                     setIsProcessing(false);
 
@@ -4910,6 +5162,7 @@ export default function Dashboard() {
                     const targetIndex = Math.floor(Math.random() * newStartup.employees.length);
                     const poached = newStartup.employees[targetIndex];
                     newStartup.employees = newStartup.employees.filter((_, i) => i !== targetIndex);
+                    newStartup.metrics.employees = newStartup.employees.length;
 
                     toast.error(`💔 Poached! ${poached.name} was hired by ${competitorName}`, {
                         description: "You lost a valuable team member."
@@ -4988,33 +5241,45 @@ export default function Dashboard() {
                 nextFounder.personal_wealth -= totalLifestyleCost;
             }
 
+            // Margin Loan Interest
+            if (nextFounder.wealth_profile?.margin_loan_balance > 0) {
+                const interest = Math.floor(nextFounder.wealth_profile.margin_loan_balance * 0.005);
+                if (nextFounder.personal_wealth >= interest) {
+                    nextFounder.personal_wealth -= interest;
+                    addTimelineEvent(`💳 Paid ${formatMoney(interest)} in margin loan interest.`, nextMonth);
+                } else {
+                    // Force liquidation or just add to balance if they can't pay cash
+                    nextFounder.wealth_profile.margin_loan_balance += interest;
+                    addTimelineEvent(`⚠️ Unpaid margin interest of ${formatMoney(interest)} added to loan balance.`, nextMonth);
+                }
+            }
+
             // 1.5. 10b5-1 Plan Execution
             if (newStartup.public_company && nextFounder.wealth_profile?.active_10b51_plans?.length) {
                 const pub = newStartup.public_company;
                 let totalSharesSold = 0;
                 let totalProceeds = 0;
-                
+
                 nextFounder.wealth_profile.active_10b51_plans.forEach(plan => {
                     if (plan.monthsRemaining > 0 && pub.share_price >= plan.targetPriceMinimum) {
                         const sharesToSell = Math.min(plan.monthlySellAmount, plan.sharesToSellTotal - plan.sharesSoldSoFar);
                         const proceeds = sharesToSell * pub.share_price;
-                        
+
                         plan.sharesSoldSoFar += sharesToSell;
                         plan.monthsRemaining -= 1;
-                        
+
                         totalSharesSold += sharesToSell;
                         totalProceeds += proceeds;
                     }
                 });
-                
+
                 // Remove completed plans
                 nextFounder.wealth_profile.active_10b51_plans = nextFounder.wealth_profile.active_10b51_plans.filter(p => p.monthsRemaining > 0);
-                
+
                 if (totalSharesSold > 0) {
                     // Update Founder Cash
-                    nextFounder.wealth_profile.cash += totalProceeds;
-                    nextFounder.personal_wealth += totalProceeds;
-                    
+                    nextFounder.personal_wealth = (nextFounder.personal_wealth || 0) + totalProceeds;
+
                     // Deduct from Cap Table
                     if (newStartup.capTable) {
                         const founderIndex = newStartup.capTable.findIndex(e => e.type === "Founder");
@@ -5026,7 +5291,7 @@ export default function Dashboard() {
                             newStartup.capTable[founderIndex].equity = (newShares / totalCompanyShares) * 100;
                         }
                     }
-                    
+
                     addTimelineEvent(`📄 10b5-1 Plans executed: Sold ${formatNumber(totalSharesSold)} shares for ${formatMoney(totalProceeds)}.`, nextMonth);
                 }
             }
@@ -5070,7 +5335,7 @@ export default function Dashboard() {
             newStartup.phase = newPhase as typeof newStartup.phase;
 
             setStartup(newStartup);
-            setFounder({ ...foAfter }); // Ensure founder state (wealth, skills) updates
+            // Do NOT call setFounder({...foAfter}) here — nextFounder already has all lifestyle/margin/asset changes applied above.
             setSelectedAction("none");
             const committedEnergy = ongoingProgramsTotalEnergy(ongoingPrograms);
             setFocusHoursUsed(committedEnergy);
@@ -5370,7 +5635,7 @@ export default function Dashboard() {
                                     {startup.hasRateRewardClaimed ? "Rate & Support ✓" : "Rate & Support 🎁 (Claim $50k)"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
-                                    <Rocket className="mr-2 h-4 w-4" /> V2 Roadmap (Coming Soon)
+                                    <Rocket className="mr-2 h-4 w-4" /> V2: The Empire Era
                                 </DropdownMenuItem>
                                 {isNative && (
                                     <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-slate-100 focus:text-slate-900 font-bold transition-colors text-slate-500" onClick={() => adService.showPrivacySettings()}>
@@ -5383,9 +5648,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* PUBLIC MARKET TICKER */}
-                <PublicMarketTicker 
-                    publicState={startup.public_company} 
-                    companyName={startup.name || "CORP"} 
+                <PublicMarketTicker
+                    publicState={startup.public_company}
+                    companyName={startup.name || "CORP"}
                     marketStocks={marketStocks}
                     activeMacroEvent={startup.metrics.active_macro_event}
                 />
@@ -5393,10 +5658,10 @@ export default function Dashboard() {
                 {/* MACRO SEASON BANNER */}
                 {m.current_season && m.current_season !== "Normal" && (
                     <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
-                            m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
-                                m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
-                                    m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
-                                        "bg-slate-800 text-white"
+                        m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
+                            m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
+                                m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
+                                    "bg-slate-800 text-white"
                         }`}>
                         {m.current_season === "Bull Market" && "📈 Bull Market: Fundraising Sentiment High"}
                         {m.current_season === "Bear Market" && "📉 Bear Market: Investors Risk Averse"}
@@ -5784,7 +6049,7 @@ export default function Dashboard() {
                             ] as const;
                         }
                         return [] as any;
-                    })().map((cat: {id: string; emoji: string; label: string; color: string; border: string; text: string}) => {
+                    })().map((cat: { id: string; emoji: string; label: string; color: string; border: string; text: string }) => {
                         const isActive = actionCategory === cat.id;
                         // In dark mode, we use a darker base but keep the brand border/text colors
                         const darkBg = isActive ? "rgba(30, 41, 59, 0.9)" : "rgba(15, 23, 42, 0.6)";
@@ -5900,6 +6165,11 @@ export default function Dashboard() {
                                         addTimelineEvent(`📚 Skill Unlocked: ${node?.emoji} ${node?.label}`);
                                         toast.success(`${node?.emoji ?? ''} ${node?.label ?? ''} Unlocked!`, { description: node?.tagline });
                                     }}
+                                    hrSearchRole={hrSearchRole}
+                                    setHrSearchRole={setHrSearchRole}
+                                    hrCandidates={hrCandidates}
+                                    setHrCandidates={setHrCandidates}
+                                    isProcessing={isProcessing}
                                 />
                             </div>
                         </motion.div>
@@ -6090,8 +6360,8 @@ export default function Dashboard() {
                         const ns = { ...s, active_crisis: result.updatedCrisis };
                         const fx = result.effects;
                         if (fx.brand_awareness) ns.metrics = { ...ns.metrics, brand_awareness: Math.max(0, Math.min(100, (ns.metrics.brand_awareness || 0) + fx.brand_awareness)) };
-                        if (fx.team_morale)    ns.metrics = { ...ns.metrics, team_morale:    Math.max(0, Math.min(100, (ns.metrics.team_morale || 50) + fx.team_morale)) };
-                        if (fx.cash_hit)       ns.metrics = { ...ns.metrics, cash: (ns.metrics.cash || 0) + fx.cash_hit! };
+                        if (fx.team_morale) ns.metrics = { ...ns.metrics, team_morale: Math.max(0, Math.min(100, (ns.metrics.team_morale || 50) + fx.team_morale)) };
+                        if (fx.cash_hit) ns.metrics = { ...ns.metrics, cash: (ns.metrics.cash || 0) + fx.cash_hit! };
                         if (fx.ceo_reputation) ns.ceo_reputation = Math.max(0, Math.min(100, (ns.ceo_reputation ?? 80) + fx.ceo_reputation));
                         if (fx.valuation_mult) {
                             ns.valuation = Math.floor(ns.valuation * fx.valuation_mult!);
@@ -6148,11 +6418,10 @@ export default function Dashboard() {
                                             <div className="flex items-start justify-between gap-2">
                                                 <p className="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{choice.label}</p>
                                                 <div className="shrink-0 flex flex-col items-end gap-0.5">
-                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
-                                                        choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
-                                                        choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-rose-100 text-rose-700'
-                                                    }`}>
+                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
+                                                            choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
+                                                                'bg-rose-100 text-rose-700'
+                                                        }`}>
                                                         {Math.round(choice.successRate * 100)}% success
                                                     </span>
                                                     {(choice.cost ?? 0) > 0 && (
@@ -6955,7 +7224,7 @@ export default function Dashboard() {
                                                     explanation="Customer Acquisition Cost. Marketing spend per new user." isExpanded={expandedMetric === "cac"} onToggle={() => toggle("cac")} />
                                                 <StatRow label="LTV" value={m.ltv ? formatMoney(m.ltv) : "N/A"} color="text-blue-600 dark:text-blue-400"
                                                     explanation="Lifetime Value. Total revenue expected from a user." isExpanded={expandedMetric === "ltv"} onToggle={() => toggle("ltv")} />
-                                                <StatRow label="LTV:CAC" value={m.cac && m.ltv ? `${(m.ltv / m.cac).toFixed(1)}x` : "N/A"} color={(m.cac && m.ltv && m.ltv / m.cac >= 3) ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
+                                                <StatRow label="LTV:CAC" value={(m.cac && m.cac > 0 && m.ltv) ? `${(m.ltv / m.cac).toFixed(1)}x` : "N/A"} color={(m.cac && m.cac > 0 && m.ltv && m.ltv / m.cac >= 3) ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
                                                     explanation="Ratio of LTV to CAC. 3x+ is healthy business. Hire a CFO to optimize." isExpanded={expandedMetric === "ltvcac"} onToggle={() => toggle("ltvcac")} />
                                             </>
                                         );
@@ -7152,12 +7421,33 @@ export default function Dashboard() {
                             <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
 
 
-                                <button
-                                    onClick={() => handleResetGame(true)}
-                                    className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
-                                >
-                                    Start New Game →
-                                </button>
+                                {outcome === "ipo" ? (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                setStartup(s => ({ ...s, outcome: "active" }));
+                                                setIsEndgameOpen(false);
+                                                playSound("success");
+                                            }}
+                                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-700 text-white font-black uppercase tracking-widest text-sm hover:from-violet-500 hover:to-indigo-600 shadow-xl shadow-violet-600/30 transition-all active:scale-[0.98] animate-pulse"
+                                        >
+                                            Ring The Opening Bell 🔔
+                                        </button>
+                                        <button
+                                            onClick={() => handleResetGame(true)}
+                                            className="w-full py-2 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-rose-500 transition-colors"
+                                        >
+                                            Or Retire & Start New Legacy
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => handleResetGame(true)}
+                                        className="w-full py-3.5 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-wider text-sm hover:bg-indigo-700 transition active:scale-[0.98]"
+                                    >
+                                        Start New Game →
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -7194,8 +7484,8 @@ export default function Dashboard() {
                         </div>
 
                         <div className="relative z-10">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
-                                <Rocket className="size-3" /> Upcoming Expansion
+                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
+                                <Rocket className="size-3" /> The V2 Era
                             </div>
                             <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
                             <p className="text-indigo-100 text-sm font-medium max-w-md">V2 picks up where you left off — run your publicly listed company, build a global empire, and face challenges no bootstrapped founder ever imagined.</p>
@@ -7219,16 +7509,16 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-3">
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25">
-                                        <span className="text-xs">🕐</span>
-                                        <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30">
+                                        <span className="text-xs">✅</span>
+                                        <p className="text-emerald-400 text-[9px] font-black uppercase tracking-wide">LIVE NOW</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">In Development</div>
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
                                 <div>
@@ -7239,6 +7529,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
                                 <div>
@@ -7249,6 +7540,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
                                 <div>
@@ -7259,6 +7551,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-300 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
                                 <div>
@@ -7270,7 +7563,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Targeting Q3 2026 Drop</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Founder Sim V2.0.0 Launched</p>
                         <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
                             LET'S SCALE →
                         </Button>
@@ -7395,9 +7688,9 @@ export default function Dashboard() {
                 />
             )}
 
-            <SamOnboardingModal 
-                isOpen={showPostIpoCinematic} 
-                onComplete={() => setShowPostIpoCinematic(false)} 
+            <SamOnboardingModal
+                isOpen={showPostIpoCinematic}
+                onComplete={() => setShowPostIpoCinematic(false)}
             />
 
             <EarningsCallModal
@@ -7409,23 +7702,23 @@ export default function Dashboard() {
                     const newStartup = { ...startup };
                     if (newStartup.public_company) {
                         const pub = newStartup.public_company;
-                        
+
                         // Apply price impact
                         pub.share_price = Math.max(0.01, pub.share_price * (1 + results.priceImpactPct));
-                        
+
                         // Update consensus and guidance for next quarter
                         const currentEps = pub.eps_last_quarter;
                         const oldConsensus = pub.consensus_eps;
-                        
+
                         let nextGuidance = currentEps;
                         if (results.guidance === "bullish") nextGuidance = currentEps * 1.15;
                         if (results.guidance === "bearish") nextGuidance = currentEps * 0.85;
                         if (results.guidance === "realistic") nextGuidance = currentEps * 1.05;
-                        
+
                         pub.eps_guidance = nextGuidance;
                         // Street consensus meets you halfway
                         pub.consensus_eps = (currentEps + nextGuidance) / 2;
-                        
+
                         // Record streak
                         if (pub.eps_last_quarter >= oldConsensus) {
                             pub.quarterly_beats++;
@@ -7434,16 +7727,16 @@ export default function Dashboard() {
                             pub.quarterly_misses++;
                             pub.quarterly_beats = 0;
                         }
-                        
+
                         // Sync ticker
-                        setMarketStocks(prev => prev.map(s => 
+                        setMarketStocks(prev => prev.map(s =>
                             s.symbol === (startup.symbol || "CORP") ? { ...s, currentPrice: pub.share_price } : s
                         ));
                     }
-                    
+
                     setStartup(newStartup);
                     addTimelineEvent(results.message, month);
-                    
+
                     if (results.priceImpactPct > 0) {
                         toast.success("Earnings Call Concluded", { description: "Stock reacted positively." });
                         playSound("success");
@@ -7451,7 +7744,7 @@ export default function Dashboard() {
                         toast.error("Earnings Call Concluded", { description: "Stock took a hit." });
                         playSound("fail");
                     }
-                    
+
                     setIsEarningsCallOpen(false);
                 }}
             />

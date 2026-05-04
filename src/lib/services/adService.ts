@@ -239,9 +239,24 @@ class AdService {
         }
 
         try {
-            // Only prepare if not already loaded or if we want to ensure freshness
+            // If already loading, wait for it or show error
+            if (this.rewardedLoading[adType]) {
+                toast.info("Loading ad...", { duration: 2000 });
+                // Simple poll to wait up to 3 seconds
+                for (let i = 0; i < 6; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    if (this.rewardedLoaded[adType]) break;
+                }
+            }
+
             if (!this.rewardedLoaded[adType]) {
                 await this.prepareRewarded(adType);
+            }
+
+            // Final check
+            if (!this.rewardedLoaded[adType]) {
+                toast.error("Ad not ready yet. Please try again in a few seconds.");
+                return;
             }
 
             const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
@@ -261,10 +276,11 @@ class AdService {
 
             const failedListener = await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
                 console.error('Ad failed to show', err);
-                toast.error("Ad not ready yet. Please try again in a few seconds.");
+                toast.error("Ad failed to play. Please check your connection.");
                 failedListener.remove();
                 dismissListener.remove();
                 rewardListener.remove();
+                this.rewardedLoaded[adType] = false;
                 this.prepareRewarded(adType);
             });
 

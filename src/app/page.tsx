@@ -258,7 +258,7 @@ export default function Home() {
           {/* Version tag - Refined v1.6 */}
           <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5">
             <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 1.1.2</span>
+            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 2.0.0</span>
           </div>
 
           {/* Career Stats - Compact Glassmorphic Cards */}

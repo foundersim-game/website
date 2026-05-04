@@ -852,13 +852,15 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
         
-        if (pipelinePower < 15 && metrics.users < 10) {
-            newLeads = Math.random() < 0.1 ? 1 : 0;
-        } else {
-            // SLG baseline leads
-            const slgBaseline = (pipelinePower / 50);
-            newLeads = Math.floor(metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60)) + slgBaseline);
-        }
+            // SLG baseline leads: Even with 0 growth, a high pipeline power should yield some 'pity leads'
+            const slgBaseline = (pipelinePower / 40);
+            const growthLeads = metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60));
+            newLeads = Math.floor(growthLeads + slgBaseline);
+            
+            // Cold start boost for 0-user SLG companies with a sales team
+            if (metrics.users === 0 && newLeads < 1 && pipelinePower > 20) {
+                newLeads = Math.random() < 0.3 ? 1 : 0;
+            }
         
         if (newLeads < 1 && pipelinePower > 30) newLeads += 1;
 
@@ -1282,9 +1284,14 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     }
 
     // Final safety audit: Prevent NaN from escaping into the state
-    if (isNaN(metrics.cash)) metrics.cash = isNaN(startup.metrics.cash) ? 0 : (startup.metrics.cash || 0);
-    if (isNaN(metrics.users)) metrics.users = isNaN(startup.metrics.users) ? 0 : (startup.metrics.users || 0);
-    if (isNaN(metrics.revenue)) metrics.revenue = 0;
+    metrics.cash = isFinite(metrics.cash) ? metrics.cash : (isFinite(startup.metrics.cash) ? startup.metrics.cash : 0);
+    metrics.users = isFinite(metrics.users) ? metrics.users : (isFinite(startup.metrics.users) ? startup.metrics.users : 0);
+    metrics.revenue = isFinite(metrics.revenue) ? metrics.revenue : 0;
+    metrics.net_profit = isFinite(metrics.net_profit) ? metrics.net_profit : 0;
+    metrics.growth_rate = isFinite(metrics.growth_rate) ? metrics.growth_rate : 0;
+    metrics.pmf_score = isFinite(metrics.pmf_score) ? metrics.pmf_score : 10;
+    metrics.product_quality = isFinite(metrics.product_quality) ? metrics.product_quality : 10;
+    metrics.burn_rate = isFinite(metrics.burn_rate) ? metrics.burn_rate : 0;
 
     return { newStartup, notices };
 }
