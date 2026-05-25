@@ -13,15 +13,14 @@ export function HowToPlayContent() {
 
   const tabs = [
     { id: 'basics',      label: 'Basics',      icon: BarChart3 },
-    { id: 'empire',      label: 'V2.0 Empire', icon: Sparkles },
     { id: 'skills',      label: 'Skills',      icon: GraduationCap },
     { id: 'product',     label: 'Product',     icon: Zap },
     { id: 'industries',  label: 'Industries',  icon: Globe },
     { id: 'growth',      label: 'Growth',      icon: TrendingUp },
-    { id: 'funding',     label: 'Funding',     icon: DollarSign },
+    { id: 'funding',     label: 'Finance',     icon: DollarSign },
     { id: 'team',        label: 'Team',        icon: Users },
     { id: 'competitors', label: 'Rivals',      icon: Shield },
-    { id: 'ending',      label: 'Winning',     icon: Award },
+    { id: 'ending',      label: 'Exits & IPO', icon: Award },
   ];
 
   const industries = [
@@ -152,69 +151,6 @@ export function HowToPlayContent() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'empire':
-        return (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">V2.0.0 "Empire Era" Update</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Version 2.0.0 introduces corporate governance, public markets, and advanced wealth management. You are no longer just building a startup; you are building a commercial empire.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers & Acquisitions (M&A)</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  Acquire competitors directly from the **Market** menu. Submit a buyout bid using treasury cash. If accepted, you will absorb their users, cash, and technology, expanding your market share instantly.
-                </p>
-              </div>
-
-              <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-amber-900 dark:text-amber-300 mb-1 uppercase tracking-wider">💼 Board of Directors & Proposals</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  Once you raise venture funding, investors join your **Board of Directors**. To adjust your **Founder Salary**, you must submit a proposal. Board members vote based on your runway, burn rate, and recent valuation growth.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-emerald-900 dark:text-emerald-300 mb-1 uppercase tracking-wider">📉 Options & Margin Loans</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  After IPO, use your **Personal Wealth** to trade calls and puts on your own stock. You can also borrow cash via **Margin Loans** by leveraging your founder equity as collateral, allowing you to bypass compliance selling limits.
-                </p>
-              </div>
-
-              <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-rose-900 dark:text-rose-300 mb-1 uppercase tracking-wider">🏛️ Congressional Lobbying</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  Access the **Compliance** tab to hire lobbyists. Lobbying Congress shields your company from heavy penalties when navigating regulatory audits, lawsuits, or antitrust crackdowns.
-                </p>
-              </div>
-
-              <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-blue-900 dark:text-blue-300 mb-1 uppercase tracking-wider">🎙️ Quarterly Earnings Calls</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  Every 3 months post-IPO, you must host an **Earnings Call**. Present your financial results to Wall Street and answer analyst questions. Delivering good news and keeping analysts happy drives stock price upward.
-                </p>
-              </div>
-
-              <div className="bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 p-4 rounded-2xl">
-                <p className="text-xs font-black text-violet-900 dark:text-violet-300 mb-1 uppercase tracking-wider">📄 10b5-1 Compliance Plans</p>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  Selling shares directly can trigger regulatory alerts. Set up a **10b5-1 Plan** to automate secondary sales of your founder equity over time, ensuring compliance and generating safe personal cash.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
-              <p className="text-xs font-black uppercase text-indigo-400 mb-1 flex items-center gap-1.5">👑 Personal Lifestyle & Brands</p>
-              <p className="text-[11px] font-medium leading-relaxed text-slate-300">
-                Grow your personal wealth to buy luxury estates, supercars, yachts, or engage in philanthropy. Expanding your lifestyle increases your **Founder Brand Score**, which passively boosts employee hiring quality and reduces CAC.
-              </p>
-            </div>
-          </div>
-        );
-
       case 'industries':
         const indData = industryDetails[selectedIndustry] || industryDetails['SaaS'];
         return (
@@ -517,19 +453,49 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Equity & Valuations</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Corporate Finance & Wealth</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Raising money extends your runway but dilutes your ownership. Balance how much equity you give away — it directly affects your final exit payout.
+                Managing your company's balance sheet and your personal net worth is key to scaling. Dilute carefully to raise capital, and reinvest personal gains to grow your brand.
               </p>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-lg shadow-emerald-600/20 shrink-0">💵</div>
-                <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">How Pitching Works</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Use "Pitch Investors" to build your pipeline, then negotiate term sheets. Investors give you cash in exchange for <strong className="font-bold text-slate-700 dark:text-slate-300">equity (a % of your company)</strong>. Once diluted, you can't get equity back.</p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">💵 Fundraising & Dilution</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Use "Pitch Investors" to build your pipeline, then negotiate term sheets. Investors give you cash in exchange for equity. Once diluted, you cannot buy back equity until post-IPO.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">💼 Board of Directors & Salary</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Raising institutional rounds forms a **Board of Directors**. If you want to increase your personal **Founder Salary**, you must submit a proposal. Board members vote based on cash burn, runway, and growth rate.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📉 Options & Margin Loans</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Use personal wealth to buy calls and puts on your own stock post-IPO. You can also borrow cash via **Margin Loans** by leveraging your founder equity as collateral, bypassing compliance limits.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📄 10b5-1 Compliance Plans</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Avoid compliance investigations when selling founder equity. Set up a **10b5-1 Plan** in the Compliance tab to schedule automated, secondary sales of your shares for safe personal cash.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl flex gap-3">
+              <Sparkles className="size-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <div>
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">👑 Personal Lifestyle & Brand</p>
+                <p className="text-[11px] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">
+                  Spend your personal cash on luxury estates, supercars, yachts, or philanthropy. Upgrading your lifestyle raises your **Founder Brand Score**, which passively attracts better employee candidates and lowers marketing CAC.
+                </p>
               </div>
             </div>
 
@@ -539,16 +505,6 @@ export function HowToPlayContent() {
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Monthly Investor Updates:</strong> Costs nothing. Adds +1 Reputation/mo.</li>
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">CFO Roadshow:</strong> Replaces the Consultant once you hire a CFO. Zero extra cost, higher investor lead volume.</li>
               </ul>
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
-              <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[11px] font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-1">💼 Board of Directors & Salary</p>
-                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-medium leading-relaxed">
-                  Venture backing brings investor oversight. Raising capital forms a **Board of Directors**. If you submit a Board Proposal to raise your **Founder Salary**, board members will vote on it. Their decision depends on your current burn rate, runway, growth, and company health.
-                </p>
-              </div>
             </div>
 
             <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
@@ -644,26 +600,51 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">How To Win</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Exits & Public Markets</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                There are two ways to exit. The path you choose changes your payout, your XP reward, and what you unlock in future runs.
+                Building a huge company leads to the ultimate test: liquidating your ownership through an Acquisition or taking the company public on the stock exchange.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-900/40 border-2 border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
+              <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
                 <div className="size-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-black shadow-lg shadow-slate-900/20 shrink-0">🏛️</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">1. IPO Route</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Taking your company public requires hitting  <strong className="font-bold text-slate-700 dark:text-slate-300">$50M ARR, 10k+ users, PMF ≥ 60, Series A raised</strong>.</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">1. IPO (Initial Public Offering)</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                    Take your company public on the stock exchange. Requires hitting <strong className="font-bold text-slate-700 dark:text-slate-300">$50M ARR, 10k+ users, PMF ≥ 60, and Series A raised</strong>. Run the IPO Roadshow to build demand, price your stock, and list on the ticker.
+                  </p>
                 </div>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-900/40 border-2 border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
                 <div className="size-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/20 shrink-0">💰</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">2. Acquisition</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A strategic buyer approaches you with an offer based on your current valuation multiple. Payout is typically 5-10x ARR.</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">2. M&A Acquisition Exit</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                    A strategic buyer approaches you with a buyout offer based on your current valuation. You can negotiate the payout. Payout is typically 5-10x your ARR.
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl flex gap-3">
+              <MonitorPlay className="size-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <div>
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">🎙️ Post-IPO: Quarterly Earnings Calls</p>
+                <p className="text-[11px] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">
+                  Every 3 months post-IPO, you must host an **Earnings Call**. Present your financial results to Wall Street and answer analyst questions. Keeping analyst sentiment high drives your stock price up, while poor reporting or bad answers will trigger sell-offs.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 p-4 rounded-2xl flex gap-3">
+              <Shield className="size-6 text-rose-600 dark:text-rose-400 shrink-0" />
+              <div>
+                <p className="text-xs font-black text-rose-900 dark:text-rose-300 uppercase mb-1">🏛️ Compliance & Congressional Lobbying</p>
+                <p className="text-[11px] text-rose-800 dark:text-rose-400 font-medium leading-relaxed">
+                  Hire lobbyists in the **Compliance** tab to influence regulation. Lobbying Congress shields your company from heavy fines when navigating lawsuits, auditing investigations, or antitrust crackdowns from regulators.
+                </p>
               </div>
             </div>
           </div>
