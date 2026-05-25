@@ -13,6 +13,7 @@ export function HowToPlayContent() {
 
   const tabs = [
     { id: 'basics',      label: 'Basics',      icon: BarChart3 },
+    { id: 'empire',      label: 'V2.0 Empire', icon: Sparkles },
     { id: 'skills',      label: 'Skills',      icon: GraduationCap },
     { id: 'product',     label: 'Product',     icon: Zap },
     { id: 'industries',  label: 'Industries',  icon: Globe },
@@ -151,6 +152,69 @@ export function HowToPlayContent() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'empire':
+        return (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">V2.0.0 "Empire Era" Update</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
+                Version 2.0.0 introduces corporate governance, public markets, and advanced wealth management. You are no longer just building a startup; you are building a commercial empire.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers & Acquisitions (M&A)</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  Acquire competitors directly from the **Market** menu. Submit a buyout bid using treasury cash. If accepted, you will absorb their users, cash, and technology, expanding your market share instantly.
+                </p>
+              </div>
+
+              <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-amber-900 dark:text-amber-300 mb-1 uppercase tracking-wider">💼 Board of Directors & Proposals</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  Once you raise venture funding, investors join your **Board of Directors**. To adjust your **Founder Salary**, you must submit a proposal. Board members vote based on your runway, burn rate, and recent valuation growth.
+                </p>
+              </div>
+
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-emerald-900 dark:text-emerald-300 mb-1 uppercase tracking-wider">📉 Options & Margin Loans</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  After IPO, use your **Personal Wealth** to trade calls and puts on your own stock. You can also borrow cash via **Margin Loans** by leveraging your founder equity as collateral, allowing you to bypass compliance selling limits.
+                </p>
+              </div>
+
+              <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-rose-900 dark:text-rose-300 mb-1 uppercase tracking-wider">🏛️ Congressional Lobbying</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  Access the **Compliance** tab to hire lobbyists. Lobbying Congress shields your company from heavy penalties when navigating regulatory audits, lawsuits, or antitrust crackdowns.
+                </p>
+              </div>
+
+              <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-blue-900 dark:text-blue-300 mb-1 uppercase tracking-wider">🎙️ Quarterly Earnings Calls</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  Every 3 months post-IPO, you must host an **Earnings Call**. Present your financial results to Wall Street and answer analyst questions. Delivering good news and keeping analysts happy drives stock price upward.
+                </p>
+              </div>
+
+              <div className="bg-violet-50/50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 p-4 rounded-2xl">
+                <p className="text-xs font-black text-violet-900 dark:text-violet-300 mb-1 uppercase tracking-wider">📄 10b5-1 Compliance Plans</p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                  Selling shares directly can trigger regulatory alerts. Set up a **10b5-1 Plan** to automate secondary sales of your founder equity over time, ensuring compliance and generating safe personal cash.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
+              <p className="text-xs font-black uppercase text-indigo-400 mb-1 flex items-center gap-1.5">👑 Personal Lifestyle & Brands</p>
+              <p className="text-[11px] font-medium leading-relaxed text-slate-300">
+                Grow your personal wealth to buy luxury estates, supercars, yachts, or engage in philanthropy. Expanding your lifestyle increases your **Founder Brand Score**, which passively boosts employee hiring quality and reduces CAC.
+              </p>
+            </div>
+          </div>
+        );
+
       case 'industries':
         const indData = industryDetails[selectedIndustry] || industryDetails['SaaS'];
         return (
