@@ -412,6 +412,13 @@ export function checkCrisisSpawn(startup: Startup & { _securitySkillReduction?: 
 
     // Base probability with risk modifiers
     let prob = 0.04; // 4% base chance/month
+    
+    // SCALING: Large companies are bigger targets
+    const valuation = startup.valuation || 0;
+    if (valuation > 100_000_000_000_000) prob += 0.10; // 14% base for 100T+ giants
+    else if (valuation > 1_000_000_000_000) prob += 0.04; // 8% for 1T+
+    else if (valuation > 100_000_000) prob += 0.02; // 6% for 100M+
+
     if ((startup.metrics.technical_debt || 0) > 70) prob += 0.05;
     if (startup.metrics.team_morale < 40) prob += 0.06;
     if ((startup.metrics.founder_burnout || 0) > 70) prob += 0.04;
@@ -456,6 +463,41 @@ export function checkCrisisSpawn(startup: Startup & { _securitySkillReduction?: 
         resolvedByPlayer: false,
         ceoReputationHit: 0,
     };
+}
+
+/**
+ * Specifically for passive lawsuit spawning (patent trolls, wrongful termination)
+ * independent of major Crises.
+ */
+export function checkLawsuitSpawn(startup: Startup, monthsPassed: number): import("../types/database.types").Lawsuit | null {
+    const valuation = startup.valuation || 0;
+    const headcount = (startup.employees?.length || 0);
+    
+    let prob = 0.005; // 0.5% base
+    
+    // Scale with valuation
+    if (valuation > 100_000_000_000_000) prob += 0.12;
+    else if (valuation > 1_000_000_000_000) prob += 0.05;
+    else if (valuation > 10_000_000) prob += 0.01;
+    
+    // Scale with headcount (more people = more HR risk)
+    if (headcount > 1000) prob += 0.08;
+    else if (headcount > 100) prob += 0.03;
+
+    // Lobbying helps with regulatory lawsuits specifically, but we'll apply it broadly here
+    const lobbyingScore = (startup.public_company?.lobbying_score || 0);
+    prob *= (1 - (lobbyingScore / 100) * 0.4);
+
+    if (Math.random() > prob) return null;
+
+    const types: import("../types/database.types").LawsuitType[] = ["wrongful_termination", "ip_infringement", "regulatory_fine", "class_action"];
+    // Large companies get more class actions/IP suits
+    if (valuation > 1_000_000_000) {
+        types.push("class_action", "ip_infringement");
+    }
+    
+    const type = types[Math.floor(Math.random() * types.length)];
+    return spawnLawsuit(type, monthsPassed);
 }
 
 // ─── AUTO-ESCALATION ──────────────────────────────────────────────────────────
@@ -595,4 +637,60 @@ export function getCeoReputationLabel(rep: number): { grade: string; label: stri
     if (rep >= 50) return { grade: "C",  label: "Scrutinized", color: "text-amber-500" };
     if (rep >= 35) return { grade: "D",  label: "Under Fire",  color: "text-orange-500" };
     return             { grade: "F",  label: "In Crisis",   color: "text-rose-600" };
+}
+// ─── LAWSUITS ─────────────────────────────────────────────────────────────
+
+export const LAWSUIT_TEMPLATES: Record<import("../types/database.types").LawsuitType, any> = {
+    wrongful_termination: {
+        title: "Wrongful Termination Claim",
+        description: "A former employee claims they were fired without cause and is seeking damages for lost wages and emotional distress.",
+        demand_amount: 150000,
+        settlement_offer: 75000,
+        legal_fees_per_month: 5000,
+        months_to_trial: 6,
+        win_probability: 0.65,
+    },
+    ip_infringement: {
+        title: "Patent Infringement Lawsuit",
+        description: "A competitor alleges that your core technology infringes on their existing patents. This could be an existential threat.",
+        demand_amount: 1000000,
+        settlement_offer: 400000,
+        legal_fees_per_month: 25000,
+        months_to_trial: 12,
+        win_probability: 0.40,
+    },
+    regulatory_fine: {
+        title: "SEC Regulatory Investigation",
+        description: "Regulators have flagged discrepancies in your public disclosures. A significant fine is proposed.",
+        demand_amount: 500000,
+        settlement_offer: 300000,
+        legal_fees_per_month: 15000,
+        months_to_trial: 8,
+        win_probability: 0.50,
+    },
+    class_action: {
+        title: "Consumer Class Action",
+        description: "A group of users has filed a class-action suit alleging misleading marketing and data mishandling.",
+        demand_amount: 2500000,
+        settlement_offer: 1200000,
+        legal_fees_per_month: 40000,
+        months_to_trial: 18,
+        win_probability: 0.45,
+    }
+};
+
+export function spawnLawsuit(type: import("../types/database.types").LawsuitType, month: number): import("../types/database.types").Lawsuit {
+    const template = LAWSUIT_TEMPLATES[type];
+    return {
+        id: `suit_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        type,
+        title: template.title,
+        description: template.description,
+        filed_month: month,
+        demand_amount: template.demand_amount,
+        settlement_offer: template.settlement_offer,
+        legal_fees_per_month: template.legal_fees_per_month,
+        months_to_trial: template.months_to_trial,
+        win_probability: template.win_probability,
+    };
 }

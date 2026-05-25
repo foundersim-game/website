@@ -63,14 +63,14 @@ export const TUTORIAL_STEPS: StorylineDialog[] = [
         character: "sam",
         trigger: "tutorial_2",
         title: "⚡ TAKING ACTIONS",
-        message: "Each month you get Focus Hours — your most valuable resource. Spend them on one action.\n\nTap the ⚡ action button at the bottom to see your options. Product, growth, or team — choose carefully.",
+        message: "Each month you get Focus Hours — your most valuable resource. Spend them on actions.\n\nAt the bottom, you'll see your action categories: Operations (🏢), Strategy (📈), Founder (👤), and Corporate (🏛️). Spend your Focus Hours by clicking any category and selecting an action. Balance your time across these to scale!",
         buttonText: "GOT IT, I'LL TRY →",
     },
     {
         character: "sam",
         trigger: "tutorial_3",
         title: "⚔️ CHECK YOUR RIVALS",
-        message: "See the Rivals tab? Open it now. There's a startup called Chadly — that's your competition.\n\nWatch his users and valuation. When Chad shows up in person, you'll know what you're dealing with.",
+        message: "Wondering about your competition? Tap the Strategy (📈) category and open the Rivals (⚔️) sub-menu. That's where you'll find Chadly — your main rival.\n\nWatch his users and valuation closely. When Chad shows up in person, stay calm!",
         buttonText: "GOT IT, I'LL CHECK →",
     },
     {

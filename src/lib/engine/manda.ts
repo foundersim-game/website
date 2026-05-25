@@ -9,8 +9,9 @@ export function generateAcquisitionOffer(startup: Startup, founder: Founder): Ac
     const pmf = startup.metrics.pmf_score;
     const growth = startup.metrics.growth_rate;
 
-    // Prevent offers if IPO is in progress or game has ended
-    if ((startup.ipo_stage || 0) > 0 || startup.outcome) return null;
+    // Prevent offers if IPO is in progress (stages 1-3) or game has ended
+    // Once public (stage 4), take-private buyout offers are allowed!
+    if (((startup.ipo_stage || 0) > 0 && (startup.ipo_stage || 0) < 4) || startup.outcome) return null;
 
     // Minimum criteria for an offer
     if (annualRevenue < 500000 && valuation < 5000000 && pmf < 40) return null;
@@ -89,4 +90,73 @@ function getBigTechName(industry: string): string {
     if (industry.includes("SaaS")) return "CloudGiant Inc";
     if (industry.includes("E-commerce")) return "GlobalMart Technologies";
     return "OmniCorp Tech";
+}
+
+export type MnATarget = {
+    id: string;
+    name: string;
+    sector: string;
+    emoji: string;
+    desc: string;
+    ask: number;
+    users: number;
+    rationale: string;
+    
+    // Hidden until Due Diligence
+    is_diligent: boolean;
+    true_value: number; // Might be lower or higher than ask
+    integration_risk: "Low" | "Medium" | "High"; // High risk = morale hit on acquire
+    financial_health: "Profitable" | "Break-Even" | "Burning Cash";
+    inherited_burn: number; // Added to player's burn rate
+};
+
+export function generateMnATargets(playerValuation: number): MnATarget[] {
+    const targets: MnATarget[] = [];
+    const numTargets = 3 + Math.floor(Math.random() * 2);
+
+    const prefixes = ["Data", "Cloud", "Neuro", "Quantum", "Apex", "Omni", "Local", "Secure", "Talent", "Swift"];
+    const suffixes = ["Flow", "Sense", "Mart", "Base", "AI", "Network", "Systems", "Tech", "Labs", "Dynamics"];
+    const sectors = ["SaaS", "AI", "E-commerce", "Security", "Fintech", "Healthtech"];
+    const rationales = ["Acqui-hire", "Product Extension", "Market Expansion", "Defensive Acquisition", "IP/Patents"];
+
+    for (let i = 0; i < numTargets; i++) {
+        const name = `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
+        const sector = sectors[Math.floor(Math.random() * sectors.length)];
+        const rationale = rationales[Math.floor(Math.random() * rationales.length)];
+        
+        // Target valuation is 1% to 15% of player valuation, capped at $20 Billion
+        const scale = 0.01 + Math.random() * 0.14;
+        let ask = Math.floor(playerValuation * scale);
+        ask = Math.min(20_000_000_000, Math.max(1_000_000, ask)); // Min 1M, Max 20B
+
+        // Variance for true value (0.7x to 1.3x of ask)
+        const true_value = Math.floor(ask * (0.7 + Math.random() * 0.6));
+        
+        const riskRoll = Math.random();
+        const integration_risk = riskRoll > 0.7 ? "High" : riskRoll > 0.3 ? "Medium" : "Low";
+
+        const healthRoll = Math.random();
+        const financial_health = healthRoll > 0.8 ? "Profitable" : healthRoll > 0.4 ? "Break-Even" : "Burning Cash";
+        
+        const inherited_burn = financial_health === "Burning Cash" ? Math.floor(ask * 0.01) : 0;
+        const users = Math.floor(ask / 1000);
+
+        targets.push({
+            id: `acq_${Date.now()}_${i}`,
+            name,
+            sector,
+            emoji: ["🧑‍💼", "🤖", "🏪", "🔒", "💳", "⚕️"][sectors.indexOf(sector)],
+            desc: `${sector} startup focused on ${rationale.toLowerCase()}. `,
+            ask,
+            users,
+            rationale,
+            is_diligent: false,
+            true_value,
+            integration_risk,
+            financial_health,
+            inherited_burn
+        });
+    }
+
+    return targets;
 }

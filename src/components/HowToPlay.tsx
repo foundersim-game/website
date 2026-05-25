@@ -13,6 +13,7 @@ export function HowToPlayContent() {
 
   const tabs = [
     { id: 'basics',      label: 'Basics',      icon: BarChart3 },
+    { id: 'skills',      label: 'Skills',      icon: GraduationCap },
     { id: 'product',     label: 'Product',     icon: Zap },
     { id: 'industries',  label: 'Industries',  icon: Globe },
     { id: 'growth',      label: 'Growth',      icon: TrendingUp },
@@ -280,6 +281,79 @@ export function HowToPlayContent() {
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Valuation grows</strong> dynamically based on user count, revenue, PMF, and team quality.</li>
               </ul>
             </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">✨ Premium Store Upgrades</p>
+              <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed">
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Ad-Free Pro:</strong> Removes all popup ads and banner ads permanently.</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Founder's Starter Pack:</strong> Instantly grants $5M cash, +10 employee morale, and removes burnout.</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Caffeine IV Drip:</strong> Permanently adds +100 Max Focus Hours every single month.</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Titan of Industry:</strong> Grants $100M cash, permanent 50% discount on M&A/Fundraising, and Ad-Free status.</li>
+              </ul>
+            </div>
+          </div>
+        );
+      
+      case 'skills':
+        return (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Founder Skills & SP</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
+                Skill Points (SP) allow you to unlock permanent passive bonuses for your startup. Unlocked skills persist throughout the current game session.
+              </p>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-900/30 p-5 rounded-2xl">
+              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-3 uppercase tracking-widest flex items-center gap-2">
+                <GraduationCap className="size-4" /> How to Earn SP?
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                  <div className="text-xl">💰</div>
+                  <div>
+                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase">Funding Milestones</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> for every major funding round you close (Seed, Series A, Series B, etc).</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                  <div className="text-xl">📈</div>
+                  <div>
+                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase">User Milestones</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> when your total users cross 1,000, 10,000, and 100,000.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                  <div className="text-xl">⏳</div>
+                  <div>
+                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase">Tenure & Survival</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> automatically every 12 months you survive in the simulation.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Skill Branches</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+                  <p className="text-[10px] font-black text-blue-700 uppercase mb-1">⚙️ Technical</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight">Reduces technical debt and improves product reliability/quality passively.</p>
+                </div>
+                <div className="p-3 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
+                  <p className="text-[10px] font-black text-pink-700 uppercase mb-1">📈 Marketing</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight">Boosts organic growth, virality, and brand awareness.</p>
+                </div>
+                <div className="p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 rounded-xl">
+                  <p className="text-[10px] font-black text-violet-700 uppercase mb-1">👔 Leadership</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight">Increases team morale and improves success in investor pitches.</p>
+                </div>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                  <p className="text-[10px] font-black text-emerald-700 uppercase mb-1">💰 Fundraising</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight">Improves valuation caps and investor pipeline quality.</p>
+                </div>
+              </div>
+            </div>
           </div>
         );
 
@@ -396,11 +470,21 @@ export function HowToPlayContent() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Investor Relations Programs</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Investor Relations & CFO</p>
               <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl">
                 <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Monthly Investor Updates:</strong> Costs nothing. Adds +1 Reputation/mo.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">CFO Roadshow:</strong> Replaces the Consultant once you hire a CFO. Zero extra cost, higher lead volume.</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">CFO Roadshow:</strong> Replaces the Consultant once you hire a CFO. Zero extra cost, higher investor lead volume.</li>
               </ul>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
+              <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-1">💼 Board of Directors & Salary</p>
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 font-medium leading-relaxed">
+                  Venture backing brings investor oversight. Raising capital forms a **Board of Directors**. If you submit a Board Proposal to raise your **Founder Salary**, board members will vote on it. Their decision depends on your current burn rate, runway, growth, and company health.
+                </p>
+              </div>
             </div>
 
             <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
@@ -481,6 +565,13 @@ export function HowToPlayContent() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
+              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers & Acquisitions (M&A)</p>
+              <p className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium">
+                You can **acquire competitor companies** directly to absorb their users, cash, and market share! Go to the **Market** menu, view active rivals, and make an acquisition offer. If successful, their entire user base is merged into your startup. *(Titan owners get a permanent 50% cash discount on M&A acquisitions).*
+              </p>
             </div>
           </div>
         );

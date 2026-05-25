@@ -32,7 +32,13 @@ const BASE_FOUNDER: Founder = {
     personal_wealth: 25000,
     assets: [],
     activeToggles: [],
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    wealth_profile: {
+        portfolio: [],
+        margin_loan_balance: 0,
+        philanthropy_score: 0,
+        active_10b51_plans: []
+    }
 };
 
 const BASE_STARTUP: Startup = {

@@ -13,6 +13,11 @@ export type Competitor = {
     aggression?: number; // 0-100
     velocity?: "stagnant" | "steady" | "accelerating" | "hyper-growth";
     sentiment?: "friendly" | "neutral" | "threatened" | "panicking" | "merciless";
+    
+    // M&A properties
+    is_diligent?: boolean;
+    integration_risk?: "Low" | "Medium" | "High";
+    financial_health?: "Profitable" | "Break-Even" | "Burning Cash";
 };
 
 export type CompetitorAction = {
@@ -82,6 +87,9 @@ const COMPETITOR_ACTIONS: CompetitorAction[] = [
 ];
 
 export function generateInitialCompetitors(count: number, playerIndustry?: string): Competitor[] {
+    const risks: ("Low" | "Medium" | "High")[] = ["Low", "Medium", "High"];
+    const healths: ("Profitable" | "Break-Even" | "Burning Cash")[] = ["Profitable", "Break-Even", "Burning Cash"];
+
     const comps: Competitor[] = Array.from({ length: count - 1 }).map((_, i) => ({
         id: `comp-${i}`,
         name: NAMES[Math.floor(Math.random() * NAMES.length)] + " " + (i + 1),
@@ -90,6 +98,9 @@ export function generateInitialCompetitors(count: number, playerIndustry?: strin
         users: Math.floor(Math.random() * 100),
         status: "active",
         growth_rate: 1.05 + Math.random() * 0.1,
+        is_diligent: false,
+        integration_risk: risks[Math.floor(Math.random() * risks.length)],
+        financial_health: healths[Math.floor(Math.random() * healths.length)]
     }));
 
     // Add CHADLY
@@ -104,9 +115,37 @@ export function generateInitialCompetitors(count: number, playerIndustry?: strin
         aggression: 85,
         velocity: "hyper-growth",
         sentiment: "merciless",
+        is_diligent: false,
+        integration_risk: "High",       // Highly toxic / high integration risk!
+        financial_health: "Burning Cash" // Burning heavy reserves!
     });
 
     return comps;
+}
+
+export function generateNewCompetitor(index: number, playerIndustry?: string, playerValuation: number = 1000000): Competitor {
+    const randomNames = ["Raviga", "Sliceline", "Bachmanity", "Pied Piper", "Aviato", "Endframe", "Hooli", "Nucleus", "Initech", "Massive Dynamic", "Cyberdyne", "Umbrella Corp", "Acme", "Globex", "Soyuz", "Vandelay"];
+    const industries = ["SaaS Platform", "AI Platform", "Marketplace", "FinTech App", "EdTech", "Dev Tools", "Mobile Game", "OTT / Streaming"];
+    const risks: ("Low" | "Medium" | "High")[] = ["Low", "Medium", "High"];
+    const healths: ("Profitable" | "Break-Even" | "Burning Cash")[] = ["Profitable", "Break-Even", "Burning Cash"];
+    
+    // Scale new competitor valuation to be around 5% to 30% of the player's current valuation, min $500k
+    const compValuation = Math.max(500000, Math.floor(playerValuation * (0.05 + Math.random() * 0.25)));
+    
+    return {
+        id: `comp_${Date.now()}_${index}`,
+        name: randomNames[Math.floor(Math.random() * randomNames.length)] + " " + (index + 1),
+        industry: playerIndustry || industries[Math.floor(Math.random() * industries.length)],
+        valuation: compValuation,
+        users: Math.max(50, Math.floor(compValuation / 5000)),
+        status: "active",
+        growth_rate: 1.04 + Math.random() * 0.08,
+        velocity: Math.random() > 0.7 ? "accelerating" : "steady",
+        sentiment: "neutral",
+        is_diligent: false,
+        integration_risk: risks[Math.floor(Math.random() * risks.length)],
+        financial_health: healths[Math.floor(Math.random() * healths.length)]
+    };
 }
 
 export function simulateCompetitors(
@@ -117,8 +156,8 @@ export function simulateCompetitors(
     const news: string[] = [];
     const rivalActions: { action: CompetitorAction; competitorName: string }[] = [];
 
-    const updated = competitors.map(comp => {
-        if (comp.status !== "active") return comp;
+    let updated = competitors.map(comp => {
+        if (comp.status !== "active" && comp.status !== "ipo") return comp;
 
         const newComp = { ...comp };
         
@@ -143,7 +182,7 @@ export function simulateCompetitors(
         if (roll < 0.05) {
             newComp.status = "failed";
             news.push(`💀 COMPETITOR CRASH: ${newComp.name} has shut down operations.`);
-        } else if (newComp.valuation > 50000000 && roll < 0.1) {
+        } else if (newComp.valuation > 50000000 && roll < 0.1 && newComp.status === "active") {
             newComp.status = "ipo";
             news.push(`🚀 MARKET EXPLOSION: ${newComp.name} goes public at ${formatMoney(newComp.valuation)} valuation!`);
         } else if (roll < 0.08) {
@@ -186,6 +225,17 @@ export function simulateCompetitors(
 
         return newComp;
     });
+
+    // Make sure we always have a minimum of 3 active/ipo rivals
+    let activeCount = updated.filter(c => c.status === "active" || c.status === "ipo").length;
+    let index = updated.length;
+    while (activeCount < 3) {
+        const newComp = generateNewCompetitor(index, undefined, playerValuation);
+        updated.push(newComp);
+        activeCount++;
+        index++;
+        news.push(`🏢 RIVAL ENTRY: A new competitor "${newComp.name}" entered the ${newComp.industry} market!`);
+    }
 
     return { updated, news, rivalActions };
 }

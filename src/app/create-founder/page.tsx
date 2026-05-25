@@ -168,6 +168,10 @@ export default function CreateFounder() {
     };
     const prev = () => {
         playSound("click");
+        if (step === 1) {
+            router.push("/");
+            return;
+        }
         setStep(s => Math.max(s - 1, 1));
     };
 
@@ -556,8 +560,7 @@ export default function CreateFounder() {
             <div className="shrink-0 px-6 pb-8 pt-4 border-t border-slate-50 dark:border-slate-900 bg-white dark:bg-slate-950 flex gap-3 transition-colors duration-300">
                 <button
                     onClick={prev}
-                    disabled={step === 1}
-                    className="h-14 w-14 rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 disabled:opacity-30 hover:border-slate-300 dark:hover:border-slate-700 active:scale-95 transition-all shrink-0"
+                    className="h-14 w-14 rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 active:scale-95 transition-all shrink-0"
                 >
                     <ChevronLeft className="size-5" />
                 </button>

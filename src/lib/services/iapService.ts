@@ -1,7 +1,13 @@
 import { NativePurchases } from '@capgo/native-purchases';
+import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 
-const PRODUCT_ID_PREMIUM = "founder_sim_premium"; // Must match Play Console ID
+export const IAP_PRODUCT_IDS = {
+    AD_FREE: "founder_sim_premium",
+    STARTER_PACK: "founder_sim_starter_pack",
+    CAFFEINE_DRIP: "founder_sim_caffeine",
+    TITAN_INDUSTRY: "founder_sim_titan",
+};
 
 export class IAPService {
     private static instance: IAPService;
@@ -16,13 +22,9 @@ export class IAPService {
         return IAPService.instance;
     }
 
-    /**
-     * Initializes state and restores previous purchases if any.
-     */
     public async initialize() {
         if (this.initialized) return;
         try {
-            // Optional: check if billing is supported
             const { isBillingSupported } = await NativePurchases.isBillingSupported();
             if (!isBillingSupported) {
                 console.warn("[IAP] Billing is not supported on this device.");
@@ -35,40 +37,87 @@ export class IAPService {
         }
     }
 
-    /**
-     * Checks if the user is already premium.
-     * Looks at native cached purchases if native is available,
-     * otherwise falls back to localStorage (for web rendering/testing).
-     */
-    public async checkPremiumStatus(): Promise<boolean> {
+    public async getProducts() {
+        try {
+            const { products } = await NativePurchases.getProducts({
+                productIdentifiers: Object.values(IAP_PRODUCT_IDS)
+            });
+            return products;
+        } catch (error) {
+            console.error("[IAP] Failed to fetch products", error);
+            return [];
+        }
+    }
+
+    public async getOwnedNonConsumables(): Promise<string[]> {
+        if (!Capacitor.isNativePlatform()) {
+            const owned: string[] = [];
+            if (localStorage.getItem("founder_sim_premium") === "true") owned.push(IAP_PRODUCT_IDS.AD_FREE);
+            if (localStorage.getItem("founder_sim_caffeine") === "true") owned.push(IAP_PRODUCT_IDS.CAFFEINE_DRIP);
+            if (localStorage.getItem("founder_sim_titan") === "true") owned.push(IAP_PRODUCT_IDS.TITAN_INDUSTRY);
+            return owned;
+        }
         try {
             const { purchases } = await NativePurchases.getPurchases({ productType: "inapp" as any });
-            const hasPremium = purchases.some(p => p.productIdentifier === PRODUCT_ID_PREMIUM && p.purchaseState === "1");
-            
-            if (hasPremium) {
+            const owned = purchases.filter(p => p.purchaseState === "1").map(p => p.productIdentifier);
+
+            if (owned.includes(IAP_PRODUCT_IDS.AD_FREE)) {
                 localStorage.setItem("founder_sim_premium", "true");
-                return true;
             }
+            if (owned.includes(IAP_PRODUCT_IDS.TITAN_INDUSTRY)) {
+                localStorage.setItem("founder_sim_titan", "true");
+                localStorage.setItem("founder_sim_premium", "true"); // Titan also removes ads!
+            }
+            if (owned.includes(IAP_PRODUCT_IDS.CAFFEINE_DRIP)) {
+                localStorage.setItem("founder_sim_caffeine", "true");
+            }
+            return owned;
         } catch (error) {
             console.warn("[IAP] Native check failed, falling back to localStorage", error);
         }
-        return localStorage.getItem("founder_sim_premium") === "true";
+        const ownedFallback: string[] = [];
+        if (localStorage.getItem("founder_sim_premium") === "true") ownedFallback.push(IAP_PRODUCT_IDS.AD_FREE);
+        if (localStorage.getItem("founder_sim_caffeine") === "true") ownedFallback.push(IAP_PRODUCT_IDS.CAFFEINE_DRIP);
+        if (localStorage.getItem("founder_sim_titan") === "true") ownedFallback.push(IAP_PRODUCT_IDS.TITAN_INDUSTRY);
+        return ownedFallback;
     }
 
-    /**
-     * Triggers the purchase flow for Premium.
-     */
-    public async purchasePremium(): Promise<boolean> {
+    public async purchaseProduct(productId: string): Promise<boolean> {
+        // For development/web simulation
+        if (!Capacitor.isNativePlatform()) {
+            if (productId === IAP_PRODUCT_IDS.AD_FREE) {
+                localStorage.setItem("founder_sim_premium", "true");
+            }
+            if (productId === IAP_PRODUCT_IDS.TITAN_INDUSTRY) {
+                localStorage.setItem("founder_sim_titan", "true");
+                localStorage.setItem("founder_sim_premium", "true"); // Titan also removes ads!
+            }
+            if (productId === IAP_PRODUCT_IDS.CAFFEINE_DRIP) {
+                localStorage.setItem("founder_sim_caffeine", "true");
+            }
+            toast.success("Test Purchase Successful (Web Mode)");
+            return true;
+        }
+
         try {
             const transaction = await NativePurchases.purchaseProduct({
-                productIdentifier: PRODUCT_ID_PREMIUM,
-                productType: "inapp" as any, // "inapp" for one-time purchases
+                productIdentifier: productId,
+                productType: productId === IAP_PRODUCT_IDS.STARTER_PACK ? ("consumable" as any) : ("inapp" as any),
                 autoAcknowledgePurchases: true
             });
 
             if (transaction.purchaseState === "1") {
-                localStorage.setItem("founder_sim_premium", "true");
-                toast.success("Welcome to the 1%!", { description: "Premium unlocked. Ads removed!" });
+                if (productId === IAP_PRODUCT_IDS.AD_FREE) {
+                    localStorage.setItem("founder_sim_premium", "true");
+                }
+                if (productId === IAP_PRODUCT_IDS.TITAN_INDUSTRY) {
+                    localStorage.setItem("founder_sim_titan", "true");
+                    localStorage.setItem("founder_sim_premium", "true"); // Titan also removes ads!
+                }
+                if (productId === IAP_PRODUCT_IDS.CAFFEINE_DRIP) {
+                    localStorage.setItem("founder_sim_caffeine", "true");
+                }
+                toast.success("Purchase Successful!", { description: "Thank you for supporting Founder Sim!" });
                 return true;
             } else if (transaction.purchaseState === "0") {
                 toast.info("Purchase Pending", { description: "Your payment is being processed." });
@@ -81,24 +130,22 @@ export class IAPService {
         return false;
     }
 
-    /**
-     * Restores previous purchases manually.
-     */
-    public async restorePurchases(): Promise<boolean> {
+    public async restorePurchases(): Promise<string[]> {
+        if (!Capacitor.isNativePlatform()) return this.getOwnedNonConsumables();
         try {
             await NativePurchases.restorePurchases();
-            const premium = await this.checkPremiumStatus();
-            if (premium) {
-                toast.success("Purchases Restored", { description: "Your Premium status was found!" });
-                return true;
+            const owned = await this.getOwnedNonConsumables();
+            if (owned.length > 0) {
+                toast.success("Purchases Restored", { description: "Your purchases were successfully synced." });
             } else {
                 toast.info("No Purchases Found", { description: "We couldn't find any premium access for this account." });
             }
+            return owned;
         } catch (error: any) {
             console.error("[IAP] Restore failed", error);
             toast.error("Restore Failed", { description: error.message });
         }
-        return false;
+        return [];
     }
 }
 

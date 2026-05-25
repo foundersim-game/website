@@ -56,10 +56,10 @@ export function initializeMarketStocks(playerCompanySymbol?: string, playerIpoPr
             currentPrice: playerIpoPrice,
             sharesOutstanding: 100_000_000,
             peRatio: 50,
-            momentum: 0.1,
+            momentum: 0,
             volatility: 0.08,
-            rsi: 60,
-            priceHistory: [playerIpoPrice]
+            rsi: 50,
+            priceHistory: [playerIpoPrice, playerIpoPrice * 0.98, playerIpoPrice * 1.02] // Pre-fill some history
         });
     }
 
@@ -119,23 +119,33 @@ export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonT
 
         let randomMove = (Math.random() + Math.random() + Math.random() - 1.5) * baseVol;
 
-        // Apply macro season effects
+        // Apply macro season effects (now with noise)
         let macroEffect = 0;
-        if (currentSeason === "Bull Market") macroEffect = 0.02;
-        if (currentSeason === "Bear Market") macroEffect = -0.03;
-        if (currentSeason === "AI Boom" && stock.sector === "Technology") macroEffect = 0.05;
+        const macroNoise = (Math.random() - 0.5) * 0.02; // Monthly macro jitter
+        if (currentSeason === "Bull Market") macroEffect = 0.015 + macroNoise;
+        if (currentSeason === "Bear Market") macroEffect = -0.02 + macroNoise;
+        if (currentSeason === "AI Boom" && stock.sector === "Technology") macroEffect = 0.04 + macroNoise;
 
-        // Apply momentum (mean reverting)
-        const momentumEffect = stock.momentum * 0.01;
+        // Apply momentum (mean reverting, capped)
+        const momentumEffect = Math.max(-0.05, Math.min(0.05, stock.momentum * 0.015));
         
         // Final price multiplier
         let changePct = randomMove + macroEffect + momentumEffect + eventMomentum;
-        changePct = Math.max(-0.4, Math.min(0.6, changePct)); 
+        
+        // Add "sector noise" - correlated movement for stocks in same sector
+        const sectorNoise = (Math.random() - 0.5) * 0.01;
+        changePct += sectorNoise;
+
+        changePct = Math.max(-0.3, Math.min(0.4, changePct)); 
+        
+        // Occasionally trigger an idiosyncratic "bad month" or "good month"
+        if (Math.random() < 0.05) changePct += (Math.random() - 0.5) * 0.2; 
 
         const newPrice = Math.max(0.01, stock.currentPrice * (1 + changePct));
         
-        // Update momentum towards mean
-        let newMomentum = stock.momentum * 0.8 + (changePct * 2);
+        // Update momentum towards mean (stronger decay to prevent runaway)
+        let newMomentum = stock.momentum * 0.7 + (changePct * 1.5);
+        newMomentum = Math.max(-1, Math.min(1, newMomentum));
 
         // Update Price History
         const history = [...(stock.priceHistory || [stock.currentPrice])];
@@ -152,22 +162,61 @@ export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonT
         }
         
         let rsi = 50;
-        if (history.length > 1) {
+        if (history.length > 2) {
             const avgGain = gains / (history.length - 1);
             const avgLoss = losses / (history.length - 1);
+            
             if (avgLoss === 0) rsi = 100;
+            else if (avgGain === 0) rsi = 0;
             else {
                 const rs = avgGain / avgLoss;
                 rsi = 100 - (100 / (1 + rs));
             }
+            
+            // "Noise injection" to RSI to keep it from being perfectly binary 100/0 when trends are strong
+            if (rsi > 98) rsi = 95 + Math.random() * 4;
+            if (rsi < 2) rsi = 1 + Math.random() * 4;
         }
+
+        // ── IDIOSYNCRATIC NEWS EVENTS ──
+        let recentNews = "";
+        let newsMomentumImpact = 0;
+        
+        // Every stock generates news every month based on a distribution
+        const roll = Math.random();
+        if (roll < 0.05) { // 5% Highly Positive
+            const highlyPositive = ["Blowout Earnings Report", "Breakthrough Product Revealed", "Major Competitor Bankrupt", "Wins Massive Government Contract", "Analyst Upgrade to Strong Buy"];
+            recentNews = highlyPositive[Math.floor(Math.random() * highlyPositive.length)];
+            newsMomentumImpact = 0.5 + Math.random() * 0.5; // Huge momentum swing up
+        } else if (roll < 0.25) { // 20% Positive
+            const positive = ["Beats Revenue Estimates", "Expands to New Markets", "New Executive Hire", "Positive Sector Outlook", "Minor Product Success"];
+            recentNews = positive[Math.floor(Math.random() * positive.length)];
+            newsMomentumImpact = 0.1 + Math.random() * 0.3; // Moderate up
+        } else if (roll < 0.75) { // 50% Neutral
+            const neutral = ["In-Line Earnings", "Maintains Market Share", "Routine Board Meeting", "No Major Changes Reported", "Industry Growth Stable", "Consolidating Operations"];
+            recentNews = neutral[Math.floor(Math.random() * neutral.length)];
+            newsMomentumImpact = (Math.random() - 0.5) * 0.1; // Tiny variance
+        } else if (roll < 0.95) { // 20% Negative
+            const negative = ["Misses Revenue Estimates", "Minor Layoffs Announced", "Supply Chain Delays", "Analyst Downgrade to Hold", "Increased Competition"];
+            recentNews = negative[Math.floor(Math.random() * negative.length)];
+            newsMomentumImpact = -(0.1 + Math.random() * 0.3); // Moderate down
+        } else { // 5% Highly Negative
+            const highlyNegative = ["CEO Abruptly Resigns", "Faces Regulatory Probe", "Massive Data Breach", "Product Recall Announced", "Analyst Downgrade to Sell"];
+            recentNews = highlyNegative[Math.floor(Math.random() * highlyNegative.length)];
+            newsMomentumImpact = -(0.5 + Math.random() * 0.5); // Huge momentum swing down
+        }
+
+        // Apply news impact immediately to price and momentum
+        const finalPrice = Math.max(0.01, newPrice * (1 + (newsMomentumImpact * 0.1))); // Instant 5-10% pop/drop
+        let finalMomentum = Math.max(-1, Math.min(1, newMomentum + newsMomentumImpact));
 
         return {
             ...stock,
-            currentPrice: newPrice,
-            momentum: newMomentum,
+            currentPrice: finalPrice,
+            momentum: finalMomentum,
             priceHistory: history,
-            rsi: rsi
+            rsi: rsi,
+            recentNews: recentNews
         };
     });
 }

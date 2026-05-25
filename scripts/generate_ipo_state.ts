@@ -1,223 +1,224 @@
-/**
- * generate_ipo_state.ts
- * Generates a complete IPO-ready game state and outputs a one-liner
- * that can be pasted into Safari's JavaScript console while the iOS Simulator is running.
- *
- * Run with:   npx ts-node --esm scripts/generate_ipo_state.ts
- */
 
-import * as fs from 'fs';
+import { Founder, Startup, Employee, EmployeeTrait } from '../src/lib/types/database.types';
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
-
-function makeEmployees(count: number) {
-    const roles = ['engineer', 'marketer', 'sales'];
-    const names = ['Alex','Jordan','Morgan','Taylor','Chris','Sam','Riley','Drew','Casey','Jamie'];
-    return Array.from({ length: count }, (_, i) => ({
-        id: `emp-${i}`,
-        name: `${names[i % names.length]} ${i + 1}`,
-        role: roles[i % 3],
-        level: 'Senior',
-        salary: 120000,
-        performance: Math.round(85 + Math.random() * 10),
-        morale: 90,
-        isCXO: false,
-        skills: { technical: 88, marketing: 82, sales: 80 },
-        joined_at: Math.ceil(i / 3),
-    }));
-}
-
-function makePLHistory(months: number) {
-    return Array.from({ length: months }, (_, i) => {
-        const m = i + 1;
-        const users = Math.floor(500 * Math.pow(1.14, m));
-        const rev = users * 55;
-        const opex = 180_000 + users * 1.5 + (m > 24 ? 800_000 : 0); // team scale-up cost
-        return {
-            month: m,
-            revenue: rev,
-            cogs: Math.round(rev * 0.18),
-            grossProfit: Math.round(rev * 0.82),
-            opex: Math.round(opex),
-            netIncome: Math.round(rev - opex),
-        };
-    });
-}
-
-// ─── Build the state ──────────────────────────────────────────────────────────
-
-const MONTHS = 60;
-const history = makePLHistory(MONTHS);
-const lastEntry = history[MONTHS - 1];
-const finalUsers = Math.floor(500 * Math.pow(1.14, MONTHS));
-const finalRevenue = lastEntry.revenue;
-const finalARR = finalRevenue * 12;
-const finalValuation = finalARR * 10; // 10× ARR multiple
-
-const employees = makeEmployees(52);
-
-// Inject CXO executives as special employees
-const cxoEntries = ['CTO', 'CMO', 'CFO', 'COO', 'CPO'].map((role, i) => ({
-    id: `cxo_${role.toLowerCase()}`,
-    name: `${role} (Executive)`,
-    role: role.toLowerCase(),
-    level: 'Executive',
-    salary: 180000,
-    performance: 95,
-    morale: 92,
-    isCXO: true,
-    skills: { technical: 95, marketing: 95, sales: 95 },
-    joined_at: 12,
-}));
-
-const allEmployees = [...employees, ...cxoEntries];
-
-const startup = {
-    id: 'startup-ipo-ready',
-    game_session_id: 's-legendary',
-    name: 'VaultAI',
-    industry: 'SaaS Platform',
-    pricing_tier: 'enterprise',
-    gtm_motion: 'PLG',
-    active_marketing_channel: 'organic',
-    funding_stage: 'Series C',        // Satisfies IPO check: Series A+
-    ipo_stage: 0,                     // Not yet started — unlocks the button
-    phase: 'Scaling',
-    valuation: finalValuation,
-    peak_valuation: finalValuation,
-    peak_users: finalUsers,
-    culture_score: 88,
-    cxoTeam: {                        // CFO required for IPO gate we just added
-        CTO: true, CMO: true, CFO: true, COO: true, CPO: true,
-    },
-    capTable: [
-        { name: 'Founder',       equity: 38,  type: 'Founder'   },
-        { name: 'Sequoia',       equity: 18,  type: 'Investor'  },
-        { name: 'a16z',          equity: 14,  type: 'Investor'  },
-        { name: 'Tiger Global',  equity: 10,  type: 'Investor'  },
-        { name: 'Employee Pool', equity: 12,  type: 'Employee'  },
-        { name: 'Angels',        equity: 8,   type: 'Investor'  },
-    ],
-    metrics: {
-        cash: 55_000_000,
-        burn_rate: 900_000,
-        runway: 61,
-        product_quality: 92,          // IPO check: > 80
-        feature_completion: 0,
-        users: finalUsers,            // IPO check: > 100,000
-        revenue: finalRevenue,
-        growth_rate: 0.12,
-        brand_awareness: 86,
-        pmf_score: 85,
-        technical_debt: 12,           // IPO check: < 40
-        reliability: 94,
-        innovation: 72,
-        team_morale: 88,
-        founder_burnout: 22,
-        founder_health: 75,
-        sleep_quality: 70,
-        cac: 420,
-        ltv: 4800,
-        churn: 0.025,
-        option_pool: 4.2,
-        net_profit: finalRevenue - 900_000,
-        founder_salary: 25000,
-        current_season: 'Bull Market',
-        has_legal_dept: true,
-        investor_pipeline: { leads: 3, meetings: 1, term_sheets: 0 },
-        b2b_pipeline: { leads: 220, active_deals: 45, closed_won: 180 },
-        pricing: 55,
-        employees: allEmployees.length,
-        engineers: employees.filter(e => e.role === 'engineer').length,
-        marketers: employees.filter(e => e.role === 'marketer').length,
-        sales: employees.filter(e => e.role === 'sales').length,
-    },
-    employees: allEmployees,
-    history,
-    created_at: new Date(Date.now() - MONTHS * 30 * 24 * 60 * 60 * 1000).toISOString(),
-};
-
-const founder = {
-    id: 'f-ipo-ready',
-    user_id: 'u-demo',
-    game_session_id: 's-legendary',
-    name: 'Alex Chen',
+const founder: Founder = {
+    id: 'ipo-founder',
+    user_id: 'ipo-user',
+    game_session_id: 'ipo-session',
+    name: 'IPO Legend',
     background: 'Engineer',
     attributes: {
-        intelligence: 92,
-        technical_skill: 90,
-        leadership: 82,
-        networking: 68,
-        marketing_skill: 72,
-        sales_skill: 65,
-        risk_appetite: 70,
-        stress_tolerance: 78,
-        reputation: 75,
+        intelligence: 90,
+        technical_skill: 95,
+        leadership: 85,
+        networking: 80,
+        marketing_skill: 75,
+        sales_skill: 70,
+        risk_appetite: 65,
+        stress_tolerance: 90,
+        reputation: 85
     },
-    xp: { technical: 800, marketing: 350, leadership: 500, fundraising: 420, total: 2070 },
-    personal_wealth: 450_000,
+    xp: { technical: 500, marketing: 300, leadership: 400, fundraising: 450, total: 1650 },
+    personal_wealth: 500000,
     assets: [],
     activeToggles: [],
-    created_at: new Date(Date.now() - MONTHS * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: new Date().toISOString(),
+    wealth_profile: {
+        portfolio: [],
+        margin_loan_balance: 0,
+        philanthropy_score: 0,
+        active_10b51_plans: []
+    }
 };
 
-const fullState = {
+const names = [
+    "Alex", "Jordan", "Taylor", "Casey", "Morgan", "Skyler", "Quinn", "Riley", "Avery", "Parker",
+    "Sam", "Charlie", "Dakota", "Emerson", "Finley", "Hayden", "Jamie", "Kendall", "Logan", "Peyton",
+    "River", "Sage", "Sawyer", "Sutton", "Tatum", "Zion", "Micah", "Arlo", "Ezra", "Felix",
+    "Ivy", "Luna", "Milo", "Nova", "Onyx", "Piper", "Remy", "Willow", "Xander", "Yara"
+];
+
+const lastNames = [
+    "Chen", "Smith", "Garcia", "Kim", "Miller", "Davis", "Rodriguez", "Wilson", "Lee", "Brown",
+    "Taylor", "Anderson", "Thomas", "Hernandez", "Moore", "Martin", "Jackson", "Thompson", "White", "Lopez"
+];
+
+function generateEmployee(id: number, role: "engineer" | "marketer" | "sales", level: "Junior" | "Mid" | "Senior" | "Lead"): Employee {
+    const name = `${names[Math.floor(Math.random() * names.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+    const skills = {
+        technical: role === "engineer" ? 70 + Math.random() * 30 : 10 + Math.random() * 40,
+        marketing: role === "marketer" ? 70 + Math.random() * 30 : 10 + Math.random() * 40,
+        sales: role === "sales" ? 70 + Math.random() * 30 : 10 + Math.random() * 40,
+    };
+    
+    const baseSalaries = { engineer: 120000, marketer: 90000, sales: 80000 };
+    const levelMult = { Junior: 0.7, Mid: 1, Senior: 1.5, Lead: 2.2 };
+    
+    return {
+        id: `emp-${id}`,
+        name,
+        role,
+        level,
+        salary: baseSalaries[role] * levelMult[level],
+        performance: 75 + Math.random() * 25,
+        skills,
+        morale: 80 + Math.random() * 20,
+        joined_at: Math.floor(Math.random() * 40),
+        equity: level === "Lead" ? 0.5 : (level === "Senior" ? 0.1 : 0.01)
+    };
+}
+
+const employees: Employee[] = [];
+
+// ── THE CXO TEAM ─────────────────────────────────────────────────────────────
+const cfo: Employee = {
+    ...generateEmployee(1, "sales", "Lead"),
+    name: "Finley Cash",
+    salary: 280000,
+    performance: 98,
+    skills: { technical: 30, marketing: 60, sales: 95 },
+    isCXO: true,
+    traits: ["loyalist"]
+};
+
+const cto: Employee = {
+    ...generateEmployee(2, "engineer", "Lead"),
+    name: "Skyler Code",
+    salary: 300000,
+    performance: 95,
+    skills: { technical: 98, marketing: 20, sales: 40 },
+    isCXO: true,
+    traits: ["cultural_anchor"]
+};
+
+const cmo: Employee = {
+    ...generateEmployee(3, "marketer", "Lead"),
+    name: "Morgan Growth",
+    salary: 260000,
+    performance: 92,
+    skills: { technical: 40, marketing: 96, sales: 70 },
+    isCXO: true,
+    traits: ["evangelist"]
+};
+
+employees.push(cfo, cto, cmo);
+
+// ── THE LEGENDARY FOUNDING TEAM ──────────────────────────────────────────────
+const foundingEngineer: Employee = {
+    ...generateEmployee(4, "engineer", "Senior"),
+    name: "Avery First",
+    performance: 100,
+    skills: { technical: 99, marketing: 10, sales: 10 },
+    isLegendary: true,
+    traits: ["burnout_magnet"],
+    storyQuote: "I remember when this was all just a README file."
+};
+
+const toxicGenius: Employee = {
+    ...generateEmployee(5, "engineer", "Senior"),
+    name: "Zion Brillant",
+    performance: 110,
+    skills: { technical: 105, marketing: 5, sales: 5 },
+    traits: ["toxic_genius"],
+};
+
+employees.push(foundingEngineer, toxicGenius);
+
+// ── THE CORE DEPARTMENTS (REST OF THE 120) ──────────────────────────────────
+for (let i = 6; i <= 120; i++) {
+    let role: "engineer" | "marketer" | "sales" = "engineer";
+    if (i > 60) role = "marketer";
+    if (i > 90) role = "sales";
+    
+    let level: "Junior" | "Mid" | "Senior" | "Lead" = "Mid";
+    if (i % 5 === 0) level = "Senior";
+    if (i % 10 === 0) level = "Junior";
+    
+    employees.push(generateEmployee(i, role, level));
+}
+
+const startup: Startup = {
+    id: 'ipo-startup',
+    game_session_id: 'ipo-session',
+    name: 'IPO Rocket',
+    industry: 'AI Platform',
+    pricing_tier: 'pro',
+    gtm_motion: 'SLG',
+    active_marketing_channel: 'pr',
+    metrics: {
+        cash: 25000000,
+        burn_rate: 850000, // Adjusted for full team
+        runway: 30,
+        product_quality: 88,
+        feature_completion: 92,
+        users: 1500,
+        growth_rate: 0.22,
+        brand_awareness: 82,
+        employees: 120,
+        engineers: 60,
+        marketers: 30,
+        sales: 30,
+        team_morale: 88,
+        technical_debt: 12,
+        reliability: 96,
+        innovation: 85,
+        pmf_score: 87,
+        revenue: 10416666.666666667, 
+        pricing: 50000,
+        founder_burnout: 12,
+        founder_health: 88,
+        sleep_quality: 82,
+        option_pool: 12,
+        investor_pipeline: { leads: 0, meetings: 0, term_sheets: 0 },
+        b2b_pipeline: { leads: 150, active_deals: 30, closed_won: 80 },
+        founder_salary: 18000,
+        current_season: "Bull Market",
+        has_legal_dept: true,
+    },
+    cxoTeam: { "CFO": true, "CTO": true, "CMO": true, "COO": false, "CPO": false },
+    employees: employees,
+    phase: 'Scaling',
+    funding_stage: 'Series C',
+    valuation: 480000000,
+    created_at: new Date().toISOString(),
+    history: Array.from({ length: 48 }, (_, i) => ({
+        month: i + 1,
+        revenue: 100000 * Math.pow(1.1, i),
+        cogs: 30000 * Math.pow(1.1, i),
+        grossProfit: 70000 * Math.pow(1.1, i),
+        opex: 50000 * Math.pow(1.05, i),
+        netIncome: 20000 * Math.pow(1.1, i)
+    })),
+    capTable: [
+        { name: 'Founder', equity: 38, type: 'Founder' },
+        { name: 'VC Fund A', equity: 25, type: 'Investor' },
+        { name: 'VC Fund B', equity: 20, type: 'Investor' },
+        { name: 'Employees', equity: 17, type: 'Employee' }
+    ],
+    ipo_stage: 1,
+    ipo_readiness: 98
+};
+
+const state = {
     startup,
     founder,
-    month: MONTHS,
+    month: 49,
     eventsTimeline: [
-        `🚀 Company founded with $500K seed funding`,
-        `🌱 Seed Round closed at $2M`,
-        `⚡ Series A: raised $12M from Sequoia`,
-        `📈 Hit 10,000 users milestone!`,
-        `💎 Series B: $80M from a16z at $400M valuation`,
-        `🏢 Series C: $200M from Tiger Global`,
-        `🎉 Crossed 200,000 users!`,
-        `💰 Revenue run rate hit $${(finalARR / 1_000_000).toFixed(0)}M ARR`,
-        `🏛️ Board approved IPO planning — all checks passed`,
+        { month: 48, text: "Series C closed! The board is aligned on an IPO within 12 months." },
+        { month: 40, text: "Hired Finley Cash as CFO to clean up the books." },
+        { month: 36, text: "Crossed $1M monthly revenue milestone!" }
     ],
     competitors: [],
-    unlockedAchievements: ['first_hire', 'pmf_achieved', 'series_a', 'unicorn_path'],
-    ongoingPrograms: [],
+    unlockedAchievements: ["series_c", "revenue_milestone"],
+    ongoingPrograms: [
+        { id: "annual_billing", startedMonth: 24, streakMonths: 24, lastAppliedMonth: 48 },
+        { id: "seo_content_machine", startedMonth: 36, streakMonths: 12, lastAppliedMonth: 48 }
+    ],
     seenEventIds: [],
-    founderMeta: {
-        name: founder.name,
-        age: '32',
-        background: 'Engineer',
-        industry: 'SaaS Platform',
-        gtmMotion: 'PLG',
-        scenario: 'classic',
-        startupName: startup.name,
-        logo: '🏦',
-        brandColor: '#6366f1',
-    },
+    founderMeta: {},
     focusHoursUsed: 0,
-    actionUsageLog: { thisMonth: {}, lifetime: {} },
+    actionUsageLog: { thisMonth: {}, lastUsedMonth: {} },
+    storyState: { currentChapter: 4, completedChapters: [1, 2, 3], seenTriggers: [] }
 };
 
-// Write JSON file
-fs.writeFileSync('ipo_complete_state.json', JSON.stringify(fullState, null, 2));
-console.log(`\n✅ IPO-Ready state generated!`);
-console.log(`   Company:    ${startup.name}`);
-console.log(`   ARR:        $${(finalARR / 1_000_000).toFixed(1)}M`);
-console.log(`   Users:      ${finalUsers.toLocaleString()}`);
-console.log(`   Valuation:  $${(finalValuation / 1_000_000_000).toFixed(2)}B`);
-console.log(`   Employees:  ${allEmployees.length}`);
-console.log(`   CFO:        ✅ Hired`);
-console.log(`   IPO Stage:  0 (ready to file S-1)\n`);
-
-// ─── Generate the one-liner injection script ──────────────────────────────────
-
-const oneLiner = `(function(){localStorage.setItem('founder_sim_state',${JSON.stringify(JSON.stringify(fullState))});alert('✅ IPO State loaded! Reloading...');location.reload();})();`;
-
-console.log('─'.repeat(70));
-console.log('STEP 1 — Make sure iOS Simulator is running with "npm run dev"');
-console.log('STEP 2 — Open Safari on your Mac > Develop > Simulator > localhost');
-console.log('STEP 3 — Open the Console tab in Safari Dev Tools');
-console.log('STEP 4 — Paste the one-liner below and press Enter:');
-console.log('─'.repeat(70));
-console.log('\n' + oneLiner + '\n');
-console.log('─'.repeat(70));
-console.log('The app will reload and you will land directly in the dashboard');
-console.log('with all 5 IPO checks passed and a CFO hired. The S-1 button');
-console.log('should be visible and unlocked in the Stats tab → IPO Readiness.\n');
+console.log(JSON.stringify(state));

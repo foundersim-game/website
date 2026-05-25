@@ -73,6 +73,7 @@ export function computeLegacyScore(
         active: 8,
         bankrupt: 0,
         burnout: 5,
+        retired: 25,
         other: 5,
     };
     const outcomeScore = outcomeScores[outcome] ?? 0;

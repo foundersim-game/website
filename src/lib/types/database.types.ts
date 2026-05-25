@@ -103,7 +103,7 @@ export type EmployeeTrait =
 export type Employee = {
     id: string;
     name: string;
-    role: "engineer" | "marketer" | "sales";
+    role: "engineer" | "marketer" | "sales" | "legal";
     level: "Junior" | "Mid" | "Senior" | "Lead";
     salary: number;
     performance: number; // 0-100
@@ -111,6 +111,7 @@ export type Employee = {
         technical: number;
         marketing: number;
         sales: number;
+        legal?: number;
     };
     morale: number;
     joined_at: number; // month number when hired
@@ -158,11 +159,12 @@ export interface SalaryProposal {
         vote: "yes" | "no";
         reason: string;
     }[];
+    resolution_title?: string;
 }
 
 export type PricingTier = "free" | "starter" | "pro" | "enterprise";
 export type MarketingChannel = "organic" | "paid_ads" | "seo" | "pr" | "influencer" | "none";
-export type StartupOutcome = "active" | "acquired" | "ipo" | "bankrupt" | "wound_down" | "burnout" | "other";
+export type StartupOutcome = "active" | "acquired" | "ipo" | "bankrupt" | "wound_down" | "burnout" | "retired" | "other";
 export type FundingStage = "Bootstrapping" | "Angel Investment" | "Seed Round" | "Series A" | "Series B" | "Series C" | "IPO Ready";
 
 export type AcquisitionOffer = {
@@ -230,6 +232,22 @@ export type ActiveCrisis = {
 };
 
 
+// ── LAWSUIT ENGINE Types ────────────────────────────────────────────────────────────
+export type LawsuitType = "class_action" | "regulatory_fine" | "ip_infringement" | "wrongful_termination";
+
+export type Lawsuit = {
+    id: string;
+    type: LawsuitType;
+    title: string;
+    description: string;
+    filed_month: number;
+    demand_amount: number;      // How much they are suing for
+    settlement_offer?: number;  // Optional lower amount to settle immediately
+    legal_fees_per_month: number;
+    months_to_trial: number;    // Countdown
+    win_probability: number;    // 0-1 chance of winning at trial
+};
+
 export type Startup = {
     id: string;
     game_session_id: string;
@@ -259,6 +277,8 @@ export type Startup = {
         innovation: number;
         pmf_score: number;
         culture_score?: number;
+        credit_score?: number; // 300 to 850, like real life
+        board_happiness?: number;
 
         // Company Skills (from Co-Founders/Recruits)
         marketing_skill?: number;
@@ -327,12 +347,21 @@ export type Startup = {
     };
     hasRateRewardClaimed?: boolean;
 
+    // ── IN-APP PURCHASES ─────────────────────────────────────────────────────────
+    iap_ad_free?: boolean;
+    iap_caffeine?: boolean;
+    iap_titan?: boolean;
+
     // ── CRISIS ENGINE ────────────────────────────────────────────────────────────
     active_crisis?: ActiveCrisis;  // Currently active cascading crisis
     ceo_reputation?: number;       // 0-100, tracked separately from founder attributes
 
     // ── PUBLIC COMPANY ERA ───────────────────────────────────────────────────
     public_company?: PublicCompanyState;
+    subsidiaries?: string[];       // Symbols/IDs of acquired companies (available pre and post IPO)
+
+    // ── LEGAL & LAWSUITS ─────────────────────────────────────────────────────
+    active_lawsuits?: Lawsuit[];
 };
 
 export type GameSession = {
@@ -396,6 +425,7 @@ export type MarketStock = {
     volatility: number;
     rsi: number;
     priceHistory: number[]; // Last 12 months
+    recentNews?: string; // Idiosyncratic news event for this month
 };
 
 export type PortfolioPosition = {
@@ -411,14 +441,18 @@ export type TenB51Plan = {
     monthsRemaining: number;
     monthlySellAmount: number;
     targetPriceMinimum: number; // Only sells if price is >= this
+    planName?: string;
+    isAggressive?: boolean;
 };
 
 export type DebtInstrument = {
     id: string;
     principal: number;
     interestRate: number; // Annual %
-    maturityMonths: number;
+    maturityMonths?: number;
     monthsRemaining: number;
+    monthlyInterestPayment?: number;
+    label?: string;
 };
 
 export type PublicCompanyState = {
@@ -441,9 +475,20 @@ export type PublicCompanyState = {
     subsidiaries: string[];        // Symbols of companies where >50% is owned
 };
 
+export type ExecutiveOption = {
+    id: string;
+    grantName: string;
+    totalOptions: number;
+    strikePrice: number;
+    vestedOptions: number;
+    monthsRemaining: number;
+    monthlyVestAmount: number;
+};
+
 export type FounderPersonalWealth = {
     portfolio: PortfolioPosition[];
     margin_loan_balance: number;
     philanthropy_score: number;
     active_10b51_plans: TenB51Plan[];
+    vesting_options?: ExecutiveOption[];
 };

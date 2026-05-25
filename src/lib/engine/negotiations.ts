@@ -62,6 +62,7 @@ export function generateCandidate(role: string, startupStage: string, forcedDeta
     if (!forcedDetails?.expectedSalary) {
         if (role === "engineer") expectedSalary *= 1.1;
         if (role === "sales") expectedSalary *= 0.9;
+        if (role === "legal") expectedSalary *= 1.25; // Legal counsel is expensive
     }
 
     const experience = level === "Lead" ? 10 + Math.floor(Math.random() * 8) :

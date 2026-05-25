@@ -11,7 +11,7 @@ export type HallOfFameEntry = {
     id: string;
     companyName: string;
     founderName: string;
-    outcome: "ipo" | "acquired" | "bankrupt" | "wound_down" | "burnout" | "other" | "acquisition"; // Added acquisition for legacy compatibility
+    outcome: "ipo" | "acquired" | "bankrupt" | "wound_down" | "burnout" | "retired" | "other" | "acquisition"; // Added acquisition for legacy compatibility
 
     valuation: number;
     exitDate: string;
@@ -188,12 +188,12 @@ export function recordExit(startup: Startup, founderName: string) {
     
     // Calculate points: 1 point per $1M valuation, plus bonuses
     const basePoints = Math.floor(startup.valuation / 1_000_000);
-    const ipoBonus = startup.outcome === "ipo" ? 50 : 0;
+    const ipoBonus = (startup.outcome === "ipo" || (startup as any).public_company) ? 50 : 0;
     const speedBonus = Math.max(0, 50 - Math.floor((startup.history?.length || 0) / 2)); // Faster exit = more points
     
     const totalEarned = Math.max(1, basePoints + ipoBonus + speedBonus);
 
-    const isWin = startup.outcome === "ipo" || startup.outcome === "acquired";
+    const isWin = startup.outcome === "ipo" || startup.outcome === "acquired" || startup.outcome === "retired";
 
     const entry: HallOfFameEntry = {
         id: crypto.randomUUID(),

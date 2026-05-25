@@ -11,16 +11,16 @@ import { Separator } from "@/components/ui/separator";
 import { toast, Toaster } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { processMonth, calculateFinancials, StartupAction, evaluateSalaryProposal, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
+import { processMonth, calculateFinancials, StartupAction, evaluateSalaryProposal, evaluateResolution, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
 import { getNextFundingStage, getFundingPhase, generateFundingTerms, checkEndgame } from "@/lib/engine/funding";
 import { recordExit, SCENARIOS, ScenarioId, getLegacyData } from "@/lib/engine/legacy";
-import { generateAcquisitionOffer } from "@/lib/engine/manda";
+import { generateAcquisitionOffer, generateMnATargets, MnATarget } from "@/lib/engine/manda";
 import { getRandomEvent } from "@/lib/engine/events";
 import { generateAIEvent, generateFounderStory, generateChadBanter } from "@/lib/engine/ai";
-import { generateInitialCompetitors, simulateCompetitors, Competitor } from "@/lib/engine/competitors";
+import { generateInitialCompetitors, simulateCompetitors, Competitor, generateNewCompetitor } from "@/lib/engine/competitors";
 import { getEducationalAdvice, getConsultationAdvice, AdviceContent } from "@/lib/engine/mentorship";
 import { CharacterDialog } from "@/components/CharacterDialog";
-import { SamOnboardingModal } from "@/components/SamOnboardingModal";
+import { PostIpoCinematicModal } from "@/components/PostIpoCinematicModal";
 import { EarningsCallModal } from "@/components/EarningsCallModal";
 import { getStorylineDialog, StorylineState, StorylineDialog, getSamConsultDialog, TUTORIAL_STEPS } from "@/lib/engine/storyline";
 import { PublicMarketTicker } from "@/components/PublicMarketTicker";
@@ -30,20 +30,43 @@ import { calcDynamicImpact, applyEffectsToState, getDepartmentPower, type Action
 import { ReviewTriggers } from "@/lib/services/reviewService";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS, type ActionDef } from "@/lib/engine/actions";
 import { processOngoingPrograms, startProgram, stopProgram, getStreakMultiplier, ongoingProgramsTotalEnergy, type ActiveProgram } from "@/lib/engine/ongoingPrograms";
-import { resolveCrisisChoice, getCurrentCrisisStage, CRISIS_LABELS, CRISIS_EMOJIS, getCeoReputationLabel, getCrisisStageCount } from "@/lib/engine/crisisEngine";
+import { resolveCrisisChoice, getCurrentCrisisStage, CRISIS_LABELS, CRISIS_EMOJIS, getCeoReputationLabel, getCrisisStageCount, spawnLawsuit } from "@/lib/engine/crisisEngine";
 import { SKILL_NODES, SKILL_NODE_MAP, SKILL_BRANCHES, getAvailableSkillPoints, calculateTotalSkillPoints, canUnlockNode, type SkillNode, type SkillBranch } from "@/lib/engine/skillWeb";
 import { EventModal, GameEvent, EventChoice, generateImpactSentence } from "@/components/EventModal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Founder, Startup, LuxuryAsset, LifestyleToggle, EmployeeTrait, MarketStock } from "@/lib/types/database.types";
+import { Founder, Startup, LuxuryAsset, LifestyleToggle, EmployeeTrait, MarketStock, Lawsuit } from "@/lib/types/database.types";
 import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark } from "lucide-react";
-import { requestStoreReview, openStoreListing } from "@/lib/os/review";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark, Sparkles, Instagram } from "lucide-react";
 import { HowToPlayContent } from "@/components/HowToPlay";
+import { StoreModal } from "@/components/StoreModal";
+import { requestStoreReview, openStoreListing } from "@/lib/os/review";
+
+// ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
+const parseSubsidiary = (subStr: string) => {
+    if (subStr.includes("::")) {
+        const [name, valStr, synStr, risk] = subStr.split("::");
+        return {
+            name,
+            valuation: parseInt(valStr) || 45000000,
+            monthlySynergy: parseInt(synStr) || 120000,
+            integrationRisk: risk as "Low" | "Medium" | "High",
+            raw: subStr
+        };
+    }
+    // Default fallback for legacy strings (like spin-offs)
+    return {
+        name: subStr,
+        valuation: 45000000,
+        monthlySynergy: 120000,
+        integrationRisk: "Low" as const,
+        raw: subStr
+    };
+};
 
 // ── TALENT ROSTER: TraitBadge component ───────────────────────────────────────────────
 const TRAIT_META: Record<EmployeeTrait, { label: string; color: string; description: string }> = {
@@ -453,7 +476,7 @@ function TypewriterText({ text, speed = 15 }: { text: string; speed?: number }) 
 }
 
 // ─── ActionSheet ──────────────────────────────────────────────────────────────
-type SheetCategory = "product" | "marketing" | "hiring" | "funding" | "stats" | "founder" | "market" | "lifestyle" | "trade_stock" | "personal_trade" | "options" | "analysts" | "sector" | "buyback" | "corporate_debt" | "manda_acquire" | "subsidiary" | "margin_loan" | "10b51" | "philanthropy" | "lobbying" | "board_mgmt" | "fines";
+type SheetCategory = "product" | "marketing" | "hiring" | "funding" | "stats" | "founder" | "market" | "lifestyle" | "trade_stock" | "personal_trade" | "options" | "analysts" | "pr_comms" | "buyback" | "corporate_debt" | "manda_acquire" | "subsidiary" | "margin_loan" | "10b51" | "philanthropy" | "lobbying" | "board_mgmt" | "fines";
 
 type ActionSheetProps = {
     category: SheetCategory;
@@ -488,6 +511,8 @@ type ActionSheetProps = {
     setFounder: (f: any) => void;
     marketStocks?: MarketStock[];
     setMarketStocks?: (s: MarketStock[]) => void;
+    mnaTargets?: MnATarget[];
+    setMnaTargets?: (t: MnATarget[]) => void;
     handleActionClick: (action: StartupAction, forcedCandidate?: Candidate) => void;
     handleAllocateESOP: () => void;
     expandedMetric: string | null;
@@ -505,11 +530,13 @@ type ActionSheetProps = {
     handleRivalryAction: (action: RivalryAction) => void;
     setActionCategory: (c: SheetCategory | null) => void;
     onUnlockSkill: (nodeId: import("@/lib/types/database.types").SkillNodeId) => void;
-    hrSearchRole: "engineer" | "marketer" | "sales";
-    setHrSearchRole: (r: "engineer" | "marketer" | "sales") => void;
+    hrSearchRole: "engineer" | "marketer" | "sales" | "legal";
+    setHrSearchRole: (r: "engineer" | "marketer" | "sales" | "legal") => void;
     hrCandidates: any[];
     setHrCandidates: (c: any[]) => void;
     isProcessing: boolean;
+    handleAcquireRival: (comp: Competitor) => void;
+    setCompetitors: React.Dispatch<React.SetStateAction<Competitor[]>>;
 };
 
 function ActionSheet({ category, startup, founder, m, selectedAction, setSelectedAction,
@@ -518,8 +545,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     competitors, handleImmediateAction, handleToggleOngoingProgram, ongoingPrograms,
     actionUsageLog, focusHoursUsed, setFocusHoursUsed, setStartup, addTimelineEvent, setIsEndgameOpen, month,
     salaryInput, setSalaryInput, setIsBoardModalOpen, setLastProposalResult, setVotingMembers,
-    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks,
-    hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing }: ActionSheetProps) {
+    handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks, mnaTargets, setMnaTargets,
+    hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing, handleAcquireRival, setCompetitors }: ActionSheetProps) {
 
     const employees = allEmployees;
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
@@ -528,7 +555,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     const safeIdx = Math.min(selectedEmpIdx, Math.max(0, employees.length - 1));
     const emp = employees[safeIdx];
-    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+    const [tradeSectorFilter, setTradeSectorFilter] = useState("All");
+    const [tradeSelectedSymbol, setTradeSelectedSymbol] = useState<string | null>(null);
+    const [tradeQtyPct, setTradeQtyPct] = useState(10);
+    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
 
     const renderActionCard = (action: ActionDef, category: string) => {
         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
@@ -595,11 +625,86 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <span className="text-2xl">{emoji}</span>
                 <div>
                     <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{title}</h2>
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{sub}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{sub}</p>
                 </div>
             </div>
         </div>
     );
+
+    const handleBulkAction = (type: "salary_raise" | "bonus" | "offsite" | "stock_grant") => {
+        let totalCost = 0;
+        let poolCost = 0;
+
+        const processPerson = (person: any) => {
+            if (!person) return person;
+            if (type === "salary_raise") {
+                totalCost += (person.salary * 0.1);
+                return {
+                    ...person,
+                    salary: Math.floor(person.salary * 1.1),
+                    morale: Math.min(100, (person.morale || 70) + 15),
+                    last_increment_at: month
+                };
+            }
+            if (type === "bonus") {
+                totalCost += 2500;
+                return { ...person, morale: Math.min(100, (person.morale || 70) + 20) };
+            }
+            if (type === "offsite") {
+                totalCost += 5000;
+                return { ...person, morale: Math.min(100, (person.morale || 70) + 30) };
+            }
+            if (type === "stock_grant") {
+                poolCost += 0.05;
+                return { ...person, morale: Math.min(100, (person.morale || 70) + 10) };
+            }
+            return person;
+        };
+
+        const newEmployees = (startup.employees || []).map(processPerson);
+
+        const newCxoTeam = { ...(startup.cxoTeam || {}) };
+        Object.keys(newCxoTeam).forEach(role => {
+            if (newCxoTeam[role]) {
+                newCxoTeam[role] = processPerson(newCxoTeam[role]);
+            }
+        });
+
+        // Validation
+        if (type !== "salary_raise" && type !== "stock_grant" && startup.metrics.cash < totalCost) {
+            toast.error("Insufficient Cash");
+            return;
+        }
+        if (type === "stock_grant" && (startup.metrics.option_pool || 0) < poolCost) {
+            toast.error("Insufficient ESOP Pool");
+            return;
+        }
+
+        setStartup((prev: any) => ({
+            ...prev,
+            employees: newEmployees,
+            cxoTeam: newCxoTeam,
+            metrics: {
+                ...prev.metrics,
+                cash: prev.metrics.cash - (type === "salary_raise" ? 0 : totalCost),
+                option_pool: (prev.metrics.option_pool || 0) - poolCost
+            }
+        }));
+
+        const actionLabels = {
+            salary_raise: "💰 Applied company-wide salary raise (Staff & Execs)",
+            bonus: "💸 Issued quarterly bonus to all staff and CXOs",
+            offsite: "🏕️ Organized company-wide offsite for morale",
+            stock_grant: "📄 Granted ESOP stock refresh to all employees"
+        };
+        addTimelineEvent(actionLabels[type]);
+
+        const totalPeople = (startup.employees?.length || 0) + Object.values(startup.cxoTeam || {}).filter(Boolean).length;
+        toast.success("Policy Applied", {
+            description: `${type.replace("_", " ")} applied to all ${totalPeople} team members.`,
+            icon: "✅"
+        });
+    };
 
     const renderOngoingProgramUI = (prog: any, mult: number) => {
         const phaseMult = Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000)));
@@ -654,7 +759,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── PRODUCT ────────────────────────────────────────────────────────────────
     if (category === "product") {
         const actions = IMMEDIATE_ACTIONS.filter(a => a.category === "product");
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
 
         return (
             <div>
@@ -915,7 +1020,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── MARKETING ──────────────────────────────────────────────────────────────
     if (category === "marketing") {
         const actions = IMMEDIATE_ACTIONS.filter(a => a.category === "marketing_skill");
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
 
         // Ongoing marketing programs
         const mktPrograms = ONGOING_PROGRAMS.filter(p => p.category_ui === "Marketing");
@@ -1040,7 +1145,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     if (category === "hiring") {
         const employees = allEmployees;
         const hasCHRO = (startup as any).cxoTeam?.["CHRO"];
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
 
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
         const activeConfig = startup.gtm_motion === "PLG" ? configRef.PLG : configRef.SLG;
@@ -1050,6 +1155,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             { role: "engineer" as const, emoji: "👨‍💻", label: "Software Engineer", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", tagBg: "bg-blue-100" },
             { role: "marketer" as const, emoji: "📣", label: "Growth Marketer", bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-700", tagBg: "bg-pink-100" },
             { role: "sales" as const, emoji: "🤝", label: activeConfig.salesRoleName, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", tagBg: "bg-emerald-100" },
+            { role: "legal" as const, emoji: "⚖️", label: "Legal Counsel", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", tagBg: "bg-amber-100" },
         ];
 
         const seed = (startup.name.length + (employees?.length || 0) + (m?.users || 0)); // deterministic-ish seed
@@ -1186,6 +1292,44 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <p className="text-[8px] font-black text-indigo-500 dark:text-indigo-500 uppercase tracking-wide mt-0.5">Culture</p>
                                 </div>
                             </div>
+
+                            {/* === BULK TEAM ACTIONS === */}
+                            <div className="mb-4 bg-slate-900 dark:bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <Users className="w-3.5 h-3.5" /> Company Policies (Bulk)
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => handleBulkAction("salary_raise")}
+                                        className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
+                                    >
+                                        <p className="text-[9px] font-black text-white uppercase leading-none">Raise Salaries</p>
+                                        <p className="text-[7px] text-slate-400 mt-1">+10% Salary · +15 Morale</p>
+                                    </button>
+                                    <button
+                                        onClick={() => handleBulkAction("bonus")}
+                                        className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
+                                    >
+                                        <p className="text-[9px] font-black text-white uppercase leading-none">Quarterly Bonus</p>
+                                        <p className="text-[7px] text-slate-400 mt-1">-$2.5k / head · +20 Morale</p>
+                                    </button>
+                                    <button
+                                        onClick={() => handleBulkAction("offsite")}
+                                        className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
+                                    >
+                                        <p className="text-[9px] font-black text-white uppercase leading-none">Company Offsite</p>
+                                        <p className="text-[7px] text-slate-400 mt-1">-$5k / head · +30 Morale</p>
+                                    </button>
+                                    <button
+                                        onClick={() => handleBulkAction("stock_grant")}
+                                        className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
+                                    >
+                                        <p className="text-[9px] font-black text-white uppercase leading-none">Stock Refresh</p>
+                                        <p className="text-[7px] text-slate-400 mt-1">-ESOP Pool · Retention</p>
+                                    </button>
+                                </div>
+                            </div>
+
                             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">🏢 Department Power</p>
                             <p className="text-[8px] text-slate-400 dark:text-slate-500 mb-3 leading-tight">Each dept's power = avg skill × headcount × performance. Power directly multiplies the attribute it drives every month.</p>
                             <DeptCard
@@ -1243,7 +1387,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         const salary = tier.salaryBase + ((seed + ti) % 500);
                                         const cultureFit = Math.max(50, Math.min(99, tier.cultureFit + ((seed + ri) % 15) - 7));
                                         const isOver = focusHoursUsed + 20 > maxHours * 1.2;
-                                        const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : "hire_sales";
+                                        const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : roleDef.role === "legal" ? "hire_legal" : "hire_sales";
                                         return (
                                             <div
                                                 key={ti}
@@ -1650,9 +1794,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const stage = startup.funding_stage;
         const capTable = startup.capTable || [{ name: "Founder", equity: 100, type: "Founder" }];
         const founderEquity = capTable.find((e: any) => e.type === "Founder")?.equity || 100;
-
-        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
-        const fundCost = 40;
+        const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
+        const fundCost = startup.iap_titan ? 20 : 40;
 
         let nextRound = getNextFundingStage(stage);
 
@@ -1662,7 +1805,6 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const hasSeriesB = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series b"));
         const hasSeriesA = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("series a"));
         const hasSeed = nonFounderInvestors.some((e: any) => e.name.toLowerCase().includes("seed") || e.name.toLowerCase().includes("angel"));
-
 
         if (stage === "IPO Ready" || stage === "Late Stage Round" || nextRound === "Late Stage Round") {
             if (hasSeriesC) nextRound = "Series D";
@@ -1697,45 +1839,202 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
         const maxed = !nextRound && founderEquity < 5;
 
+        // ── Quiet Period Active ──
+        if (startup.ipo_stage && startup.ipo_stage > 0 && startup.ipo_stage < 4) {
+            return (
+                <div className="flex flex-col gap-4">
+                    {sheetHeader("🏦", "Funding", "Stage: SEC Quiet Period")}
+                    <div className="bg-gradient-to-br from-amber-500/10 to-orange-600/10 border-2 border-amber-500/30 rounded-3xl p-5 text-center relative overflow-hidden backdrop-blur-sm">
+                        <div className="text-5xl mb-3 animate-pulse">🏛️</div>
+                        <h4 className="text-base font-black text-amber-500 uppercase tracking-wider">SEC Quiet Period Active</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed max-w-sm mx-auto">
+                            Your firm is actively in the **IPO registration process (Stage {startup.ipo_stage}/3)**. Federal regulations strictly prohibit raising private capital or making public announcements about pricing or prospects.
+                        </p>
+                        <div className="mt-4 px-3 py-2 bg-amber-500/10 rounded-xl text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest border border-amber-500/25 w-fit mx-auto">
+                            Filing Phase: S-1 Submitted
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-4 leading-normal">
+                            All fundraising rounds are locked. Advance the month to complete listing.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Public Markets Capital Raising Dashboard ──
+        if (startup.public_company) {
+            const pub = startup.public_company;
+            const debts = pub.corporate_debt || [];
+            const outstandingDebt = debts.reduce((sum: number, d: any) => sum + d.principal, 0);
+
+            const handleFPO = (dilutionPct: number) => {
+                const raiseAmount = Math.floor(startup.valuation * (dilutionPct / 100));
+                const newStartup = { ...startup };
+                newStartup.metrics.cash = (newStartup.metrics.cash || 0) + raiseAmount;
+
+                const factor = 1 - (dilutionPct / 100);
+                newStartup.capTable = (newStartup.capTable || []).map((e: any) => ({
+                    ...e,
+                    equity: e.equity * factor
+                }));
+
+                const floatNode = newStartup.capTable.find((e: any) => e.name === "Public Float" || e.name === "Public Float (20%)" || e.type === "Investor");
+                if (floatNode) {
+                    floatNode.equity += dilutionPct;
+                } else {
+                    newStartup.capTable.push({ name: "Public Float", equity: dilutionPct, type: "Investor" });
+                }
+
+                const extraShares = Math.floor(pub.shares_outstanding * (dilutionPct / 100));
+                newStartup.public_company.shares_outstanding += extraShares;
+                newStartup.public_company.float += extraShares;
+
+                const drop = dilutionPct === 5 ? 0.98 : 0.94;
+                newStartup.public_company.share_price *= drop;
+                newStartup.valuation = newStartup.public_company.shares_outstanding * newStartup.public_company.share_price;
+
+                setStartup(newStartup);
+                addTimelineEvent(`🏛️ FPO: Conducted a ${dilutionPct}% Follow-on Public Offering, raising ${formatMoney(raiseAmount)} corporate cash at a share price impact.`);
+                toast.success("FPO Completed!", { description: `Raised ${formatMoney(raiseAmount)} from public float!` });
+            };
+
+            const handleIssueBond = (principal: number, months: number) => {
+                const isProfitable = (startup.metrics.net_profit || 0) >= 0;
+                const apr = isProfitable ? 0.05 : 0.085;
+                const monthlyInterest = Math.floor((principal * apr) / 12);
+
+                const bond = {
+                    id: `bond_${Date.now()}`,
+                    principal,
+                    interestRate: apr,
+                    monthsRemaining: months,
+                    monthlyInterestPayment: monthlyInterest,
+                    label: `${months}mo Corporate Bond`
+                };
+
+                const newStartup = { ...startup };
+                newStartup.metrics.cash = (newStartup.metrics.cash || 0) + principal;
+                if (!newStartup.public_company.corporate_debt) newStartup.public_company.corporate_debt = [];
+                newStartup.public_company.corporate_debt.push(bond);
+
+                setStartup(newStartup);
+                addTimelineEvent(`🏦 Debt Issued: Sold ${formatMoney(principal)} in corporate bonds at ${(apr * 100).toFixed(1)}% APR maturing in ${months}mo.`);
+                toast.success("Bonds Issued!", { description: `Raised ${formatMoney(principal)} corporate debt capital!` });
+            };
+
+            const handleRepayBondEarly = (bondId: string, principal: number) => {
+                if (m.cash < principal) {
+                    toast.error("Insufficient Cash", { description: "You don't have enough corporate cash to repay this bond early." });
+                    return;
+                }
+                const newStartup = { ...startup };
+                newStartup.metrics.cash -= principal;
+                newStartup.public_company.corporate_debt = newStartup.public_company.corporate_debt.filter((d: any) => d.id !== bondId);
+                setStartup(newStartup);
+                addTimelineEvent(`🏛️ Debt Repayment: Repaid corporate bond principal of ${formatMoney(principal)} early to eliminate interest drag.`);
+                toast.success("Bond Repaid Early!", { description: "Eliminated interest payments." });
+            };
+
+            return (
+                <div className="flex flex-col gap-4">
+                    {sheetHeader("🏛️", "Public Markets", `Ticker: ${startup.symbol || "CORP"} · ${founderEquity.toFixed(1)}% founder equity`)}
+
+                    {/* Public Capital Overview */}
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
+                            <p className="text-[9px] uppercase font-black text-slate-400">Market Cap</p>
+                            <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatMoney(startup.valuation)}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
+                            <p className="text-[9px] uppercase font-black text-slate-400">Corporate Cash</p>
+                            <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(m.cash)}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
+                            <p className="text-[9px] uppercase font-black text-slate-400">Outstanding Debt</p>
+                            <p className="text-sm font-black text-rose-600 mt-0.5">{formatMoney(outstandingDebt)}</p>
+                        </div>
+                    </div>
+
+                    {/* FPO */}
+                    <div className="bg-violet-50/50 dark:bg-violet-950/15 border-2 border-violet-100 dark:border-violet-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                        <h4 className="text-xs font-black uppercase text-violet-700 dark:text-violet-400 tracking-wider">Follow-on Public Offering (FPO)</h4>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Dilute outstanding share equity to raise massive corporate cash directly from stock market investors.</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleFPO(5)}
+                                className="flex-1 bg-violet-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-violet-700 active:scale-95 transition-all shadow-md shadow-violet-600/20"
+                            >
+                                Raise 5% Float<br />
+                                <span className="text-[8px] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.05))} cash</span>
+                            </button>
+                            <button
+                                onClick={() => handleFPO(10)}
+                                className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-600/20"
+                            >
+                                Raise 10% Float<br />
+                                <span className="text-[8px] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.10))} cash</span>
+                            </button>
+                        </div>
+                        <p className="text-[8px] text-slate-400 mt-2 text-center">FPOs trigger dilution and a minor stock price impact (-2% for 5%, -6% for 10% Offering).</p>
+                    </div>
+
+                    {/* Debt Issuance */}
+                    <div className="bg-amber-50/50 dark:bg-amber-950/15 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                        <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Issue Corporate Bonds (Debt)</h4>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Leverage your market cap to borrow institutional capital without dilution. Profitable companies get lower APRs.</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleIssueBond(50000000, 24)}
+                                className="flex-1 bg-amber-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20"
+                            >
+                                Issue $50M Bonds<br />
+                                <span className="text-[8px] opacity-70">24mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
+                            </button>
+                            <button
+                                onClick={() => handleIssueBond(150000000, 36)}
+                                disabled={startup.valuation < 500000000}
+                                className="flex-1 bg-orange-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-orange-700 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md shadow-orange-600/20"
+                            >
+                                Issue $150M Bonds<br />
+                                <span className="text-[8px] opacity-70">36mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
+                            </button>
+                        </div>
+                        {startup.valuation < 500000000 && (
+                            <p className="text-[8px] text-rose-500 mt-2 text-center font-bold">⚠️ $150M Bonds require a valuation of at least $500M.</p>
+                        )}
+                    </div>
+
+                    {/* Active Liabilities */}
+                    {debts.length > 0 && (
+                        <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Active Liabilities &amp; Repayments</p>
+                            {debts.map((d: any) => (
+                                <div key={d.id} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-3 mb-2 last:mb-0 shadow-sm">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">{d.label}</p>
+                                        <p className="text-[10px] font-bold text-slate-500">{d.monthsRemaining}mo left</p>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-slate-400 font-bold mb-3">
+                                        <span>Principal: {formatMoney(d.principal)}</span>
+                                        <span className="text-rose-500">-{formatMoney(d.monthlyInterestPayment)}/mo interest</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleRepayBondEarly(d.id, d.principal)}
+                                        className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 text-slate-500 dark:text-slate-300 py-2 rounded-xl text-[9px] font-black uppercase transition-all"
+                                    >
+                                        Repay Principal Early
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         return (
             <div>
                 {sheetHeader("🏦", "Funding", `Stage: ${stage} · ${founderEquity.toFixed(0)}% founder equity`)}
-                {startup.ipo_stage === 3 && (
-                    <div className="bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-4 mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">🏛️</span>
-                            <div>
-                                <h3 className="text-sm font-black text-indigo-900 dark:text-indigo-100 uppercase">IPO Pricing Target</h3>
-                                <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300">Set the valuation multiple for your public offering.</p>
-                            </div>
-                        </div>
-                        <div className="space-y-2 mt-4">
-                            {[
-                                { mult: 12, label: "Aggressive", desc: "12x ARR. High risk of undersubscription." },
-                                { mult: 8, label: "Standard", desc: "8x ARR. Balanced risk/reward." },
-                                { mult: 5, label: "Conservative", desc: "5x ARR. High chance of a day 1 pop." }
-                            ].map(tier => {
-                                const isSelected = ((startup as any).ipo_price_mult || 8) === tier.mult;
-                                return (
-                                    <button key={tier.mult}
-                                        onClick={() => {
-                                            const newStartup = { ...startup, ipo_price_mult: tier.mult };
-                                            setStartup(newStartup);
-                                            addTimelineEvent(`🏛️ Set IPO Pricing Target to ${tier.label} (${tier.mult}x ARR).`);
-                                        }}
-                                        className={cn("w-full text-left p-3 rounded-xl border-2 transition-all", isSelected ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white dark:bg-slate-900 border-indigo-100 dark:border-indigo-800 hover:border-indigo-300")}
-                                    >
-                                        <div className="flex justify-between items-center">
-                                            <span className={cn("text-xs font-black uppercase", isSelected ? "text-white" : "text-indigo-900 dark:text-indigo-100")}>{tier.label}</span>
-                                            <span className={cn("text-xs font-black", isSelected ? "text-indigo-200" : "text-indigo-600 dark:text-indigo-400")}>{tier.mult}x ARR</span>
-                                        </div>
-                                        <p className={cn("text-[9px] mt-0.5", isSelected ? "text-indigo-100" : "text-slate-500")}>{tier.desc}</p>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
                 {maxed ? (
                     <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 text-center">
                         <p className="text-2xl mb-2">🦄</p>
@@ -1874,11 +2173,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ── FUNDRAISING PROGRAMS ── */}
                 {(() => {
                     const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
-                    // Show consultant only if no CFO; show CFO roadshow only if CFO hired
                     const fundingProgIds = hasCFO ? ["cfo_fundraising_roadshow"] : ["fundraising_consultant"];
                     const fundingProgs = ONGOING_PROGRAMS.filter(p => fundingProgIds.includes(p.id));
                     const valuation = startup.valuation || 250_000;
-                    // Consultant fee scales logarithmically with valuation (same as action costs)
                     const consultantFee = valuation > 500_000
                         ? Math.round(15_000 * (1 + Math.log2(valuation / 500_000) * 0.4))
                         : 15_000;
@@ -1974,7 +2271,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <button
                                             className="flex-1 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl"
                                             onClick={() => {
-                                                if ((startup.ipo_stage || 0) > 0) {
+                                                if ((startup.ipo_stage || 0) > 0 && (startup.ipo_stage || 0) < 4) {
                                                     toast.error("Cannot accept acquisition while IPO is in progress!");
                                                     return;
                                                 }
@@ -2073,7 +2370,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         { label: "Conservative (5× ARR)", mult: 5, risk: "Low" },
                         { label: "Market Rate (8× ARR)", mult: 8, risk: "Medium" },
                         { label: "Aggressive (12× ARR)", mult: 12, risk: "High" },
-                        { label: "Unicorn (18× ARR)", mult: 18, risk: "Very High" },
+                        { label: "Sovereign (18× ARR)", mult: 18, risk: "Very High" },
                     ];
 
                     return (
@@ -2366,7 +2663,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             const total = Math.min(100, safeV + safeBonus);
             const basePct = total > 0 ? (safeV / total) * 100 : 0;
             return (
-                <div className="flex items-center gap-2 py-1.5 border-b border-slate-50 dark:border-slate-800 last:border-0 grow">
+                <div className="flex items-center gap-2 py-1.5 border-b border-slate-200 dark:border-slate-800 last:border-0 grow">
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
                     <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
                         <div className={cn("h-full", color)} style={{ width: `${Math.round((safeV / 100) * 100)}%` }} />
@@ -2378,7 +2675,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 </div>
             );
         };
-        const maxHours = calcFocusHours(burnout, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(burnout, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
         const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
         const usageColors = ["text-emerald-700 bg-emerald-50 border-emerald-200", "text-blue-700 bg-blue-50 border-blue-200", "text-amber-700 bg-amber-50 border-amber-200", "text-rose-700 bg-rose-50 border-rose-200", "text-slate-500 bg-slate-50 border-slate-200"];
         const usageLabels = ["Max Impact", "High Impact", "Low Impact", "Minimal Impact", "No Effect"];
@@ -2514,6 +2811,35 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </p>
                 </div>
 
+                {/* ── RETIRE AS CEO (EXIT GAME) ── */}
+                {startup.public_company && (
+                    <div className="w-full mb-4 bg-rose-50 dark:bg-rose-950/20 p-4 rounded-3xl border border-rose-100 dark:border-rose-900/50">
+                        <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2">The Endgame</p>
+                        <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 mb-3 leading-tight font-semibold">
+                            You took the company public. You've made it. At any time, you can step down as CEO, cash out, and record your legacy.
+                        </p>
+                        <Button
+                            onClick={() => {
+                                setConfirmDialog({
+                                    open: true,
+                                    title: "Retire as CEO?",
+                                    description: "Are you ready to step down? This will end the game and lock in your legacy points based on your current public valuation.",
+                                    confirmText: "RETIRE NOW",
+                                    type: "exit",
+                                    onConfirm: () => {
+                                        setStartup((s: any) => ({ ...s, outcome: "retired" }));
+                                        addTimelineEvent(`🏆 The Founder has retired! A new CEO takes over the public company.`);
+                                        setIsEndgameOpen(true);
+                                    }
+                                });
+                            }}
+                            className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none transition-all active:scale-95"
+                        >
+                            Step Down / Retire
+                        </Button>
+                    </div>
+                )}
+
                 {/* Attributes */}
                 <div className="mb-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Attributes</p>
@@ -2523,7 +2849,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <HBar label="Network & Fundraising" v={attrs.networking} color="bg-cyan-500" />
                     <HBar label="Marketing" v={attrs.marketing_skill} bonus={m.marketing_skill || 0} color="bg-pink-500" />
                     <HBar label="Reputation" v={attrs.reputation ?? 50} color="bg-amber-500" />
-                    <div className="mt-2 pt-2 border-t border-slate-50 space-y-0.5">
+                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 space-y-0.5">
                         <HBar label="Health" v={health} color={health < 40 ? "bg-rose-500 animate-pulse" : "bg-emerald-500"} />
                         <HBar label="Burnout" v={burnout} color={burnout > 60 ? "bg-rose-500 animate-pulse" : "bg-amber-500"} />
                         <HBar label="Sleep" v={m.sleep_quality ?? 100} color={(m.sleep_quality ?? 100) < 40 ? "bg-rose-500 animate-pulse" : "bg-blue-400"} />
@@ -2546,12 +2872,56 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="mb-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
                             {/* Header */}
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
+                                <div className="flex items-center gap-1">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
+                                    <Info className="w-2.5 h-2.5 text-slate-300" />
+                                </div>
                                 <div className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${availableSP > 0
-                                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                                        : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-200'
                                     }`}>
                                     {availableSP} SP available ({totalSP} total)
+                                </div>
+                            </div>
+
+                            {/* SP Earning Guide (DETAILED) */}
+                            <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl">
+                                <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5" /> How to earn Skill Points (SP)
+                                </p>
+                                <div className="space-y-2.5">
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">💰</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">FUNDING ROUNDS</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per round</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Closing your Seed, Series A, and Series B rounds each grant a permanent Skill Point.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">📈</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">USER MILESTONES</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 3 SP</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Gain +1 SP when your total user count crosses 1,000, 10,000, and 100,000 users.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">⏳</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">GAME TENURE</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per Year</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">For every 12 months you survive as CEO, you earn an automatic Skill Point.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -2731,7 +3101,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 className="flex items-center gap-3 p-3 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer mb-2 hover:border-indigo-100 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30">
                                 <span className="text-xl">{prog.emoji}</span>
                                 <div className="flex-1">
-                                    <p className="text-sm font-bold text-slate-700">{prog.label}</p>
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{prog.label}</p>
                                     {renderOngoingProgramUI(prog, 1)}
                                 </div>
                                 <div className="w-10 h-5 rounded-full relative bg-slate-200">
@@ -2747,6 +3117,23 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     // ── MARKET ───────────────────────────────────────────────────────────────
     if (category === "market") {
+        const handleGatherIntelAd = (compId: string) => {
+            adService.showRewardedAd(() => {
+                setCompetitors(prev => prev.map(c => {
+                    if (c.id === compId) {
+                        return {
+                            ...c,
+                            valuation: Math.floor(c.valuation * 0.9),
+                            integration_risk: "Low",
+                            is_diligent: true,
+                        };
+                    }
+                    return c;
+                }));
+                toast.success("Corporate Espionage Successful!", { description: "Integration risk lowered to 'Low' and valuation reduced by 10%.", icon: "🕵️" });
+            });
+        };
+
         return (
             <div>
                 {sheetHeader("⚔️", "Market & Rivals", "Track your competition")}
@@ -2815,7 +3202,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         </p>
                                         <div className="grid grid-cols-2 gap-2">
                                             {RIVALRY_ACTIONS.map(action => {
-                                                const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+                                                const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
                                                 const isDisabled = (focusHoursUsed + action.energyCost > maxHours * 1.1) || (startup.metrics.cash < action.cashCost);
 
                                                 return (
@@ -2844,6 +3231,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             })}
                                         </div>
                                     </div>
+
+                                    {(comp.status === "active" || comp.status === "ipo") && (
+                                        <div className="mt-3 relative z-10">
+                                            <button
+                                                onClick={() => handleAcquireRival(comp)}
+                                                disabled={startup.metrics.cash < Math.floor(comp.valuation * 1.25)}
+                                                className="w-full py-2 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[9px] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 z-10 relative"
+                                            >
+                                                <span>👑 Hostile Takeover Chadly for {formatMoney(Math.floor(comp.valuation * 1.25))}</span>
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {comp.last_action && (
                                         <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50">
@@ -2894,6 +3293,64 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <p className="text-[8px] font-bold text-slate-500 dark:text-slate-400 italic">
                                             Last Move: <span className="text-indigo-600 dark:text-indigo-400">{(comp.last_action as string).replace(/_/g, " ")}</span>
                                         </p>
+                                    </div>
+                                )}
+
+                                {comp.is_diligent ? (
+                                    <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                                        <p className="text-[8px] font-black text-slate-500 uppercase">Due Diligence Intel</p>
+                                        <div className="flex justify-between text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                            <span>Integration Risk:</span>
+                                            <span className={cn("font-black", comp.integration_risk === "High" ? "text-rose-600 animate-pulse" : comp.integration_risk === "Medium" ? "text-amber-500" : "text-emerald-600")}>
+                                                {comp.integration_risk}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                            <span>Financial Health:</span>
+                                            <span className={cn("font-black", comp.financial_health === "Burning Cash" ? "text-rose-600" : "text-emerald-600")}>
+                                                {comp.financial_health}
+                                            </span>
+                                        </div>
+                                        <p className="text-[7.5px] font-medium text-slate-400 italic leading-snug mt-1 border-t border-dashed border-slate-200 dark:border-slate-800 pt-1">
+                                            {comp.integration_risk === "High" ? "⚠️ Flight risk and tech fragmentation. Est. -20 Team Morale." :
+                                                comp.integration_risk === "Medium" ? "⚠️ Redundancies, moderate friction. Est. -10 Team Morale." :
+                                                    "✅ Culture fit, clean stack. Est. +5 Team Morale boost."}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    (isActive || isIPO) && (
+                                        <button
+                                            onClick={() => {
+                                                const ddCost = Math.max(5000, Math.floor(comp.valuation * 0.005));
+                                                if (startup.metrics.cash < ddCost) { toast.error("Not enough corporate cash!"); return; }
+                                                const newStartup = { ...startup };
+                                                newStartup.metrics.cash -= ddCost;
+                                                setStartup(newStartup);
+                                                setCompetitors(prev => prev.map(c => c.id === comp.id ? { ...c, is_diligent: true } : c));
+                                                toast.success("Due Diligence Complete", { description: `Unlocked intelligence report for ${comp.name}` });
+                                            }}
+                                            className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[8px] rounded-lg transition-all active:scale-95 shadow-sm"
+                                        >
+                                            🔬 Run Due Diligence ({formatMoney(Math.max(5000, Math.floor(comp.valuation * 0.005)))})
+                                        </button>
+                                    )
+                                )}
+
+                                {(isActive || isIPO) && (
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <button
+                                            onClick={() => handleGatherIntelAd(comp.id)}
+                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="text-xs">🕵️</span> Gather Intel (Ad)
+                                        </button>
+                                        <button
+                                            onClick={() => handleAcquireRival(comp)}
+                                            disabled={startup.metrics.cash < (isIPO ? Math.floor(comp.valuation * 1.15) : comp.valuation)}
+                                            className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[9px] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1"
+                                        >
+                                            <span>🦈 {isIPO ? `Takeover Public Rival for ${formatMoney(Math.floor(comp.valuation * 1.15))}` : `Buyout Rival for ${formatMoney(comp.valuation)}`}</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -3034,22 +3491,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     if (category === "trade_stock" || category === "personal_trade") {
         const isPersonal = category === "personal_trade";
         const founderWealth = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
-
         const availableCash = isPersonal ? (founder.personal_wealth || 0) : m.cash;
-        const currentPortfolio = isPersonal
-            ? founderWealth.portfolio
-            : (startup.public_company?.corporate_portfolio || []);
+        // Pre-IPO uses startup.treasury_portfolio; post-IPO uses public_company.corporate_portfolio
+        const currentPortfolio: any[] = isPersonal
+            ? (founderWealth.portfolio || [])
+            : (startup.public_company?.corporate_portfolio || (startup as any).treasury_portfolio || []);
+
+        // Only show own company stock if already public
+        const visibleStocks = (marketStocks || []).filter(s => {
+            if (s.symbol === (startup.symbol || "CORP") && !startup.public_company) return false;
+            if (!isPersonal && s.symbol === (startup.symbol || "CORP")) return false;
+            return true;
+        });
+
+        const SECTORS = ["All", ...Array.from(new Set(visibleStocks.map(s => s.sector)))];
 
         const handleTrade = (symbol: string, shares: number, currentPrice: number) => {
             try {
-                const { newCash, newPortfolio } = executeTrade(
-                    currentPortfolio,
-                    availableCash,
-                    symbol,
-                    shares,
-                    currentPrice
-                );
-
+                const { newCash, newPortfolio } = executeTrade(currentPortfolio, availableCash, symbol, shares, currentPrice);
                 if (isPersonal) {
                     const newFounder = { ...founder };
                     if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
@@ -3057,104 +3516,288 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     newFounder.wealth_profile.portfolio = newPortfolio;
                     if (setFounder) setFounder(newFounder);
                 } else {
-                    const newStartup = { ...startup };
+                    const newStartup: any = { ...startup };
                     newStartup.metrics.cash = newCash;
-                    if (newStartup.public_company) newStartup.public_company.corporate_portfolio = newPortfolio;
+                    if (newStartup.public_company) {
+                        newStartup.public_company.corporate_portfolio = newPortfolio;
+                    } else {
+                        // Pre-IPO: store in treasury_portfolio
+                        newStartup.treasury_portfolio = newPortfolio;
+                    }
                     setStartup(newStartup);
                 }
-
-                const actionVerb = shares > 0 ? "Bought" : "Sold";
-                addTimelineEvent(`📈 ${isPersonal ? "Personal Brokerage" : "Corporate Treasury"}: ${actionVerb} ${formatNumber(Math.abs(shares))} shares of ${symbol} at ${formatMoney(currentPrice)}`);
-
+                const verb = shares > 0 ? "Bought" : "Sold";
+                toast.success(`${verb} ${formatNumber(Math.abs(shares))} ${symbol}`, { description: `@ ${formatMoney(currentPrice)} · Total: ${formatMoney(Math.abs(shares * currentPrice))}` });
+                addTimelineEvent(`📈 ${isPersonal ? "Stock Market" : "Treasury"}: ${verb} ${formatNumber(Math.abs(shares))} ${symbol} @ ${formatMoney(currentPrice)}`);
             } catch (err: any) {
-                console.error(err.message);
+                toast.error("Trade Failed", { description: err.message });
             }
         };
 
-        return (
-            <div className="flex flex-col gap-4 relative">
-                <div className="sticky top-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md pb-4 pt-2 z-10 -mx-4 px-4 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest">{isPersonal ? "Personal Brokerage" : "Corporate Treasury Trading"}</h3>
-                            <p className="text-[10px] text-slate-500">Available {isPersonal ? "Personal" : "Corporate"} Cash</p>
+        // --- Sub-state for this panel (sector filter + selected stock + qty) ---
+        // We use a closure-level ref trick — render inline state via useState wrapper key
+
+
+
+
+
+        const filtered = tradeSectorFilter === "All" ? visibleStocks : visibleStocks.filter(s => s.sector === tradeSectorFilter);
+        const selectedStock = visibleStocks.find(s => s.symbol === tradeSelectedSymbol) || null;
+
+        const portfolioValue = currentPortfolio.reduce((sum: number, pos: any) => {
+            const price = visibleStocks.find(s => s.symbol === pos.symbol)?.currentPrice ?? pos.averageCost;
+            return sum + pos.shares * price;
+        }, 0);
+        const portfolioCost = currentPortfolio.reduce((sum: number, pos: any) => sum + pos.shares * pos.averageCost, 0);
+        const portfolioPnl = portfolioValue - portfolioCost;
+
+        if (selectedStock) {
+            const pos: any = currentPortfolio.find((p: any) => p.symbol === selectedStock.symbol);
+            const history = selectedStock.priceHistory || [selectedStock.currentPrice];
+            const minP = Math.min(...history);
+            const maxP = Math.max(...history);
+            const range = maxP - minP || 1;
+            const chartW = 300;
+            const chartH = 80;
+            const points = history.map((p, i) =>
+                `${(i / Math.max(1, history.length - 1)) * chartW},${chartH - ((p - minP) / range) * chartH}`
+            ).join(" ");
+            const isUp = history[history.length - 1] >= history[0];
+            const strokeColor = isUp ? "#10b981" : "#f43f5e";
+            const fillId = `grad_${selectedStock.symbol}`;
+
+            const currentHeldShares = pos?.shares || 0;
+            const availableSharesToBuy = Math.max(0, selectedStock.sharesOutstanding - currentHeldShares);
+            const maxAffordableShares = Math.min(availableSharesToBuy, Math.floor(availableCash / selectedStock.currentPrice));
+
+            // When using the slider, calculate shares based on percentage of max affordable
+            const deployShares = Math.max(1, Math.min(availableSharesToBuy, Math.floor((tradeQtyPct / 100) * availableCash / selectedStock.currentPrice)));
+            const deployCost = deployShares * selectedStock.currentPrice;
+            const canBuy = availableCash >= deployCost && deployShares <= availableSharesToBuy;
+            const canSell = pos && pos.shares > 0;
+
+            const rsiVal = Math.round(selectedStock.rsi);
+            const rsiLabel = rsiVal > 70 ? "Overbought" : rsiVal < 30 ? "Oversold" : "Neutral";
+            const rsiColor = rsiVal > 70 ? "text-rose-500 bg-rose-50 dark:bg-rose-900/20" : rsiVal < 30 ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "text-slate-500 bg-slate-100 dark:bg-slate-800";
+            const volLabel = selectedStock.volatility > 0.1 ? "High" : selectedStock.volatility > 0.05 ? "Med" : "Low";
+            const volColor = selectedStock.volatility > 0.1 ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" : selectedStock.volatility > 0.05 ? "text-amber-500 bg-amber-50 dark:bg-amber-900/20" : "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20";
+            const pxChange = history.length > 1 ? history[history.length - 1] - history[history.length - 2] : 0;
+            const pctChange = history.length > 1 ? (pxChange / history[history.length - 2]) * 100 : 0;
+
+            return (
+                <div className="flex flex-col gap-3">
+                    {/* Back */}
+                    <button onClick={() => setTradeSelectedSymbol(null)} className="flex items-center gap-1.5 text-[11px] font-black text-indigo-500 uppercase tracking-widest">
+                        ← All Stocks
+                    </button>
+
+                    {/* Stock Header */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <p className="text-xl font-black text-slate-900 dark:text-white">{selectedStock.symbol}</p>
+                                <p className="text-[11px] text-slate-500">{selectedStock.companyName}</p>
+                                <p className="text-[10px] text-slate-400">
+                                    {selectedStock.sector} · <span className="font-bold">Cap: {formatMoney(selectedStock.currentPrice * selectedStock.sharesOutstanding)}</span>
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-2xl font-black text-slate-900 dark:text-white">{formatMoney(selectedStock.currentPrice)}</p>
+                                <p className={`text-sm font-black ${pxChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                    {pxChange >= 0 ? "▲" : "▼"} {formatMoney(Math.abs(pxChange))} ({pctChange >= 0 ? "+" : ""}{pctChange.toFixed(2)}%)
+                                </p>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(availableCash)}</p>
+
+                        {/* Chart */}
+                        <div className="relative w-full h-20 mb-2">
+                            <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-full" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={strokeColor} stopOpacity="0.25" />
+                                        <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+                                    </linearGradient>
+                                </defs>
+                                <polygon
+                                    points={`0,${chartH} ${points} ${chartW},${chartH}`}
+                                    fill={`url(#${fillId})`}
+                                />
+                                <polyline points={points} fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <div className="absolute top-0 left-0 text-[8px] text-slate-400">{formatMoney(maxP)}</div>
+                            <div className="absolute bottom-0 left-0 text-[8px] text-slate-400">{formatMoney(minP)}</div>
+                        </div>
+
+                        {/* Indicators */}
+                        <div className="grid grid-cols-4 gap-2">
+                            <div className={`rounded-xl p-2 text-center ${rsiColor}`}>
+                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">RSI</p>
+                                <p className="text-sm font-black">{rsiVal}</p>
+                                <p className="text-[8px] font-bold">{rsiLabel}</p>
+                            </div>
+                            <div className={`rounded-xl p-2 text-center ${volColor}`}>
+                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">Volatility</p>
+                                <p className="text-sm font-black">{(selectedStock.volatility * 100).toFixed(1)}%</p>
+                                <p className="text-[8px] font-bold">{volLabel}</p>
+                            </div>
+                            <div className="rounded-xl p-2 text-center bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">P/E</p>
+                                <p className="text-sm font-black">{selectedStock.peRatio > 0 ? `${selectedStock.peRatio}x` : "N/A"}</p>
+                                <p className="text-[8px] font-bold">{selectedStock.peRatio > 40 ? "Growth" : selectedStock.peRatio > 0 ? "Value" : "Unprofitable"}</p>
+                            </div>
+                            <div className="rounded-xl p-2 text-center bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">Shares</p>
+                                <p className="text-sm font-black">{formatNumber(selectedStock.sharesOutstanding)}</p>
+                                <p className="text-[8px] font-bold">Outstanding</p>
+                            </div>
+                        </div>
+                        {/* News */}
+                        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">🗞️ Latest News</p>
+                            <p className={`text-[11px] font-medium ${selectedStock.recentNews ? "text-amber-600 dark:text-amber-400" : "text-slate-500"}`}>
+                                {selectedStock.recentNews || "No significant events reported recently."}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Position */}
+                    {pos && pos.shares > 0 && (
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-3">
+                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Your Position</p>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <p className="text-[9px] text-indigo-400">Shares</p>
+                                    <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">{formatNumber(pos.shares)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] text-indigo-400">Avg Cost</p>
+                                    <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">{formatMoney(pos.averageCost)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] text-indigo-400">Unrealized P&L</p>
+                                    {(() => {
+                                        const pnl = (selectedStock.currentPrice - pos.averageCost) * pos.shares;
+                                        return <p className={`text-xs font-black ${pnl >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{pnl >= 0 ? "+" : ""}{formatMoney(pnl)}</p>;
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Trade Controls */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Place Order</p>
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-[10px] text-slate-500">Deploy <span className="font-black text-slate-800 dark:text-white">{tradeQtyPct}%</span> of cash</p>
+                            <p className="text-[10px] font-black text-indigo-500">{formatNumber(deployShares)} shares · {formatMoney(deployCost)}</p>
+                        </div>
+                        <input type="range" min={1} max={100} value={tradeQtyPct} onChange={e => setTradeQtyPct(Number(e.target.value))}
+                            className="w-full h-2 rounded-full accent-indigo-600 mb-3" />
+                        <div className="text-[9px] text-slate-400 mb-3">Cash Available: <span className="font-black text-slate-700 dark:text-slate-200">{formatMoney(availableCash)}</span> · Max shares: <span className="font-black">{formatNumber(maxAffordableShares)}</span></div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => handleTrade(selectedStock.symbol, deployShares, selectedStock.currentPrice)}
+                                disabled={!canBuy}
+                                className="py-3 rounded-xl bg-emerald-500 text-white font-black text-[11px] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
+                            >
+                                Buy {formatNumber(deployShares)}
+                            </button>
+                            <button
+                                onClick={() => pos && handleTrade(selectedStock.symbol, -Math.min(deployShares, pos.shares), selectedStock.currentPrice)}
+                                disabled={!canSell}
+                                className="py-3 rounded-xl bg-rose-500 text-white font-black text-[11px] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
+                            >
+                                Sell {canSell ? formatNumber(Math.min(deployShares, pos.shares)) : "—"}
+                            </button>
                         </div>
                     </div>
                 </div>
+            );
+        }
 
-                {marketStocks?.map(stock => {
-                    if (!isPersonal && stock.symbol === (startup.symbol || "CORP")) return null; // Treasury can't buy own stock here (buybacks handled separately)
+        // --- List View ---
+        return (
+            <div className="flex flex-col gap-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cash Available</p>
+                        <p className="text-lg font-black text-emerald-500">{formatMoney(availableCash)}</p>
+                    </div>
+                    {currentPortfolio.length > 0 && (
+                        <div className="text-right">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Portfolio P&L</p>
+                            <p className={`text-sm font-black ${portfolioPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                {portfolioPnl >= 0 ? "+" : ""}{formatMoney(portfolioPnl)}
+                            </p>
+                        </div>
+                    )}
+                </div>
 
-                    const pos = currentPortfolio.find((p: any) => p.symbol === stock.symbol);
-                    const sharesToTrade = 10000;
+                {/* Sector filter tabs */}
+                <div className="flex gap-1.5 flex-wrap">
+                    {SECTORS.map(s => (
+                        <button key={s} onClick={() => setTradeSectorFilter(s)}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${tradeSectorFilter === s ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}>
+                            {s}
+                        </button>
+                    ))}
+                </div>
 
-                    const rsiColor = stock.rsi > 70 ? "text-rose-500" : stock.rsi < 30 ? "text-emerald-500" : "text-slate-400";
-                    const minP = Math.min(...(stock.priceHistory || [stock.currentPrice]));
-                    const maxP = Math.max(...(stock.priceHistory || [stock.currentPrice]));
-                    const sparklinePoints = (stock.priceHistory || [stock.currentPrice]).map((p, i, arr) =>
-                        `${(i / Math.max(1, arr.length - 1)) * 100},${100 - ((p - minP) / Math.max(1, maxP - minP)) * 100}`
+                {/* Stock List */}
+                {filtered.length === 0 && (
+                    <div className="text-center py-8 text-slate-400 text-sm">No stocks in this sector yet.</div>
+                )}
+                {filtered.map(stock => {
+                    const pos: any = currentPortfolio.find((p: any) => p.symbol === stock.symbol);
+                    const history = stock.priceHistory || [stock.currentPrice];
+                    const minP = Math.min(...history);
+                    const maxP = Math.max(...history);
+                    const sparkPts = history.map((p, i) =>
+                        `${(i / Math.max(1, history.length - 1)) * 100},${100 - ((p - minP) / Math.max(1, maxP - minP || 1)) * 100}`
                     ).join(" ");
+                    const isUp = stock.momentum >= 0;
+                    const pxChange = history.length > 1 ? history[history.length - 1] - history[history.length - 2] : 0;
+                    const pctChange = history.length > 1 ? (pxChange / history[history.length - 2]) * 100 : 0;
+                    const rsiVal = Math.round(stock.rsi);
+                    const rsiCol = rsiVal > 70 ? "text-rose-500" : rsiVal < 30 ? "text-emerald-500" : "text-slate-400";
 
                     return (
-                        <div key={stock.symbol} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">{stock.symbol}</p>
-                                    <p className="text-[9px] text-slate-500 uppercase">{stock.companyName}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 mt-0.5">{stock.sector} · RSI: <span className={rsiColor}>{Math.round(stock.rsi)}</span></p>
+                        <button key={stock.symbol} onClick={() => setTradeSelectedSymbol(stock.symbol)}
+                            className="w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 active:scale-[0.98] transition-all hover:border-indigo-300 dark:hover:border-indigo-700">
+                            <div className="flex items-center gap-3">
+                                {/* Symbol + sector */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-black text-slate-900 dark:text-white">{stock.symbol}</p>
+                                        {pos && pos.shares > 0 && <span className="text-[8px] font-black bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">HELD</span>}
+                                        {stock.recentNews && <span title="Breaking News!" className="text-[10px]">🗞️</span>}
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 truncate">{stock.companyName} · <span className="font-bold">Cap: {formatMoney(stock.currentPrice * stock.sharesOutstanding)}</span></p>
+                                    <p className="text-[9px] text-slate-400">RSI <span className={`font-black ${rsiCol}`}>{rsiVal}</span> · Vol <span className="font-bold text-slate-500">{(stock.volatility * 100).toFixed(0)}%</span></p>
                                 </div>
-                                <div className="w-16 h-8 mx-2 mt-1">
-                                    <svg viewBox="0 -10 100 120" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                                        <polyline
-                                            points={sparklinePoints}
-                                            fill="none"
-                                            stroke={stock.momentum >= 0 ? "#10b981" : "#f43f5e"}
-                                            strokeWidth="8"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
+
+                                {/* Sparkline */}
+                                <div className="w-14 h-7">
+                                    <svg viewBox="0 -5 100 110" className="w-full h-full" preserveAspectRatio="none">
+                                        <polyline points={sparkPts} fill="none" stroke={isUp ? "#10b981" : "#f43f5e"} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </div>
-                                <div className="text-right flex-1">
-                                    <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatMoney(stock.currentPrice)}</p>
-                                    <p className={`text-[10px] font-black ${stock.momentum >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                                        {stock.momentum >= 0 ? "↑" : "↓"} {(stock.momentum * 100).toFixed(1)}%
+
+                                {/* Price */}
+                                <div className="text-right">
+                                    <p className="text-sm font-black text-slate-900 dark:text-white">{formatMoney(stock.currentPrice)}</p>
+                                    <p className={`text-[10px] font-black ${pctChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                        {pctChange >= 0 ? "▲" : "▼"} {Math.abs(pctChange).toFixed(2)}%
                                     </p>
                                 </div>
                             </div>
-
-                            {pos && pos.shares > 0 && (
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg flex justify-between items-center mt-1">
-                                    <span className="text-[10px] text-slate-500 uppercase font-black">Owned: <span className="text-slate-700 dark:text-slate-300">{formatNumber(pos.shares)}</span></span>
-                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Avg Cost: {formatMoney(pos.averageCost)}</span>
-                                </div>
-                            )}
-
-                            <div className="flex gap-2 mt-1">
-                                <button
-                                    onClick={() => handleTrade(stock.symbol, sharesToTrade, stock.currentPrice)}
-                                    disabled={availableCash < sharesToTrade * stock.currentPrice}
-                                    className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 py-2 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
-                                >
-                                    Buy {formatNumber(sharesToTrade)}
-                                </button>
-                                {pos && pos.shares >= sharesToTrade && (
-                                    <button
-                                        onClick={() => handleTrade(stock.symbol, -sharesToTrade, stock.currentPrice)}
-                                        className="flex-1 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 py-2 rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"
-                                    >
-                                        Sell {formatNumber(sharesToTrade)}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                        </button>
                     );
                 })}
             </div>
         );
+
     }
 
     if (category === "margin_loan") {
@@ -3172,17 +3815,21 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const maxLoan = totalCollateral * 0.5; // 50% LTV limit
         const currentLoan = founderWealth.margin_loan_balance || 0;
         const availableLoan = Math.max(0, maxLoan - currentLoan);
+        const ltvRatio = totalCollateral > 0 ? (currentLoan / totalCollateral) * 100 : 0;
 
         const handleBorrow = (amount: number) => {
-            if (amount > availableLoan) return;
+            if (amount > availableLoan) {
+                toast.error("Borrow Limit Exceeded", { description: "You cannot borrow beyond 50% LTV of your collateral." });
+                return;
+            }
             const newFounder = { ...founder };
             if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
             newFounder.personal_wealth = (newFounder.personal_wealth || 0) + amount;
             newFounder.wealth_profile.margin_loan_balance = (newFounder.wealth_profile.margin_loan_balance || 0) + amount;
 
             if (setFounder) setFounder(newFounder);
-
             addTimelineEvent(`💳 Drew ${formatMoney(amount)} from margin line. Current balance: ${formatMoney(newFounder.wealth_profile.margin_loan_balance)}`);
+            toast.success("Funds Borrowed", { description: `Received ${formatMoney(amount)} in personal cash!` });
         };
 
         const handleRepay = (amount: number) => {
@@ -3197,102 +3844,251 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
             if (setFounder) setFounder(newFounder);
             addTimelineEvent(`💳 Repaid ${formatMoney(repayAmount)} to margin line.`);
+            toast.success("Loan Repaid", { description: `Repaid ${formatMoney(repayAmount)} margin debt.` });
         };
 
+        // Determine risk level based on LTV
+        let riskColor = "bg-emerald-500";
+        let riskLabel = "Safe (LTV < 35%)";
+        if (ltvRatio >= 50) {
+            riskColor = "bg-rose-600 animate-pulse";
+            riskLabel = "CRITICAL (LTV >= 50% - Liquidation Risk)";
+        } else if (ltvRatio >= 35) {
+            riskColor = "bg-amber-500";
+            riskLabel = "Warning (LTV >= 35% - Monitor Market)";
+        }
+
         return (
-            <div className="flex flex-col gap-4">
-                <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-2xl p-4">
-                    <div className="flex justify-between items-end mb-4">
-                        <div>
-                            <h3 className="text-sm font-black text-indigo-900 dark:text-indigo-100 uppercase">Margin Account</h3>
-                            <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300">Borrow cash against your stock</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] text-indigo-700/70 dark:text-indigo-300 uppercase font-black">Personal Cash</p>
-                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatMoney(founder.personal_wealth || 0)}</p>
-                        </div>
+            <div className="flex flex-col gap-4 animate-in fade-in-50 duration-300">
+                {sheetHeader("💳", "Margin Account", "Personal Credit Terminal")}
+
+                {/* Collateral Stats */}
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Collateral Value</p>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatMoney(totalCollateral)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Personal Cash</p>
+                        <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(founder.personal_wealth || 0)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Loan Balance</p>
+                        <p className="text-xs font-black text-rose-600 mt-0.5">{formatMoney(currentLoan)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Available to Borrow</p>
+                        <p className="text-xs font-black text-emerald-600 mt-0.5">{formatMoney(availableLoan)}</p>
+                    </div>
+                </div>
+
+                {/* Margin Call Risk Indicator */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Margin Credit Meter</p>
+                        <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{ltvRatio.toFixed(1)}% LTV</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                        <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg">
-                            <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Loan Balance (6% APR)</p>
-                            <p className="text-base font-black text-rose-600">{formatMoney(currentLoan)}</p>
-                        </div>
-                        <div className="bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg">
-                            <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Available to Borrow</p>
-                            <p className="text-base font-black text-emerald-600">{formatMoney(availableLoan)}</p>
-                        </div>
+                    {/* Risk progress bar */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 mb-2 overflow-hidden flex">
+                        <div className={`h-full ${riskColor}`} style={{ width: `${Math.min(100, (ltvRatio / 50) * 100)}%` }} />
                     </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[9px] text-slate-400 font-bold">LTV Risk Meter:</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">{riskLabel}</span>
+                    </div>
+                    <p className="text-[8px] text-slate-400/80 mt-3 leading-normal">
+                        Your margin line is secured by your equity. If stock price declines push LTV past **55%**, the SEC will issue a Margin Call, **forcibly liquidating** your shares to clear the debt!
+                    </p>
+                </div>
 
-                    <div className="w-full bg-white/50 dark:bg-slate-900/50 rounded-full h-1.5 mb-1 overflow-hidden">
-                        <div className="bg-rose-500 h-full" style={{ width: `${Math.min(100, (currentLoan / Math.max(1, maxLoan)) * 100)}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[8px] text-slate-500 uppercase font-black mb-4">
-                        <span>LTV Ratio</span>
-                        <span>{((currentLoan / Math.max(1, totalCollateral)) * 100).toFixed(1)}% / 50.0% Max</span>
-                    </div>
-
-                    <div className="flex gap-2">
+                {/* Draw Presets */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Draw Cash (Costs 6% APR Interest)</p>
+                    <div className="flex gap-2 mb-2">
                         <button
-                            onClick={() => handleBorrow(1_000_000)}
-                            disabled={availableLoan < 1_000_000}
-                            className="flex-1 bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                            onClick={() => handleBorrow(1000000)}
+                            disabled={availableLoan < 1000000}
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                         >
                             Borrow $1M
                         </button>
                         <button
-                            onClick={() => handleRepay(1_000_000)}
-                            disabled={currentLoan <= 0 || (founder.personal_wealth || 0) <= 0}
-                            className="flex-1 bg-slate-800 text-white py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                            onClick={() => handleBorrow(5000000)}
+                            disabled={availableLoan < 5000000}
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                         >
-                            Repay $1M
+                            Borrow $5M
                         </button>
                     </div>
+                    <button
+                        onClick={() => handleBorrow(availableLoan)}
+                        disabled={availableLoan < 100000}
+                        className="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                    >
+                        Borrow Max Capacity ({formatMoney(availableLoan)})
+                    </button>
                 </div>
+
+                {/* Repay Presets */}
+                {currentLoan > 0 && (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Repay Balance (Settle Debt)</p>
+                        <div className="flex gap-2 mb-2">
+                            <button
+                                onClick={() => handleRepay(1000000)}
+                                disabled={(founder.personal_wealth || 0) < 1000000}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                            >
+                                Repay $1M
+                            </button>
+                            <button
+                                onClick={() => handleRepay(5000000)}
+                                disabled={(founder.personal_wealth || 0) < 5000000}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                            >
+                                Repay $5M
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => handleRepay(currentLoan)}
+                            disabled={(founder.personal_wealth || 0) <= 0}
+                            className="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                        >
+                            Repay Full Balance ({formatMoney(Math.min(currentLoan, founder.personal_wealth || 0))})
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }
 
     if (category === "lobbying") {
         const score = startup.public_company?.lobbying_score || 0;
-        const handleLobby = (amount: number, points: number) => {
-            if (m.cash < amount) return;
+
+        const handleLobby = (amount: number, points: number, type: string) => {
+            if (m.cash < amount) {
+                toast.error("Insufficient Cash", { description: "You don't have enough corporate cash to fund this campaign." });
+                return;
+            }
             const newStartup = { ...startup };
             newStartup.metrics.cash -= amount;
             newStartup.public_company.lobbying_score = Math.min(100, (newStartup.public_company.lobbying_score || 0) + points);
+
+            if (type === "liaison") {
+                newStartup.ceo_reputation = Math.min(100, (newStartup.ceo_reputation || 80) + 8);
+                addTimelineEvent(`🏛️ Federal Liaison: Funded federal regulatory liaison with ${formatMoney(amount)}. Lobbying score +${points}, CEO Reputation +8.`);
+                toast.success("Liaison Active", { description: "Your Washington influence has elevated your reputation!" });
+            } else if (type === "coalition") {
+                // Grant $15M R&D cash immediately!
+                newStartup.metrics.cash += 15000000;
+                addTimelineEvent(`🏛️ Coalition Subsidy: Sponsored bipartisan coalition with ${formatMoney(amount)}, securing an immediate $15,000,000 federal R&D tax grant!`);
+                toast.success("Subsidy Secured!", { description: "Received $15M federal R&D grant!" });
+            } else {
+                addTimelineEvent(`🏛️ PAC Funding: Funded PAC campaign with ${formatMoney(amount)}. Lobbying score +${points}.`);
+                toast.success("PAC Funded", { description: `Lobbying Influence increased by +${points}!` });
+            }
             setStartup(newStartup);
-            addTimelineEvent(`🏛️ Funded PAC with ${formatMoney(amount)}. Lobbying score +${points}`);
         };
 
         return (
-            <div className="flex flex-col gap-4">
-                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">Regulatory Capture</h3>
-                    <p className="text-[10px] text-slate-500 mt-1">High lobbying scores reduce the chance of antitrust probes, SEC investigations, and can trigger tax incentives.</p>
+            <div className="flex flex-col gap-4 animate-in fade-in-50 duration-300">
+                {sheetHeader("🏛️", "Lobbying & Capture", "Washington Influence Terminal")}
 
-                    <div className="mt-4 mb-2 flex justify-between items-end">
-                        <p className="text-xs font-black uppercase text-slate-600">Influence Score</p>
-                        <p className="text-lg font-black text-indigo-600">{score} / 100</p>
+                {/* Regulatory Progress Gauge */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
+                    <div className="flex justify-between items-end mb-2">
+                        <div>
+                            <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Influence Score</h3>
+                            <p className="text-[9px] text-slate-400 mt-0.5">Your regulatory capture percentage</p>
+                        </div>
+                        <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{score} <span className="text-xs font-normal text-slate-400">/ 100</span></p>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mb-4 overflow-hidden">
-                        <div className="bg-indigo-500 h-full transition-all" style={{ width: `${score}%` }} />
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 mb-4 overflow-hidden">
+                        <div className="bg-gradient-to-r from-violet-500 to-indigo-600 h-full transition-all" style={{ width: `${score}%` }} />
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <button onClick={() => handleLobby(5000000, 5)} disabled={m.cash < 5000000} className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 flex justify-between items-center transition-all">
-                            <div>
-                                <p className="text-xs font-black">Hire K-Street Firm</p>
-                                <p className="text-[10px] text-slate-500">-$5M Corporate Cash</p>
+                    {/* Tier Unlocks Panel */}
+                    <div className="space-y-2 border-t border-slate-200/50 dark:border-slate-700/50 pt-3">
+                        <div className="flex justify-between items-center text-[10px]">
+                            <span className={cn("font-bold", score >= 30 ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")}>
+                                {score >= 30 ? "✅" : "🔒"} Tier 1 (30+): Audit & Investigation Protection
+                            </span>
+                            <span className="text-[8px] uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold">-50% Crisis Chance</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px]">
+                            <span className={cn("font-bold", score >= 70 ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")}>
+                                {score >= 70 ? "✅" : "🔒"} Tier 2 (70+): Complete Regulatory Capture
+                            </span>
+                            <span className="text-[8px] uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold">+15% Monthly Tax Credit</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Advanced Influence Campaigns */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Lobbying Initiatives &amp; Campaigns</p>
+
+                    <div className="space-y-3">
+                        {/* K-Street retainer */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
+                            <div className="flex-1">
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-100">K-Street Law Retainer</p>
+                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$2M Corporate Cash</p>
                             </div>
-                            <span className="text-xs font-black text-emerald-600">+5 Score</span>
-                        </button>
-                        <button onClick={() => handleLobby(25000000, 30)} disabled={m.cash < 25000000} className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 flex justify-between items-center transition-all">
-                            <div>
-                                <p className="text-xs font-black">Super PAC Donation</p>
-                                <p className="text-[10px] text-slate-500">-$25M Corporate Cash</p>
+                            <button
+                                onClick={() => handleLobby(2000000, 4, "retainer")}
+                                disabled={m.cash < 2000000}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                            >
+                                +4 Influence
+                            </button>
+                        </div>
+
+                        {/* Targeted PAC Contribution */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
+                            <div className="flex-1">
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-100">Targeted PAC Contribution</p>
+                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$10M Corporate Cash</p>
                             </div>
-                            <span className="text-xs font-black text-emerald-600">+30 Score</span>
-                        </button>
+                            <button
+                                onClick={() => handleLobby(10000000, 15, "pac")}
+                                disabled={m.cash < 10000000}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                            >
+                                +15 Influence
+                            </button>
+                        </div>
+
+                        {/* Federal Regulatory Liaison */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
+                            <div className="flex-1">
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-100">Federal Regulatory Liaison</p>
+                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$20M Corporate Cash · Boost Reputation</p>
+                            </div>
+                            <button
+                                onClick={() => handleLobby(20000000, 30, "liaison")}
+                                disabled={m.cash < 20000000}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                            >
+                                +30 Influence
+                            </button>
+                        </div>
+
+                        {/* Bipartisan Coalition Sponsor */}
+                        <div className="flex items-center justify-between p-3 bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl">
+                            <div className="flex-1">
+                                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300">Bipartisan Coalition Sponsorship</p>
+                                <p className="text-[9px] text-indigo-700/50 dark:text-indigo-400/50 font-bold mt-0.5">-$50M Corporate Cash · Secures $15M Federal Grant</p>
+                            </div>
+                            <button
+                                onClick={() => handleLobby(50000000, 60, "coalition")}
+                                disabled={m.cash < 50000000}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                            >
+                                +60 Influence
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3304,62 +4100,133 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const sharesOut = pub?.shares_outstanding || 100000000;
         const sharePrice = pub?.share_price || 0;
         const auth = pub?.buyback_authorized || 0;
+        const floatShares = pub?.float || 20000000;
+        const eps = pub?.eps_last_quarter || 0.05;
 
         const handleAuthorize = (amount: number) => {
             const newStartup = { ...startup };
             newStartup.public_company.buyback_authorized = amount;
             setStartup(newStartup);
             addTimelineEvent(`💸 Board authorized a ${formatMoney(amount)} share repurchase program.`);
+            toast.success("Program Authorized", { description: `Board approved ${formatMoney(amount)} buyback pool.` });
         };
 
-        const handleExecuteBuyback = (amount: number) => {
-            if (m.cash < amount || auth < amount) return;
-            const newStartup = { ...startup };
-            const sharesRetired = amount / sharePrice;
-            newStartup.metrics.cash -= amount;
-            newStartup.public_company.buyback_authorized -= amount;
-            newStartup.public_company.shares_outstanding -= sharesRetired;
-            newStartup.public_company.float = Math.max(0, newStartup.public_company.float - sharesRetired);
-            newStartup.public_company.share_price *= 1.02; // Small price pop
-            setStartup(newStartup);
-            addTimelineEvent(`💸 Executed ${formatMoney(amount)} buyback, retiring ${formatNumber(sharesRetired)} shares.`);
-
-            if (newStartup.public_company.buyback_authorized <= 0) {
-                toast.success("Buyback Program Complete", { description: "All authorized shares have been repurchased." });
+        const handleExecuteBuyback = (amount: number, isTender: boolean = false) => {
+            if (m.cash < amount) {
+                toast.error("Insufficient Cash", { description: "You don't have enough corporate cash to execute this buyback." });
+                return;
             }
+            if (!isTender && auth < amount) {
+                toast.error("Insufficient Authorization", { description: "The authorized program limit is too small." });
+                return;
+            }
+
+            const newStartup = { ...startup };
+            const repurchasePrice = isTender ? sharePrice * 1.10 : sharePrice;
+            const sharesRetired = amount / repurchasePrice;
+
+            newStartup.metrics.cash -= amount;
+            if (!isTender) {
+                newStartup.public_company.buyback_authorized = Math.max(0, newStartup.public_company.buyback_authorized - amount);
+            }
+            newStartup.public_company.shares_outstanding = Math.max(1, newStartup.public_company.shares_outstanding - sharesRetired);
+            newStartup.public_company.float = Math.max(1, newStartup.public_company.float - sharesRetired);
+
+            // Stock price pop!
+            const pricePopFactor = isTender ? 1.08 : amount >= 50000000 ? 1.05 : amount >= 20000000 ? 1.025 : 1.01;
+            newStartup.public_company.share_price *= pricePopFactor;
+            newStartup.valuation = newStartup.public_company.shares_outstanding * newStartup.public_company.share_price;
+
+            // Recalculate EPS due to fewer shares
+            newStartup.public_company.eps_last_quarter = ((newStartup.metrics.net_profit || 0) * 3) / newStartup.public_company.shares_outstanding;
+
+            setStartup(newStartup);
+
+            const label = isTender ? "Dutch Auction Tender Offer" : "Open Market Repurchase";
+            addTimelineEvent(`💸 ${label}: Executed ${formatMoney(amount)} buyback, retiring ${formatNumber(sharesRetired)} shares. Share price popped +${((pricePopFactor - 1) * 100).toFixed(1)}%.`);
+            toast.success("Buyback Executed!", { description: `Retired ${formatNumber(sharesRetired)} float shares!` });
         };
 
         return (
             <div className="flex flex-col gap-4">
-                <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/50 rounded-xl p-4">
-                    <h3 className="text-sm font-black text-amber-900 dark:text-amber-100 uppercase">Share Repurchases</h3>
-                    <p className="text-[10px] text-amber-700/70 dark:text-amber-300/70 mt-1">Use corporate cash to buy back shares, reducing float and artificially boosting EPS and Share Price.</p>
+                {sheetHeader("💸", "Buybacks", "Capital Allocation Terminal")}
 
-                    <div className="grid grid-cols-2 gap-4 mt-4 mb-4">
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-slate-500">Authorized Program</p>
-                            <p className="text-lg font-black text-slate-800 dark:text-slate-200">{formatMoney(auth)}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-slate-500">Shares Outstanding</p>
-                            <p className="text-lg font-black text-slate-800 dark:text-slate-200">{formatNumber(sharesOut)}</p>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-2 animate-in fade-in-50 duration-300">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Shares Outstanding</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatNumber(sharesOut)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Public Float Shares</p>
+                        <p className="text-sm font-black text-indigo-600 mt-0.5">{formatNumber(floatShares)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">EPS (Earnings / Sh)</p>
+                        <p className="text-sm font-black text-emerald-600 mt-0.5">{formatMoney(eps)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                        <p className="text-[9px] uppercase font-black text-slate-400">Authorized Program</p>
+                        <p className="text-sm font-black text-amber-600 mt-0.5">{formatMoney(auth)}</p>
+                    </div>
+                </div>
+
+                {/* Authorization Section */}
+                {auth <= 0 ? (
+                    <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                        <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">Authorize Buyback Program</h4>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Instruct the Board of Directors to approve capital allocation for share repurchases.</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleAuthorize(20000000)} className="flex-1 bg-slate-800 dark:bg-slate-700 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:opacity-90 active:scale-95 transition-all">Authorize $20M Program</button>
+                            <button onClick={() => handleAuthorize(50000000)} className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">Authorize $50M Program</button>
                         </div>
                     </div>
-
-                    {!auth ? (
-                        <button onClick={() => handleAuthorize(50000000)} className="w-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 py-3 rounded-lg text-xs font-black uppercase hover:opacity-90 transition-all">
-                            Authorize $50M Program
-                        </button>
-                    ) : (
+                ) : (
+                    <div className="bg-amber-50/50 dark:bg-amber-950/15 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                        <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Open Market Buyback Program</h4>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Execute repurchases against your active ${formatMoney(auth)} authorization. Retires public float shares to boost EPS.</p>
                         <div className="flex flex-col gap-2">
-                            <button onClick={() => handleExecuteBuyback(10000000)} disabled={m.cash < 10000000 || auth < 10000000} className="w-full bg-emerald-500 text-white py-3 rounded-lg text-xs font-black uppercase hover:bg-emerald-600 disabled:opacity-30 transition-all">
-                                Execute $10M Buyback
-                            </button>
-                            <button onClick={() => handleExecuteBuyback(auth)} disabled={m.cash < auth} className="w-full bg-amber-500 text-white py-3 rounded-lg text-xs font-black uppercase hover:bg-amber-600 disabled:opacity-30 transition-all">
-                                Execute Full {formatMoney(auth)}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleExecuteBuyback(5000000)}
+                                    disabled={m.cash < 5000000 || auth < 5000000}
+                                    className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                >
+                                    Repurchase $5M<br />
+                                    <span className="text-[8px] opacity-70">Block Trade (+1.0% price pop)</span>
+                                </button>
+                                <button
+                                    onClick={() => handleExecuteBuyback(20000000)}
+                                    disabled={m.cash < 20000000 || auth < 20000000}
+                                    className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                >
+                                    Repurchase $20M<br />
+                                    <span className="text-[8px] opacity-70">Major Block (+2.5% price pop)</span>
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => handleExecuteBuyback(Math.min(auth, m.cash))}
+                                disabled={m.cash < 1000000}
+                                className="w-full bg-emerald-600 text-white py-3 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                            >
+                                Repurchase Max Available ({formatMoney(Math.min(auth, m.cash))})
                             </button>
                         </div>
-                    )}
+                    </div>
+                )}
+
+                {/* Tender Offer dutch auction */}
+                <div className="bg-rose-50/50 dark:bg-rose-950/15 border-2 border-rose-100 dark:border-rose-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
+                    <h4 className="text-xs font-black uppercase text-rose-700 dark:text-rose-400 tracking-wider">Dutch Auction Tender Offer</h4>
+                    <p className="text-[10px] text-slate-500 mt-1 mb-3">Make a direct public offer to bypass open markets and buy back a massive block of shares at a **10% Premium** to defend against short sellers.</p>
+                    <button
+                        onClick={() => handleExecuteBuyback(100000000, true)}
+                        disabled={m.cash < 100000000}
+                        className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white py-3 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 shadow-md shadow-rose-600/20"
+                    >
+                        Launch $100M Tender Offer (10% Premium)<br />
+                        <span className="text-[8px] opacity-70 font-semibold">Triggers +8.0% immediate Share Price jump</span>
+                    </button>
                 </div>
             </div>
         );
@@ -3370,74 +4237,220 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const myShares = startup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
         const totalShares = startup.public_company?.shares_outstanding || 100_000_000;
         const myShareCount = (myShares / 100) * totalShares;
+        const sharePrice = startup.public_company?.share_price || 1.00;
+        const myEquityValue = myShareCount * sharePrice;
 
-        const handleCreatePlan = () => {
+        const templates = [
+            {
+                name: "SEC Safe-Harbor Conservative",
+                sharesTotal: 240000,
+                months: 12,
+                monthly: 20000,
+                isAggressive: false,
+                desc: "Sell 20k shares/mo for 12 mos. Safe, slow liquidity with absolutely zero market impact or regulatory concern.",
+                badge: "Safe-Harbor Pre-Approved",
+                badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50"
+            },
+            {
+                name: "Standard Executive Liquidity",
+                sharesTotal: 600000,
+                months: 12,
+                monthly: 50000,
+                isAggressive: false,
+                desc: "Sell 50k shares/mo for 12 mos. Moderate portfolio diversification without triggering investor alarms.",
+                badge: "Standard Safe-Harbor",
+                badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-400 border-blue-200 dark:border-blue-900/50"
+            },
+            {
+                name: "Aggressive Corporate Exit",
+                sharesTotal: 900000,
+                months: 6,
+                monthly: 150000,
+                isAggressive: true,
+                desc: "Sell 150k shares/mo for 6 mos. Rapid liquidation to build personal wealth, but applies selling pressure that drops the stock price by 1.5% every month.",
+                badge: "Market-Impact Schedule",
+                badgeColor: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200 dark:border-amber-900/50"
+            }
+        ];
+
+        const handleCreatePlan = (template: typeof templates[0]) => {
             const plan: import("@/lib/types/database.types").TenB51Plan = {
                 id: `10b51_${Date.now()}`,
-                sharesToSellTotal: 120000,
+                sharesToSellTotal: template.sharesTotal,
                 sharesSoldSoFar: 0,
-                monthsRemaining: 12,
-                monthlySellAmount: 10000,
+                monthsRemaining: template.months,
+                monthlySellAmount: template.monthly,
                 targetPriceMinimum: 0, // sells at market
+                planName: template.name,
+                isAggressive: template.isAggressive,
             };
 
             const newFounder = { ...founder };
             if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
             newFounder.wealth_profile.active_10b51_plans.push(plan);
             if (setFounder) setFounder(newFounder);
-            addTimelineEvent(`📄 Executed a new 10b5-1 Trading Plan to sell 10k shares/mo for 12 months.`);
-            toast.success("10b5-1 Plan Active", { description: "You are now legally liquidating stock." });
+            addTimelineEvent(`📄 Executed a new 10b5-1 Trading Plan: "${template.name}" to sell ${formatNumber(template.monthly)} shares/mo for ${template.months} months.`);
+            toast.success("10b5-1 Plan Registered", { description: `SEC-approved plan "${template.name}" is now active.` });
         };
 
         const handleCancelPlan = (id: string) => {
             const newFounder = { ...founder };
             if (!newFounder.wealth_profile) return;
+            const plan = newFounder.wealth_profile.active_10b51_plans.find((p: any) => p.id === id);
             newFounder.wealth_profile.active_10b51_plans = newFounder.wealth_profile.active_10b51_plans.filter((p: any) => p.id !== id);
             if (setFounder) setFounder(newFounder);
 
             const newStartup = { ...startup };
             newStartup.metrics.legal_risk = true;
+            if (!newStartup.metrics.board_happiness) newStartup.metrics.board_happiness = 80;
+            newStartup.metrics.board_happiness = Math.max(10, newStartup.metrics.board_happiness - 15);
             setStartup(newStartup);
 
-            addTimelineEvent(`📄 Cancelled 10b5-1 Trading Plan prematurely.`);
-            toast.warning("Plan Cancelled", { description: "The SEC has noted your irregular trading behavior." });
+            addTimelineEvent(`📄 Cancelled 10b5-1 Trading Plan "${plan?.planName || 'Plan'}" prematurely. SEC alert triggered!`);
+            toast.warning("SEC Alert Flagged", { description: "Cancelling a pre-scheduled trading plan violates SEC safe harbor! Board happiness decreased." });
         };
 
         return (
             <div className="flex flex-col gap-4">
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase">10b5-1 Trading Plans</h3>
-                    <p className="text-[10px] text-slate-500 mt-1 mb-4">Legally liquidate your founder shares over time to avoid insider trading allegations.</p>
-
-                    <div className="flex justify-between items-end mb-4">
-                        <p className="text-[10px] uppercase font-black text-slate-500">Your Shares</p>
-                        <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatNumber(myShareCount)} shrs</p>
+                    <div className="flex justify-between items-center mb-3">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <span>📄</span> SEC Rule 10b5-1 Trading Portal
+                            </h3>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Pre-schedule founder equity liquidations to eliminate insider trading liability.</p>
+                        </div>
+                        {plans.length > 0 ? (
+                            plans.some((p: any) => p.isAggressive) ? (
+                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 animate-pulse">
+                                    ⚠️ Aggressive Liquidation
+                                </span>
+                            ) : (
+                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                                    🛡️ SEC Safe-Harbor
+                                </span>
+                            )
+                        ) : startup.metrics.legal_risk ? (
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 animate-pulse">
+                                🚨 Regulatory Warning
+                            </span>
+                        ) : (
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                💤 Plan Inactive
+                            </span>
+                        )}
                     </div>
 
-                    {plans.length === 0 ? (
-                        <div className="flex flex-col gap-2">
-                            <p className="text-[10px] text-slate-500 italic text-center">Selling ~10k shares/mo × 12 months = ~120k shares total.</p>
-                            <button onClick={handleCreatePlan} className="w-full bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 py-3 rounded-lg text-xs font-black uppercase hover:opacity-90 transition-all">
-                                Setup Plan: Sell 10k/mo (12 mos)
-                            </button>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                            <p className="text-[9px] uppercase font-black text-slate-400">Founder Shareholding</p>
+                            <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-1">
+                                {formatNumber(myShareCount)} <span className="text-[10px] font-semibold text-slate-500">({myShares.toFixed(2)}%)</span>
+                            </p>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                            <p className="text-[9px] uppercase font-black text-slate-400">Liquid Equity Value</p>
+                            <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                                {formatMoney(myEquityValue)}
+                            </p>
+                        </div>
+                    </div>
+
+                    {plans.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                            <div className="flex justify-between items-center">
+                                <p className="text-[10px] uppercase font-black text-slate-500">Active Trading Plan</p>
+                                <span className="text-[9px] font-bold text-slate-400">SEC Form 4 Filed</span>
+                            </div>
+                            {plans.map((p: any) => {
+                                const soldPercent = (p.sharesSoldSoFar / Math.max(1, p.sharesToSellTotal)) * 100;
+                                return (
+                                    <div key={p.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">{p.planName || "SEC Rule 10b5-1 Plan"}</p>
+                                                <p className="text-[9px] font-semibold text-slate-500 mt-0.5">
+                                                    Rate: <span className="font-bold text-slate-700 dark:text-slate-300">{formatNumber(p.monthlySellAmount)} shrs/mo</span> (Estimated {formatMoney(p.monthlySellAmount * sharePrice)} / mo)
+                                                </p>
+                                            </div>
+                                            <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">
+                                                {p.monthsRemaining} mos remaining
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-1.5 my-3">
+                                            <div className="flex justify-between text-[9px] font-bold text-slate-500">
+                                                <span>Progress: {formatNumber(p.sharesSoldSoFar)} / {formatNumber(p.sharesToSellTotal)} sold</span>
+                                                <span>{soldPercent.toFixed(0)}%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-200/50 dark:border-slate-700/50">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-500 ${p.isAggressive ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                                    style={{ width: `${soldPercent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleCancelPlan(p.id)}
+                                            className="w-full py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-[10px] font-black uppercase transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-1"
+                                        >
+                                            <span>🚨</span> Terminate Schedule Prematurely
+                                        </button>
+                                        <p className="text-[8px] text-center text-slate-400 dark:text-slate-500 font-medium mt-1.5 leading-relaxed">
+                                            ⚠️ Warning: Prematurely cancelling an SEC schedule raises immediate insider trading red flags. Triggers permanent <strong>Regulatory Warning</strong> status and drops Board Happiness by <strong>-15%</strong>.
+                                        </p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3">
-                            <p className="text-[10px] uppercase font-black text-emerald-600">Active Plans</p>
-                            {plans.map((p: any) => (
-                                <div key={p.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">10k shares / mo</p>
-                                        <p className="text-[10px] font-bold text-slate-500">{p.monthsRemaining} mos left</p>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+                                <p className="text-[10px] uppercase font-black text-slate-500">Select SEC-Approved Schedule Template</p>
+                                <p className="text-[9px] font-bold text-slate-400">1 Plan Max</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                {templates.map((t, idx) => (
+                                    <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500/50 rounded-lg p-3 transition-all duration-200 shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex justify-between items-start mb-1.5">
+                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">{t.name}</p>
+                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase ${t.badgeColor}`}>
+                                                    {t.badge}
+                                                </span>
+                                            </div>
+                                            <p className="text-[9px] text-slate-500 mt-1 leading-normal font-medium">{t.desc}</p>
+                                        </div>
+
+                                        <div className="border-t border-slate-100 dark:border-slate-800 mt-3 pt-3 flex items-center justify-between gap-4">
+                                            <div className="flex gap-4">
+                                                <div>
+                                                    <p className="text-[8px] uppercase font-black text-slate-400">Total Shares</p>
+                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.sharesTotal)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] uppercase font-black text-slate-400">Monthly Rate</p>
+                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.monthly)} / mo</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] uppercase font-black text-slate-400">Duration</p>
+                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{t.months} mos</p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleCreatePlan(t)}
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] px-3 py-2 rounded-lg transition-all active:scale-95 shadow-md shadow-indigo-600/10 flex items-center gap-1"
+                                            >
+                                                Deploy <span>🚀</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1.5 mb-2 overflow-hidden">
-                                        <div className="bg-emerald-500 h-full" style={{ width: `${(p.sharesSoldSoFar / Math.max(1, p.sharesToSellTotal)) * 100}%` }} />
-                                    </div>
-                                    <button onClick={() => handleCancelPlan(p.id)} className="w-full py-1.5 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-md text-[10px] font-black uppercase hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">
-                                        Cancel Plan
-                                    </button>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -3447,7 +4460,6 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     if (category === "board_mgmt") {
         const pub = startup.public_company;
-
         const handleStockSplit = () => {
             if (!pub) return;
             const newStartup = { ...startup };
@@ -3491,39 +4503,1258 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             toast.success("Stock Split Executed", { description: "Retail investors are piling in!" });
         };
 
+        const getBoardResolutionCost = (label: string) => {
+            const valuation = startup.valuation || 1000000;
+            const baseCosts: Record<string, number> = {
+                "Appoint Independent Director": 50000,
+                "Executive Retreat": 25000,
+                "Rebrand Company": 100000,
+                "Adopt Poison Pill": 500000,
+            };
+            const base = baseCosts[label] || 10000;
+            // Scale based on valuation: sqrt(val / 1M)
+            const scale = Math.max(1, Math.sqrt(valuation / 1000000));
+            return Math.floor(base * scale);
+        };
+
+        const handleBoardAction = (name: string) => {
+            const cost = getBoardResolutionCost(name);
+            if (m.cash < cost) {
+                toast.error("Insufficient Corporate Cash");
+                return;
+            }
+
+            const proposal = evaluateResolution(startup, founder, name, cost);
+            setVotingMembers(getBoardMembers(startup));
+            setLastProposalResult(proposal);
+            setIsBoardModalOpen(true);
+
+            if (proposal.status === "rejected") {
+                toast.error(`The Board rejected the resolution: ${name}`);
+                return;
+            }
+
+            const newStartup = { ...startup };
+            newStartup.metrics.cash -= cost;
+
+            if (name === "Appoint Independent Director") {
+                newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 5);
+                const newFounder = { ...founder };
+                newFounder.attributes.reputation = Math.min(100, (newFounder.attributes.reputation || 0) + 5);
+                if (setFounder) setFounder(newFounder);
+            } else if (name === "Executive Retreat") {
+                const newFounder = { ...founder };
+                newFounder.attributes.burnout = 0;
+                if (setFounder) setFounder(newFounder);
+            } else if (name === "Rebrand Company") {
+                newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 20);
+            } else if (name === "Adopt Poison Pill") {
+                if (newStartup.public_company) {
+                    // Internal flag or logic for takeover defense
+                    toast.success("Hostile takeover defense active.");
+                }
+            }
+
+            if (setStartup) setStartup(newStartup);
+            addTimelineEvent(`🪑 Board approved: ${name} (Cost: ${formatMoney(cost)})`);
+            toast.success("Resolution Passed");
+        };
+
         return (
             <div className="flex flex-col gap-4">
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">Board of Directors</h3>
                     <p className="text-[10px] text-slate-500 mb-4">Execute high-level corporate governance actions.</p>
 
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">2-for-1 Stock Split</p>
-                                <p className="text-[9px] text-slate-500 mt-0.5">Halves share price, doubles share count. Psychological boost for retail investors.</p>
+                    <div className="space-y-3">
+                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-2xl">✂️</div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">2-for-1 Stock Split</p>
+                                        <p className="text-[9px] text-slate-500 mt-0.5">Halves share price, doubles share count. Boosts retail sentiment.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleStockSplit}
+                                    disabled={!pub || pub.share_price < 50}
+                                    className="shrink-0 ml-2 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded text-[10px] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
+                                >
+                                    {(!pub || pub.share_price < 50) ? "Req $50+" : "Execute"}
+                                </button>
                             </div>
                         </div>
-                        <button
-                            onClick={handleStockSplit}
-                            disabled={(pub?.share_price || 0) < 50}
-                            className="w-full mt-2 py-2 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-md text-[10px] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
-                        >
-                            {(pub?.share_price || 0) >= 50 ? "Execute Split" : "Requires $50+ Share Price"}
-                        </button>
+
+                        {[
+                            { emoji: "🧑‍⚖️", label: "Appoint Independent Director", desc: "Brings oversight. (+5 CEO Rep, +5 Brand)", btn: "Appoint" },
+                            { emoji: "🏝️", label: "Executive Retreat", desc: "Fully cures Founder Burnout. (0 Burnout)", btn: "Retreat" },
+                            { emoji: "🎨", label: "Rebrand Company", desc: "Major marketing overhaul. (+20 Brand Awareness)", btn: "Rebrand" },
+                            { emoji: "🛡️", label: "Adopt Poison Pill", desc: "Defends against hostile takeovers.", btn: "Adopt", locked: !pub },
+                        ].map((opt, i) => {
+                            const cost = getBoardResolutionCost(opt.label);
+                            return (
+                                <div key={i} className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 ${opt.locked ? 'opacity-50 grayscale' : ''}`}>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-2xl">{opt.emoji}</div>
+                                            <div>
+                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
+                                                <p className="text-[9px] text-slate-500 mt-0.5">Costs {formatMoney(cost)}. {opt.desc}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleBoardAction(opt.label)}
+                                            disabled={m.cash < cost || opt.locked}
+                                            className="shrink-0 ml-2 px-3 py-1.5 bg-amber-600 text-white rounded text-[10px] font-black uppercase hover:bg-amber-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                        >
+                                            {opt.locked ? "Post-IPO" : opt.btn}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
         );
     }
 
-    // ── PUBLIC COMPANY ERA (PLACEHOLDERS) ──────────────────────────────────────
-    if (["options", "analysts", "sector", "corporate_debt", "manda_acquire", "subsidiary", "philanthropy", "fines"].includes(category)) {
+    // ── SECTOR & PHILANTHROPY (NEW MODULES) ──────────────────────────────────
+    if (category === "philanthropy") {
+        const founderWealth = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+        const liquidCash = founder.personal_wealth || 0;
+
+        const handleDonate = (amount: number, repGain: number, scoreGain: number, name: string) => {
+            if (liquidCash < amount) {
+                toast.error("Insufficient Funds", { description: "You don't have enough liquid personal wealth." });
+                return;
+            }
+            const newFounder = { ...founder };
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            newFounder.personal_wealth -= amount;
+            newFounder.wealth_profile.philanthropy_score += scoreGain;
+            newFounder.attributes.reputation = Math.min(100, (newFounder.attributes.reputation || 0) + repGain);
+            if (setFounder) setFounder(newFounder);
+
+            const newStartup = { ...startup };
+            newStartup.ceo_reputation = newFounder.attributes.reputation;
+            if (setStartup) setStartup(newStartup);
+
+            addTimelineEvent(`🕊️ Philanthropy: Donated ${formatMoney(amount)} to ${name}.`);
+            toast.success("Donation Successful", { description: `Gained +${repGain} Reputation.` });
+        };
+
         return (
-            <div className="flex flex-col items-center justify-center p-8 text-center h-[40vh]">
-                <div className="text-4xl mb-4">🚧</div>
-                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">{category.replace("_", " ")}</h3>
-                <p className="text-xs text-slate-500 mt-2 max-w-xs">This module is under construction for the Public Company Era (Pillar 2).</p>
+            <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Philanthropy</h3>
+                            <p className="text-[10px] text-slate-500">Donate personal wealth to boost your reputation.</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lifetime Impact</p>
+                            <p className="text-sm font-bold text-purple-600">{formatNumber(founderWealth.philanthropy_score)}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {[
+                            { emoji: "🥫", label: "Community Food Drive", desc: "Donate $5,000 to local shelters. (+0 Rep, +500 Score)", btn: "Fund", cost: 5000, rep: 0, score: 500, name: "food drive" },
+                            { emoji: "💻", label: "Open Source Foundation", desc: "Donate $100,000 to open source. (+2 Rep, +1000 Score)", btn: "Sponsor", cost: 100000, rep: 2, score: 1000, name: "open source" },
+                            { emoji: "🏘️", label: "Local Charity Grant", desc: "Donate $500,000. (+1 Rep, +50 Score)", btn: "Donate", cost: 500000, rep: 1, score: 50, name: "local charity" },
+                            { emoji: "🌍", label: "Global Climate Fund", desc: "Donate $1,000,000 to environment. (+5 Rep, +2000 Score)", btn: "Pledge", cost: 1000000, rep: 5, score: 2000, name: "climate fund" },
+                            { emoji: "🎓", label: "Endow Scholarship", desc: "Donate $5,000,000. (+5 Rep, +500 Score)", btn: "Endow", cost: 5000000, rep: 5, score: 500, name: "scholarship" },
+                            { emoji: "🏥", label: "Found a Hospital Wing", desc: "Donate $50,000,000. (+20 Rep, +5000 Score)", btn: "Found", cost: 50000000, rep: 20, score: 5000, name: "hospital wing" },
+                            { emoji: "🚀", label: "Space Exploration Grant", desc: "Donate $500,000,000 for humanity. (+100 Rep, +50000 Score)", btn: "Launch", cost: 500000000, rep: 100, score: 50000, name: "space program" },
+                        ].map((opt, i) => (
+                            <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-2xl">{opt.emoji}</div>
+                                        <div>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
+                                            <p className="text-[9px] text-slate-500 mt-0.5">{opt.desc}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDonate(opt.cost, opt.rep, opt.score, opt.name)}
+                                        disabled={liquidCash < opt.cost}
+                                        className="shrink-0 ml-2 px-3 py-1.5 bg-purple-600 text-white rounded text-[10px] font-black uppercase hover:bg-purple-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                    >
+                                        {opt.btn}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ── PR & COMMUNICATIONS ─────────────────────────────
+    if (category === "analysts" || category === "pr_comms") {
+        const handleAction = (costHours: number, baGain: number, name: string) => {
+            if ((m.founder_burnout || 0) > 85) {
+                toast.error("Too Burned Out", { description: "You don't have the energy right now." });
+                return;
+            }
+            if (focusHoursUsed + costHours > maxHours) {
+                toast.error("Insufficient Focus", { description: `You don't have ${costHours} focus hours available.` });
+                return;
+            }
+            const newStartup = { ...startup };
+            newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + baGain);
+            setFocusHoursUsed(focusHoursUsed + costHours);
+
+            if (setStartup) setStartup(newStartup);
+            addTimelineEvent(`🎙️ ${name} (+${baGain} Brand Awareness).`);
+            toast.success("Campaign Successful");
+        };
+
+        const handleViralStuntAd = () => {
+            adService.showRewardedAd(() => {
+                const newStartup = { ...startup };
+                newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 5);
+                newStartup.metrics.users = (newStartup.metrics.users || 0) + 500;
+                
+                if (setStartup) setStartup(newStartup);
+                addTimelineEvent(`🔥 Viral Stunt (Ad) triggered! +5 Brand Awareness, +500 Users.`);
+                toast.success("Going Viral!", { description: "Gained +5 Brand Awareness and +500 Users for free.", icon: "🔥" });
+            });
+        };
+
+
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">PR & Communications</h3>
+                            <p className="text-[10px] text-slate-500">Spend focus hours to boost Brand Awareness.</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Brand Awareness</p>
+                            <p className="text-sm font-bold text-indigo-600">{Math.round(m.brand_awareness || 0)}/100</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 mb-3">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-200">Current Market Season</p>
+                                <p className="text-[10px] font-bold text-indigo-500">{m.current_season || "Neutral Market"}</p>
+                            </div>
+                        </div>
+                        <p className="text-[9px] text-slate-500 mt-1">Sector conditions dynamically affect investor sentiment and marketing yield.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {[
+                            { emoji: "📰", label: "Press Release", desc: "Write and distribute a press release.", btn: "Publish", cost: 5, gain: 1 },
+                            { emoji: "📊", label: "Deep Sector Research", desc: "Analyze macro trends and publish a whitepaper.", btn: "Research", cost: 10, gain: 2 },
+                            { emoji: "🎙️", label: "Podcast Interview", desc: "Go on a popular industry podcast.", btn: "Speak", cost: 15, gain: 4 },
+                            { emoji: "📈", label: "Analyst Briefing", desc: "Brief Wall Street analysts on your trajectory.", btn: "Brief", cost: 20, gain: 5 },
+                            { emoji: "🎪", label: "Industry Conference", desc: "Headline a major tech conference.", btn: "Headline", cost: 30, gain: 10 },
+                            { emoji: "🔥", label: "Viral PR Stunt", desc: "Free brand awareness and user bump.", btn: "Watch Ad", cost: 0, gain: 5, isAd: true },
+                        ].map((opt, i) => (
+                            <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-2xl">{opt.emoji}</div>
+                                        <div>
+                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
+                                            <p className="text-[9px] text-slate-500 mt-0.5">Costs {opt.cost} Focus. Gives +{opt.gain} Brand Awareness.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => opt.isAd ? handleViralStuntAd() : handleAction(opt.cost, opt.gain, opt.label)}
+                                        disabled={!opt.isAd && ((m.founder_burnout || 0) > 85 || (focusHoursUsed + opt.cost > maxHours))}
+                                        className={cn("shrink-0 ml-2 px-3 py-1.5 rounded text-[10px] font-black uppercase disabled:opacity-50 transition-all",
+                                            opt.isAd ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                        )}
+                                    >
+                                        {opt.isAd && <span className="mr-1">▶</span>}
+                                        {opt.btn}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "fines") {
+        const suits = startup.active_lawsuits || [];
+
+        const handleSettle = (suitId: string, amount: number) => {
+            if (m.cash < amount) {
+                toast.error("Insufficient Funds", { description: "You don't have enough corporate cash to settle." });
+                return;
+            }
+            setStartup((s: Startup) => ({
+                ...s,
+                metrics: { ...s.metrics, cash: s.metrics.cash - amount },
+                active_lawsuits: s.active_lawsuits?.filter((l: Lawsuit) => l.id !== suitId)
+            }));
+            addTimelineEvent(`⚖️ Legal: Settled lawsuit for ${formatMoney(amount)}.`);
+            toast.success("Case Settled");
+        };
+
+        const handleProBonoCounsel = (suitId: string) => {
+            adService.showRewardedAd(() => {
+                setStartup((s: Startup) => {
+                    if (!s.active_lawsuits) return s;
+                    return {
+                        ...s,
+                        active_lawsuits: s.active_lawsuits.map(l => {
+                            if (l.id === suitId) {
+                                return {
+                                    ...l,
+                                    demand_amount: Math.floor(l.demand_amount * 0.8),
+                                    settlement_offer: l.settlement_offer ? Math.floor(l.settlement_offer * 0.8) : undefined,
+                                    win_probability: Math.min(1.0, l.win_probability + 0.15)
+                                };
+                            }
+                            return l;
+                        })
+                    };
+                });
+                toast.success("Pro Bono Counsel Secured!", { description: "Settlement demand reduced by 20% and trial win probability increased by 15%.", icon: "💼" });
+            });
+        };
+
+        return (
+            <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1">
+                    <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest">Legal & Compliance</h3>
+                    <p className="text-[10px] text-slate-500">Manage ongoing litigation and regulatory risk.</p>
+                </div>
+
+                {suits.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl mb-2">🛡️</span>
+                        <h3 className="text-xs font-black text-rose-900 dark:text-rose-200 uppercase tracking-widest">No Active Lawsuits</h3>
+                        <p className="text-[10px] text-rose-700 dark:text-rose-400 mt-1 max-w-xs">Your company currently has no pending regulatory fines or class-action lawsuits.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {suits.map((suit: Lawsuit) => (
+                            <div key={suit.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-3 text-xs opacity-20 group-hover:opacity-100 transition-opacity">
+                                    ⚖️
+                                </div>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200">{suit.title}</h4>
+                                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{suit.description}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Demand</p>
+                                        <p className="text-xs font-bold text-rose-600">{formatMoney(suit.demand_amount)}</p>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Trial In</p>
+                                        <p className="text-xs font-bold text-indigo-600">{suit.months_to_trial} Months</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleSettle(suit.id, suit.settlement_offer || suit.demand_amount)}
+                                            className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-sm"
+                                        >
+                                            Settle for {formatMoney(suit.settlement_offer || suit.demand_amount)}
+                                        </button>
+                                        <div className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase text-center border border-slate-200 dark:border-slate-600">
+                                            Fighting in Court
+                                            <p className="text-[7px] lowercase font-medium opacity-70">-{formatMoney(suit.legal_fees_per_month)}/mo fees</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleProBonoCounsel(suit.id)}
+                                        className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-1.5"
+                                    >
+                                        <span className="text-xs">💼</span> Pro Bono Counsel (Ad)
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ── M&A ACQUIRE (pre-IPO & post-IPO) ─────────────────────────────────────
+    if (category === "manda_acquire") {
+        const canAcquire = true;
+        return (
+            <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-blue-950 border border-blue-800 flex flex-col gap-1">
+                    <h3 className="text-xs font-black text-blue-200 uppercase tracking-widest">🦈 M&A Strategy</h3>
+                    <p className="text-[10px] text-blue-400">Acquire active market assets to scale your corporate treasury and operations.</p>
+                </div>
+                <div className="space-y-3">
+                    {(!mnaTargets || mnaTargets.length === 0) ? (
+                        <div className="p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                            <span className="text-3xl mb-2 block">📡</span>
+                            <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase">Scan Market</h3>
+                            <p className="text-[10px] text-slate-500 mb-4 mt-2">Find potential acquisition targets scaled to your current valuation.</p>
+                            <button
+                                onClick={() => setMnaTargets?.(generateMnATargets(startup.valuation))}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                            >
+                                Scan Market for Targets
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-end mb-2">
+                                <button
+                                    onClick={() => setMnaTargets?.(generateMnATargets(startup.valuation))}
+                                    className="text-[10px] font-black uppercase text-blue-600 hover:text-blue-800 transition-colors"
+                                >
+                                    ⟳ Rescan Market
+                                </button>
+                            </div>
+                            {mnaTargets.map((t, i) => {
+                                const ddCost = Math.min(5000000, Math.max(50000, Math.floor(t.ask * 0.02))); // Max 5M, Min 50k
+                                return (
+                                    <div key={t.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xl">{t.emoji}</div>
+                                                <div>
+                                                    <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t.name}</p>
+                                                    <p className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t.sector} · {t.rationale}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                {startup.iap_titan && <p className="text-[9px] font-black text-amber-500 uppercase">Titan -50% Off</p>}
+                                                <p className="text-xs font-black text-emerald-600">{formatMoney(startup.iap_titan ? t.ask * 0.5 : t.ask)}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">{t.desc}</p>
+
+                                        {t.is_diligent && (
+                                            <div className="mb-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-2">
+                                                <p className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">Due Diligence Report</p>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-slate-500">True Value:</span>
+                                                    <span className={`font-bold ${t.true_value > t.ask ? 'text-emerald-500' : 'text-rose-500'}`}>{formatMoney(t.true_value)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-slate-500">Financial Health:</span>
+                                                    <span className={`font-bold ${t.financial_health === 'Burning Cash' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {t.financial_health} {t.inherited_burn > 0 && `(-${formatMoney(t.inherited_burn)}/mo)`}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-slate-500">Integration Risk:</span>
+                                                    <span className={`font-bold ${t.integration_risk === 'High' ? 'text-rose-500' : t.integration_risk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>{t.integration_risk}</span>
+                                                </div>
+                                                <p className="text-[8px] font-medium text-slate-400 italic mt-1 leading-normal">
+                                                    {t.integration_risk === "High" ? "⚠️ Fragmented tech stack, flight risk of core team. Est. -20 Team Morale impact on merge." :
+                                                        t.integration_risk === "Medium" ? "⚠️ Moderate culture clash, redundant roles to consolidate. Est. -10 Team Morale." :
+                                                            "✅ Clean codebase, shared tech stack. Est. +5 Team Morale boost."}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <div className="flex gap-2">
+                                            {!t.is_diligent && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (m.cash < ddCost) { toast.error("Insufficient cash for Due Diligence."); return; }
+                                                        const ns = { ...startup };
+                                                        ns.metrics.cash -= ddCost;
+                                                        setStartup(ns);
+                                                        const newTargets = mnaTargets.map(target => target.id === t.id ? { ...target, is_diligent: true } : target);
+                                                        setMnaTargets?.(newTargets);
+                                                        toast.success(`Due Diligence Completed`, { description: `Revealed hidden metrics for ${t.name}.` });
+                                                    }}
+                                                    disabled={m.cash < ddCost}
+                                                    className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all"
+                                                >
+                                                    Due Diligence ({formatMoney(ddCost)})
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    const finalAsk = startup.iap_titan ? t.ask * 0.5 : t.ask;
+                                                    if (m.cash < finalAsk) { toast.error("Insufficient cash for this acquisition."); return; }
+                                                    const ns: any = { ...startup };
+                                                    ns.metrics.cash -= finalAsk;
+                                                    ns.metrics.users = (ns.metrics.users || 0) + t.users;
+                                                    ns.valuation = Math.floor(ns.valuation + t.true_value);
+
+                                                    // Apply integration risk effects on morale
+                                                    if (t.integration_risk === "High") {
+                                                        ns.metrics.team_morale = Math.max(0, ns.metrics.team_morale - 20);
+                                                    } else if (t.integration_risk === "Medium") {
+                                                        ns.metrics.team_morale = Math.max(0, ns.metrics.team_morale - 10);
+                                                    } else {
+                                                        ns.metrics.team_morale = Math.min(100, ns.metrics.team_morale + 5);
+                                                    }
+
+                                                    // Save acquired target as a subsidiary
+                                                    if (!ns.subsidiaries) ns.subsidiaries = [];
+
+                                                    const synergy = t.financial_health === "Profitable"
+                                                        ? Math.floor(t.true_value * 0.005)
+                                                        : t.financial_health === "Burning Cash" ? -t.inherited_burn : 0;
+                                                    const subStr = `${t.name}::${t.true_value}::${synergy}::${t.integration_risk}`;
+                                                    ns.subsidiaries.push(subStr);
+
+                                                    setStartup(ns);
+
+                                                    // Remove acquired target
+                                                    setMnaTargets?.(mnaTargets.filter(target => target.id !== t.id));
+
+                                                    addTimelineEvent(`🦈 Acquired ${t.name} for ${formatMoney(t.ask)}. Synergy: ${synergy >= 0 ? '+' : ''}${formatMoney(synergy)}/mo. Morale shift: ${t.integration_risk === "High" ? '-20' : t.integration_risk === "Medium" ? '-10' : '+5'}.`);
+                                                    toast.success(`Acquisition Complete`, { description: `${t.name} is now a subsidiary.` });
+                                                }}
+                                                disabled={m.cash < t.ask}
+                                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                            >
+                                                Acquire · {formatMoney(t.ask)}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // ── CORPORATE DEBT ─────────────────────────────────────────────────────────
+    if (category === "corporate_debt") {
+        const fundingStageOrder = ["Bootstrapping", "Angel Investment", "Seed Round", "Series A", "Series B", "Series C", "IPO Ready"];
+        const currentStageIdx = fundingStageOrder.indexOf(startup.funding_stage);
+        const canTakeDebt = true; // Series A+ (unlocked by request)
+        const activeDebts: any[] = (startup as any).private_debt || [];
+        const totalDebtMonthly = activeDebts.reduce((s: number, d: any) => s + d.monthly_payment, 0);
+
+        const debtProducts = [
+            { name: "Venture Debt", emoji: "🏦", provider: "Silicon Valley Bank", term: 24, amount: Math.floor(startup.valuation * 0.05), rate: 8.5, desc: "Non-dilutive financing tied to ARR. Common for Series A+." },
+            { name: "Revenue-Based Loan", emoji: "📊", provider: "Clearco Capital", term: 18, amount: Math.floor(startup.metrics.revenue * 6), rate: 12.0, desc: "Repay as % of monthly revenue. Ideal for high-growth SaaS." },
+            { name: "Bridge Loan", emoji: "⛓️", provider: "Brex Financial", term: 12, amount: Math.floor(startup.valuation * 0.02), rate: 15.0, desc: "Short-term bridge to your next funding round. Quick approval." },
+        ];
+        return (
+            <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-rose-950 border border-rose-800 flex flex-col gap-1">
+                    <h3 className="text-xs font-black text-rose-200 uppercase tracking-widest">🏦 Corporate Debt</h3>
+                    <div className="flex justify-between items-center mt-1">
+                        <p className="text-[10px] text-rose-400">{canTakeDebt ? `Active Debt Obligations: ${formatMoney(totalDebtMonthly)}/mo` : "Reach Series A to access corporate debt instruments."}</p>
+                        <div className="flex items-center gap-1.5 bg-rose-900/50 px-2 py-0.5 rounded text-[10px] border border-rose-800/50">
+                            <span className="text-rose-300 font-medium">Credit Score</span>
+                            <span className="font-black text-white">{startup.metrics.credit_score || 700}</span>
+                        </div>
+                    </div>
+                </div>
+                {!canTakeDebt ? (
+                    <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl mb-2">🔒</span>
+                        <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Requires Series A</h3>
+                        <p className="text-[10px] text-slate-500 mt-1 max-w-xs">Close your Series A round to access venture debt and non-dilutive financing instruments.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {activeDebts.length > 0 && (
+                            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl p-4">
+                                <p className="text-[9px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest mb-2">Active Obligations</p>
+                                {activeDebts.map((d: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center py-1.5 border-t border-rose-100 dark:border-rose-900 first:border-0">
+                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{d.name}</span>
+                                        <span className="text-[10px] font-black text-rose-600">{formatMoney(d.monthly_payment)}/mo · {d.months_left}mo left</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {debtProducts.map((dp, i) => {
+                            const minScoreRequired = dp.name === "Venture Debt" ? 720 : dp.name === "Revenue-Based Loan" ? 650 : 600;
+                            const currentScore = startup.metrics.credit_score || 700;
+                            const isScoreLocked = currentScore < minScoreRequired;
+
+                            return (
+                                <div key={i} className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 ${isScoreLocked ? 'opacity-60' : ''}`}>
+                                    <div className="flex items-start justify-between mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl">{dp.emoji}</span>
+                                            <div>
+                                                <p className="text-sm font-black text-slate-800 dark:text-slate-200">{dp.name}</p>
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{dp.provider} · {dp.rate}% APR · {dp.term}mo</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-black text-emerald-600">{formatMoney(dp.amount)}</p>
+                                            {isScoreLocked && <p className="text-[8px] font-black text-rose-500 uppercase">Requires {minScoreRequired} Score</p>}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">{dp.desc}</p>
+                                    <button
+                                        onClick={() => {
+                                            if (isScoreLocked) { toast.error("Credit Score Too Low", { description: `You need a score of ${minScoreRequired} to access this.` }); return; }
+                                            const monthly = Math.floor((dp.amount * (1 + dp.rate / 100)) / dp.term);
+                                            const ns: any = { ...startup };
+                                            ns.metrics.cash += dp.amount;
+                                            if (!ns.private_debt) ns.private_debt = [];
+                                            ns.private_debt.push({ name: dp.name, monthly_payment: monthly, months_left: dp.term, principal: dp.amount });
+                                            setStartup(ns);
+                                            addTimelineEvent(`🏦 Debt Taken: ${dp.name} — ${formatMoney(dp.amount)} at ${dp.rate}% APR. Monthly obligation: ${formatMoney(monthly)}.`);
+                                            toast.success(`Debt Approved`, { description: `${formatMoney(dp.amount)} deposited. ${formatMoney(monthly)}/mo repayment.` });
+                                        }}
+                                        disabled={isScoreLocked}
+                                        className="w-full py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                    >
+                                        {isScoreLocked ? "Locked" : `Draw ${formatMoney(dp.amount)} @ ${dp.rate}% APR`}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    if (category === "options") {
+        const vestingOptions = founder.wealth_profile?.vesting_options || [];
+        const optionPool = startup.metrics.option_pool || 0;
+        const boardHappiness = startup.metrics.board_happiness || 80;
+        const myShares = startup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
+        const totalShares = startup.public_company?.shares_outstanding || 100_000_000;
+        const myShareCount = (myShares / 100) * totalShares;
+        const sharePrice = startup.public_company?.share_price || 1.00;
+        const personalCash = founder.personal_wealth || 0;
+
+        const handleRefillESOP = (amount: number) => {
+            const newStartup = { ...startup };
+            const factor = 1 - (amount / 100);
+            newStartup.capTable = (newStartup.capTable || []).map((e: any) => ({
+                ...e,
+                equity: e.equity * factor
+            }));
+
+            if (newStartup.public_company) {
+                const extraShares = Math.floor(newStartup.public_company.shares_outstanding * (amount / 100));
+                newStartup.public_company.shares_outstanding += extraShares;
+                newStartup.public_company.float += extraShares;
+            }
+
+            newStartup.metrics.option_pool = (newStartup.metrics.option_pool || 0) + amount;
+            newStartup.metrics.board_happiness = Math.min(100, (newStartup.metrics.board_happiness || 80) + 5);
+            setStartup(newStartup);
+            addTimelineEvent(`🎲 ESOP Pool: Expanded employee option pool by ${amount}%. All shareholders diluted.`);
+            toast.success("ESOP Expanded", { description: `Added ${amount}% to available pool.` });
+        };
+
+        const handleRequestOptionGrant = (name: string, sizePct: number, strike: number, months: number, reqBoard: number, reqBeats?: number) => {
+            if (boardHappiness < reqBoard) {
+                toast.error("Board Approval Required", { description: `Your Board Happiness must be at least ${reqBoard}% to approve this package.` });
+                return;
+            }
+            if (reqBeats && (startup.public_company?.quarterly_beats || 0) < reqBeats) {
+                toast.error("Wall Street Momentum Required", { description: `You need at least ${reqBeats} consecutive positive quarterly beats to request this.` });
+                return;
+            }
+            if (optionPool < sizePct) {
+                toast.error("Insufficient Option Pool", { description: `You need at least ${sizePct}% available in your employee stock option pool.` });
+                return;
+            }
+
+            const totalOptionsCount = Math.floor(totalShares * (sizePct / 100));
+            const newOption: import("@/lib/types/database.types").ExecutiveOption = {
+                id: `opt_${Date.now()}`,
+                grantName: name,
+                totalOptions: totalOptionsCount,
+                strikePrice: strike,
+                vestedOptions: 0,
+                monthsRemaining: months,
+                monthlyVestAmount: Math.floor(totalOptionsCount / months),
+            };
+
+            const newFounder = { ...founder };
+            if (!newFounder.wealth_profile) newFounder.wealth_profile = { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            if (!newFounder.wealth_profile.vesting_options) newFounder.wealth_profile.vesting_options = [];
+            newFounder.wealth_profile.vesting_options.push(newOption);
+            if (setFounder) setFounder(newFounder);
+
+            const newStartup = { ...startup };
+            newStartup.metrics.option_pool = Math.max(0, (newStartup.metrics.option_pool || 0) - sizePct);
+            setStartup(newStartup);
+
+            addTimelineEvent(`🎲 Stock Options: Granted executive option plan "${name}" for ${formatNumber(totalOptionsCount)} shares.`);
+            toast.success("Option Grant Approved", { description: `Your incentive package is active and vesting.` });
+        };
+
+        const handleExerciseOptions = (optId: string, amount: number, strike: number) => {
+            const cost = amount * strike;
+            if (personalCash < cost) {
+                toast.error("Insufficient Personal Cash", { description: `You need ${formatMoney(cost)} of personal cash to exercise these options.` });
+                return;
+            }
+
+            const newFounder = { ...founder };
+            newFounder.personal_wealth = (newFounder.personal_wealth || 0) - cost;
+            if (newFounder.wealth_profile?.vesting_options) {
+                newFounder.wealth_profile.vesting_options = newFounder.wealth_profile.vesting_options.map((o: any) => {
+                    if (o.id === optId) {
+                        return { ...o, vestedOptions: Math.max(0, o.vestedOptions - amount), totalOptions: Math.max(0, o.totalOptions - amount) };
+                    }
+                    return o;
+                }).filter((o: any) => o.totalOptions > 0);
+            }
+            if (setFounder) setFounder(newFounder);
+
+            const newStartup = { ...startup };
+            const pub = newStartup.public_company;
+            if (pub) {
+                const oldSharesOutstanding = pub.shares_outstanding;
+                const newSharesOutstanding = oldSharesOutstanding + amount;
+                pub.shares_outstanding = newSharesOutstanding;
+
+                const founderIndex = newStartup.capTable.findIndex((e: any) => e.type === "Founder");
+                if (founderIndex >= 0) {
+                    const oldFounderShares = (newStartup.capTable[founderIndex].equity / 100) * oldSharesOutstanding;
+                    const newFounderShares = oldFounderShares + amount;
+                    newStartup.capTable[founderIndex].equity = (newFounderShares / newSharesOutstanding) * 100;
+                }
+
+                newStartup.capTable.forEach((node: any, idx: number) => {
+                    if (idx !== founderIndex) {
+                        const oldNodeShares = (node.equity / 100) * oldSharesOutstanding;
+                        node.equity = (oldNodeShares / newSharesOutstanding) * 100;
+                    }
+                });
+            }
+            setStartup(newStartup);
+            addTimelineEvent(`🎲 Stock Options: Exercised ${formatNumber(amount)} stock options at a strike of ${formatMoney(strike)} (Cost: ${formatMoney(cost)}).`);
+            toast.success("Options Exercised", { description: `Converted ${formatNumber(amount)} options into common shares.` });
+        };
+
+        const handleCashlessExercise = (optId: string, amount: number, strike: number) => {
+            if (sharePrice <= strike) {
+                toast.error("Options are Underwater", { description: "You cannot cashless exercise options when the strike price is above the market price." });
+                return;
+            }
+
+            const netSharesCount = Math.floor(amount * (sharePrice - strike) / sharePrice);
+            if (netSharesCount <= 0) {
+                toast.error("Vested amount too small for cashless exercise.");
+                return;
+            }
+
+            const newFounder = { ...founder };
+            if (newFounder.wealth_profile?.vesting_options) {
+                newFounder.wealth_profile.vesting_options = newFounder.wealth_profile.vesting_options.map((o: any) => {
+                    if (o.id === optId) {
+                        return { ...o, vestedOptions: Math.max(0, o.vestedOptions - amount), totalOptions: Math.max(0, o.totalOptions - amount) };
+                    }
+                    return o;
+                }).filter((o: any) => o.totalOptions > 0);
+            }
+            if (setFounder) setFounder(newFounder);
+
+            const newStartup = { ...startup };
+            const pub = newStartup.public_company;
+            if (pub) {
+                const oldSharesOutstanding = pub.shares_outstanding;
+                const newSharesOutstanding = oldSharesOutstanding + netSharesCount;
+                pub.shares_outstanding = newSharesOutstanding;
+
+                const founderIndex = newStartup.capTable.findIndex((e: any) => e.type === "Founder");
+                if (founderIndex >= 0) {
+                    const oldFounderShares = (newStartup.capTable[founderIndex].equity / 100) * oldSharesOutstanding;
+                    const newFounderShares = oldFounderShares + netSharesCount;
+                    newStartup.capTable[founderIndex].equity = (newFounderShares / newSharesOutstanding) * 100;
+                }
+
+                newStartup.capTable.forEach((node: any, idx: number) => {
+                    if (idx !== founderIndex) {
+                        const oldNodeShares = (node.equity / 100) * oldSharesOutstanding;
+                        node.equity = (oldNodeShares / newSharesOutstanding) * 100;
+                    }
+                });
+            }
+            setStartup(newStartup);
+            addTimelineEvent(`🎲 Stock Options: Executed cashless exercise on ${formatNumber(amount)} options, receiving ${formatNumber(netSharesCount)} net shares.`);
+            toast.success("Cashless Exercise Successful", { description: `Received ${formatNumber(netSharesCount)} shares at zero cash outlay.` });
+        };
+
+        return (
+            <div className="flex flex-col gap-4 min-h-[82vh] justify-between">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between gap-4 shadow-lg">
+                    <div>
+                        <div className="flex justify-between items-center mb-3">
+                            <div>
+                                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                    <span>🎲</span> Stock Options & Compensation
+                                </h3>
+                                <p className="text-[10px] text-slate-500 mt-0.5">Manage executive incentive packages and employee option pools.</p>
+                            </div>
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 animate-pulse">
+                                ESOP Pool: {optionPool.toFixed(1)}% Available
+                            </span>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
+                                <p className="text-[8px] uppercase font-black text-slate-400">Board Approval</p>
+                                <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{boardHappiness}%</p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
+                                <p className="text-[8px] uppercase font-black text-slate-400">Current Strike</p>
+                                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5">{formatMoney(sharePrice)}</p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
+                                <p className="text-[8px] uppercase font-black text-slate-400">Personal Cash</p>
+                                <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(personalCash)}</p>
+                            </div>
+                        </div>
+
+                        {/* ESOP Expand */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 shadow-sm">
+                            <p className="text-[10px] uppercase font-black text-slate-500 mb-1">Refill Employee Option Pool</p>
+                            <p className="text-[8px] text-slate-400 mb-3 leading-normal font-medium">Refilling the pool increases talent acquisition quality but dilutes all current shareholders equally.</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleRefillESOP(5)}
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[9px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                >
+                                    Refill +5%
+                                </button>
+                                <button
+                                    onClick={() => handleRefillESOP(10)}
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[9px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                >
+                                    Refill +10%
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Vesting Executive Grants */}
+                        <div className="space-y-3">
+                            <p className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2">Your Executive Option Grants</p>
+                            {vestingOptions.length === 0 ? (
+                                <div className="py-6 flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                                    <p className="text-[9px] text-slate-400 italic text-center font-medium">No active executive option grants. Request a compensatory plan from the Board below.</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {vestingOptions.map((o: any) => {
+                                        const canExercise = o.vestedOptions > 0;
+                                        const cashCost = o.vestedOptions * o.strikePrice;
+                                        const profitPerOption = Math.max(0, sharePrice - o.strikePrice);
+                                        const totalProfit = o.vestedOptions * profitPerOption;
+
+                                        return (
+                                            <div key={o.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-sm">
+                                                <div className="flex justify-between items-start mb-1.5">
+                                                    <div>
+                                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">{o.grantName}</p>
+                                                        <p className="text-[8px] font-bold text-slate-400">Strike Price: {formatMoney(o.strikePrice)} · Vested: {formatNumber(o.vestedOptions)} shares</p>
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
+                                                        {o.monthsRemaining > 0 ? `${o.monthsRemaining} mos vest` : "Fully Vested"}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                                    <button
+                                                        onClick={() => handleExerciseOptions(o.id, o.vestedOptions, o.strikePrice)}
+                                                        disabled={!canExercise || personalCash < cashCost}
+                                                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[9px] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
+                                                    >
+                                                        <span>Exercise with Cash</span>
+                                                        <span className="text-[7px] font-semibold opacity-85">Cost: {formatMoney(cashCost)}</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCashlessExercise(o.id, o.vestedOptions, o.strikePrice)}
+                                                        disabled={!canExercise || sharePrice <= o.strikePrice}
+                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[9px] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
+                                                    >
+                                                        <span>Cashless Exercise</span>
+                                                        <span className="text-[7px] font-semibold opacity-85">Net Value: +{formatMoney(totalProfit)}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Request Grants */}
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                                <p className="text-[10px] uppercase font-black text-slate-500 mb-2">Request Board Compensatory Packages</p>
+                                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                                    {[
+                                        { name: "Annual Performance Package", pct: 0.5, strike: sharePrice, duration: 12, req: 60, desc: "0.5% option grant vesting over 12 months." },
+                                        { name: "Executive Retention Plan", pct: 1.5, strike: sharePrice, duration: 12, req: 75, desc: "1.5% option grant vesting over 12 months." },
+                                        { name: "Elon-Style Megapackage", pct: 3.0, strike: sharePrice * 1.10, duration: 24, req: 85, desc: "3.0% options at a 10% premium strike vesting over 24 months." },
+                                        { name: "Sovereign Strategic Milestone Grant", pct: 5.0, strike: sharePrice * 1.15, duration: 36, req: 90, reqBeats: 2, desc: "5.0% option package requiring 90% Board happiness and 2 consecutive quarterly beats. Vests over 36 months." },
+                                    ].map((g, i) => (
+                                        <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 shadow-xs flex justify-between items-center gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{g.name}</p>
+                                                    <span className="text-[7px] font-black px-1.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
+                                                        Req: {g.req}% Board {g.reqBeats ? `& ${g.reqBeats} Beats` : ""}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[8px] text-slate-400 font-medium leading-normal mt-0.5">{g.desc}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRequestOptionGrant(g.name, g.pct, g.strike, g.duration, g.req, g.reqBeats)}
+                                                disabled={optionPool < g.pct || boardHappiness < g.req || (g.reqBeats ? (startup.public_company?.quarterly_beats || 0) < g.reqBeats : false)}
+                                                className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[8px] px-2.5 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm"
+                                            >
+                                                Request
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SEC Options Activity Ledger */}
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                        <div className="flex justify-between items-center">
+                            <p className="text-[10px] uppercase font-black text-slate-500">SEC Options Activity Ledger</p>
+                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Form 4 Compliant</span>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[110px] overflow-y-auto shadow-inner">
+                            {vestingOptions.map((o: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                    <div>
+                                        <span className="font-bold text-slate-700 dark:text-slate-300">Grant Approved: {o.grantName}</span>
+                                        <p className="text-slate-400 font-medium">{formatNumber(o.totalOptions)} options @ {formatMoney(o.strikePrice)} strike</p>
+                                    </div>
+                                    <span className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50">Vesting</span>
+                                </div>
+                            ))}
+                            <div className="text-[7px] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
+                                Baseline ESOP Setup
+                            </div>
+                            <div className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                <div>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">ESOP Refill Authorization</span>
+                                    <p className="text-slate-400 font-medium">Board of Directors approved ESOP pool adjustments</p>
+                                </div>
+                                <span className="text-slate-500 font-bold bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">Authorized</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[8px]">
+                                <div>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">Form 4 Compensation Filing</span>
+                                    <p className="text-slate-400 font-medium">Automatic SEC registration for executive derivatives</p>
+                                </div>
+                                <span className="text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">Compliant</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (category === "subsidiary") {
+        const subs = startup.subsidiaries || startup.public_company?.subsidiaries || [];
+        const corporateCash = startup.metrics.cash || 0;
+        const brandAwareness = startup.metrics.brand_awareness || 0;
+
+        const handleSpinOffInternal = (name: string, cost: number, desc: string, benefits: { rd?: number; burnRate?: number; brand?: number; margin?: number }) => {
+            if (corporateCash < cost) {
+                toast.error("Insufficient Corporate Cash", { description: `You need at least ${formatMoney(cost)} in your corporate treasury to spin off this division.` });
+                return;
+            }
+
+            const newStartup = { ...startup };
+            newStartup.metrics.cash = (newStartup.metrics.cash || 0) - cost;
+            if (!newStartup.subsidiaries) newStartup.subsidiaries = [];
+
+            // Reorganize spin-off into dynamic packed subsidiary serialization!
+            let synergy = 120000;
+            let valuation = 45000000;
+            if (name.includes("Axiom")) { synergy = 180000; valuation = 45000000; }
+            else if (name.includes("Nova")) { synergy = 90000; valuation = 30000000; }
+            else if (name.includes("Sovereign")) { synergy = 280000; valuation = 80000000; }
+            else if (name.includes("Quantum")) { synergy = 350000; valuation = 100000000; }
+
+            const subStr = `${name}::${valuation}::${synergy}::Low`;
+            newStartup.subsidiaries.push(subStr);
+
+            if (benefits.brand) {
+                newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + benefits.brand);
+            }
+            if (benefits.burnRate) {
+                newStartup.metrics.burn_rate = Math.max(1000, Math.floor((newStartup.metrics.burn_rate || 10000) * (1 - benefits.burnRate)));
+            }
+            if (benefits.margin) {
+                newStartup.metrics.net_profit = (newStartup.metrics.net_profit || 0) + Math.floor(cost * 0.01);
+            }
+            if (benefits.rd) {
+                newStartup.metrics.product_quality = Math.min(100, (newStartup.metrics.product_quality || 0) + 15);
+            }
+
+            setStartup(newStartup);
+            addTimelineEvent(`🏢 Corporate Oversight: Spun off internal division into subsidiary "${name}" (Treasury Cost: ${formatMoney(cost)}).`);
+            toast.success("Subsidiary Spun Off", { description: `"${name}" is now an active subsidiary.` });
+        };
+
+        const handleInjectCapital = (rawName: string) => {
+            const cost = 10000000;
+            if (corporateCash < cost) {
+                toast.error("Insufficient Treasury Cash", { description: "Injecting capital requires $10,000,000 corporate cash." });
+                return;
+            }
+
+            const newStartup = { ...startup };
+            newStartup.metrics.cash -= cost;
+
+            const parsed = parseSubsidiary(rawName);
+            let updatedSynergy = parsed.monthlySynergy;
+            let note = "";
+
+            if (parsed.monthlySynergy < 0) {
+                // Restructured from Burning to Profitable!
+                updatedSynergy = Math.floor(parsed.valuation * 0.002); // 2.4% yield
+                note = `Restructured ${parsed.name} operational efficiencies, eliminating operating cash drain! Now contributing +${formatMoney(updatedSynergy)}/mo corporate cashflow.`;
+            } else {
+                // Already profitable, boost synergy output!
+                updatedSynergy += Math.floor(cost * 0.012); // +$120k/mo synergy boost
+                note = `Injected $10M capital into ${parsed.name}. Operating synergies expanded by +$120,000/mo!`;
+            }
+
+            const newSubStr = `${parsed.name}::${parsed.valuation + cost}::${updatedSynergy}::${parsed.integrationRisk}`;
+            newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
+
+            newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 6);
+            setStartup(newStartup);
+
+            addTimelineEvent(`🏢 Capital Injection: ${note}`, month);
+            toast.success("Synergies Expanded", { description: note });
+        };
+
+        const handleRebrandSubsidiary = (rawName: string) => {
+            const cost = 5000000;
+            if (corporateCash < cost) {
+                toast.error("Insufficient Treasury Cash", { description: "Relaunching requires $5,000,000 corporate cash." });
+                return;
+            }
+
+            const newStartup = { ...startup };
+            newStartup.metrics.cash -= cost;
+
+            const parsed = parseSubsidiary(rawName);
+            // Increase its asset value by $5M due to marketing goodwill pop
+            const newSubStr = `${parsed.name}::${parsed.valuation + cost}::${parsed.monthlySynergy}::${parsed.integrationRisk}`;
+            newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
+
+            newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 10);
+            setStartup(newStartup);
+
+            addTimelineEvent(`🏢 Subsidiary Rebrand: Sponsored global marketing relaunch of ${parsed.name}. Brand Awareness increased.`, month);
+            toast.success("Marketing Relaunch Complete", { description: `Parent brand awareness jumped +10%.` });
+        };
+
+        const handleDivestSubsidiary = (rawName: string, payout: number) => {
+            const parsed = parseSubsidiary(rawName);
+            const newStartup = { ...startup };
+            newStartup.metrics.cash = (newStartup.metrics.cash || 0) + payout;
+            newStartup.subsidiaries = subs.filter((s: string) => s !== rawName);
+            setStartup(newStartup);
+
+            addTimelineEvent(`🏢 Corporate Divestiture: Sold subsidiary "${parsed.name}" to private equity for ${formatMoney(payout)} cash!`, month);
+            toast.success("Subsidiary Divested", { description: `Received ${formatMoney(payout)} in non-dilutive corporate cash!` });
+        };
+
+        return (
+            <div className="flex flex-col gap-4 min-h-[82vh] justify-between">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between gap-4 shadow-lg">
+                    <div>
+                        <div className="flex justify-between items-center mb-3">
+                            <div>
+                                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                    <span>🏢</span> Subsidiary Oversight &amp; Divestiture
+                                </h3>
+                                <p className="text-[10px] text-slate-500 mt-0.5">Nurture and manage corporate subdivisions or execute lucrative trade sales.</p>
+                            </div>
+                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                                Treasury: {formatMoney(corporateCash)}
+                            </span>
+                        </div>
+
+                        {/* Subsidiary Performance Metrics Card */}
+                        <div className="grid grid-cols-2 gap-2 mb-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-xs">
+                            <div>
+                                <p className="text-[8px] uppercase font-black text-slate-400">Subsidiary Asset Value</p>
+                                <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+                                    {subs.length === 0 ? "$0.00" : formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).valuation, 0))}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[8px] uppercase font-black text-slate-400">Total Monthly Synergies</p>
+                                <p className={cn("text-xs font-black mt-0.5", subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                                    {subs.length === 0 ? "$0 / mo" : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0))} / mo`}
+                                </p>
+                            </div>
+                        </div>
+
+                        {subs.length === 0 ? (
+                            <div className="py-6 flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-4">
+                                <p className="text-[10px] text-slate-400 italic text-center font-medium">No active corporate subsidiaries under management. Spin off internal divisions below.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1">Under Management ({subs.length})</p>
+                                <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
+                                    {subs.map((subRaw: string, idx: number) => {
+                                        const sub = parseSubsidiary(subRaw);
+                                        const divestPrice = Math.max(10000000, Math.floor(sub.valuation * 0.8));
+                                        return (
+                                            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-xs">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">{sub.name}</p>
+                                                        <p className="text-[8px] font-semibold text-slate-500 mt-0.5">Asset Value: {formatMoney(sub.valuation)}</p>
+                                                        <div className="flex gap-1.5 items-center mt-1 flex-wrap">
+                                                            <span className={cn(
+                                                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded border",
+                                                                sub.monthlySynergy >= 0 ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50" : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50"
+                                                            )}>
+                                                                {sub.monthlySynergy >= 0 ? '+' : ''}{formatMoney(sub.monthlySynergy)}/mo
+                                                            </span>
+                                                            <span className={cn(
+                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded border",
+                                                                sub.integrationRisk === "High" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200" :
+                                                                    sub.integrationRisk === "Medium" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200" :
+                                                                        "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200"
+                                                            )}>
+                                                                Risk: {sub.integrationRisk}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDivestSubsidiary(sub.raw, divestPrice)}
+                                                        className="ml-2 shrink-0 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg px-2 py-1.5 text-[8px] font-black uppercase tracking-wider transition-all active:scale-95"
+                                                    >
+                                                        💰 Sell<br /><span className="text-[7px]">{formatMoney(divestPrice)}</span>
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                                    <button
+                                                        onClick={() => handleInjectCapital(sub.raw)}
+                                                        disabled={corporateCash < 10000000}
+                                                        className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 font-black uppercase text-[8px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                    >
+                                                        💉 Inject $10M
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRebrandSubsidiary(sub.raw)}
+                                                        disabled={corporateCash < 5000000}
+                                                        className="bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/20 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-900/50 disabled:opacity-40 text-violet-700 dark:text-violet-400 font-black uppercase text-[8px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                    >
+                                                        🎯 Rebrand ($5M)
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Always show spin-off options so players can keep growing their portfolio */}
+                        <div className="space-y-3 mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            <p className="text-[10px] uppercase font-black text-slate-500 pb-1">Spin-off Internal Divisions</p>
+                            <div className="grid grid-cols-1 gap-2.5 max-h-[240px] overflow-y-auto pr-1">
+                                {[
+                                    { name: "Axiom AI Infrastructure", cost: 20000000, emoji: "🤖", desc: "Spin off AI hosting infrastructure. Grants +5% profit margins and +5% Brand.", benefits: { margin: 0.05, brand: 5 } },
+                                    { name: "Nova Logistics Systems", cost: 12000000, emoji: "🚁", desc: "Spin off drone ops. Reduces monthly burn by 10% and adds +8% Brand.", benefits: { burnRate: 0.10, brand: 8 } },
+                                    { name: "Sovereign Defense Cloud (Aegis AI)", cost: 35000000, emoji: "🛡️", desc: "Defense consulting arm. Boosts parent Brand by +12% and margin by +15%.", benefits: { margin: 0.15, brand: 12 } },
+                                    { name: "Quantum Research Lab (Q-Labs)", cost: 45000000, emoji: "⚛️", desc: "Quantum hardware division. Boosts R&D Efficiency +15% and Brand +15%.", benefits: { rd: 0.15, brand: 15 } }
+                                ].filter(proj => !subs.some((s: string) => s.startsWith(proj.name))).map((proj, idx) => (
+                                    <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 flex justify-between items-center gap-3">
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">{proj.emoji} {proj.name}</p>
+                                            <p className="text-[8.5px] text-slate-500 font-medium leading-normal mt-0.5">{proj.desc}</p>
+                                            <p className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 mt-1">Cost: {formatMoney(proj.cost)}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleSpinOffInternal(proj.name, proj.cost, proj.desc, proj.benefits)}
+                                            disabled={corporateCash < proj.cost}
+                                            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[8px] px-3 py-2 rounded-lg transition-all shadow-sm active:scale-95"
+                                        >
+                                            Spin Off
+                                        </button>
+                                    </div>
+                                ))}
+                                {[
+                                    { name: "Axiom AI Infrastructure" },
+                                    { name: "Nova Logistics Systems" },
+                                    { name: "Sovereign Defense Cloud (Aegis AI)" },
+                                    { name: "Quantum Research Lab (Q-Labs)" }
+                                ].every(proj => subs.some((s: string) => s.startsWith(proj.name))) && (
+                                        <p className="text-[9px] text-slate-400 italic text-center py-3">All internal divisions have been spun off. Acquire rivals to add more subsidiaries.</p>
+                                    )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* M&A Divestiture & Transaction Ledger */}
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                        <div className="flex justify-between items-center">
+                            <p className="text-[10px] uppercase font-black text-slate-500">Corporate M&A & Spin-off Ledger</p>
+                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">SEC Form 8-K Definitive</span>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[110px] overflow-y-auto shadow-inner">
+                            {subs.map((sRaw: string, idx: number) => {
+                                const sInfo = parseSubsidiary(sRaw);
+                                return (
+                                    <div key={idx} className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                        <div>
+                                            <span className="font-bold text-slate-700 dark:text-slate-300">{sInfo.name}</span>
+                                            <p className="text-slate-400 font-medium">{sInfo.monthlySynergy >= 0 ? `+${formatMoney(sInfo.monthlySynergy)}/mo synergy` : `${formatMoney(sInfo.monthlySynergy)}/mo drain`} · Risk: {sInfo.integrationRisk}</p>
+                                        </div>
+                                        <span className={cn("font-bold px-1.5 py-0.5 rounded border", sInfo.monthlySynergy >= 0 ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50" : "text-rose-600 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/50")}>{sInfo.monthlySynergy >= 0 ? "Profitable" : "Cash Drain"}</span>
+                                    </div>
+                                );
+                            })}
+                            <div className="text-[7px] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
+                                Baseline Corporate Setup
+                            </div>
+                            <div className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                <div>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">Corporate Charter Update</span>
+                                    <p className="text-slate-400 font-medium">Bylaws amended for holding company restructurings</p>
+                                </div>
+                                <span className="text-slate-500 font-bold bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">Approved</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[8px]">
+                                <div>
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">SEC Form 8-K M&A Filing</span>
+                                    <p className="text-slate-400 font-medium">Material definitive agreement disclosed publicly</p>
+                                </div>
+                                <span className="text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">Filed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -3560,10 +5791,24 @@ export default function Dashboard() {
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
 
     // Pillar 2 States
+    const [viewState, setViewState] = useState<"dashboard" | "submenu" | "action">("dashboard");
     const [showPostIpoCinematic, setShowPostIpoCinematic] = useState(false);
-    const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance">("operations");
+    const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance" | "corporate">("operations");
     const [marketStocks, setMarketStocks] = useState<MarketStock[]>([]);
+    const [mnaTargets, setMnaTargets] = useState<MnATarget[]>([]);
+
+
+    useEffect(() => {
+        // Only seed market stocks once — and never include the player company pre-IPO
+        if (marketStocks.length === 0) {
+            import('@/lib/engine/publicMarket').then(mod => {
+                // initializeMarketStocks without a player symbol → no own stock injected
+                setMarketStocks(mod.initializeMarketStocks());
+            });
+        }
+    }, [marketStocks.length]);
     const [isEarningsCallOpen, setIsEarningsCallOpen] = useState(false);
+    const [isStoreOpen, setIsStoreOpen] = useState(false);
 
     const [isSamModalOpen, setIsSamModalOpen] = useState(false);
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
@@ -3612,7 +5857,7 @@ export default function Dashboard() {
     const [pendingCounterOffer, setPendingCounterOffer] = useState<{ valuation: number; equity: number } | null>(null);
     const [confirmedFunding, setConfirmedFunding] = useState<{ valuation: number; equity: number } | null>(null);
     const [confirmedHire, setConfirmedHire] = useState<Candidate | null>(null);
-    const [hrSearchRole, setHrSearchRole] = useState<"engineer" | "marketer" | "sales">("engineer");
+    const [hrSearchRole, setHrSearchRole] = useState<"engineer" | "marketer" | "sales" | "legal">("engineer");
     const [hrCandidates, setHrCandidates] = useState<Candidate[]>([]);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
@@ -3702,7 +5947,7 @@ export default function Dashboard() {
 
         const dialog = TUTORIAL_STEPS[storyState.tutorialStep];
         // Only trigger if not already open AND we haven't seen this step's trigger yet
-        const hasSeenCurrent = storyState.seenTriggers.includes(dialog.trigger);
+        const hasSeenCurrent = (storyState.seenTriggers || []).includes(dialog.trigger);
 
         if (!isCharacterDialogOpen && !hasSeenCurrent) {
             // No timer — user just clicked "NEXT STEP" on the dashboard, so show it immediately
@@ -3753,9 +5998,26 @@ export default function Dashboard() {
     }, [pendingCandidate, pendingInvestor, activeEvent, isCharacterDialogOpen, isEndgameOpen, confirmedFunding, confirmedHire, actionCategory]);
 
     useEffect(() => {
+        if (startup.iap_ad_free || startup.iap_titan) {
+            setIsPremium(true);
+        }
+    }, [startup.iap_ad_free, startup.iap_titan]);
+
+    useEffect(() => {
         iapService.initialize().then(() => {
-            iapService.checkPremiumStatus().then(premium => {
-                if (premium) setIsPremium(true);
+            iapService.getOwnedNonConsumables().then(owned => {
+                if (owned.length > 0) {
+                    setStartup(prev => {
+                        const next = { ...prev };
+                        if (owned.includes("founder_sim_premium") || owned.includes("founder_sim_titan")) {
+                            next.iap_ad_free = true;
+                            setIsPremium(true);
+                        }
+                        if (owned.includes("founder_sim_caffeine")) next.iap_caffeine = true;
+                        if (owned.includes("founder_sim_titan")) next.iap_titan = true;
+                        return next;
+                    });
+                }
             });
         });
     }, []);
@@ -4321,7 +6583,7 @@ export default function Dashboard() {
         if (!def) return;
         const ctx: GameContext = { month, startup, founder, m: startup.metrics };
         const { scaledEffects, multiplier, hints } = calcDynamicImpact(def, actionUsageLog, ctx);
-        const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
         const energyCost = forceFree ? 0 : def.energyCost;
         const newHoursUsed = focusHoursUsed + energyCost;
 
@@ -4367,7 +6629,7 @@ export default function Dashboard() {
             setFocusHoursUsed(prev => Math.max(0, prev - (def.monthlyEnergy || 0)));
             toast.info(`Stopped: ${def.label}`, { description: "Focus hours released." });
         } else {
-            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
             const energyToCommit = def.monthlyEnergy || 0;
 
             if (focusHoursUsed + energyToCommit > maxHours) {
@@ -4394,8 +6656,8 @@ export default function Dashboard() {
             const nextStage = getNextFundingStage(startup.funding_stage);
             if (!nextStage) { toast.error("Maximum funding reached!"); return; }
 
-            const fundCost = 40;
-            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+            const fundCost = startup.iap_titan ? 20 : 40;
+            const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
             if (focusHoursUsed + fundCost > maxHours * 1.1) {
                 toast.error("Not enough energy!", { description: "You need 40 focus hours to prep the deck and pitch." });
                 return;
@@ -4685,16 +6947,31 @@ export default function Dashboard() {
         setConfirmDialog({
             open: true,
             title: `Fire ${empToFire.name}?`,
-            description: "This will hurt morale and you'll lose their specialized skills.",
+            description: "This will hurt morale and you'll lose their specialized skills. Low morale teams might even file a lawsuit.",
             confirmText: "FIRE EMPLOYEE",
             type: "fire",
             onConfirm: () => {
+                const newMorale = Math.max(0, startup.metrics.team_morale - 15);
+                const hasLegalRisk = newMorale < 30 || Math.random() < 0.15;
+
+                let updatedSuits = [...(startup.active_lawsuits || [])];
+                if (hasLegalRisk) {
+                    const suit = spawnLawsuit("wrongful_termination", (startup.history?.length || 0) + 1);
+                    updatedSuits.push(suit);
+                }
+
                 setStartup(s => ({
                     ...s,
                     employees: s.employees?.filter(e => e.id !== id) || [],
-                    metrics: { ...s.metrics, team_morale: Math.max(0, s.metrics.team_morale - 15), employees: s.metrics.employees - 1 },
+                    metrics: { ...s.metrics, team_morale: newMorale, employees: s.metrics.employees - 1 },
+                    active_lawsuits: updatedSuits
                 }));
-                toast.error("Employee Terminated");
+
+                if (hasLegalRisk) {
+                    toast.error("Employee Terminated", { description: "Warning: They are threatening a wrongful termination lawsuit." });
+                } else {
+                    toast.error("Employee Terminated");
+                }
             }
         });
     };
@@ -4780,17 +7057,117 @@ export default function Dashboard() {
         toast.success(`Granted ${amount}% Equity!`, { description: "Retention and performance increased." });
     };
 
+    const handleAcquireRival = (comp: Competitor) => {
+        const isChadly = comp.id === "chadly";
+        const isIPO = comp.status === "ipo";
+        const premium = isChadly ? 1.25 : isIPO ? 1.15 : 1.0;
+        const purchasePrice = Math.floor(comp.valuation * premium);
+
+        if (startup.metrics.cash < purchasePrice) {
+            toast.error("Insufficient Funds", { description: `You need ${formatMoney(purchasePrice)} corporate cash to acquire this rival.` });
+            return;
+        }
+
+        const newStartup = { ...startup };
+        newStartup.metrics.cash -= purchasePrice;
+        newStartup.metrics.users = (newStartup.metrics.users || 0) + comp.users;
+
+        // Dynamic synergistic valuation pop: +20%!
+        newStartup.valuation = Math.floor(newStartup.valuation + comp.valuation * 1.2);
+
+        // Apply dynamic merger integrations on morale, brand, product score
+        const risk = comp.integration_risk || "Medium";
+        if (risk === "High") {
+            newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 70) - 20);
+        } else if (risk === "Medium") {
+            newStartup.metrics.team_morale = Math.max(0, (newStartup.metrics.team_morale || 70) - 10);
+        } else {
+            newStartup.metrics.team_morale = Math.min(100, (newStartup.metrics.team_morale || 70) + 5);
+        }
+
+        // Product Quality boost from tech IP (+5 to +15 depending on risk/tech consolidation)
+        const productBoost = risk === "Low" ? 15 : risk === "Medium" ? 10 : 5;
+        newStartup.metrics.product_quality = Math.min(100, (newStartup.metrics.product_quality || 50) + productBoost);
+
+        // Brand Awareness boost from brand absorption (+10% to +25%)
+        const brandBoost = risk === "Low" ? 25 : risk === "Medium" ? 15 : 10;
+        newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 10) + brandBoost);
+
+        // Add 2% permanent organic growth rate per rival acquired!
+        newStartup.metrics.growth_rate = (newStartup.metrics.growth_rate || 1.05) + 0.02;
+
+        // Reorganize competitor under packed subsidiary serialization!
+        if (!newStartup.subsidiaries) {
+            newStartup.subsidiaries = [];
+        }
+
+        const synergy = comp.financial_health === "Profitable"
+            ? Math.floor(comp.valuation * 0.006)
+            : comp.financial_health === "Burning Cash" ? -Math.floor(comp.valuation * 0.008) : 0;
+
+        const subStr = `${comp.name}::${comp.valuation}::${synergy}::${risk}`;
+        newStartup.subsidiaries.push(subStr);
+
+        setStartup(newStartup);
+
+        // Update competitor status to acquired
+        const updatedComps = competitors.map(c => {
+            if (c.id === comp.id) {
+                return { ...c, status: "acquired" as const };
+            }
+            return c;
+        });
+
+        // Replenish so there are always at least 3 active/ipo competitors
+        let activeCount = updatedComps.filter(c => c.status === "active" || c.status === "ipo").length;
+        const newNews: string[] = [];
+        let index = updatedComps.length;
+        while (activeCount < 3) {
+            const newComp = generateNewCompetitor(index, startup.industry, newStartup.valuation);
+            updatedComps.push(newComp);
+            activeCount++;
+            index++;
+            newNews.push(`🏢 RIVAL ENTRY: A new competitor "${newComp.name}" entered the ${newComp.industry} market!`);
+        }
+
+        setCompetitors(updatedComps);
+
+        // Timeline event and toast
+        if (isChadly) {
+            addTimelineEvent(`👑 THE TAKEOVER: Executed a legendary hostile takeover of Chadly's empire "${comp.name}" for ${formatMoney(purchasePrice)}!`, month);
+            toast.success("RIVAL DEFEAT: Chadly's empire acquired!", { description: "You have officially conquered your ultimate rival Chadly!" });
+
+            // Trigger Chad's defeat dialog
+            setCharacterDialog({
+                character: "chad",
+                trigger: "chad_acquired",
+                title: "💀 \"YOU BOUGHT ME OUT?!\"",
+                message: `I... I don't believe it. You raided my cap table, bought out my institutional investors, and executed a hostile takeover?! \n\nFine. You win this round, ${founder.name}. But building an empire is easy—maintaining it is the real war. Enjoy your seat at the top. I'll be watching.`,
+                buttonText: "Thanks for the synergy, Chad.",
+            });
+            setIsCharacterDialogOpen(true);
+        } else {
+            addTimelineEvent(`🦈 M&A Deal: Bought out competitor "${comp.name}" for ${formatMoney(purchasePrice)} corporate cash. Synergy: ${synergy >= 0 ? '+' : ''}${formatMoney(synergy)}/mo. Morale shift: ${risk === "High" ? '-20' : risk === "Medium" ? '-10' : '+5'}.`, month);
+            toast.success("Rival Acquired", { description: `Successfully integrated ${comp.name} as a subsidiary.` });
+        }
+
+        newNews.forEach(n => addTimelineEvent(n, month));
+    };
+
     // ── Next Month ─────────────────────────────────────────────────────────────
     const handleRivalryAction = (action: RivalryAction) => {
         const chadly = competitors.find(c => c.id === 'chadly');
-        if (!chadly) return;
+        if (!chadly) {
+            toast.error("Chadly is currently out of the picture.");
+            return;
+        }
 
         if (startup.metrics.cash < action.cashCost) {
             toast.error("Not enough cash!");
             return;
         }
 
-        const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+        const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
         if (focusHoursUsed + action.energyCost > maxHours * 1.1) {
             toast.error("Not enough focus energy!", { description: "You are too burned out. Advance to next month to refill energy." });
             return;
@@ -4846,7 +7223,7 @@ export default function Dashboard() {
             progLog.forEach(l => addTimelineEvent(`🔄 ${l}`, nextMonth));
 
             // Apply burnout penalty if over-committed from ongoing programs
-            const maxEnergy = calcFocusHours(spAfter.metrics.founder_burnout || 0, spAfter.employees || [], (spAfter as any).hasCoFounder);
+            const maxEnergy = calcFocusHours(spAfter.metrics.founder_burnout || 0, spAfter.employees || [], (spAfter as any).hasCoFounder, spAfter.iap_caffeine);
             const currentCommitment = ongoingProgramsTotalEnergy(ongoingPrograms);
             if (currentCommitment > maxEnergy) {
                 const penalty = (currentCommitment - maxEnergy) * 0.5;
@@ -4872,6 +7249,19 @@ export default function Dashboard() {
             const updatedMarket = processMarketMonth(marketStocks, m.current_season || "Normal", newMacro);
             setMarketStocks(updatedMarket);
 
+            // Notify if held stocks have breaking news
+            const personalPortfolio = founder.wealth_profile?.portfolio || [];
+            const corpPortfolio = newStartup.public_company?.corporate_portfolio || (newStartup as any).treasury_portfolio || [];
+            updatedMarket.forEach(stock => {
+                if (stock.recentNews) {
+                    const heldPersonal = personalPortfolio.some((p: any) => p.symbol === stock.symbol);
+                    const heldCorp = corpPortfolio.some((p: any) => p.symbol === stock.symbol);
+                    if (heldPersonal || heldCorp) {
+                        addTimelineEvent(`🗞️ Market News (${stock.symbol}): ${stock.recentNews}. Stock momentum shifted.`, nextMonth);
+                    }
+                }
+            });
+
             if (newStartup.public_company) {
                 // Keep player company stock in sync with new valuation/sentiment
                 const playerStock = updatedMarket.find(s => s.symbol === (newStartup.symbol || "CORP"));
@@ -4879,6 +7269,142 @@ export default function Dashboard() {
                     newStartup.public_company.share_price = playerStock.currentPrice;
                     newStartup.valuation = newStartup.public_company.shares_outstanding * playerStock.currentPrice;
                 }
+
+                // --- POST-IPO MONTHLY FINANCE PROCESSING ---
+                const pub = newStartup.public_company;
+                const newFounder = { ...foAfter };
+                const sharePrice = pub.share_price || 0;
+
+                // 1. Process 10b5-1 plans
+                const activePlans = newFounder.wealth_profile?.active_10b51_plans || [];
+                if (activePlans.length > 0) {
+                    newFounder.wealth_profile.active_10b51_plans = activePlans.map((p: any) => {
+                        const remainingToSell = p.sharesToSellTotal - p.sharesSoldSoFar;
+                        const sellCount = Math.min(p.monthlySellAmount, remainingToSell);
+                        if (sellCount <= 0) return p;
+
+                        const proceeds = Math.floor(sellCount * sharePrice);
+                        newFounder.personal_wealth = (newFounder.personal_wealth || 0) + proceeds;
+                        p.sharesSoldSoFar += sellCount;
+                        p.monthsRemaining -= 1;
+
+                        // Deduct equity from Founder in Cap Table
+                        const founderNode = newStartup.capTable?.find((e: any) => e.type === "Founder");
+                        if (founderNode) {
+                            const totalShares = pub.shares_outstanding || 100_000_000;
+                            const currentShares = (founderNode.equity / 100) * totalShares;
+                            const newShares = Math.max(0, currentShares - sellCount);
+                            founderNode.equity = (newShares / totalShares) * 100;
+                        }
+
+                        addTimelineEvent(`📄 10b5-1 Plan: Sold ${formatNumber(sellCount)} shares at ${formatMoney(sharePrice)}/sh, generating ${formatMoney(proceeds)} personal cash.`, nextMonth);
+
+                        // Aggressive insider selling pressure
+                        if (p.isAggressive) {
+                            pub.share_price *= 0.985; // 1.5% downward pressure
+                            addTimelineEvent(`📉 Heavy insider selling under Aggressive 10b5-1 plan puts downward pressure on stock price (-1.5%).`, nextMonth);
+                        }
+
+                        return p;
+                    }).filter((p: any) => p.monthsRemaining > 0 && p.sharesSoldSoFar < p.sharesToSellTotal);
+                }
+
+                // 2. Process Margin Loan interest
+                const currentLoan = newFounder.wealth_profile?.margin_loan_balance || 0;
+                if (currentLoan > 0) {
+                    const monthlyInterest = Math.floor((currentLoan * 0.06) / 12); // 6% APR
+                    newFounder.personal_wealth = Math.max(0, (newFounder.personal_wealth || 0) - monthlyInterest);
+                    addTimelineEvent(`💳 Charged ${formatMoney(monthlyInterest)} margin loan interest (6% APR).`, nextMonth);
+
+                    // Margin Call Check! If LTV > 50%
+                    const myShares = newStartup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
+                    const totalShares = pub.shares_outstanding || 100_000_000;
+                    const myShareCount = (myShares / 100) * totalShares;
+                    const myStockValue = myShareCount * pub.share_price;
+
+                    const personalPortfolioValue = newFounder.wealth_profile?.portfolio?.reduce((acc: number, p: any) => {
+                        const stockPrice = updatedMarket.find((s: any) => s.symbol === p.symbol)?.currentPrice || p.averageCost;
+                        return acc + (p.shares * stockPrice);
+                    }, 0) || 0;
+
+                    const totalCollateral = myStockValue + personalPortfolioValue;
+                    const ltv = totalCollateral > 0 ? (currentLoan / totalCollateral) : 1;
+
+                    if (ltv > 0.55) { // Margin call triggers if LTV drops past 55%
+                        const forceRepay = currentLoan;
+                        const sharesToLiquidate = forceRepay / sharePrice;
+
+                        // Forcibly sell founder's shares to repay loan
+                        const founderNode = newStartup.capTable?.find((e: any) => e.type === "Founder");
+                        if (founderNode) {
+                            const newShares = Math.max(0, ((founderNode.equity / 100) * totalShares) - sharesToLiquidate);
+                            founderNode.equity = (newShares / totalShares) * 100;
+                        }
+
+                        newFounder.wealth_profile.margin_loan_balance = 0;
+                        addTimelineEvent(`🚨 MARGIN CALL! Declining stock price pushed LTV to ${(ltv * 100).toFixed(1)}%. Liquidated ${formatNumber(sharesToLiquidate)} shares to clear margin balance.`, nextMonth);
+                        toast.error("🚨 Margin Call Triggered", { description: "Your shares were liquidated to repay your margin loan." });
+                    }
+                }
+
+                // 3. Process Corporate Debt interest and principal repayment
+                const debts = pub.corporate_debt || [];
+                if (debts.length > 0) {
+                    const activeDebts = [] as any[];
+                    for (const debt of debts) {
+                        const interest = Math.floor((debt.principal * debt.interestRate) / 12);
+                        newStartup.metrics.cash -= interest;
+                        debt.monthsRemaining -= 1;
+                        addTimelineEvent(`🏦 Paid ${formatMoney(interest)} interest on Corporate Bond [${debt.label}].`, nextMonth);
+
+                        if (debt.monthsRemaining <= 0) {
+                            newStartup.metrics.cash -= debt.principal;
+                            addTimelineEvent(`🏛️ Corporate Bond [${debt.label}] matured! Principal ${formatMoney(debt.principal)} repaid.`, nextMonth);
+                        } else {
+                            activeDebts.push(debt);
+                        }
+                    }
+                    pub.corporate_debt = activeDebts;
+
+                    if (newStartup.metrics.cash < 0) {
+                        newStartup.outcome = "bankrupt";
+                        setIsEndgameOpen(true);
+                        addTimelineEvent(`🚨 DEFAULT! Startup defaulted on corporate bond maturity and declared bankruptcy.`, nextMonth);
+                        toast.error("🚨 Corporate Default", { description: "You defaulted on mature debt payments!" });
+                    }
+                }
+
+                // 3.5 Process Subsidiaries cashflow synergies
+                const subsList = newStartup.subsidiaries || pub.subsidiaries || [];
+                if (subsList.length > 0) {
+                    let totalSynergy = 0;
+                    subsList.forEach((subStr: string) => {
+                        const parsed = parseSubsidiary(subStr);
+                        totalSynergy += parsed.monthlySynergy;
+                    });
+                    newStartup.metrics.cash += totalSynergy;
+                    if (totalSynergy !== 0) {
+                        addTimelineEvent(
+                            totalSynergy >= 0
+                                ? `🏢 Corporate Synergies: Subsidiaries contributed +${formatMoney(totalSynergy)} profit to corporate treasury.`
+                                : `🏢 Corporate Synergies: Subsidiaries drained -${formatMoney(Math.abs(totalSynergy))} operating cash from corporate treasury.`,
+                            nextMonth
+                        );
+                    }
+                }
+
+                // 4. Lobbying score benefits
+                const lobbyingScore = pub.lobbying_score || 0;
+                if (lobbyingScore >= 70) {
+                    // Tax Credit: Unlocks +15% revenue cash flow bonus
+                    const subsidy = Math.floor((newStartup.metrics.revenue || 0) * 0.15);
+                    if (subsidy > 0) {
+                        newStartup.metrics.cash += subsidy;
+                        addTimelineEvent(`🏛️ Received ${formatMoney(subsidy)} federal R&D Tax Credit (Regulatory Capture perk).`, nextMonth);
+                    }
+                }
+
+                setFounder(newFounder);
             }
 
             // Chadly Dynamic IPO
@@ -4976,9 +7502,10 @@ export default function Dashboard() {
                         subsidiaries: []
                     };
 
+                    const ipoFounderTake = Math.floor(cashRaised * 0.10); // 10% secondary liquidity
                     const newFounder = {
                         ...founder,
-                        personal_wealth: (founder.personal_wealth || 0) + 1_000_000, // $1M bonus for IPO
+                        personal_wealth: (founder.personal_wealth || 0) + ipoFounderTake,
                     };
 
                     const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalValuation / 100_000_000);
@@ -4997,7 +7524,7 @@ export default function Dashboard() {
 
                     analyticsService.logEvent("ipo_success", {
                         valuation: finalValuation,
-                        payout: Math.floor(finalValuation * founderEquityPct),
+                        payout: ipoFounderTake,
                         raised: cashRaised,
                         industry: newStartup.industry
                     });
@@ -5021,7 +7548,7 @@ export default function Dashboard() {
             // Sam Mentor Advice Trigger (legacy educational advice only)
             if (isOnline) {
                 const samAlert = getEducationalAdvice(newStartup, founder);
-                if (samAlert && !storyState.seenTriggers.includes(samAlert.trigger ?? "")) {
+                if (samAlert && !(storyState.seenTriggers || []).includes(samAlert.trigger ?? "")) {
                     setSamAdvice(samAlert);
                     playSound("popup");
                     setIsSamModalOpen(true);
@@ -5057,7 +7584,7 @@ export default function Dashboard() {
                 industry: newStartup.industry
             });
 
-            if (storyDialog && !storyState.seenTriggers.includes(storyDialog.trigger)) {
+            if (storyDialog && !(storyState.seenTriggers || []).includes(storyDialog.trigger)) {
                 // Log the storyline encounter to the timeline
                 const encounterText = storyDialog.character === "chad"
                     ? `⚔️ Rival Encounter: Chadly ${storyDialog.title || "challenged you"}.`
@@ -5259,6 +7786,7 @@ export default function Dashboard() {
                 const pub = newStartup.public_company;
                 let totalSharesSold = 0;
                 let totalProceeds = 0;
+                let hasAggressiveSelling = false;
 
                 nextFounder.wealth_profile.active_10b51_plans.forEach(plan => {
                     if (plan.monthsRemaining > 0 && pub.share_price >= plan.targetPriceMinimum) {
@@ -5270,11 +7798,21 @@ export default function Dashboard() {
 
                         totalSharesSold += sharesToSell;
                         totalProceeds += proceeds;
+
+                        if (plan.isAggressive) {
+                            hasAggressiveSelling = true;
+                        }
                     }
                 });
 
                 // Remove completed plans
                 nextFounder.wealth_profile.active_10b51_plans = nextFounder.wealth_profile.active_10b51_plans.filter(p => p.monthsRemaining > 0);
+
+                if (hasAggressiveSelling) {
+                    const drop = pub.share_price * 0.015;
+                    pub.share_price = Math.max(0.01, pub.share_price - drop);
+                    addTimelineEvent(`📉 SEC 10b5-1 Aggressive liquidation pressure dropped share price by 1.5% (-${formatMoney(drop)}).`, nextMonth);
+                }
 
                 if (totalSharesSold > 0) {
                     // Update Founder Cash
@@ -5293,6 +7831,22 @@ export default function Dashboard() {
                     }
 
                     addTimelineEvent(`📄 10b5-1 Plans executed: Sold ${formatNumber(totalSharesSold)} shares for ${formatMoney(totalProceeds)}.`, nextMonth);
+                }
+            }
+
+            // 1.6. Executive Stock Options Vesting
+            if (newStartup.public_company && nextFounder.wealth_profile?.vesting_options?.length) {
+                let totalVestedThisMonth = 0;
+                nextFounder.wealth_profile.vesting_options.forEach(opt => {
+                    if (opt.monthsRemaining > 0) {
+                        const vest = Math.min(opt.monthlyVestAmount, opt.totalOptions - opt.vestedOptions);
+                        opt.vestedOptions += vest;
+                        opt.monthsRemaining -= 1;
+                        totalVestedThisMonth += vest;
+                    }
+                });
+                if (totalVestedThisMonth > 0) {
+                    addTimelineEvent(`🎲 Executive Options: Vested +${formatNumber(totalVestedThisMonth)} stock options this month.`, nextMonth);
                 }
             }
 
@@ -5340,6 +7894,7 @@ export default function Dashboard() {
             const committedEnergy = ongoingProgramsTotalEnergy(ongoingPrograms);
             setFocusHoursUsed(committedEnergy);
             setActionUsageLog(prev => ({ thisMonth: {}, lastUsedMonth: prev.lastUsedMonth }));
+            setMnaTargets([]);
 
             // --- PILLAR 2: EARNINGS CALL ---
             if (newStartup.public_company && nextMonth % 3 === 0) {
@@ -5351,7 +7906,7 @@ export default function Dashboard() {
             }
 
 
-            if (month % 3 === 0 && !isPremium) {
+            if (nextMonth % 3 === 0 && !isPremium) {
                 if (isOnline) {
                     await adService.showInterstitial();
                 } else {
@@ -5455,7 +8010,7 @@ export default function Dashboard() {
     const profitable = liveNetProfit >= 0;
     const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
     const liveRunway = liveBurn > 0 ? Math.floor(m.cash / liveBurn) : Infinity;
-    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder);
+    const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
     const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
     return (
@@ -5580,15 +8135,22 @@ export default function Dashboard() {
                                     {isLimited ? (
                                         <span className="text-white font-bold ml-0.5">{formatCooldown(validConsults[0] + 60 * 60 * 1000, currentTime)}</span>
                                     ) : (
-                                        <span className="ml-0.5">CONSULT SAM</span>
+                                        <span className="ml-0.5">SAM</span>
                                     )}
                                 </Button>
                             );
                         })()}
 
-                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-2.5 py-1 rounded-full">{formatMoney(m.cash)}</div>
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-2.5 py-1 rounded-full shrink-0">{formatMoney(m.cash)}</div>
+                        <button
+                            onClick={() => setIsStoreOpen(true)}
+                            className="h-8 w-8 rounded-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800 flex items-center justify-center transition-colors shadow-sm shrink-0"
+                            title="Premium Store"
+                        >
+                            <Sparkles className="h-4 w-4" />
+                        </button>
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
+                            <DropdownMenuTrigger className="h-8 w-8 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
                                 <Menu className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 mr-2 shadow-xl border-slate-200">
@@ -5637,10 +8199,16 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
                                     <Rocket className="mr-2 h-4 w-4" /> V2: The Empire Era
                                 </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-pink-50 dark:focus:bg-pink-950/40 focus:text-pink-600 font-bold transition-colors" onClick={() => window.open("https://instagram.com/foundersim", "_blank")}>
+                                    <Instagram className="mr-2 h-4 w-4 text-pink-500" /> Follow Founder Sim
+                                </DropdownMenuItem>
                                 {isNative && (
-                                    <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-slate-100 focus:text-slate-900 font-bold transition-colors text-slate-500" onClick={() => adService.showPrivacySettings()}>
-                                        <Shield className="mr-2 h-4 w-4" /> Privacy Settings
-                                    </DropdownMenuItem>
+                                    <>
+                                        <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                                        <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-slate-100 focus:text-slate-900 font-bold transition-colors text-slate-500" onClick={() => adService.showPrivacySettings()}>
+                                            <Shield className="mr-2 h-4 w-4" /> Privacy Settings
+                                        </DropdownMenuItem>
+                                    </>
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -5825,7 +8393,7 @@ export default function Dashboard() {
             )}
 
             {/* LOGS FEED — BitLife Style: events grouped by month */}
-            <div className={cn("flex flex-col-reverse overflow-y-auto px-3 pt-3 pb-5", startup.public_company ? "shrink-0 max-h-[35vh] border-b border-slate-200 dark:border-slate-800" : "flex-1")}>
+            <div className="flex flex-col-reverse overflow-y-auto px-3 pt-3 pb-5 flex-1">
                 {eventsTimeline.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center py-8">
                         <div className="text-4xl mb-3">⚡</div>
@@ -5840,9 +8408,8 @@ export default function Dashboard() {
                         byMonth[ev.month].push(ev);
                     });
 
-                    // Ensure every month from 1 to current appears in the timeline even if empty
-                    const allMonths = Array.from({ length: month }, (_, i) => i + 1);
-                    const sortedMonths = [...new Set([...allMonths, ...Object.keys(byMonth).map(Number)])].sort((a, b) => b - a);
+                    // Only render months that actually have events
+                    const sortedMonths = Object.keys(byMonth).map(Number).sort((a, b) => b - a);
 
                     const getEventStyle = (text: string) => {
                         if (text.includes("Raised") || text.includes("Funding") || text.includes("Series")) return { strip: "#7c3aed", bg: "#faf5ff", label: "Funding" };
@@ -5892,212 +8459,197 @@ export default function Dashboard() {
                 })()}
             </div>
 
-            {/* TERMINAL NAVIGATION TABS */}
-            <div className="shrink-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex overflow-x-auto scrollbar-none px-2 py-2 gap-1.5 shadow-inner">
-                {[
-                    { id: "operations", label: "Operations", icon: "🏢" },
-                    { id: "market", label: "Market", icon: "📈" },
-                    ...(startup.public_company ? [{ id: "treasury", label: "Treasury", icon: "🏦" }] : []),
-                    { id: "personal", label: "Wealth", icon: "💎" },
-                    ...(startup.public_company ? [{ id: "compliance", label: "Compliance", icon: "🏛️" }] : []),
-                ].map(t => {
-                    const isActive = terminalTab === t.id;
-                    return (
-                        <button
-                            key={t.id}
-                            onClick={() => {
-                                setTerminalTab(t.id as any);
-                                setActionCategory(null);
-                            }}
-                            className={cn(
-                                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap transition-all flex-1 justify-center",
-                                isActive
-                                    ? "bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700"
-                                    : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50"
-                            )}
-                        >
-                            <span className="text-sm">{t.icon}</span> <span className="hidden sm:inline">{t.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
 
-            {/* Tutorial lock overlay — blocks all taps on game content above */}
-            {storyState.tutorialStep >= 0 && (
-                <div
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        zIndex: 40,
-                        background: "rgba(15,23,42,0.45)",
-                        backdropFilter: "blur(1px)",
-                        pointerEvents: "all",
-                    }}
-                />
-            )}
-
-            {/* PROCEED / NEXT STEP BUTTON */}
-            <div className="shrink-0 px-3 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800" style={{ position: "relative", zIndex: 50 }}>
-                {!isLoaded ? (
-                    <div className="w-full h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 animate-pulse flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
-                    </div>
-                ) : (
-                    <>
-                        {selectedAction !== "none" && storyState.tutorialStep < 0 && (
-                            <div className="flex items-center justify-center mb-1.5">
-                                <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                    <span className="text-[9px] font-black text-indigo-700 uppercase">{selectedAction.replaceAll("_", " ")} queued for month end</span>
-                                    <button onClick={() => setSelectedAction("none")} className="text-indigo-400 text-[10px] ml-1">✕</button>
-                                </div>
-                            </div>
-                        )}
-                        {(storyState.tutorialStep >= 0 && !isCharacterDialogOpen) ? (
-                            /* ── Tutorial: Next Step button ── */
-                            <button
-                                onClick={() => {
-                                    const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
-                                    const next = storyState.tutorialStep + 1;
-
-                                    setStoryState(prev => {
-                                        const updatedSeen = prev.seenTriggers.includes(currentTrigger)
-                                            ? prev.seenTriggers
-                                            : [...prev.seenTriggers, currentTrigger];
-
-                                        if (next >= TUTORIAL_STEPS.length) {
-                                            return { ...prev, tutorialStep: -1, seenTriggers: updatedSeen };
-                                        }
-                                        return { ...prev, tutorialStep: next, seenTriggers: updatedSeen };
-                                    });
-                                }}
-                                className="w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
-                                style={{
-                                    background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-                                    boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
-                                    position: "relative",
-                                    zIndex: 50,
-                                }}
-                            >
-                                {storyState.tutorialStep < TUTORIAL_STEPS.length - 1
-                                    ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →`
-                                    : "FINISH TUTORIAL & START 🚀"
-                                }
-                            </button>
-                        ) : (
-                            /* ── Normal: Advance Month button ── */
-                            <button onClick={handleNextMonth} disabled={isProcessing || isCharacterDialogOpen}
-                                className={cn("w-full h-12 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg",
-                                    isCharacterDialogOpen && "opacity-0 pointer-events-none"
-                                )}
-                                style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
-                                {isProcessing ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
-                            </button>
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* ACTION GRID */}
-            <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-3 pt-2" style={{
+            {/* MAIN DASHBOARD CONTROLS */}
+            <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 p-4 pb-8" style={{
                 position: "relative",
                 zIndex: storyState.tutorialStep >= 2 ? 50 : 1,
                 paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})` : '1rem'
             }}>
-                <div className="grid grid-cols-4 gap-2">
-                    {(() => {
-                        // Action Grid Context based on Public Company Tab
-                        if (terminalTab === "operations") {
-                            return [
-                                { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-                                { id: "marketing", emoji: "📈", label: "Growth", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d" },
-                                { id: "market", emoji: "⚔️", label: "Rivals", color: "#fff7ed", border: "#ffedd5", text: "#9a3412" },
-                                { id: "hiring", emoji: "👥", label: "Hire", color: "#fefce8", border: "#fde68a", text: "#b45309" },
-                                { id: "funding", emoji: "💰", label: "Funding", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce" },
-                                { id: "stats", emoji: "📊", label: "Stats", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
-                                { id: "founder", emoji: "👤", label: "Founder", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
-                            ] as const;
-                        } else if (terminalTab === "market") {
-                            return [
-                                { id: "sector", emoji: "🌐", label: "Sector", color: "#f0fdf4", border: "#bbf7d0", text: "#16a34a" },
-                                { id: "analysts", emoji: "🎙️", label: "PR/Comms", color: "#f5f3ff", border: "#ddd6fe", text: "#7c3aed" },
-                                ...(startup.public_company ? [{ id: "options", emoji: "🎲", label: "Options", color: "#fff7ed", border: "#ffedd5", text: "#ea580c" }] as const : []),
-                            ] as const;
-                        } else if (terminalTab === "treasury") {
-                            return [
-                                { id: "trade_stock", emoji: "📉", label: "Trade", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
-                                { id: "buyback", emoji: "💸", label: "Buyback", color: "#fefce8", border: "#fde68a", text: "#b45309" },
-                                { id: "corporate_debt", emoji: "🏦", label: "Debt", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
-                                { id: "manda_acquire", emoji: "🦈", label: "Acquire", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-                                { id: "subsidiary", emoji: "🏢", label: "Manage", color: "#f8fafc", border: "#cbd5e1", text: "#475569" },
-                            ] as const;
-                        } else if (terminalTab === "personal") {
-                            return [
-                                { id: "personal_trade", emoji: "📉", label: "Brokerage", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1" },
-                                ...(startup.public_company ? [
-                                    { id: "margin_loan", emoji: "💳", label: "Margin", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d" },
-                                    { id: "10b51", emoji: "📄", label: "10b51", color: "#fff7ed", border: "#ffedd5", text: "#9a3412" }
-                                ] as const : []),
-                                { id: "philanthropy", emoji: "🕊️", label: "Donate", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce" },
-                                { id: "lifestyle", emoji: "💎", label: "Lifestyle", color: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9" },
-                            ] as const;
-                        } else if (terminalTab === "compliance") {
-                            return [
-                                { id: "lobbying", emoji: "🏛️", label: "Lobbying", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-                                { id: "board_mgmt", emoji: "🪑", label: "Board", color: "#fefce8", border: "#fde68a", text: "#b45309" },
-                                { id: "fines", emoji: "⚖️", label: "Legal", color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
-                            ] as const;
-                        }
-                        return [] as any;
-                    })().map((cat: { id: string; emoji: string; label: string; color: string; border: string; text: string }) => {
-                        const isActive = actionCategory === cat.id;
-                        // In dark mode, we use a darker base but keep the brand border/text colors
-                        const darkBg = isActive ? "rgba(30, 41, 59, 0.9)" : "rgba(15, 23, 42, 0.6)";
-                        const lightBg = isActive ? cat.border : cat.color;
+                <div className="max-w-md mx-auto flex flex-col gap-4">
 
-                        return (
-                            <button key={cat.id} onClick={() => setActionCategory(actionCategory === cat.id ? null : cat.id as SheetCategory)}
-                                className="h-14 rounded-2xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95"
-                                style={{
-                                    backgroundColor: isDark ? darkBg : lightBg,
-                                    borderColor: isActive ? cat.text : (isDark ? "rgba(51, 65, 85, 0.5)" : cat.border)
-                                }}>
-                                <span className="text-lg leading-none">{cat.emoji}</span>
-                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: isDark ? (isActive ? "white" : "rgba(203, 213, 225, 0.8)") : cat.text }}>{cat.label}</span>
-                            </button>
-                        );
-                    })}
+                    {/* OLD ADVANCE MONTH BUTTON */}
+                    {!isLoaded ? (
+                        <div className="w-full h-14 rounded-2xl bg-slate-100 dark:bg-slate-900 animate-pulse flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-slate-300 animate-spin" />
+                        </div>
+                    ) : (
+                        <>
+                            {storyState.tutorialStep >= 0 && !isCharacterDialogOpen ? (
+                                <button
+                                    onClick={() => {
+                                        const currentTrigger = TUTORIAL_STEPS[storyState.tutorialStep].trigger;
+                                        const next = storyState.tutorialStep + 1;
+                                        setStoryState(prev => {
+                                            const safeTriggers = prev.seenTriggers || [];
+                                            const updatedSeen = safeTriggers.includes(currentTrigger) ? safeTriggers : [...safeTriggers, currentTrigger];
+                                            return { ...prev, tutorialStep: next >= TUTORIAL_STEPS.length ? -1 : next, seenTriggers: updatedSeen };
+                                        });
+                                    }}
+                                    className="w-full h-14 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                                    style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", boxShadow: "0 4px 15px rgba(99,102,241,0.5)", position: "relative", zIndex: 50 }}
+                                >
+                                    {storyState.tutorialStep < TUTORIAL_STEPS.length - 1 ? `CONTINUE TUTORIAL (${storyState.tutorialStep + 1}/${TUTORIAL_STEPS.length}) →` : "FINISH TUTORIAL & START 🚀"}
+                                </button>
+                            ) : (
+                                <button onClick={handleNextMonth} disabled={isProcessing || isCharacterDialogOpen}
+                                    className={cn("w-full h-14 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg",
+                                        isCharacterDialogOpen && "opacity-0 pointer-events-none"
+                                    )}
+                                    style={{ background: isProcessing ? 'linear-gradient(135deg, #818cf8, #a78bfa)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', boxShadow: '0 4px 15px rgba(99,102,241,0.4)' }}>
+                                    {isProcessing ? <><div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Simulating Month {month}...</> : <>Advance to Month {month + 1} ▶</>}
+                                </button>
+                            )}
+                        </>
+                    )}
+
+                    {/* 4 MAIN CATEGORIES GRID */}
+                    <div className="grid grid-cols-4 gap-2">
+                        {/* Operations */}
+                        <button onClick={() => { setTerminalTab("operations"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
+                            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-blue-100 dark:border-blue-800/50"><span className="drop-shadow-sm">🏢</span></div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Operations</span>
+                        </button>
+                        {/* Strategy */}
+                        <button onClick={() => { setTerminalTab("market"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
+                            <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-rose-100 dark:border-rose-800/50"><span className="drop-shadow-sm">📈</span></div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Strategy</span>
+                        </button>
+                        {/* Founder */}
+                        <button onClick={() => { setTerminalTab("personal"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
+                            <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-purple-100 dark:border-purple-800/50"><span className="drop-shadow-sm">👤</span></div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Founder</span>
+                        </button>
+                        {/* Corporate */}
+                        <button onClick={() => { setTerminalTab("corporate"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
+                            <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-amber-100 dark:border-amber-800/50"><span className="drop-shadow-sm">🏛️</span></div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Corporate</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
-            {/* BOTTOM SHEET */}
+            {/* FULL SCREEN OVERLAYS */}
             <AnimatePresence>
-                {actionCategory !== null && (
-                    <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setActionCategory(null)} className="fixed inset-0 bg-black/20 z-[55]" />
-                        <motion.div
-                            drag="y"
-                            dragConstraints={{ top: 0, bottom: 0 }}
-                            dragElastic={0.4}
-                            onDragEnd={(_, info) => {
-                                if (info.offset.y > 100) setActionCategory(null);
-                            }}
-                            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                            className="fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl border-t border-slate-200 dark:border-slate-800 outline-none"
-                            style={{
-                                maxHeight: '85vh',
-                                paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})`
-                            }}>
-                            <div className="flex justify-center pt-2.5 pb-2">
-                                <div className="w-10 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                {viewState !== "dashboard" && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[100] flex flex-col"
+                    >
+                        {/* Submenu Top Bar */}
+                        <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
+                            <button onClick={() => setViewState("dashboard")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform mt-auto mb-1">
+                                <span className="text-xl">←</span> <span className="font-black text-sm uppercase tracking-widest">Dashboard</span>
+                            </button>
+                            <h2 className="mx-auto font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center gap-2 mt-auto mb-1.5">
+                                {terminalTab === "operations" ? "🏢 Operations" : terminalTab === "market" ? "📈 Strategy" : terminalTab === "personal" ? "👤 Founder" : "🏛️ Corporate"}
+                            </h2>
+                            <div className="w-[104px]" /> {/* Spacer to balance Back button */}
+                        </div>
+                        {/* Submenu Content */}
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + 2rem)` : '2rem' }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
+                                {(() => {
+                                    let cats = [] as any[];
+                                    if (terminalTab === "operations") {
+                                        cats = [
+                                            { id: "product", emoji: "🔧", label: "Product", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8", desc: "Build & manage tech" },
+                                            { id: "marketing", emoji: "📈", label: "Growth", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d", desc: "Acquire users" },
+                                            { id: "hiring", emoji: "👥", label: "Hire", color: "#fefce8", border: "#fde68a", text: "#b45309", desc: "Recruit & manage team" },
+                                            { id: "stats", emoji: "📊", label: "Stats", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1", desc: "Financials & metrics" },
+                                        ];
+                                    } else if (terminalTab === "market") {
+                                        cats = [
+                                            { id: "market", emoji: "⚔️", label: "Rivals", color: "#fff7ed", border: "#ffedd5", text: "#9a3412", desc: "Attack competitors" },
+
+                                            { id: "analysts", emoji: "🎙️", label: "PR/Comms", color: "#f5f3ff", border: "#ddd6fe", text: "#7c3aed", desc: "Public relations" },
+                                            { id: "manda_acquire", emoji: "🦈", label: "Acquire", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8", desc: "M&A acquisition", isLocked: false },
+                                            { id: "subsidiary", emoji: "🏢", label: "Manage", color: "#f8fafc", border: "#cbd5e1", text: "#475569", desc: "Subsidiary oversight", isLocked: false },
+                                            { id: "options", emoji: "🎲", label: "Options", color: "#fff7ed", border: "#ffedd5", text: "#ea580c", desc: "Derivatives market", isLocked: !startup.public_company }
+                                        ];
+                                    } else if (terminalTab === "corporate") {
+                                        cats = [
+                                            { id: "funding", emoji: "💰", label: "Funding", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce", desc: "Raise capital" },
+                                            { id: "board_mgmt", emoji: "🪑", label: "Board", color: "#fefce8", border: "#fde68a", text: "#b45309", desc: "Manage board" },
+                                            { id: "fines", emoji: "⚖️", label: "Legal", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Settle lawsuits" },
+                                            { id: "lobbying", emoji: "🏛️", label: "Lobbying", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8", desc: "Influence regulations", isLocked: !startup.public_company },
+                                            { id: "trade_stock", emoji: "📉", label: "Trade", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1", desc: "Treasury investing", isLocked: false },
+                                            { id: "buyback", emoji: "💸", label: "Buyback", color: "#fefce8", border: "#fde68a", text: "#b45309", desc: "Share buybacks", isLocked: !startup.public_company },
+                                            { id: "corporate_debt", emoji: "🏦", label: "Debt", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Venture debt & bonds", isLocked: false },
+                                        ];
+                                    } else if (terminalTab === "personal") {
+                                        cats = [
+                                            { id: "founder", emoji: "👤", label: "Founder", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Manage energy" },
+                                            { id: "lifestyle", emoji: "💎", label: "Lifestyle", color: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9", desc: "Luxury assets & perks" },
+                                            { id: "philanthropy", emoji: "🕊️", label: "Donate", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce", desc: "Charity for reputation" },
+                                            { id: "personal_trade", emoji: "📉", label: "Stock Market", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1", desc: "Personal stock trading" },
+                                            { id: "margin_loan", emoji: "💳", label: "Margin", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d", desc: "Borrow against stock", isLocked: !startup.public_company },
+                                            { id: "10b51", emoji: "📄", label: "10b51", color: "#fff7ed", border: "#ffedd5", text: "#9a3412", desc: "Automated trading", isLocked: !startup.public_company }
+                                        ];
+                                    }
+                                    return cats.sort((a, b) => (a.isLocked === b.isLocked ? 0 : a.isLocked ? 1 : -1)).map(cat => {
+                                        const locked = cat.isLocked;
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                onClick={() => {
+                                                    if (locked) {
+                                                        import('sonner').then(m => m.toast.error("Locked Module", { description: "This feature unlocks at a later corporate stage." }));
+                                                        return;
+                                                    }
+                                                    setActionCategory(cat.id as SheetCategory);
+                                                    setViewState("action");
+                                                }}
+                                                className={`p-5 rounded-2xl border-2 flex items-center gap-4 transition-all active:scale-[0.98] ${locked ? 'opacity-40 grayscale' : ''}`}
+                                                style={{
+                                                    backgroundColor: isDark ? "rgba(15, 23, 42, 0.6)" : cat.color,
+                                                    borderColor: isDark ? "rgba(51, 65, 85, 0.5)" : cat.border
+                                                }}
+                                            >
+                                                <span className="text-4xl drop-shadow-sm">{cat.emoji}</span>
+                                                <div className="text-left flex-1">
+                                                    <span className="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider leading-tight flex items-center gap-1.5">
+                                                        {cat.label} {locked && <span className="text-[10px]">🔒</span>}
+                                                    </span>
+                                                    <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{locked ? "Unlocks Post-IPO" : cat.desc}</span>
+                                                </div>
+                                                {!locked && <span className="text-slate-400 dark:text-slate-600 text-xl font-bold">›</span>}
+                                            </button>
+                                        );
+                                    });
+                                })()}
                             </div>
-                            <div
-                                className="overflow-y-auto px-4 pb-8"
-                                style={{ maxHeight: 'calc(80vh - 40px)' }}
-                                onPointerDown={(e) => e.stopPropagation()}
-                            >
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {viewState === "action" && actionCategory && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[200] flex flex-col"
+                    >
+                        {/* Action Top Bar */}
+                        <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
+                            <button onClick={() => setViewState("submenu")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform mt-auto mb-1">
+                                <span className="text-xl">←</span> <span className="font-black text-sm uppercase tracking-widest">Back</span>
+                            </button>
+                            <h2 className="mx-auto font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm text-center mt-auto mb-1.5">
+                                {actionCategory.replace("_", " ")}
+                            </h2>
+                            <div className="w-[104px]" /> {/* Spacer */}
+                        </div>
+                        {/* Action Content */}
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + 2rem)` : '2rem' }}>
+                            <div className="max-w-3xl mx-auto">
                                 <ActionSheet
                                     category={actionCategory}
                                     startup={startup}
@@ -6110,7 +8662,7 @@ export default function Dashboard() {
                                         handleActionClick(action as any);
                                         const c = actionCategory || "";
                                         if (!["product", "marketing", "hiring", "funding", "market"].includes(c)) {
-                                            setActionCategory(null);
+                                            setViewState("submenu");
                                         }
                                     }}
                                     selectedEmpIdx={selectedEmpIdx}
@@ -6146,6 +8698,8 @@ export default function Dashboard() {
                                     setFounder={setFounder}
                                     marketStocks={marketStocks}
                                     setMarketStocks={setMarketStocks}
+                                    mnaTargets={mnaTargets}
+                                    setMnaTargets={setMnaTargets}
                                     handleActionClick={handleActionClick}
                                     handleAllocateESOP={handleAllocateESOP}
                                     currentTime={currentTime}
@@ -6170,10 +8724,12 @@ export default function Dashboard() {
                                     hrCandidates={hrCandidates}
                                     setHrCandidates={setHrCandidates}
                                     isProcessing={isProcessing}
+                                    handleAcquireRival={handleAcquireRival}
+                                    setCompetitors={setCompetitors}
                                 />
                             </div>
-                        </motion.div>
-                    </>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
@@ -6217,7 +8773,7 @@ export default function Dashboard() {
                                 }
                                 setStoryState(prev => ({
                                     ...prev,
-                                    seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                    seenTriggers: [...(prev.seenTriggers || []), characterDialog.trigger],
                                     chadMustRespondNext: isChadDialog,
                                     lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
                                 }));
@@ -6232,7 +8788,7 @@ export default function Dashboard() {
                                 }
                                 setStoryState(prev => ({
                                     ...prev,
-                                    seenTriggers: [...prev.seenTriggers, characterDialog.trigger],
+                                    seenTriggers: [...(prev.seenTriggers || []), characterDialog.trigger],
                                     chadMustRespondNext: isChadDialog,
                                     lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
                                 }));
@@ -6248,9 +8804,9 @@ export default function Dashboard() {
                                 return {
                                     ...prev,
                                     samGoneToIsland: isIslandFarewell ? true : prev.samGoneToIsland,
-                                    seenTriggers: prev.seenTriggers.includes(trigger)
-                                        ? prev.seenTriggers
-                                        : [...prev.seenTriggers, trigger],
+                                    seenTriggers: (prev.seenTriggers || []).includes(trigger)
+                                        ? (prev.seenTriggers || [])
+                                        : [...(prev.seenTriggers || []), trigger],
                                     chadMustRespondNext: isChadDialog ? true : prev.chadMustRespondNext,
                                     lastChadMonth: isChadDialog ? month : prev.lastChadMonth,
                                 };
@@ -6298,11 +8854,11 @@ export default function Dashboard() {
                                 <div className="space-y-2">
                                     <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Ongoing Programs (-{focusHoursUsed}h)</h3>
                                     <div className="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl p-3 space-y-2">
-                                        {ongoingPrograms.map(p => {
+                                        {ongoingPrograms.map((p, i) => {
                                             const def = getOngoingProgramDef(p.id);
                                             return (
                                                 <BreakdownRow
-                                                    key={p.id}
+                                                    key={p.id || `prog_fallback_${i}`}
                                                     label={def?.label || p.id}
                                                     value={-(def?.monthlyEnergy || 0)}
                                                     sign=""
@@ -6419,8 +8975,8 @@ export default function Dashboard() {
                                                 <p className="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{choice.label}</p>
                                                 <div className="shrink-0 flex flex-col items-end gap-0.5">
                                                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
-                                                            choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-rose-100 text-rose-700'
+                                                        choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-rose-100 text-rose-700'
                                                         }`}>
                                                         {Math.round(choice.successRate * 100)}% success
                                                     </span>
@@ -6701,10 +9257,13 @@ export default function Dashboard() {
                             {lastProposalResult?.status === "approved" ? "✅" : "❌"}
                         </div>
                         <h2 className="text-2xl font-black text-white tracking-tighter uppercase whitespace-pre-wrap">
-                            {lastProposalResult?.status === "approved" ? "Salary Approved!" : "Proposal Rejected"}
+                            {lastProposalResult?.resolution_title
+                                ? (lastProposalResult.status === "approved" ? "Resolution Passed" : "Resolution Rejected")
+                                : (lastProposalResult?.status === "approved" ? "Salary Approved!" : "Proposal Rejected")
+                            }
                         </h2>
                         <p className="text-white/80 font-bold text-xs mt-1 uppercase tracking-widest">
-                            Board Resolution · {formatMoney(parseInt(salaryInput || "0"))} / mo
+                            {lastProposalResult?.resolution_title || "Board Resolution"} · {lastProposalResult?.amount ? `${formatMoney(lastProposalResult.amount)} / mo` : "Governance Action"}
                         </p>
                     </div>
 
@@ -7291,7 +9850,7 @@ export default function Dashboard() {
                 const monthsPlayed = startup.history?.length ?? 0;
                 const legacy = computeLegacyScore(founder, startup, monthsPlayed);
                 const founderTake = startup.acquisition_offers?.find((o: any) => o.negotiated)?.founder_take
-                    ?? (outcome === "ipo" ? Math.floor(startup.valuation * 0.20 * ((startup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 80) / 100)) : 0);
+                    ?? (outcome === "ipo" ? Math.floor(Math.floor(startup.valuation * 0.20) * 0.10) : 0);
 
                 const OUTCOME_META: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
                     ipo: { emoji: "🏛️", label: "IPO Success!", bg: "bg-violet-600", text: "text-violet-600" },
@@ -7321,7 +9880,9 @@ export default function Dashboard() {
                                         <p className="text-3xl font-black text-emerald-700 mt-1">
                                             {formatMoney(founderTake)}
                                         </p>
-                                        <p className="text-[9px] text-emerald-500 mt-0.5">after dilution</p>
+                                        <p className="text-[9px] text-emerald-500 mt-0.5">
+                                            {outcome === "ipo" ? "Secondary Liquidity (10% of IPO float)" : "after dilution"}
+                                        </p>
                                     </div>
                                 )}
 
@@ -7393,28 +9954,6 @@ export default function Dashboard() {
                                         </div>
                                     )}
                                 </div>
-
-                                {/* V2 Teaser — IPO only */}
-                                {outcome === "ipo" && (
-                                    <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-4 relative overflow-hidden">
-                                        <div className="absolute -top-4 -right-4 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
-                                        <div className="relative z-10">
-                                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest mb-2">
-                                                🧩 Your Story Doesn't End Here
-                                            </div>
-                                            <p className="text-white font-bold text-sm leading-snug mb-1">
-                                                You've just listed on the stock exchange.
-                                            </p>
-                                            <p className="text-indigo-100 text-[10px] leading-relaxed mb-3">
-                                                But running a publicly traded company is a whole new game. The V2 update continues your journey — quarterly earnings calls, activist investors, board battles, and the pressure of performing in front of Wall Street.
-                                            </p>
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 w-fit">
-                                                <span className="text-xs">🕐</span>
-                                                <p className="text-white text-[9px] font-black uppercase tracking-wide">Coming June 2026</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Footer buttons - fixed bottom with safe area */}
@@ -7484,7 +10023,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="relative z-10">
-                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
                                 <Rocket className="size-3" /> The V2 Era
                             </div>
                             <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
@@ -7688,7 +10227,7 @@ export default function Dashboard() {
                 />
             )}
 
-            <SamOnboardingModal
+            <PostIpoCinematicModal
                 isOpen={showPostIpoCinematic}
                 onComplete={() => setShowPostIpoCinematic(false)}
             />
@@ -7747,6 +10286,13 @@ export default function Dashboard() {
 
                     setIsEarningsCallOpen(false);
                 }}
+            />
+
+            <StoreModal 
+                open={isStoreOpen} 
+                onClose={() => setIsStoreOpen(false)} 
+                startup={startup} 
+                setStartup={setStartup as any} 
             />
         </div>
     );

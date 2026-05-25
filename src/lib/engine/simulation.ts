@@ -1,8 +1,9 @@
-import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry, SeasonType, EmployeeTrait } from "../types/database.types";
+import { Founder, Startup, BoardMember, SalaryProposal, CapTableEntry, SeasonType, EmployeeTrait, Lawsuit } from "../types/database.types";
 import { SCENARIOS, ScenarioId } from "./legacy";
 import { TRAIT_REVEAL_NOTICES, formatTraitNotice } from "./traitNotices";
-import { checkCrisisSpawn, processCrisisEscalation, CRISIS_LABELS, CRISIS_EMOJIS, getCurrentCrisisStage } from "./crisisEngine";
+import { checkCrisisSpawn, checkLawsuitSpawn, processCrisisEscalation, CRISIS_LABELS, CRISIS_EMOJIS, getCurrentCrisisStage, spawnLawsuit } from "./crisisEngine";
 import { applySkillNodeEffects } from "./skillWeb";
+import { formatNumber } from "../utils";
 
 export interface PricingConfigNode {
     maxPrice: number;
@@ -290,6 +291,7 @@ export type StartupAction =
     | "hire_engineer"
     | "hire_marketer"
     | "hire_sales"
+    | "hire_legal"
     // Funding
     | "pitch_investors"
     | "negotiate_round"
@@ -737,9 +739,10 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             else if (emp.role === "marketer") marketerPower += emp.skills.marketing * perfMult;
             else if (emp.role === "sales") salesPower += emp.skills.sales * perfMult;
             else if ((emp as any).isCXO) {
-                if (emp.role === "cto") engineerPower += 80;
-                if (emp.role === "cmo") marketerPower += 80;
-                if (emp.role === "coo") salesPower += 40;
+                const cxoRole = emp.role as string;
+                if (cxoRole === "cto") engineerPower += 80;
+                if (cxoRole === "cmo") marketerPower += 80;
+                if (cxoRole === "coo") salesPower += 40;
             }
         }
     });
@@ -824,11 +827,43 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     const burnoutGrowthPenalty = metrics.founder_burnout > 50 ? (metrics.founder_burnout - 50) / 100 : 0;
     const monthsPassed = startup.history?.length || 0;
+    
+    // --- CAPACITY STRAIN MECHANIC ---
+    // Prevent players from running a massive company with 0 staff
+    const totalHeadcount = employees.length + Object.keys(cxoTeam).length + 1; // +1 for founder
+    let maxUsersPerHeadcount = 10000;
+    if (industry === "Mobile Game") maxUsersPerHeadcount = 100000;
+    else if (industry === "SaaS Platform" || industry === "EdTech" || industry === "Dev Tools") maxUsersPerHeadcount = 5000;
+    else if (industry === "Marketplace") maxUsersPerHeadcount = 25000;
+    else if (industry === "FinTech App" || industry === "FinTech" || industry === "FinTech Platform") maxUsersPerHeadcount = 15000;
+    else if (isSLG) maxUsersPerHeadcount = 500; // High touch B2B requires massive headcount
+
+    const maxSafeUsers = totalHeadcount * maxUsersPerHeadcount;
+    let capacityStrainMult = 1.0;
+
+    if (metrics.users > maxSafeUsers && maxSafeUsers > 0) {
+        const overloadRatio = metrics.users / maxSafeUsers;
+        
+        // Passive Tech Debt from being overloaded
+        const debtSpike = Math.min(10, (overloadRatio - 1) * 2);
+        metrics.technical_debt = Math.min(100, metrics.technical_debt + debtSpike);
+        
+        // Morale crash from being overworked
+        metrics.team_morale = Math.max(0, metrics.team_morale - (debtSpike / 2));
+        
+        // Growth penalty
+        capacityStrainMult = Math.max(0.1, 1 / Math.sqrt(overloadRatio));
+        
+        if (debtSpike > 3 && Math.random() > 0.5) {
+            notices.push(`🚨 Capacity Overload! Your team of ${totalHeadcount} cannot support ${formatNumber(Math.floor(metrics.users))} users. Tech Debt spiked and morale is dropping. Hire more staff!`);
+        }
+    }
+
     // --- MARKET DYNAMICS ---
     const marketCycle = Math.sin(monthsPassed / 3); 
     const marketSentiment = 0.85 + (marketCycle * 0.1); 
     
-    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.4 + (metrics.brand_awareness || 0) * 0.2 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * marketSentiment;
+    let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.4 + (metrics.brand_awareness || 0) * 0.2 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * capacityStrainMult * marketSentiment;
     
     if (startup.unlocked_perks?.includes("growth_hacker")) {
         growthRate *= 1.10;
@@ -1045,6 +1080,13 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         notices.push(stage?.stageNotice || `${CRISIS_EMOJIS[newCrisis.type]} CRISIS: ${CRISIS_LABELS[newCrisis.type]} has erupted.`);
     }
 
+    // Step 2: Passive Lawsuit Spawn (for large companies)
+    const newPassiveSuit = checkLawsuitSpawn(newStartup, monthsPassed);
+    if (newPassiveSuit) {
+        newStartup.active_lawsuits = [...(newStartup.active_lawsuits || []), newPassiveSuit];
+        notices.push(`⚖️ LEGAL ALERT: ${newPassiveSuit.title} filed against the company.`);
+    }
+
     // Step 2: Auto-escalate existing crisis if player has not responded
     if (newStartup.active_crisis && !newStartup.active_crisis.resolved) {
         const escalation = processCrisisEscalation(
@@ -1072,6 +1114,14 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             if (fx.valuation_mult) newStartup.valuation = Math.floor(newStartup.valuation * fx.valuation_mult);
             if (fx.ceo_reputation) newStartup.ceo_reputation = Math.max(0, Math.min(100, (newStartup.ceo_reputation ?? 80) + fx.ceo_reputation));
             if (fx.user_churn_bonus) metrics.users = Math.max(0, Math.floor(metrics.users * (1 - fx.user_churn_bonus)));
+            
+            // Spawn Lawsuit if crisis causes legal risk
+            if (fx.legal_risk) {
+                const type = escalation.notice.includes("FTC") ? "regulatory_fine" : "class_action";
+                const newSuit = spawnLawsuit(type, (startup.history?.length || 0) + 1);
+                newStartup.active_lawsuits = [...(newStartup.active_lawsuits || []), newSuit];
+            }
+
             if (escalation.notice) notices.push(escalation.notice);
         }
     }
@@ -1293,6 +1343,78 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.product_quality = isFinite(metrics.product_quality) ? metrics.product_quality : 10;
     metrics.burn_rate = isFinite(metrics.burn_rate) ? metrics.burn_rate : 0;
 
+    // ---- LEGAL SYSTEM (LAWSUITS) ----
+    if (newStartup.active_lawsuits && newStartup.active_lawsuits.length > 0) {
+        const legalPower = startup.employees?.filter(e => e.role === "legal").reduce((sum, e) => sum + (e.skills.legal || 0) * (e.performance / 100), 0) || 0;
+        
+        newStartup.active_lawsuits = newStartup.active_lawsuits.map((suit: Lawsuit) => {
+            // Deduct monthly legal fees
+            const fees = suit.legal_fees_per_month;
+            metrics.cash -= fees;
+            
+            // Progress trial
+            const nextSuit = { ...suit, months_to_trial: suit.months_to_trial - 1 };
+            
+            if (nextSuit.months_to_trial <= 0) {
+                // Trial Resolution
+                const adjWinProb = Math.min(0.95, suit.win_probability + (legalPower / 500));
+                if (Math.random() < adjWinProb) {
+                    notices.push(`⚖️ VICTORY: The court dismissed the ${suit.title} lawsuit!`);
+                } else {
+                    const penalty = suit.demand_amount;
+                    metrics.cash -= penalty;
+                    notices.push(`🚨 DEFEAT: You lost the ${suit.title} lawsuit. Paid ${penalty.toLocaleString()} in damages.`);
+                }
+                return null as any;
+            }
+            return nextSuit;
+        }).filter(Boolean);
+    }
+
+    // ── PRIVATE DEBT & CREDIT SCORE ────────────────────────────────────────────
+    if (metrics.credit_score === undefined) metrics.credit_score = 700;
+    
+    // Base credit score adjustment based on runway and cashflow
+    if (metrics.runway > 12 && metrics.burn_rate < metrics.revenue) {
+        metrics.credit_score = Math.min(850, metrics.credit_score + 2);
+    } else if (metrics.runway < 3) {
+        metrics.credit_score = Math.max(300, metrics.credit_score - 5);
+    }
+
+    const privateDebts: any[] = (newStartup as any).private_debt || [];
+    if (privateDebts.length > 0) {
+        const repaidNames: string[] = [];
+        let totalMonthlyDebt = 0;
+        
+        const updatedDebts = privateDebts.map((d: any) => {
+            metrics.cash -= d.monthly_payment;
+            totalMonthlyDebt += d.monthly_payment;
+            
+            const remaining = d.months_left - 1;
+            if (remaining <= 0) {
+                repaidNames.push(d.name);
+                metrics.credit_score = Math.min(850, (metrics.credit_score || 700) + 15); // Bonus for paying off debt
+                return null;
+            }
+            return { ...d, months_left: remaining };
+        }).filter(Boolean);
+        
+        (newStartup as any).private_debt = updatedDebts;
+        repaidNames.forEach(name => notices.push(`✅ Debt Repaid: ${name} has been fully paid off.`));
+        
+        // Consistent repayment builds credit
+        metrics.credit_score = Math.min(850, (metrics.credit_score || 700) + 1);
+
+        // Debt Covenant: Restructuring Risk
+        // If cash drops below 1x monthly debt obligations while holding debt, lenders force restructuring
+        if (metrics.cash < totalMonthlyDebt && updatedDebts.length > 0) {
+            metrics.credit_score = Math.max(300, (metrics.credit_score || 700) - 100);
+            metrics.team_morale = Math.max(0, metrics.team_morale - 30);
+            newStartup.valuation = Math.max(1000000, Math.floor(newStartup.valuation * 0.5));
+            notices.push(`⚠️ DEBT RESTRUCTURING: Lenders forced a restructuring due to low cash! Valuation halved, morale plummeted, credit score tanked.`);
+        }
+    }
+
     return { newStartup, notices };
 }
 
@@ -1364,8 +1486,20 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
             yesProb = 40;
             if (runway < 12) yesProb -= 20;
             if (runway < 6) yesProb -= 50;
-            if (amount > 15000) yesProb -= 30;
-            if (amount > 25000) yesProb -= 50;
+
+            const monthlyProfit = m.net_profit || 0;
+            const isHyperProfitable = monthlyProfit > 1_000_000;
+            const salaryAsPctOfProfit = monthlyProfit > 0 ? (amount / monthlyProfit) : 100;
+
+            if (isHyperProfitable && salaryAsPctOfProfit < 0.05) {
+                // If company is printing money and founder takes < 5% of profit, board is very chill
+                yesProb += 50;
+            } else {
+                // Traditional "Early Stage" constraints
+                if (amount > 15000) yesProb -= 30;
+                if (amount > 25000) yesProb -= 50;
+            }
+
             if (isProfitable) yesProb += 40;
             if (m.growth_rate > 0.2) yesProb += 20;
         }
@@ -1402,5 +1536,79 @@ function getVoteReason(type: string, votedYes: boolean, runway: number, isProfit
         if (runway < 6) return "We don't have enough runway to support this increase.";
         if (amount > 20000) return "This salary is significantly above market for a startup at our stage.";
         return "We need to preserve cash for growth and hiring.";
+    }
+}
+
+export function evaluateResolution(startup: Startup, founder: Founder, name: string, resolutionCost: number = 0): SalaryProposal {
+    const members = getBoardMembers(startup);
+    const m = startup.metrics;
+    
+    const votes: SalaryProposal["votes"] = [];
+
+    members.forEach(member => {
+        let yesProb = 75; // Base probability (increased for better UX)
+
+        if (member.type === "Founder") {
+            yesProb = 98;
+        } else if (member.type === "Co-Founder") {
+            yesProb = 85;
+            if (m.team_morale < 30) yesProb -= 15;
+        } else if (member.type === "Investor") {
+            yesProb = 60;
+            if (m.runway < 6) yesProb -= 40;
+            if (m.growth_rate > 0.15) yesProb += 15;
+            if (m.pmf_score > 50) yesProb += 10;
+            
+            // If the company has massive cash relative to cost, it's a no-brainer "YES"
+            if (resolutionCost > 0 && m.cash > resolutionCost * 100) {
+                yesProb += 40;
+            }
+
+            // Specific resolution logic
+            if (name === "Rebrand Company") {
+                if (m.brand_awareness > 85) yesProb -= 25; 
+            }
+            if (name === "Executive Retreat") {
+                if (m.cash < resolutionCost * 2) yesProb -= 50;
+                if (m.founder_burnout < 20) yesProb -= 30;
+            }
+            if (name === "Appoint Independent Director") {
+                yesProb += 25; 
+            }
+            if (name === "Adopt Poison Pill") {
+                yesProb += 30;
+            }
+        }
+
+        const votedYes = member.id === "founder-main" ? true : Math.random() * 100 < yesProb;
+        votes.push({
+            memberId: member.id,
+            vote: votedYes ? "yes" : "no",
+            reason: getResolutionReason(name, member.type, votedYes, m)
+        });
+    });
+
+    const totalVotes = votes.length;
+    const yesVotes = votes.filter(v => v.vote === "yes").length;
+    const approved = yesVotes > totalVotes / 2;
+
+    return {
+        amount: 0,
+        proposed_month: startup.history?.length ?? 0,
+        status: approved ? "approved" : "rejected",
+        votes,
+        resolution_title: name
+    };
+}
+
+function getResolutionReason(name: string, type: string, votedYes: boolean, m: any): string {
+    if (votedYes) {
+        if (type === "Investor") return "This is a sound strategic move for the long-term health of the business.";
+        return "I support the founder's vision for this corporate action.";
+    } else {
+        if (m.runway < 6) return "The company's cash position is too precarious for this expenditure.";
+        if (name === "Executive Retreat") return "We cannot justify an expensive retreat while we have core technical debt to solve.";
+        if (name === "Rebrand Company") return "We should focus on fixing Product-Market Fit before spending on a new brand.";
+        return "I don't believe this is the right priority for the company at this stage.";
     }
 }

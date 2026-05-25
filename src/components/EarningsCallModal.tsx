@@ -62,7 +62,8 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
 
     const pub = startup.public_company;
     const eps = pub.eps_last_quarter;
-    const consensus = pub.consensus_eps;
+    const [consensusReduction, setConsensusReduction] = useState(0);
+    const consensus = pub.consensus_eps - consensusReduction;
     
     // EPS Beat/Miss Logic
     const isBeat = eps >= consensus;
@@ -136,9 +137,26 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
                             <p className="text-sm font-bold">Earnings Beat! The street is impressed.</p>
                         </div>
                     ) : (
-                        <div className="mb-6 flex items-center gap-2 text-rose-600 bg-rose-50 dark:bg-rose-900/20 p-3 rounded-xl">
-                            <span className="text-xl">📉</span>
-                            <p className="text-sm font-bold">Earnings Missed. Investors are demanding answers.</p>
+                        <div className="mb-6 flex items-center justify-between bg-rose-50 dark:bg-rose-900/20 p-3 rounded-xl">
+                            <div className="flex items-center gap-2 text-rose-600">
+                                <span className="text-xl">📉</span>
+                                <p className="text-sm font-bold">Earnings Missed. Investors are demanding answers.</p>
+                            </div>
+                            {consensusReduction === 0 && (
+                                <button 
+                                    onClick={() => {
+                                        import('@/lib/services/adService').then(({ adService }) => {
+                                            adService.showRewardedAd(() => {
+                                                setConsensusReduction(pub.consensus_eps * 0.15); // Reduce by 15%
+                                                import('sonner').then(m => m.toast.success("Guidance Adjusted", { description: "Wall Street analysts have lowered their targets." }));
+                                            });
+                                        });
+                                    }}
+                                    className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/50 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1"
+                                >
+                                    <span>▶</span> Adjust Models
+                                </button>
+                            )}
                         </div>
                     )}
 

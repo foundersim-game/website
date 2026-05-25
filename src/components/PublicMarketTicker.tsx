@@ -25,7 +25,7 @@ export function PublicMarketTicker({
             <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10" />
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-900 to-transparent z-10" />
                         {/* Slower scrolling marquee */}
-            <div className="flex animate-[marquee_20s_linear_infinite] whitespace-nowrap items-center gap-8 pl-4">
+            <div className="flex animate-[marquee_90s_linear_infinite] whitespace-nowrap items-center gap-8 pl-4">
                 {/* Company Stock (Only if Public) */}
                 {publicState && (
                     <span className="flex items-center gap-2 text-white">
@@ -40,7 +40,11 @@ export function PublicMarketTicker({
                 
                 {/* Market Stocks from Simulation */}
                 {marketStocks.filter(s => s.symbol !== companyName.substring(0, 4).toUpperCase()).map(stock => {
-                    const diff = stock.momentum * 100; // simplified mock change for ticker visual
+                    let diff = 0;
+                    if (stock.priceHistory && stock.priceHistory.length > 1) {
+                        const prevPrice = stock.priceHistory[stock.priceHistory.length - 2];
+                        diff = ((stock.currentPrice - prevPrice) / prevPrice) * 100;
+                    }
                     const sUp = diff >= 0;
                     return (
                         <React.Fragment key={stock.symbol}>
@@ -50,6 +54,9 @@ export function PublicMarketTicker({
                                 <span className={sUp ? "text-emerald-400" : "text-rose-400"}>
                                     {sUp ? "+" : ""}{diff.toFixed(2)}%
                                 </span>
+                                {stock.recentNews && (
+                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {stock.recentNews.toUpperCase()}</span>
+                                )}
                             </span>
                             <span className="text-slate-600">|</span>
                         </React.Fragment>
@@ -86,7 +93,11 @@ export function PublicMarketTicker({
                 {publicState && <span className="text-slate-600">|</span>}
                 
                 {marketStocks.filter(s => s.symbol !== companyName.substring(0, 4).toUpperCase()).map(stock => {
-                    const diff = stock.momentum * 100;
+                    let diff = 0;
+                    if (stock.priceHistory && stock.priceHistory.length > 1) {
+                        const prevPrice = stock.priceHistory[stock.priceHistory.length - 2];
+                        diff = ((stock.currentPrice - prevPrice) / prevPrice) * 100;
+                    }
                     const sUp = diff >= 0;
                     return (
                         <React.Fragment key={stock.symbol + "_dup"}>
@@ -96,6 +107,9 @@ export function PublicMarketTicker({
                                 <span className={sUp ? "text-emerald-400" : "text-rose-400"}>
                                     {sUp ? "+" : ""}{diff.toFixed(2)}%
                                 </span>
+                                {stock.recentNews && (
+                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {stock.recentNews.toUpperCase()}</span>
+                                )}
                             </span>
                             <span className="text-slate-600">|</span>
                         </React.Fragment>

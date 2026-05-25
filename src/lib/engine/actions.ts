@@ -886,7 +886,7 @@ export function getOngoingProgramDef(id: string): OngoingProgramDef | undefined 
 }
 
 // ─── Helper: Focus energy pool ────────────────────────────────────────────────
-export function calcFocusHours(burnout: number, employees: any[], hasCofounder: boolean = false): number {
+export function calcFocusHours(burnout: number, employees: any[], hasCofounder: boolean = false, hasCaffeine: boolean = false): number {
     const hasCOO = employees.some((e: any) => e.role?.toUpperCase() === "COO");
     const hasEA = employees.some((e: any) => e.role?.toUpperCase() === "EA");
     const base = 100; // Reduced focus hours for difficulty
@@ -895,5 +895,6 @@ export function calcFocusHours(burnout: number, employees: any[], hasCofounder: 
     const cofounderBonus = hasCofounder ? 50 : 0;
     const cooBonus = hasCOO ? 20 : 0;
     const eaBonus = hasEA ? 15 : 0;
-    return Math.max(40, Math.round(base - burnoutPenalty + cofounderBonus + cooBonus + eaBonus));
+    const caffeineBonus = hasCaffeine ? 100 : 0;
+    return Math.max(40, Math.round(base - burnoutPenalty + cofounderBonus + cooBonus + eaBonus + caffeineBonus));
 }

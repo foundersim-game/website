@@ -80,7 +80,7 @@ export default function Home() {
       const activeState = localStorage.getItem("founder_sim_state");
       setHasActiveGame(!!activeState);
       
-      const premium = localStorage.getItem("founder_sim_premium") === "true";
+      const premium = localStorage.getItem("founder_sim_premium") === "true" || localStorage.getItem("founder_sim_titan") === "true";
       setIsPremium(premium);
     } catch {
       setSavedGames([]);
@@ -90,7 +90,7 @@ export default function Home() {
   };
 
   useEffect(() => { 
-    const premium = localStorage.getItem("founder_sim_premium") === "true";
+    const premium = localStorage.getItem("founder_sim_premium") === "true" || localStorage.getItem("founder_sim_titan") === "true";
     if (premium) {
       adService.hideBanner();
     } else {
@@ -427,9 +427,12 @@ export default function Home() {
 
         </motion.div>
 
-        <div className="flex flex-col items-center gap-1.5 shrink-0 pb-2.5">
+        <div className="flex flex-col items-center gap-1.5 shrink-0 pb-2.5 text-center">
           <p className="text-[9px] text-slate-400 font-bold tracking-tight">
             FounderSim · Real startup simulation
+          </p>
+          <p className="text-[9px] text-slate-400/80 font-bold tracking-tight">
+            © {new Date().getFullYear()} SMISH Ventures. All rights reserved.
           </p>
           <a 
             href="https://foundersim.fun/privacy" 

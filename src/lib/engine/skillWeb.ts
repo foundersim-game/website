@@ -191,10 +191,10 @@ export const SKILL_NODE_MAP: Record<SkillNodeId, SkillNode> = Object.fromEntries
 
 // ─── BRANCHES ────────────────────────────────────────────────────────────────
 export const SKILL_BRANCHES: Record<SkillBranch, { emoji: string; color: string; bgColor: string; borderColor: string }> = {
-    Technical:    { emoji: "⚙️",  color: "text-blue-700",   bgColor: "bg-blue-50",    borderColor: "border-blue-200" },
-    Marketing:    { emoji: "📈",  color: "text-pink-700",   bgColor: "bg-pink-50",    borderColor: "border-pink-200" },
-    Leadership:   { emoji: "👔",  color: "text-violet-700", bgColor: "bg-violet-50",  borderColor: "border-violet-200" },
-    Fundraising:  { emoji: "💰",  color: "text-emerald-700",bgColor: "bg-emerald-50", borderColor: "border-emerald-200" },
+    Technical:    { emoji: "⚙️",  color: "text-blue-700 dark:text-blue-400",   bgColor: "bg-blue-50 dark:bg-blue-900/30",    borderColor: "border-blue-200 dark:border-blue-800/50" },
+    Marketing:    { emoji: "📈",  color: "text-pink-700 dark:text-pink-400",   bgColor: "bg-pink-50 dark:bg-pink-900/30",    borderColor: "border-pink-200 dark:border-pink-800/50" },
+    Leadership:   { emoji: "👔",  color: "text-violet-700 dark:text-violet-400", bgColor: "bg-violet-50 dark:bg-violet-900/30",  borderColor: "border-violet-200 dark:border-violet-800/50" },
+    Fundraising:  { emoji: "💰",  color: "text-emerald-700 dark:text-emerald-400",bgColor: "bg-emerald-50 dark:bg-emerald-900/30", borderColor: "border-emerald-200 dark:border-emerald-800/50" },
 };
 
 // ─── SKILL POINTS ─────────────────────────────────────────────────────────────
