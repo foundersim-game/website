@@ -47,6 +47,8 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
     const [step, setStep] = useState<1 | 2>(1);
     const [selectedGuidance, setSelectedGuidance] = useState<"bullish" | "realistic" | "bearish" | null>(null);
     
+    const [consensusReduction, setConsensusReduction] = useState(0);
+    
     // Pick a random question on mount/open
     const [qData, setQData] = useState(() => ANALYST_QUESTIONS[Math.floor(Math.random() * ANALYST_QUESTIONS.length)]);
 
@@ -55,6 +57,7 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
             setStep(1);
             setSelectedGuidance(null);
             setQData(ANALYST_QUESTIONS[Math.floor(Math.random() * ANALYST_QUESTIONS.length)]);
+            setConsensusReduction(0);
         }
     }, [open]);
 
@@ -62,7 +65,6 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
 
     const pub = startup.public_company;
     const eps = pub.eps_last_quarter;
-    const [consensusReduction, setConsensusReduction] = useState(0);
     const consensus = pub.consensus_eps - consensusReduction;
     
     // EPS Beat/Miss Logic
@@ -186,7 +188,7 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
                             <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl mb-4 relative">
                                 <div className="absolute -left-2 -top-2 text-2xl">🎙️</div>
                                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200 italic ml-4">
-                                    "{qData.question}"
+                                    &quot;{qData.question}&quot;
                                 </p>
                             </div>
                             
@@ -197,7 +199,7 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
                                         onClick={() => handleAnswerQuestion(opt)}
                                         className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium text-slate-700 dark:text-slate-300"
                                     >
-                                        "{opt.text}"
+                                        &quot;{opt.text}&quot;
                                     </button>
                                 ))}
                             </div>

@@ -421,7 +421,7 @@ export type MacroEvent = {
 
 export type StockShareholder = {
     name: string;                // "Vantage Index Fund", "Chad Williams (Founder)", etc.
-    type: "institution" | "founder" | "vc" | "public_float" | "player";
+    type: "institution" | "founder" | "vc" | "public_float" | "player" | "parent_company";
     ownershipPct: number;        // 0-100
 };
 

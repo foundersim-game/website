@@ -45,29 +45,69 @@ import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefca
 import { HowToPlayContent } from "@/components/HowToPlay";
 import StockMarketView from "@/components/StockMarketView";
 import { StoreModal } from "@/components/StoreModal";
+import { ManageSubsidiaryModal } from "@/components/ManageSubsidiaryModal";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 
 // ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
+// Subsidiary string format (v2): name::valuation::revenue::expenses::risk::dividendRatio
+// Legacy format (v1):            name::valuation::monthlySynergy::risk  (auto-migrated)
 const parseSubsidiary = (subStr: string) => {
     if (subStr.includes("::")) {
-        const [name, valStr, synStr, risk] = subStr.split("::");
-        return {
-            name,
-            valuation: parseInt(valStr) || 45000000,
-            monthlySynergy: parseInt(synStr) || 120000,
-            integrationRisk: risk as "Low" | "Medium" | "High",
-            raw: subStr
-        };
+        const parts = subStr.split("::");
+        const name = parts[0];
+        const valuation = parseInt(parts[1]) || 45000000;
+
+        // Detect v2 format: 6 parts OR 5th part is a float (dividendRatio) after a risk keyword
+        const isV2 = parts.length >= 5 && !(parseFloat(parts[4]) > 0 && parseFloat(parts[4]) <= 1);
+        // v2: name::val::revenue::expenses::risk::divRatio
+        // v1: name::val::synergy::risk::divRatio
+        let revenue: number, expenses: number, integrationRisk: "Low" | "Medium" | "High", dividendRatio: number;
+
+        if (parts.length >= 5 && (parts[4] === "Low" || parts[4] === "Medium" || parts[4] === "High")) {
+            // v2 format
+            revenue = parseInt(parts[2]) || 200000;
+            expenses = parseInt(parts[3]) || 80000;
+            integrationRisk = parts[4] as "Low" | "Medium" | "High";
+            dividendRatio = parseFloat(parts[5]) || 0.25;
+        } else {
+            // v1 format — migrate: derive revenue/expenses from monthlySynergy
+            const synergy = parseInt(parts[2]) || 120000;
+            integrationRisk = (parts[3] || "Low") as "Low" | "Medium" | "High";
+            dividendRatio = parseFloat(parts[4]) || 0.25;
+            if (synergy >= 0) {
+                // Profitable: revenue = synergy / 0.3 (30% margin), expenses = revenue - synergy
+                revenue = Math.round(synergy / 0.3);
+                expenses = revenue - synergy;
+            } else {
+                // Cash drain: no revenue, all expenses
+                revenue = 0;
+                expenses = Math.abs(synergy);
+            }
+        }
+
+        const netIncome = revenue - expenses;
+        return { name, valuation, revenue, expenses, netIncome, integrationRisk, dividendRatio, raw: subStr };
     }
-    // Default fallback for legacy strings (like spin-offs)
+    // Default fallback for legacy plain strings
+    const revenue = 400000;
+    const expenses = 160000;
     return {
         name: subStr,
         valuation: 45000000,
-        monthlySynergy: 120000,
+        revenue,
+        expenses,
+        netIncome: revenue - expenses,
         integrationRisk: "Low" as const,
+        dividendRatio: 0.25,
         raw: subStr
     };
 };
+
+// Helper to serialize a subsidiary back to the v2 string format
+const serializeSubsidiary = (s: {
+    name: string; valuation: number; revenue: number; expenses: number;
+    integrationRisk: string; dividendRatio: number;
+}) => `${s.name}::${s.valuation}::${s.revenue}::${s.expenses}::${s.integrationRisk}::${s.dividendRatio}`;
 
 // ── TALENT ROSTER: TraitBadge component ───────────────────────────────────────────────
 const TRAIT_META: Record<EmployeeTrait, { label: string; color: string; description: string }> = {
@@ -550,6 +590,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing, handleAcquireRival, setCompetitors }: ActionSheetProps) {
 
     const employees = allEmployees;
+    const [isManageSubModalOpen, setIsManageSubModalOpen] = useState(false);
+    const [selectedSubRaw, setSelectedSubRaw] = useState<string>("");
     const [borrowSlideVal, setBorrowSlideVal] = useState<number>(0);
     const [repaySlideVal, setRepaySlideVal] = useState<number>(0);
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
@@ -2888,8 +2930,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             </div>
 
                             {/* SP Earning Guide (DETAILED) */}
-                            <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl">
-                                <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                            <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl max-h-[190px] overflow-y-auto custom-scrollbar">
+                                <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 sticky top-0 bg-indigo-50 dark:bg-slate-900 z-10 py-0.5">
                                     <Sparkles className="w-3.5 h-3.5" /> How to earn Skill Points (SP)
                                 </p>
                                 <div className="space-y-2.5">
@@ -2923,6 +2965,39 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per Year</span>
                                             </div>
                                             <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">For every 12 months you survive as CEO, you earn an automatic Skill Point.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">🏢</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">M&A / ACQUISITIONS</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per 2 Acq</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Earn +1 SP for every 2 companies acquired under your corporate group.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">📊</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">REVENUE (ARR) TIER</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 6 SP</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Get +1 SP when crossing ARR tiers of $10M, $100M, $1B, $10B, $100B, and $1T.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">🏛️</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">IPO DAY</p>
+                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+2 SP</span>
+                                            </div>
+                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Transitioning to a public company by underwriting your IPO grants +2 SP.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -4100,6 +4175,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const floatShares = pub?.float || 20000000;
         const eps = pub?.eps_last_quarter || 0.05;
 
+        // Dynamic capital allocation amounts
+        const companyValuation = sharesOut * sharePrice;
+        const authSmall = Math.max(1000, Math.round(0.01 * companyValuation)); // 1% of company
+        const authLarge = Math.max(5000, Math.round(0.05 * companyValuation)); // 5% of company
+
+        const costSmall = Math.max(1, Math.round(0.005 * floatShares * sharePrice)); // 0.5% of float
+        const costMedium = Math.max(1, Math.round(0.02 * floatShares * sharePrice)); // 2.0% of float
+        const costTender = Math.max(1, Math.round(0.05 * floatShares * sharePrice * 1.10)); // 5.0% of float + 10% premium
+
+        const popSmall = (Math.min(0.25, 0.005 * 0.8) * 100).toFixed(1);
+        const popMedium = (Math.min(0.25, 0.02 * 0.8) * 100).toFixed(1);
+        const popTender = (Math.min(0.25, 0.05 * 1.2) * 100).toFixed(1);
+
         const handleAuthorize = (amount: number) => {
             const newStartup = { ...startup };
             newStartup.public_company.buyback_authorized = amount;
@@ -4118,10 +4206,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 return;
             }
 
-            const newStartup = { ...startup };
             const repurchasePrice = isTender ? sharePrice * 1.10 : sharePrice;
-            const sharesRetired = amount / repurchasePrice;
+            const sharesRetired = Math.floor(amount / repurchasePrice);
 
+            if (sharesRetired <= 0) {
+                toast.error("Buyback Too Small", { description: "The buyback amount is too small to purchase a single share at current prices." });
+                return;
+            }
+
+            const newStartup = { ...startup };
             newStartup.metrics.cash -= amount;
             if (!isTender) {
                 newStartup.public_company.buyback_authorized = Math.max(0, newStartup.public_company.buyback_authorized - amount);
@@ -4129,8 +4222,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             newStartup.public_company.shares_outstanding = Math.max(1, newStartup.public_company.shares_outstanding - sharesRetired);
             newStartup.public_company.float = Math.max(1, newStartup.public_company.float - sharesRetired);
 
-            // Stock price pop!
-            const pricePopFactor = isTender ? 1.08 : amount >= 50000000 ? 1.05 : amount >= 20000000 ? 1.025 : 1.01;
+            // Stock price pop based on percentage of float retired (e.g., buying 10% of float pops price by ~8%)
+            const pctOfFloat = sharesRetired / floatShares;
+            const pricePopFactor = 1 + Math.min(0.25, pctOfFloat * (isTender ? 1.2 : 0.8));
             newStartup.public_company.share_price *= pricePopFactor;
             newStartup.valuation = newStartup.public_company.shares_outstanding * newStartup.public_company.share_price;
 
@@ -4140,8 +4234,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             setStartup(newStartup);
 
             const label = isTender ? "Dutch Auction Tender Offer" : "Open Market Repurchase";
-            addTimelineEvent(`💸 ${label}: Executed ${formatMoney(amount)} buyback, retiring ${formatNumber(sharesRetired)} shares. Share price popped +${((pricePopFactor - 1) * 100).toFixed(1)}%.`);
-            toast.success("Buyback Executed!", { description: `Retired ${formatNumber(sharesRetired)} float shares!` });
+            addTimelineEvent(`💸 ${label}: Executed ${formatMoney(amount)} buyback, retiring ${sharesRetired.toLocaleString("en-US")} shares. Share price popped +${((pricePopFactor - 1) * 100).toFixed(3)}%.`);
+            toast.success("Buyback Executed!", { description: `Retired ${sharesRetired.toLocaleString("en-US")} float shares!` });
         };
 
         return (
@@ -4174,36 +4268,42 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">Authorize Buyback Program</h4>
                         <p className="text-[10px] text-slate-500 mt-1 mb-3">Instruct the Board of Directors to approve capital allocation for share repurchases.</p>
                         <div className="flex gap-2">
-                            <button onClick={() => handleAuthorize(20000000)} className="flex-1 bg-slate-800 dark:bg-slate-700 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:opacity-90 active:scale-95 transition-all">Authorize $20M Program</button>
-                            <button onClick={() => handleAuthorize(50000000)} className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">Authorize $50M Program</button>
+                            <button onClick={() => handleAuthorize(authSmall)} className="flex-1 bg-slate-800 dark:bg-slate-700 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:opacity-90 active:scale-95 transition-all">
+                                Authorize 1% Program<br />
+                                <span className="text-[8px] opacity-70">({formatMoney(authSmall)})</span>
+                            </button>
+                            <button onClick={() => handleAuthorize(authLarge)} className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">
+                                Authorize 5% Program<br />
+                                <span className="text-[8px] opacity-70">({formatMoney(authLarge)})</span>
+                            </button>
                         </div>
                     </div>
                 ) : (
                     <div className="bg-amber-50/50 dark:bg-amber-950/15 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                         <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Open Market Buyback Program</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Execute repurchases against your active ${formatMoney(auth)} authorization. Retires public float shares to boost EPS.</p>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Execute repurchases against your active {formatMoney(auth)} authorization. Retires public float shares to boost EPS.</p>
                         <div className="flex flex-col gap-2">
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleExecuteBuyback(5000000)}
-                                    disabled={m.cash < 5000000 || auth < 5000000}
+                                    onClick={() => handleExecuteBuyback(costSmall)}
+                                    disabled={m.cash < costSmall || auth < costSmall}
                                     className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                                 >
-                                    Repurchase $5M<br />
-                                    <span className="text-[8px] opacity-70">Block Trade (+1.0% price pop)</span>
+                                    Repurchase 0.5% Float<br />
+                                    <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costSmall)} (+{popSmall}% pop)</span>
                                 </button>
                                 <button
-                                    onClick={() => handleExecuteBuyback(20000000)}
-                                    disabled={m.cash < 20000000 || auth < 20000000}
+                                    onClick={() => handleExecuteBuyback(costMedium)}
+                                    disabled={m.cash < costMedium || auth < costMedium}
                                     className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                                 >
-                                    Repurchase $20M<br />
-                                    <span className="text-[8px] opacity-70">Major Block (+2.5% price pop)</span>
+                                    Repurchase 2.0% Float<br />
+                                    <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costMedium)} (+{popMedium}% pop)</span>
                                 </button>
                             </div>
                             <button
                                 onClick={() => handleExecuteBuyback(Math.min(auth, m.cash))}
-                                disabled={m.cash < 1000000}
+                                disabled={m.cash < Math.min(auth, m.cash) || Math.min(auth, m.cash) <= 0}
                                 className="w-full bg-emerald-600 text-white py-3 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                             >
                                 Repurchase Max Available ({formatMoney(Math.min(auth, m.cash))})
@@ -4217,12 +4317,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <h4 className="text-xs font-black uppercase text-rose-700 dark:text-rose-400 tracking-wider">Dutch Auction Tender Offer</h4>
                     <p className="text-[10px] text-slate-500 mt-1 mb-3">Make a direct public offer to bypass open markets and buy back a massive block of shares at a **10% Premium** to defend against short sellers.</p>
                     <button
-                        onClick={() => handleExecuteBuyback(100000000, true)}
-                        disabled={m.cash < 100000000}
+                        onClick={() => handleExecuteBuyback(costTender, true)}
+                        disabled={m.cash < costTender}
                         className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white py-3 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 shadow-md shadow-rose-600/20"
                     >
-                        Launch $100M Tender Offer (10% Premium)<br />
-                        <span className="text-[8px] opacity-70 font-semibold">Triggers +8.0% immediate Share Price jump</span>
+                        Launch 5% Float Tender Offer (10% Premium)<br />
+                        <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costTender)} (Triggers +6.0% immediate price jump)</span>
                     </button>
                 </div>
             </div>
@@ -5523,20 +5623,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             newStartup.metrics.cash -= cost;
 
             const parsed = parseSubsidiary(rawName);
-            let updatedSynergy = parsed.monthlySynergy;
+            let updatedRevenue = parsed.revenue;
+            let updatedExpenses = parsed.expenses;
             let note = "";
 
-            if (parsed.monthlySynergy < 0) {
-                // Restructured from Burning to Profitable!
-                updatedSynergy = Math.floor(parsed.valuation * 0.002); // 2.4% yield
-                note = `Restructured ${parsed.name} operational efficiencies, eliminating operating cash drain! Now contributing +${formatMoney(updatedSynergy)}/mo corporate cashflow.`;
+            if (parsed.netIncome < 0) {
+                // Restructured from Burning to Profitable — cut expenses by 40%
+                updatedExpenses = Math.floor(parsed.expenses * 0.6);
+                const newNet = updatedRevenue - updatedExpenses;
+                note = `Restructured ${parsed.name} operational efficiencies! Expenses cut by 40%. Now contributing +${formatMoney(newNet)}/mo net income.`;
             } else {
-                // Already profitable, boost synergy output!
-                updatedSynergy += Math.floor(cost * 0.012); // +$120k/mo synergy boost
-                note = `Injected $10M capital into ${parsed.name}. Operating synergies expanded by +$120,000/mo!`;
+                // Already profitable — capital injection boosts revenue
+                updatedRevenue += Math.floor(cost * 0.012);
+                note = `Injected $10M capital into ${parsed.name}. Monthly revenue expanded by +${formatMoney(Math.floor(cost * 0.012))}/mo!`;
             }
 
-            const newSubStr = `${parsed.name}::${parsed.valuation + cost}::${updatedSynergy}::${parsed.integrationRisk}`;
+            const newSubStr = serializeSubsidiary({ ...parsed, valuation: parsed.valuation + cost, revenue: updatedRevenue, expenses: updatedExpenses });
             newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
 
             newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 6);
@@ -5558,7 +5660,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
             const parsed = parseSubsidiary(rawName);
             // Increase its asset value by $5M due to marketing goodwill pop
-            const newSubStr = `${parsed.name}::${parsed.valuation + cost}::${parsed.monthlySynergy}::${parsed.integrationRisk}`;
+            // Rebranding also boosts revenue ~8% (brand premium effect)
+            const newSubStr = serializeSubsidiary({ ...parsed, valuation: parsed.valuation + cost, revenue: Math.floor(parsed.revenue * 1.08) });
             newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
 
             newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 10);
@@ -5618,7 +5721,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 const newStartup = { ...startup };
                 newStartup.metrics.cash -= fee;
-                newStartup.subsidiaries = (newStartup.subsidiaries || []).filter((s: any) => s !== rawName);
+                // Keep the subsidiary in subsidiaries on IPO so it remains under management
+                // newStartup.subsidiaries = (newStartup.subsidiaries || []).filter((s: any) => s !== rawName);
 
                 // Parent company retains 80% stake (16,000,000 shares)
                 const isPublic = !!startup.public_company;
@@ -5672,9 +5776,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[8px] uppercase font-black text-slate-400">Total Monthly Synergies</p>
-                                <p className={cn("text-xs font-black mt-0.5", subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                                    {subs.length === 0 ? "$0 / mo" : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).monthlySynergy, 0))} / mo`}
+                                <p className="text-[8px] uppercase font-black text-slate-400">Total Monthly Net Income</p>
+                                <p className={cn("text-xs font-black mt-0.5", subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                                    {subs.length === 0 ? "$0 / mo" : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0))} / mo`}
                                 </p>
                             </div>
                         </div>
@@ -5689,11 +5793,29 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
                                     {subs.map((subRaw: string, idx: number) => {
                                         const sub = parseSubsidiary(subRaw);
-                                        const divestPrice = Math.max(10000000, Math.floor(sub.valuation * 0.8));
-                                        
-                                        const subARR = sub.valuation * 0.15;
-                                        const subUsers = Math.floor(sub.valuation / 200);
-                                        const subProfit = sub.monthlySynergy * 12;
+                                        const listedStock = marketStocks?.find(s => (s.companyName === sub.name || s.symbol === sub.name || s.symbol === subRaw) && !s.isDelisted);
+                                        const isListed = !!listedStock;
+
+                                        const valuation = isListed ? (listedStock.currentPrice * listedStock.sharesOutstanding) : sub.valuation;
+                                        let revenue = sub.revenue;
+                                        let expenses = sub.expenses;
+                                        let netIncome = sub.netIncome;
+
+                                        if (isListed) {
+                                            const pe = listedStock.peRatio && Math.abs(listedStock.peRatio) > 0 ? listedStock.peRatio : 20;
+                                            const annualNetIncome = valuation / pe;
+                                            netIncome = Math.round(annualNetIncome / 12);
+                                            const annualRevenue = valuation / 8;
+                                            revenue = Math.round(annualRevenue / 12);
+                                            expenses = Math.max(0, revenue - netIncome);
+                                        }
+
+                                        const subAnnualRevenue = revenue * 12;
+                                        const subAnnualExpenses = expenses * 12;
+                                        const subNetIncome = netIncome * 12;
+
+                                        const subARR = valuation * 0.15;
+                                        const subUsers = Math.floor(valuation / 200);
                                         const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
 
                                         const passARR = subARR >= 50000000;
@@ -5702,84 +5824,83 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         const canIPO = passARR && passUsers && passCFO && corporateCash >= 2000000;
 
                                         return (
-                                            <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-xs">
-                                                <div className="flex justify-between items-start mb-2">
+                                            <div 
+                                                key={idx} 
+                                                onClick={() => {
+                                                    setSelectedSubRaw(subRaw);
+                                                    setIsManageSubModalOpen(true);
+                                                }}
+                                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-800 transition-all rounded-lg p-3 shadow-xs cursor-pointer group relative overflow-hidden"
+                                            >
+                                                <div className="flex justify-between items-start">
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">{sub.name}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                                {sub.name}
+                                                            </p>
+                                                            {isListed ? (
+                                                                <span className="text-[7px] font-black uppercase px-1 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-900/30">
+                                                                    Listed: {listedStock.symbol}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[7px] font-black uppercase px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                                                    Private
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         
-                                                        {/* Basic Financials Grid */}
+                                                        {/* Per-entity P&L Grid */}
                                                         <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
                                                             <div className="flex justify-between text-[8px] font-semibold text-slate-500">
-                                                                <span>ARR:</span>
-                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(subARR)}</span>
+                                                                <span>Revenue/yr:</span>
+                                                                <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(subAnnualRevenue)}</span>
                                                             </div>
                                                             <div className="flex justify-between text-[8px] font-semibold text-slate-500">
-                                                                <span>Users:</span>
-                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{subUsers.toLocaleString()}</span>
+                                                                <span>{isListed ? "Market Cap:" : "Asset Val:"}</span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(valuation)}</span>
                                                             </div>
                                                             <div className="flex justify-between text-[8px] font-semibold text-slate-500">
-                                                                <span>Asset Val:</span>
-                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(sub.valuation)}</span>
+                                                                <span>Expenses/yr:</span>
+                                                                <span className="font-bold text-rose-600 dark:text-rose-400">{formatMoney(subAnnualExpenses)}</span>
                                                             </div>
                                                             <div className="flex justify-between text-[8px] font-semibold text-slate-500">
-                                                                <span>Net Profit:</span>
-                                                                <span className={cn("font-bold", subProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                                                                    {subProfit >= 0 ? "+" : ""}{formatMoney(subProfit)}/yr
+                                                                <span>Net Income/yr:</span>
+                                                                <span className={cn("font-bold", subNetIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                                                                    {subNetIncome >= 0 ? "+" : ""}{formatMoney(subNetIncome)}
                                                                 </span>
                                                             </div>
                                                         </div>
 
-                                                        {/* IPO Readiness Badges */}
-                                                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                                                            <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">IPO Readiness:</span>
-                                                            <span className={cn(
-                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md border",
-                                                                canIPO 
-                                                                    ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200" 
-                                                                    : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-200"
-                                                            )}>
-                                                                {canIPO ? "✅ Qualified" : `❌ ${!passCFO ? "Need CFO" : !passARR ? "Need $50M ARR" : "Not Qualified"}`}
-                                                            </span>
-                                                            <span className={cn(
-                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md border",
-                                                                sub.integrationRisk === "High" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200" :
-                                                                    sub.integrationRisk === "Medium" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200" :
-                                                                        "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200"
-                                                            )}>
-                                                                Risk: {sub.integrationRisk}
+                                                        {/* Info Badges */}
+                                                        <div className="mt-2 flex items-center justify-between">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                {!isListed && (
+                                                                    <>
+                                                                        <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">IPO:</span>
+                                                                        <span className={cn(
+                                                                            "text-[7px] font-black uppercase px-1 py-0.5 rounded border",
+                                                                            canIPO 
+                                                                                ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200" 
+                                                                                : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-200"
+                                                                        )}>
+                                                                            {canIPO ? "✅ Qualified" : "❌ Not Qualified"}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                <span className={cn(
+                                                                    "text-[7px] font-black uppercase px-1 py-0.5 rounded border",
+                                                                    sub.integrationRisk === "High" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200" :
+                                                                        sub.integrationRisk === "Medium" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200" :
+                                                                            "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200"
+                                                                )}>
+                                                                    Risk: {sub.integrationRisk}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[7.5px] text-indigo-500 font-black uppercase tracking-wider group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                                                                Manage ➔
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => handleDivestSubsidiary(sub.raw, divestPrice)}
-                                                        className="ml-2 shrink-0 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg px-2 py-1.5 text-[8px] font-black uppercase tracking-wider transition-all active:scale-95"
-                                                    >
-                                                        💰 Sell<br /><span className="text-[7px]">{formatMoney(divestPrice)}</span>
-                                                    </button>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                                    <button
-                                                        onClick={() => handleInjectCapital(sub.raw)}
-                                                        disabled={corporateCash < 10000000}
-                                                        className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
-                                                    >
-                                                        💉 Inject $10M
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRebrandSubsidiary(sub.raw)}
-                                                        disabled={corporateCash < 5000000}
-                                                        className="bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/20 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-900/50 disabled:opacity-40 text-violet-700 dark:text-violet-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
-                                                    >
-                                                        🎯 Rebrand ($5M)
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleListSubsidiary(sub.raw)}
-                                                        disabled={!canIPO}
-                                                        className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
-                                                    >
-                                                        📈 IPO Stock ($2M)
-                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -5838,9 +5959,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <div key={idx} className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
                                         <div>
                                             <span className="font-bold text-slate-700 dark:text-slate-300">{sInfo.name}</span>
-                                            <p className="text-slate-400 font-medium">{sInfo.monthlySynergy >= 0 ? `+${formatMoney(sInfo.monthlySynergy)}/mo synergy` : `${formatMoney(sInfo.monthlySynergy)}/mo drain`} · Risk: {sInfo.integrationRisk}</p>
+                                            <p className="text-slate-400 font-medium">Rev {formatMoney(sInfo.revenue)}/mo · Exp {formatMoney(sInfo.expenses)}/mo · Risk: {sInfo.integrationRisk}</p>
                                         </div>
-                                        <span className={cn("font-bold px-1.5 py-0.5 rounded border", sInfo.monthlySynergy >= 0 ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50" : "text-rose-600 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/50")}>{sInfo.monthlySynergy >= 0 ? "Profitable" : "Cash Drain"}</span>
+                                        <span className={cn("font-bold px-1.5 py-0.5 rounded border", sInfo.netIncome >= 0 ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/50" : "text-rose-600 bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/50")}>{sInfo.netIncome >= 0 ? "Profitable" : "Cash Drain"}</span>
                                     </div>
                                 );
                             })}
@@ -5864,6 +5985,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         </div>
                     </div>
                 </div>
+                <ManageSubsidiaryModal
+                    open={isManageSubModalOpen}
+                    onClose={() => setIsManageSubModalOpen(false)}
+                    subRaw={selectedSubRaw}
+                    startup={startup}
+                    marketStocks={marketStocks || []}
+                    onInjectCapital={handleInjectCapital}
+                    onRebrandSubsidiary={handleRebrandSubsidiary}
+                    onListSubsidiary={handleListSubsidiary}
+                    onDivestSubsidiary={handleDivestSubsidiary}
+                />
             </div>
         );
     }
@@ -5905,17 +6037,69 @@ export default function Dashboard() {
     const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance" | "corporate">("operations");
     const [marketStocks, setMarketStocks] = useState<MarketStock[]>([]);
     const [mnaTargets, setMnaTargets] = useState<MnATarget[]>([]);
-
+    
+    // Stock Market Genius State
+    const [geniusUsesThisHour, setGeniusUsesThisHour] = useState(0);
+    const [lastGeniusResetTime, setLastGeniusResetTime] = useState(0);
+    const [insiderStockPicks, setInsiderStockPicks] = useState<{ symbol: string; monthsLeft: number }[]>([]);
 
     useEffect(() => {
         // Only seed market stocks once — and never include the player company pre-IPO
         if (marketStocks.length === 0) {
+            const fullState = localStorage.getItem("founder_sim_state");
+            if (fullState) {
+                try {
+                    const d = JSON.parse(fullState);
+                    if (d.marketStocks && d.marketStocks.length > 0) {
+                        setMarketStocks(d.marketStocks);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Failed to restore market stocks from save state", e);
+                }
+            }
             import('@/lib/engine/publicMarket').then(mod => {
-                // initializeMarketStocks without a player symbol → no own stock injected
-                setMarketStocks(mod.initializeMarketStocks());
+                if (startup.public_company) {
+                    setMarketStocks(mod.initializeMarketStocks(
+                        startup.symbol || "CORP",
+                        startup.public_company.share_price || 10,
+                        startup.name
+                    ));
+                } else {
+                    setMarketStocks(mod.initializeMarketStocks());
+                }
             });
         }
-    }, [marketStocks.length]);
+    }, [marketStocks.length, startup.public_company, startup.symbol]);
+
+    // Self-healing effect: ensure player company stock exists in public market if they went public
+    useEffect(() => {
+        if (isLoaded && startup.public_company && marketStocks.length > 0) {
+            const playerSymbol = startup.symbol || "CORP";
+            const hasPlayerStock = marketStocks.some(s => s.symbol === playerSymbol);
+            if (!hasPlayerStock) {
+                const playerStock: MarketStock = {
+                    symbol: playerSymbol,
+                    companyName: startup.name || "Your Company",
+                    sector: "Technology",
+                    currentPrice: startup.public_company.share_price || 10,
+                    sharesOutstanding: startup.public_company.shares_outstanding || 100_000_000,
+                    peRatio: 50,
+                    momentum: 0,
+                    volatility: 0.08,
+                    rsi: 50,
+                    priceHistory: [startup.public_company.share_price || 10],
+                    companyTier: "small_cap" as const,
+                    shareholders: [
+                        { name: "You (Founder)", type: "founder" as const, ownershipPct: 65 },
+                        { name: "Early Investors", type: "vc" as const, ownershipPct: 20 },
+                        { name: "Public Float", type: "public_float" as const, ownershipPct: 15 },
+                    ]
+                };
+                setMarketStocks(prev => [playerStock, ...prev]);
+            }
+        }
+    }, [isLoaded, startup.public_company, startup.symbol, startup.name, marketStocks.length]);
     const [isEarningsCallOpen, setIsEarningsCallOpen] = useState(false);
     const [isStoreOpen, setIsStoreOpen] = useState(false);
 
@@ -6390,6 +6574,10 @@ export default function Dashboard() {
                 }
                 if (d.founderMeta) setFounderMeta(d.founderMeta);
                 if (d.storyState) setStoryState(d.storyState);
+                if (d.marketStocks) setMarketStocks(d.marketStocks);
+                if (d.insiderStockPicks) setInsiderStockPicks(d.insiderStockPicks);
+                if (d.geniusUsesThisHour) setGeniusUsesThisHour(d.geniusUsesThisHour);
+                if (d.lastGeniusResetTime) setLastGeniusResetTime(d.lastGeniusResetTime);
 
                 // If loading into a dead/won state, immediately force the endgame modal open
                 if (d.startup && d.startup.outcome && d.startup.outcome !== "active") {
@@ -6477,9 +6665,11 @@ export default function Dashboard() {
                             baseMorale += 15;
                         }
 
+                        const defaultSymbol = (d.startupName || d.name || "CORP").substring(0, 4).toUpperCase();
                         return {
                             ...s,
                             name: d.startupName || d.name,
+                            symbol: defaultSymbol,
                             industry: d.industry,
                             gtm_motion: d.gtmMotion || "PLG",
                             scenario: scenarioId,
@@ -6554,10 +6744,14 @@ export default function Dashboard() {
                 founderMeta,
                 focusHoursUsed,
                 actionUsageLog,
-                storyState
+                storyState,
+                marketStocks,
+                insiderStockPicks,
+                geniusUsesThisHour,
+                lastGeniusResetTime
             }));
         }
-    }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded, storyState]);
+    }, [month, startup, founder, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, isLoaded, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime]);
 
     const handleResetGame = (skipConfirm = false) => {
         const performReset = () => {
@@ -6621,22 +6815,26 @@ export default function Dashboard() {
                 founderMeta,
                 focusHoursUsed: newFocusUsed,
                 actionUsageLog,
-                storyState
+                storyState,
+                marketStocks,
+                insiderStockPicks,
+                geniusUsesThisHour,
+                lastGeniusResetTime
             }));
         }
         await openStoreListing();
-    };
-
-    const addTimelineEvent = (text: string, monthOverride?: number) => {
-        setEventsTimeline(prev => [...prev, { month: monthOverride ?? month, text }]);
-    };
-
-    const handleSaveAndQuit = () => {
-        if (startup.name !== "New Startup") {
-            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState }));
-        }
-        router.push("/");
-    };
+     };
+ 
+     const addTimelineEvent = (text: string, monthOverride?: number) => {
+         setEventsTimeline(prev => [...prev, { month: monthOverride ?? month, text }]);
+     };
+ 
+     const handleSaveAndQuit = () => {
+         if (startup.name !== "New Startup") {
+             localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime }));
+         }
+         router.push("/");
+     };
 
         const handleTradePersonal = (symbol: string, shares: number, price: number) => {
         try {
@@ -6675,6 +6873,28 @@ export default function Dashboard() {
                     portfolio: newPortfolio
                 }
             }));
+
+            // Check if we lost control of this subsidiary
+            if (stockIndex >= 0) {
+                const updatedStock = updatedStocks[stockIndex];
+                if (updatedStock.isSubsidiary) {
+                    const newOwnership = getPlayerOwnershipPct(symbol, updatedStock, newPortfolio, startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []);
+                    const controlThreshold = getControlThreshold(updatedStock.companyTier || "large_cap");
+                    if (newOwnership < controlThreshold) {
+                        setStartup(prev => ({
+                            ...prev,
+                            subsidiaries: (prev.subsidiaries || []).filter(s => {
+                                const parsed = parseSubsidiary(s);
+                                return parsed.name !== updatedStock.companyName && parsed.name !== updatedStock.symbol && s !== updatedStock.symbol;
+                            })
+                        }));
+                        updatedStocks[stockIndex] = { ...updatedStock, isSubsidiary: false };
+                        setMarketStocks(updatedStocks);
+                        toast.warning(`⚠️ Lost Control! Your ownership in ${updatedStock.companyName} (${updatedStock.symbol}) fell below the control threshold of ${controlThreshold}%. It is no longer a corporate subsidiary.`);
+                    }
+                }
+            }
+
             toast.success(`${shares > 0 ? "Bought" : "Sold"} ${Math.abs(shares).toLocaleString()} shares of ${symbol}`);
         } catch (e: any) {
             toast.error(e.message || "Trade failed");
@@ -6737,6 +6957,28 @@ export default function Dashboard() {
                     };
                 }
             });
+
+            // Check if we lost control of this subsidiary
+            if (stockIndex >= 0) {
+                const updatedStock = updatedStocks[stockIndex];
+                if (updatedStock.isSubsidiary) {
+                    const newOwnership = getPlayerOwnershipPct(symbol, updatedStock, founder.wealth_profile?.portfolio || [], newPortfolio);
+                    const controlThreshold = getControlThreshold(updatedStock.companyTier || "large_cap");
+                    if (newOwnership < controlThreshold) {
+                        setStartup(prev => ({
+                            ...prev,
+                            subsidiaries: (prev.subsidiaries || []).filter(s => {
+                                const parsed = parseSubsidiary(s);
+                                return parsed.name !== updatedStock.companyName && parsed.name !== updatedStock.symbol && s !== updatedStock.symbol;
+                            })
+                        }));
+                        updatedStocks[stockIndex] = { ...updatedStock, isSubsidiary: false };
+                        setMarketStocks(updatedStocks);
+                        toast.warning(`⚠️ Lost Control! Your ownership in ${updatedStock.companyName} (${updatedStock.symbol}) fell below the control threshold of ${controlThreshold}%. It is no longer a corporate subsidiary.`);
+                    }
+                }
+            }
+
             toast.success(`Corporate ${shares > 0 ? "bought" : "sold"} ${Math.abs(shares).toLocaleString()} shares of ${symbol}`);
         } catch (e: any) {
             toast.error(e.message || "Trade failed");
@@ -6834,6 +7076,9 @@ export default function Dashboard() {
                         ...prev,
                         subsidiaries: [...(prev.subsidiaries || []), stock.symbol]
                     }));
+                    if (setMarketStocks && marketStocks) {
+                        setMarketStocks(marketStocks.map(s => s.symbol === stock.symbol ? { ...s, isSubsidiary: true } : s));
+                    }
                     toast.success(`🎉 Hostile Takeover Successful! ${stock.companyName} (${stock.symbol}) is now a subsidiary of ${startup.name}!`);
                 } else {
                     toast.success(`Tender offer completed! Acquired ${result.sharesAcquired.toLocaleString()} additional shares.`);
@@ -6844,6 +7089,175 @@ export default function Dashboard() {
         } catch (e: any) {
             toast.error(e.message || "Tender offer failed");
         }
+    };
+
+    const handleBlockBuy = (
+        stock: MarketStock,
+        shareholderIndex: number,
+        premiumPct: number,
+        account: "personal" | "corporate"
+    ) => {
+        try {
+            if (!marketStocks || !setMarketStocks) return;
+
+            const shareholder = stock.shareholders?.[shareholderIndex];
+            if (!shareholder) {
+                toast.error("Shareholder not found.");
+                return;
+            }
+            if (shareholder.type === "public_float" || shareholder.type === "player" || shareholder.type === "parent_company") {
+                toast.error("You cannot directly buy out the public float or yourself.");
+                return;
+            }
+
+            const blockShares = Math.floor((shareholder.ownershipPct / 100) * stock.sharesOutstanding);
+            if (blockShares <= 0) {
+                toast.error("No shares available in this block.");
+                return;
+            }
+
+            const offeredPrice = stock.currentPrice * (1 + premiumPct / 100);
+            const totalCost = Math.floor(blockShares * offeredPrice);
+
+            const personalPortfolio = founder.wealth_profile?.portfolio || [];
+            const corporatePortfolio = startup.public_company?.corporate_portfolio || startup.treasury_portfolio || [];
+            const availableCash = account === "personal" ? (founder.personal_wealth || 0) : (startup.metrics?.cash || 0);
+
+            if (totalCost > availableCash) {
+                toast.error("Insufficient funds", {
+                    description: `This block trade costs ${formatMoney(totalCost)} but you only have ${formatMoney(availableCash)}.`
+                });
+                return;
+            }
+
+            // Update portfolio
+            let updatedPortfolio = [...(account === "personal" ? personalPortfolio : corporatePortfolio)];
+            const posIdx = updatedPortfolio.findIndex(p => p.symbol === stock.symbol);
+            if (posIdx >= 0) {
+                const pos = updatedPortfolio[posIdx];
+                const newShares = pos.shares + blockShares;
+                const newAvgCost = (pos.shares * pos.averageCost + blockShares * offeredPrice) / newShares;
+                updatedPortfolio[posIdx] = { ...pos, shares: newShares, averageCost: newAvgCost };
+            } else {
+                updatedPortfolio.push({ symbol: stock.symbol, shares: blockShares, averageCost: offeredPrice });
+            }
+
+            // Update the stock's shareholders — remove/reduce the sold block
+            const updatedStocks = marketStocks.map(s => {
+                if (s.symbol !== stock.symbol) return s;
+                const updatedShareholders = (s.shareholders || []).filter((_, i) => i !== shareholderIndex);
+                // Slight upward price nudge (1–3%) from demand signal
+                const priceNudge = 1 + (0.01 + Math.random() * 0.02);
+                return {
+                    ...s,
+                    currentPrice: parseFloat((s.currentPrice * priceNudge).toFixed(2)),
+                    shareholders: updatedShareholders,
+                };
+            });
+
+            // Deduct cash and update portfolio state
+            const updatedCash = availableCash - totalCost;
+            if (account === "personal") {
+                setFounder(prev => ({
+                    ...prev,
+                    personal_wealth: updatedCash,
+                    wealth_profile: {
+                        ...(prev.wealth_profile || { margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] }),
+                        portfolio: updatedPortfolio
+                    }
+                }));
+            } else {
+                const isPublic = !!startup.public_company;
+                setStartup(prev => {
+                    if (isPublic && prev.public_company) {
+                        return {
+                            ...prev,
+                            metrics: { ...prev.metrics, cash: updatedCash },
+                            public_company: { ...prev.public_company, corporate_portfolio: updatedPortfolio }
+                        };
+                    }
+                    return {
+                        ...prev,
+                        metrics: { ...prev.metrics, cash: updatedCash },
+                        treasury_portfolio: updatedPortfolio
+                    };
+                });
+            }
+
+            // Check if this block buy gave us control
+            let finalStocks = updatedStocks;
+            const updatedStock = updatedStocks.find(s => s.symbol === stock.symbol);
+            if (updatedStock) {
+                const newPersonalPortfolio = account === "personal" ? updatedPortfolio : personalPortfolio;
+                const newCorporatePortfolio = account === "corporate" ? updatedPortfolio : corporatePortfolio;
+                const newOwnership = getPlayerOwnershipPct(stock.symbol, updatedStock, newPersonalPortfolio, newCorporatePortfolio);
+                const controlThreshold = getControlThreshold(stock.companyTier || "large_cap");
+                const isControlAcquired = newOwnership >= controlThreshold;
+
+                if (isControlAcquired) {
+                    finalStocks = updatedStocks.map(s => s.symbol === stock.symbol ? { ...s, isSubsidiary: true } : s);
+                    const existingSubs = startup.subsidiaries || [];
+                    if (!existingSubs.includes(stock.symbol)) {
+                        setStartup(prev => ({
+                            ...prev,
+                            subsidiaries: [...(prev.subsidiaries || []), stock.symbol]
+                        }));
+                        toast.success(`🎉 Control Acquired! ${stock.companyName} (${stock.symbol}) is now a subsidiary!`);
+                    }
+                }
+            }
+            setMarketStocks(finalStocks);
+
+            addTimelineEvent(
+                `📦 Block Trade: Purchased ${formatNumber(blockShares)} shares from ${shareholder.name} (${stock.symbol}) at ${formatMoney(offeredPrice)}/share. Total: ${formatMoney(totalCost)} (${premiumPct}% premium).`,
+                month
+            );
+            toast.success(`Block Trade Executed!`, {
+                description: `Acquired ${formatNumber(blockShares)} shares of ${stock.symbol} from ${shareholder.name} for ${formatMoney(totalCost)}.`
+            });
+        } catch (e: any) {
+            toast.error(e.message || "Block trade failed");
+        }
+    };
+
+    const handleInsiderTipUsed = () => {
+        // Enforce cooldown logic (max 2 uses per hour)
+        const now = Date.now();
+        if (now - lastGeniusResetTime > 60 * 60 * 1000) {
+            // Reset if more than an hour has passed
+            setLastGeniusResetTime(now);
+            setGeniusUsesThisHour(1);
+        } else {
+            setGeniusUsesThisHour(prev => prev + 1);
+        }
+
+        // SEC Risk (5% chance of getting caught)
+        if (Math.random() < 0.05) {
+            toast.error("🚨 SEC INVESTIGATION TRIGGERED!", {
+                description: "Authorities detected your insider trading. You've been fined heavily and your reputation is ruined."
+            });
+            setFounder(f => ({
+                ...f,
+                personal_wealth: Math.max(0, (f.personal_wealth || 0) * 0.2), // Lose 80% wealth
+                attributes: { ...f.attributes, reputation: 0 }
+            }));
+            setStartup(s => ({
+                ...s,
+                metrics: { ...s.metrics, cash: Math.max(0, (s.metrics.cash || 0) * 0.5) } // Lose 50% corporate cash
+            }));
+            addTimelineEvent(`🚨 SEC Fines: Caught using illegal insider tips. Massive fines levied.`, month);
+            return;
+        }
+
+        // Pick a random tradeable stock (not player company)
+        const eligibleStocks = marketStocks.filter(s => !s.isDelisted && s.symbol !== startup.symbol);
+        if (eligibleStocks.length === 0) return;
+        const target = eligibleStocks[Math.floor(Math.random() * eligibleStocks.length)];
+
+        setInsiderStockPicks(prev => [...prev, { symbol: target.symbol, monthsLeft: 4 }]);
+        toast.success("Insider Tip Received!", {
+            description: `Rumor has it that ${target.symbol} is about to surge over the next 3-4 months. Act fast!`
+        });
     };
 
     const handleToggleCfoAutoTrade = () => {
@@ -7561,6 +7975,7 @@ export default function Dashboard() {
             const result = processMonth(foAfter, spAfter, selectedAction);
             const newStartup = result.newStartup;
             result.notices.forEach(n => addTimelineEvent(`⚠️ ${n}`, nextMonth));
+            let nextFounder: Founder = { ...foAfter, attributes: { ...foAfter.attributes } };
 
             // Macro Event & Market Processing
             let currentMacro = newStartup.metrics.active_macro_event;
@@ -7573,7 +7988,15 @@ export default function Dashboard() {
             }
             newStartup.metrics.active_macro_event = newMacro;
 
-            const updatedMarket = processMarketMonth(marketStocks, m.current_season || "Normal", newMacro);
+            const heldSymbols = [
+                ...(founder.wealth_profile?.portfolio || []).map(p => p.symbol),
+                ...(startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []).map(p => p.symbol)
+            ];
+
+            const updatedMarket = processMarketMonth(marketStocks, m.current_season || "Normal", newMacro, insiderStockPicks.map(p => p.symbol), heldSymbols);
+            
+            // Decrement insider picks and remove expired ones
+            setInsiderStockPicks(prev => prev.map(p => ({ ...p, monthsLeft: p.monthsLeft - 1 })).filter(p => p.monthsLeft > 0));
             setMarketStocks(updatedMarket);
 
             // Notify if held stocks have breaking news
@@ -7593,25 +8016,120 @@ export default function Dashboard() {
                 // Keep player company stock in sync with new valuation/sentiment
                 const playerStock = updatedMarket.find(s => s.symbol === (newStartup.symbol || "CORP"));
                 if (playerStock) {
+                    const liveArr = (newStartup.metrics.revenue || 0) * 12;
+                    const fairVal = liveArr * 8
+                        * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
+                        * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
+                    const targetSharePrice = fairVal / newStartup.public_company.shares_outstanding;
+                    
+                    if (targetSharePrice > 0) {
+                        const difference = (targetSharePrice - playerStock.currentPrice) / playerStock.currentPrice;
+                        playerStock.currentPrice = playerStock.currentPrice * (1 + Math.max(-0.2, Math.min(0.2, difference * 0.15)));
+                        
+                        if (playerStock.priceHistory.length > 0) {
+                            playerStock.priceHistory[playerStock.priceHistory.length - 1] = playerStock.currentPrice;
+                        }
+                    }
+
                     newStartup.public_company.share_price = playerStock.currentPrice;
                     newStartup.valuation = newStartup.public_company.shares_outstanding * playerStock.currentPrice;
                 }
 
+                // Check for Stock Split (10-for-1) if price > $1,000
+                if (newStartup.public_company.share_price > 1000) {
+                    const oldPrice = newStartup.public_company.share_price;
+                    newStartup.public_company.shares_outstanding *= 10;
+                    newStartup.public_company.float *= 10;
+                    newStartup.public_company.share_price /= 10;
+                    newStartup.public_company.ipo_price /= 10;
+                    newStartup.public_company.eps_last_quarter /= 10;
+                    newStartup.public_company.eps_guidance /= 10;
+                    newStartup.public_company.consensus_eps /= 10;
+                    newStartup.valuation = newStartup.public_company.shares_outstanding * newStartup.public_company.share_price;
+
+                    // Update in marketStocks
+                    if (playerStock) {
+                        playerStock.sharesOutstanding *= 10;
+                        playerStock.currentPrice /= 10;
+                        playerStock.priceHistory = playerStock.priceHistory.map(p => p / 10);
+                    }
+
+                    // Update player's personal portfolio
+                    if (nextFounder.wealth_profile?.portfolio) {
+                        nextFounder.wealth_profile.portfolio = nextFounder.wealth_profile.portfolio.map((p: any) => {
+                            if (p.symbol === (newStartup.symbol || "CORP")) {
+                                return { ...p, shares: p.shares * 10, averageCost: p.averageCost / 10 };
+                            }
+                            return p;
+                        });
+                    }
+
+                    // Update corporate portfolio
+                    if (newStartup.public_company.corporate_portfolio) {
+                        newStartup.public_company.corporate_portfolio = newStartup.public_company.corporate_portfolio.map((p: any) => {
+                            if (p.symbol === (newStartup.symbol || "CORP")) {
+                                return { ...p, shares: p.shares * 10, averageCost: p.averageCost / 10 };
+                            }
+                            return p;
+                        });
+                    }
+                    if (newStartup.treasury_portfolio) {
+                        newStartup.treasury_portfolio = newStartup.treasury_portfolio.map((p: any) => {
+                            if (p.symbol === (newStartup.symbol || "CORP")) {
+                                return { ...p, shares: p.shares * 10, averageCost: p.averageCost / 10 };
+                            }
+                            return p;
+                        });
+                    }
+
+                    // Update active 10b5-1 plans
+                    if (nextFounder.wealth_profile?.active_10b51_plans) {
+                        nextFounder.wealth_profile.active_10b51_plans = nextFounder.wealth_profile.active_10b51_plans.map((p: any) => {
+                            return {
+                                ...p,
+                                monthlySellAmount: p.monthlySellAmount * 10,
+                                sharesToSellTotal: p.sharesToSellTotal * 10,
+                                sharesSoldSoFar: p.sharesSoldSoFar * 10
+                            };
+                        });
+                    }
+
+                    // Update active option plans
+                    if (nextFounder.wealth_profile?.vesting_options) {
+                        nextFounder.wealth_profile.vesting_options = nextFounder.wealth_profile.vesting_options.map((opt: any) => {
+                            return {
+                                ...opt,
+                                monthlyVestAmount: opt.monthlyVestAmount * 10,
+                                totalOptions: opt.totalOptions * 10,
+                                vestedOptions: opt.vestedOptions * 10,
+                                strikePrice: opt.strikePrice / 10
+                            };
+                        });
+                    }
+
+                    addTimelineEvent(
+                        `📢 STOCK SPLIT: Board executed a 10-for-1 stock split as the share price crossed $1,000 (was $${oldPrice.toFixed(2)}). Outstanding shares multiplied by 10, share price divided to $${newStartup.public_company.share_price.toFixed(2)}/share to increase market liquidity.`,
+                        nextMonth
+                    );
+                    toast.info("📢 10-for-1 Stock Split Executed!", {
+                        description: `Your stock split from $${oldPrice.toFixed(2)} to $${newStartup.public_company.share_price.toFixed(2)} per share. Shareholder positions multiplied by 10.`
+                    });
+                }
+
                 // --- POST-IPO MONTHLY FINANCE PROCESSING ---
                 const pub = newStartup.public_company;
-                const newFounder = { ...foAfter };
                 const sharePrice = pub.share_price || 0;
 
                 // 1. Process 10b5-1 plans
-                const activePlans = newFounder.wealth_profile?.active_10b51_plans || [];
+                const activePlans = nextFounder.wealth_profile?.active_10b51_plans || [];
                 if (activePlans.length > 0) {
-                    newFounder.wealth_profile.active_10b51_plans = activePlans.map((p: any) => {
+                    nextFounder.wealth_profile.active_10b51_plans = activePlans.map((p: any) => {
                         const remainingToSell = p.sharesToSellTotal - p.sharesSoldSoFar;
                         const sellCount = Math.min(p.monthlySellAmount, remainingToSell);
                         if (sellCount <= 0) return p;
 
                         const proceeds = Math.floor(sellCount * sharePrice);
-                        newFounder.personal_wealth = (newFounder.personal_wealth || 0) + proceeds;
+                        nextFounder.personal_wealth = (nextFounder.personal_wealth || 0) + proceeds;
                         p.sharesSoldSoFar += sellCount;
                         p.monthsRemaining -= 1;
 
@@ -7637,19 +8155,19 @@ export default function Dashboard() {
                 }
 
                 // 2. Process Margin Loan interest
-                const currentLoan = newFounder.wealth_profile?.margin_loan_balance || 0;
+                const currentLoan = nextFounder.wealth_profile?.margin_loan_balance || 0;
                 if (currentLoan > 0) {
                     const monthlyInterest = Math.floor((currentLoan * 0.06) / 12); // 6% APR
-                    newFounder.personal_wealth = Math.max(0, (newFounder.personal_wealth || 0) - monthlyInterest);
+                    nextFounder.personal_wealth = Math.max(0, (nextFounder.personal_wealth || 0) - monthlyInterest);
                     addTimelineEvent(`💳 Charged ${formatMoney(monthlyInterest)} margin loan interest (6% APR).`, nextMonth);
 
-                    // Margin Call Check! If LTV > 50%
+                    // Margin Call Check! If LTV > 55%
                     const myShares = newStartup.capTable?.find((e: any) => e.type === "Founder")?.equity || 20;
                     const totalShares = pub.shares_outstanding || 100_000_000;
                     const myShareCount = (myShares / 100) * totalShares;
                     const myStockValue = myShareCount * pub.share_price;
 
-                    const personalPortfolioValue = newFounder.wealth_profile?.portfolio?.reduce((acc: number, p: any) => {
+                    const personalPortfolioValue = nextFounder.wealth_profile?.portfolio?.reduce((acc: number, p: any) => {
                         const stockPrice = updatedMarket.find((s: any) => s.symbol === p.symbol)?.currentPrice || p.averageCost;
                         return acc + (p.shares * stockPrice);
                     }, 0) || 0;
@@ -7668,7 +8186,7 @@ export default function Dashboard() {
                             founderNode.equity = (newShares / totalShares) * 100;
                         }
 
-                        newFounder.wealth_profile.margin_loan_balance = 0;
+                        nextFounder.wealth_profile.margin_loan_balance = 0;
                         addTimelineEvent(`🚨 MARGIN CALL! Declining stock price pushed LTV to ${(ltv * 100).toFixed(1)}%. Liquidated ${formatNumber(sharesToLiquidate)} shares to clear margin balance.`, nextMonth);
                         toast.error("🚨 Margin Call Triggered", { description: "Your shares were liquidated to repay your margin loan." });
                     }
@@ -7711,44 +8229,135 @@ export default function Dashboard() {
                         addTimelineEvent(`🏛️ Received ${formatMoney(subsidy)} federal R&D Tax Credit (Regulatory Capture perk).`, nextMonth);
                     }
                 }
-
-                setFounder(newFounder);
             }
 
-            // 3.5 Process Subsidiaries cashflow synergies and dynamic growth (Pre-IPO & Post-IPO)
+            // 3.5 Process Subsidiaries — per-entity P&L (Pre-IPO & Post-IPO)
             const subsList = newStartup.subsidiaries || newStartup.public_company?.subsidiaries || [];
             if (subsList.length > 0) {
-                let totalSynergy = 0;
+                let totalNetIncome = 0;
                 const updatedSubs: string[] = [];
+
                 subsList.forEach((subStr: string) => {
                     const parsed = parseSubsidiary(subStr);
-                    totalSynergy += parsed.monthlySynergy;
                     
-                    // Compounding growth if profitable, or decay if losing money
+                    // Check if listed
+                    const listedStock = marketStocks?.find(s => (s.companyName === parsed.name || s.symbol === parsed.name || s.symbol === subStr) && !s.isDelisted);
+                    const isListed = !!listedStock;
+
+                    let newRevenue = parsed.revenue;
+                    let newExpenses = parsed.expenses;
                     let newVal = parsed.valuation;
-                    let newSyn = parsed.monthlySynergy;
-                    if (parsed.monthlySynergy > 0) {
-                        const growth = 0.005 + Math.random() * 0.01; // 0.5% to 1.5% monthly compounding growth
-                        newVal = Math.floor(parsed.valuation * (1 + growth));
-                        newSyn = Math.floor(parsed.monthlySynergy * (1 + growth * 0.5));
-                    } else if (parsed.monthlySynergy < 0) {
-                        const decay = 0.01 + Math.random() * 0.01; // 1% to 2% cash drain decay
-                        newVal = Math.max(1000000, Math.floor(parsed.valuation * (1 - decay)));
+
+                    if (isListed) {
+                        // Synced with public stock price and valuation
+                        newVal = listedStock.currentPrice * listedStock.sharesOutstanding;
+                        const pe = listedStock.peRatio && Math.abs(listedStock.peRatio) > 0 ? listedStock.peRatio : 20;
+                        const annualNetIncome = newVal / pe;
+                        const netIncomeVal = Math.round(annualNetIncome / 12);
+                        const annualRevenue = newVal / 8;
+                        newRevenue = Math.round(annualRevenue / 12);
+                        newExpenses = Math.max(0, newRevenue - netIncomeVal);
+                    } else {
+                        // ── Per-entity independent growth/decay (for unlisted) ──────────────────────────
+                        const netIncome = parsed.revenue - parsed.expenses;
+                        if (netIncome > 0) {
+                            // Profitable entity: revenue grows 0.5–1.5%/mo, costs creep up 0.2–0.6%/mo
+                            const revGrowth = 0.005 + Math.random() * 0.01;
+                            const costCreep = 0.002 + Math.random() * 0.004;
+                            newVal = Math.floor(parsed.valuation * (1 + revGrowth));
+                            newRevenue = Math.floor(parsed.revenue * (1 + revGrowth));
+                            newExpenses = Math.floor(parsed.expenses * (1 + costCreep));
+                        } else if (netIncome < 0) {
+                            // Losing money: valuation decays, expenses keep rising
+                            const decay = 0.01 + Math.random() * 0.01;
+                            const costBloat = 0.003 + Math.random() * 0.005;
+                            newVal = Math.max(1000000, Math.floor(parsed.valuation * (1 - decay)));
+                            newExpenses = Math.floor(parsed.expenses * (1 + costBloat));
+                        }
                     }
-                    updatedSubs.push(`${parsed.name}::${newVal}::${newSyn}::${parsed.integrationRisk}`);
+
+                    const newNetIncome = newRevenue - newExpenses;
+                    if (!isListed) {
+                        totalNetIncome += newNetIncome;
+                    }
+
+                    // Per-entity quarterly P&L snapshot in timeline
+                    if (nextMonth % 3 === 0) {
+                        const nameLabel = isListed ? `${parsed.name} (Listed)` : parsed.name;
+                        addTimelineEvent(
+                            newNetIncome >= 0
+                                ? `🏢 ${nameLabel}: Revenue ${formatMoney(newRevenue)}/mo · Expenses ${formatMoney(newExpenses)}/mo · Net +${formatMoney(newNetIncome)}/mo`
+                                : `🏢 ${nameLabel}: Revenue ${formatMoney(newRevenue)}/mo · Expenses ${formatMoney(newExpenses)}/mo · Net Loss ${formatMoney(newNetIncome)}/mo`,
+                            nextMonth
+                        );
+                    }
+
+                    updatedSubs.push(serializeSubsidiary({
+                        name: parsed.name,
+                        valuation: newVal,
+                        revenue: newRevenue,
+                        expenses: newExpenses,
+                        integrationRisk: parsed.integrationRisk,
+                        dividendRatio: parsed.dividendRatio,
+                    }));
                 });
+
                 newStartup.subsidiaries = updatedSubs;
                 if (newStartup.public_company) {
                     newStartup.public_company.subsidiaries = updatedSubs;
                 }
-                newStartup.metrics.cash += totalSynergy;
-                if (totalSynergy !== 0) {
+                // Parent receives consolidated net income from all unlisted subsidiaries monthly
+                newStartup.metrics.cash += totalNetIncome;
+                if (totalNetIncome !== 0) {
                     addTimelineEvent(
-                        totalSynergy >= 0
-                            ? `🏢 Corporate Synergies: Subsidiaries contributed +${formatMoney(totalSynergy)} profit to corporate treasury.`
-                            : `🏢 Corporate Synergies: Subsidiaries drained -${formatMoney(Math.abs(totalSynergy))} operating cash from corporate treasury.`,
+                        totalNetIncome >= 0
+                            ? `💼 Consolidated P&L: Unlisted subsidiaries contributed +${formatMoney(totalNetIncome)} net income to corporate treasury.`
+                            : `💼 Consolidated P&L: Unlisted subsidiaries net loss of ${formatMoney(Math.abs(totalNetIncome))} drained corporate treasury.`,
                         nextMonth
                     );
+                }
+
+                // ── QUARTERLY DIVIDENDS from Listed Subsidiaries ──────────────────
+                // Every 3 months, listed (public) subsidiaries distribute dividends
+                // to the parent company proportional to ownership stake.
+                if (nextMonth % 3 === 0 && marketStocks) {
+                    const corpPortfolio = newStartup.public_company?.corporate_portfolio || newStartup.treasury_portfolio || [];
+                    let totalDividendReceived = 0;
+
+                    updatedSubs.forEach((subStr: string) => {
+                        const parsed = parseSubsidiary(subStr);
+                        
+                        // Only listed subsidiaries (those present in marketStocks)
+                        const listedStock = marketStocks.find(s => (s.companyName === parsed.name || s.symbol === parsed.name || s.symbol === subStr) && !s.isDelisted);
+                        if (!listedStock) return;
+
+                        const quarterlyNetIncome = parsed.netIncome * 3;
+                        if (quarterlyNetIncome <= 0) return;
+
+                        // Parent ownership via corporate portfolio
+                        const corpPos = corpPortfolio.find(p => p.symbol === listedStock.symbol);
+                        const parentShares = corpPos?.shares || 0;
+                        if (parentShares <= 0) return;
+
+                        const parentOwnershipFraction = parentShares / listedStock.sharesOutstanding;
+                        // Dividend per share = (quarterly net income × payout ratio) / sharesOutstanding
+                        const dividendPerShare = (quarterlyNetIncome * parsed.dividendRatio) / listedStock.sharesOutstanding;
+                        const dividendReceived = Math.floor(parentShares * dividendPerShare);
+                        if (dividendReceived <= 0) return;
+
+                        totalDividendReceived += dividendReceived;
+                        addTimelineEvent(
+                            `💰 Dividend: ${parsed.name} (${listedStock.symbol}) — Q net income ${formatMoney(quarterlyNetIncome)} → $${dividendPerShare.toFixed(4)}/share. Parent received ${formatMoney(dividendReceived)} (${(parentOwnershipFraction * 100).toFixed(1)}% stake, ${(parsed.dividendRatio * 100).toFixed(0)}% payout).`,
+                            nextMonth
+                        );
+                    });
+
+                    if (totalDividendReceived > 0) {
+                        newStartup.metrics.cash += totalDividendReceived;
+                        toast.success(`💰 Quarterly Dividends Received!`, {
+                            description: `Collected ${formatMoney(totalDividendReceived)} in subsidiary dividends.`
+                        });
+                    }
                 }
             }
 
@@ -7824,20 +8433,25 @@ export default function Dashboard() {
                     ReviewTriggers.ipoDay();
                     playSound("success");
 
-                    // V2: Instead of ending the game, we transition to the Public Company Era
+                    // Scale shares outstanding so that the initial share price starts at a realistic $50.00/share
+                    const targetSharePrice = 50;
+                    const initialShares = Math.max(10_000_000, Math.floor(finalValuation / targetSharePrice));
+                    const initialFloat = Math.floor(initialShares * 0.20);
+                    const finalSharePrice = finalValuation / initialShares;
+
                     newStartup.public_company = {
-                        shares_outstanding: 100_000_000,
-                        float: 20_000_000,
-                        share_price: finalValuation / 100_000_000,
-                        ipo_price: finalValuation / 100_000_000,
-                        eps_last_quarter: ((newStartup.metrics.net_profit || 0) * 3) / 100_000_000,
-                        eps_guidance: (((newStartup.metrics.net_profit || 0) * 3) * 1.1) / 100_000_000,
-                        consensus_eps: (((newStartup.metrics.net_profit || 0) * 3) * 1.05) / 100_000_000,
+                        shares_outstanding: initialShares,
+                        float: initialFloat,
+                        share_price: finalSharePrice,
+                        ipo_price: finalSharePrice,
+                        eps_last_quarter: ((newStartup.metrics.net_profit || 0) * 3) / initialShares,
+                        eps_guidance: (((newStartup.metrics.net_profit || 0) * 3) * 1.1) / initialShares,
+                        consensus_eps: (((newStartup.metrics.net_profit || 0) * 3) * 1.05) / initialShares,
                         buyback_authorized: 0,
                         short_interest: Math.floor(Math.random() * 10), // 0-10% starting short interest
                         analyst_ratings: [
-                            { analystName: "Morgan P. Chase", firm: "Goldman Sachs Prime", rating: "Buy", priceTarget: (finalValuation / 100_000_000) * 1.3, lastUpdated: nextMonth },
-                            { analystName: "Sarah Weinstein", firm: "Morgan Capital", rating: "Hold", priceTarget: (finalValuation / 100_000_000) * 1.05, lastUpdated: nextMonth }
+                            { analystName: "Morgan P. Chase", firm: "Goldman Sachs Prime", rating: "Buy", priceTarget: finalSharePrice * 1.3, lastUpdated: nextMonth },
+                            { analystName: "Sarah Weinstein", firm: "Morgan Capital", rating: "Hold", priceTarget: finalSharePrice * 1.05, lastUpdated: nextMonth }
                         ],
                         quarterly_beats: 0,
                         quarterly_misses: 0,
@@ -7853,7 +8467,7 @@ export default function Dashboard() {
                         personal_wealth: (founder.personal_wealth || 0) + ipoFounderTake,
                     };
 
-                    const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalValuation / 100_000_000);
+                    const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalSharePrice, newStartup.name);
                     setMarketStocks(newMarket);
 
                     setFounder(newFounder);
@@ -8014,7 +8628,6 @@ export default function Dashboard() {
                 else if (ev.title) setSeenEventIds(prev => [...prev, ev.title]);
             }
 
-            let nextFounder = { ...founder, attributes: { ...founder.attributes } };
 
             rivalActions.forEach(({ action, competitorName }) => {
                 if (competitorName.toLowerCase().includes("chadly")) {
@@ -8113,71 +8726,6 @@ export default function Dashboard() {
                 nextFounder.personal_wealth -= totalLifestyleCost;
             }
 
-            // Margin Loan Interest
-            if (nextFounder.wealth_profile?.margin_loan_balance > 0) {
-                const interest = Math.floor(nextFounder.wealth_profile.margin_loan_balance * 0.005);
-                if (nextFounder.personal_wealth >= interest) {
-                    nextFounder.personal_wealth -= interest;
-                    addTimelineEvent(`💳 Paid ${formatMoney(interest)} in margin loan interest.`, nextMonth);
-                } else {
-                    // Force liquidation or just add to balance if they can't pay cash
-                    nextFounder.wealth_profile.margin_loan_balance += interest;
-                    addTimelineEvent(`⚠️ Unpaid margin interest of ${formatMoney(interest)} added to loan balance.`, nextMonth);
-                }
-            }
-
-            // 1.5. 10b5-1 Plan Execution
-            if (newStartup.public_company && nextFounder.wealth_profile?.active_10b51_plans?.length) {
-                const pub = newStartup.public_company;
-                let totalSharesSold = 0;
-                let totalProceeds = 0;
-                let hasAggressiveSelling = false;
-
-                nextFounder.wealth_profile.active_10b51_plans.forEach(plan => {
-                    if (plan.monthsRemaining > 0 && pub.share_price >= plan.targetPriceMinimum) {
-                        const sharesToSell = Math.min(plan.monthlySellAmount, plan.sharesToSellTotal - plan.sharesSoldSoFar);
-                        const proceeds = sharesToSell * pub.share_price;
-
-                        plan.sharesSoldSoFar += sharesToSell;
-                        plan.monthsRemaining -= 1;
-
-                        totalSharesSold += sharesToSell;
-                        totalProceeds += proceeds;
-
-                        if (plan.isAggressive) {
-                            hasAggressiveSelling = true;
-                        }
-                    }
-                });
-
-                // Remove completed plans
-                nextFounder.wealth_profile.active_10b51_plans = nextFounder.wealth_profile.active_10b51_plans.filter(p => p.monthsRemaining > 0);
-
-                if (hasAggressiveSelling) {
-                    const drop = pub.share_price * 0.015;
-                    pub.share_price = Math.max(0.01, pub.share_price - drop);
-                    addTimelineEvent(`📉 SEC 10b5-1 Aggressive liquidation pressure dropped share price by 1.5% (-${formatMoney(drop)}).`, nextMonth);
-                }
-
-                if (totalSharesSold > 0) {
-                    // Update Founder Cash
-                    nextFounder.personal_wealth = (nextFounder.personal_wealth || 0) + totalProceeds;
-
-                    // Deduct from Cap Table
-                    if (newStartup.capTable) {
-                        const founderIndex = newStartup.capTable.findIndex(e => e.type === "Founder");
-                        if (founderIndex >= 0) {
-                            const currentEquityPct = newStartup.capTable[founderIndex].equity;
-                            const totalCompanyShares = pub.shares_outstanding;
-                            const currentShares = (currentEquityPct / 100) * totalCompanyShares;
-                            const newShares = Math.max(0, currentShares - totalSharesSold);
-                            newStartup.capTable[founderIndex].equity = (newShares / totalCompanyShares) * 100;
-                        }
-                    }
-
-                    addTimelineEvent(`📄 10b5-1 Plans executed: Sold ${formatNumber(totalSharesSold)} shares for ${formatMoney(totalProceeds)}.`, nextMonth);
-                }
-            }
 
             // 1.6. Executive Stock Options Vesting
             if (newStartup.public_company && nextFounder.wealth_profile?.vesting_options?.length) {
@@ -10568,6 +11116,7 @@ export default function Dashboard() {
                         onTradePersonal={handleTradePersonal}
                         onTradeCorporate={handleTradeCorporate}
                         onTenderOffer={handleTenderOffer}
+                        onBlockBuy={handleBlockBuy}
                         onToggleCfoAutoTrade={handleToggleCfoAutoTrade}
                         personalPortfolio={founder.wealth_profile?.portfolio || []}
                         corporatePortfolio={startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []}
@@ -10575,6 +11124,9 @@ export default function Dashboard() {
                         corporateCash={startup.metrics?.cash || 0}
                         personalPortfolioHistory={founder.wealth_profile?.portfolioHistory || []}
                         corporatePortfolioHistory={startup.corporatePortfolioHistory || []}
+                        geniusUsesThisHour={geniusUsesThisHour}
+                        lastGeniusResetTime={lastGeniusResetTime}
+                        onInsiderTipUsed={handleInsiderTipUsed}
                     />
                 )}
             </AnimatePresence>
@@ -10660,6 +11212,7 @@ export default function Dashboard() {
                     setIsEarningsCallOpen(false);
                 }}
             />
+
 
             <StoreModal 
                 open={isStoreOpen} 

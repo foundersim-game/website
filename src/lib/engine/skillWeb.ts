@@ -212,7 +212,6 @@ export function calculateTotalSkillPoints(startup: Startup, founder: Founder, mo
     let points = 0;
 
     // Funding milestones
-    // funding_stage lives on startup.metrics at runtime; cast to any for compat
     const stage = (startup.metrics as any).funding_stage ?? "";
     if (["Pre-Seed", "Seed", "Series A", "Series B", "Series C"].includes(stage)) points += 1;
     if (["Series A", "Series B", "Series C"].includes(stage)) points += 1;
@@ -226,6 +225,39 @@ export function calculateTotalSkillPoints(startup: Startup, founder: Founder, mo
 
     // Time in game
     points += Math.floor(month / 12);
+
+    // M&A/Acquisitions: +1 SP for every 2 corporate takeovers/subsidiaries acquired
+    const acquisitions = startup.public_company?.subsidiaries?.length || startup.subsidiaries?.length || 0;
+    points += Math.floor(acquisitions / 2);
+
+    // Revenue (ARR) milestones: +1 SP for each ARR tier crossed
+    const arr = (startup.metrics.revenue || 0) * 12;
+    if (arr >= 10_000_000) points += 1;       // $10M ARR
+    if (arr >= 100_000_000) points += 1;      // $100M ARR
+    if (arr >= 1_000_000_000) points += 1;     // $1B ARR
+    if (arr >= 10_000_000_000) points += 1;    // $10B ARR
+    if (arr >= 100_000_000_000) points += 1;   // $100B ARR
+    if (arr >= 1_000_000_000_000) points += 1;  // $1T ARR
+
+    // High user base milestones
+    if (users >= 1_000_000) points += 1; // 1M users
+    if (users >= 10_000_000) points += 1; // 10M users
+    if (users >= 100_000_000) points += 1; // 100M users
+    if (users >= 1_000_000_000) points += 2; // 1B users
+
+    // Valuation Milestones
+    const valuation = startup.valuation || 0;
+    if (valuation >= 1_000_000_000) points += 1; // Unicorn ($1B)
+    if (valuation >= 10_000_000_000) points += 1; // Decacorn ($10B)
+    if (valuation >= 100_000_000_000) points += 1; // Centicorn ($100B)
+    if (valuation >= 1_000_000_000_000) points += 2; // Trillion-dollar company
+
+    // Product & Team Excellence
+    if ((startup.metrics.pmf_score || 0) >= 95) points += 1;
+    if ((startup.metrics.culture_score || 0) >= 95) points += 1;
+
+    // IPO Milestone: Underwriting your public IPO yields +2 SP
+    if (startup.public_company) points += 2;
 
     return points;
 }

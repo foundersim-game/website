@@ -121,7 +121,7 @@ export function getControlThreshold(tier: "rival" | "small_cap" | "mid_cap" | "l
 /**
  * Initialize the default market stocks with shareholders and tiers.
  */
-export function initializeMarketStocks(playerCompanySymbol?: string, playerIpoPrice?: number): MarketStock[] {
+export function initializeMarketStocks(playerCompanySymbol?: string, playerIpoPrice?: number, playerCompanyName?: string): MarketStock[] {
     const baseStocks: MarketStock[] = [
         // Technology — large caps
         { symbol: "GOOG", companyName: "Search Co", sector: "Technology", currentPrice: 175.20, sharesOutstanding: 1_000_000_000, peRatio: 25, momentum: 0, volatility: 0.05, rsi: 50, priceHistory: [175.20], companyTier: "large_cap" },
@@ -170,7 +170,7 @@ export function initializeMarketStocks(playerCompanySymbol?: string, playerIpoPr
     if (playerCompanySymbol && playerIpoPrice) {
         enriched.unshift({
             symbol: playerCompanySymbol,
-            companyName: "Your Company",
+            companyName: playerCompanyName || "Your Company",
             sector: "Technology",
             currentPrice: playerIpoPrice,
             sharesOutstanding: 100_000_000,
@@ -419,7 +419,7 @@ const NEWS_BY_SECTOR: Record<string, { highly_positive: NewsItem[]; positive: Ne
     },
 };
 
-export function generateStockNews(stock: MarketStock, roll: number, activeEvent?: MacroEvent | null): NewsItem {
+export function generateStockNews(stock: MarketStock, roll: number, activeEvent?: MacroEvent | null, isHeld?: boolean): NewsItem | null {
     const sector = stock.sector;
     const pool = NEWS_BY_SECTOR[sector] || NEWS_BY_SECTOR["Technology"];
 
@@ -431,6 +431,14 @@ export function generateStockNews(stock: MarketStock, roll: number, activeEvent?
             // Negative event shifts roll up (more bad news), positive event shifts down
             adjustedRoll = Math.max(0, Math.min(1, roll + effect.momentumShift * 0.3));
         }
+    }
+
+    // Only generate news sometimes, more frequently for large cap. Slightly higher chance if held.
+    let chanceOfNews = stock.companyTier === "large_cap" ? 0.35 : stock.companyTier === "mid_cap" ? 0.20 : 0.10;
+    if (isHeld) chanceOfNews += 0.15;
+    
+    if (Math.random() > chanceOfNews && !activeEvent) {
+        return null;
     }
 
     if (adjustedRoll < 0.05) {
@@ -661,7 +669,13 @@ export function checkMacroEventSpawn(currentEvent: MacroEvent | null | undefined
 }
 
 // ── MAIN MARKET SIMULATION LOOP ────────────────────────────────────────────────────────
-export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonType, activeEvent?: MacroEvent | null): MarketStock[] {
+export function processMarketMonth(
+    stocks: MarketStock[], 
+    currentSeason: SeasonType, 
+    activeEvent?: MacroEvent | null,
+    insiderPicks?: string[],
+    heldSymbols?: string[]
+): MarketStock[] {
     return stocks
         .filter(s => !s.isDelisted) // skip delisted
         .map(stock => {
@@ -676,7 +690,11 @@ export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonT
                 }
             }
 
+            const isInsiderTip = insiderPicks?.includes(stock.symbol);
             let randomMove = (Math.random() + Math.random() + Math.random() - 1.5) * baseVol;
+            if (isInsiderTip) {
+                randomMove = 0.05 + Math.random() * 0.05; // 5-10% steady surge over the duration
+            }
 
             let macroEffect = 0;
             const macroNoise = (Math.random() - 0.5) * 0.02;
@@ -718,20 +736,37 @@ export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonT
 
             // Rich news generation
             const roll = Math.random();
-            const newsItem = generateStockNews(stock, roll, activeEvent);
+            let newsItem = generateStockNews(stock, roll, activeEvent, heldSymbols?.includes(stock.symbol));
 
-            // Shift news into history (keep last 3)
+            if (isInsiderTip) {
+                newsItem = {
+                    headline: `Insider Insight Proves Correct on ${stock.symbol}`,
+                    context: "A tip received from a 'Market Genius' proves startlingly accurate as the company undergoes a multi-month period of major growth.",
+                    momentumImpact: 0.2
+                };
+            }
+
             const prevHistory = stock.newsHistory || [];
-            const newHistory = stock.recentNews
-                ? [stock.recentNews, ...prevHistory].slice(0, 3)
-                : prevHistory.slice(0, 3);
+            
+            // Only update news string and history if we actually got a news item this month
+            let finalRecentNews = stock.recentNews;
+            let finalNewsContext = stock.newsContext;
+            let finalHistory = prevHistory;
+            
+            if (newsItem) {
+                finalHistory = stock.recentNews ? [stock.recentNews, ...prevHistory].slice(0, 3) : prevHistory.slice(0, 3);
+                finalRecentNews = newsItem.headline;
+                finalNewsContext = newsItem.context;
+            }
 
-            const finalPrice = Math.max(0.01, newPrice * (1 + newsItem.momentumImpact * 0.1));
-            let finalMomentum = Math.max(-1, Math.min(1, newMomentum + newsItem.momentumImpact));
+            const momentumImpact = newsItem ? newsItem.momentumImpact : 0;
+            // Dampen the immediate price impact and momentum shift so news doesn't guarantee massive direct returns
+            const finalPriceAdjusted = Math.max(0.01, newPrice * (1 + momentumImpact * 0.04));
+            let finalMomentumAdjusted = Math.max(-1, Math.min(1, newMomentum + momentumImpact * 0.5));
 
             // Institutions shift slightly on prolonged bad news
             let updatedShareholders = stock.shareholders;
-            if (updatedShareholders && newsItem.momentumImpact < -0.2) {
+            if (updatedShareholders && momentumImpact < -0.2) {
                 updatedShareholders = updatedShareholders.map(sh =>
                     sh.type === "institution"
                         ? { ...sh, ownershipPct: Math.max(0.5, sh.ownershipPct - Math.random() * 0.5) }
@@ -741,13 +776,13 @@ export function processMarketMonth(stocks: MarketStock[], currentSeason: SeasonT
 
             return {
                 ...stock,
-                currentPrice: finalPrice,
-                momentum: finalMomentum,
+                currentPrice: finalPriceAdjusted,
+                momentum: finalMomentumAdjusted,
                 priceHistory: history,
                 rsi,
-                recentNews: newsItem.headline,
-                newsContext: newsItem.context,
-                newsHistory: newHistory,
+                recentNews: finalRecentNews,
+                newsContext: finalNewsContext,
+                newsHistory: finalHistory,
                 shareholders: updatedShareholders,
             };
         });

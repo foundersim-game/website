@@ -82,13 +82,13 @@ const LandingPage = () => {
     { c: 'c-emerald', icon: '💰', title: 'Fundraising Simulator', desc: 'Generate investor leads, negotiate term sheets, and close rounds under pressure. Hire a Fundraising Consultant or activate CFO roadshows for institutional capital.', stat: 'Full 6-stage funding journey' },
     { c: 'c-rose', icon: '🚀', title: 'Growth Strategy Engine', desc: 'GTM, viral loops, paid acquisition, or enterprise B2B — pick your growth playbook. Every strategy has unit economics consequences you\'ll feel months down the line.', stat: '84M+ peak users simulated' },
     { c: 'c-amber', icon: '⚔️', title: 'Competitor Intelligence', desc: 'Watch rival startups grow, hire, and fundraise in real-time. Launch market attacks, undercut pricing, or poach their talent before they poach yours.', stat: 'Dynamic AI competitor engine' },
-    { c: 'c-rose', icon: '🏦', title: 'Advanced Corporate Finance', desc: 'Trade stocks, issue venture debt, execute share buybacks, set up subsidiary companies, and even lobby regulators. True CFO-level mechanics in your pocket.', stat: 'Options trading & margin loans' },
+    { c: 'c-rose', icon: '🏦', title: 'Advanced Corporate Finance', desc: 'Trade stocks, issue venture debt, execute share buybacks, set up subsidiary companies, and even lobby regulators. True CFO-level mechanics in your pocket.', stat: 'Executive stock options & margin loans' },
     { c: 'c-purple', icon: '📈', title: 'Real Unit Economics', desc: 'MRR, ARR, burn rate, CAC, LTV, churn — every metric matters. Every hire, campaign, and product decision flows through your P&L and runway in real time.', stat: '15+ financial metrics tracked' },
   ];
 
   const v2Features = [
     { icon: '🦈', label: 'M&A Acquisitions', desc: 'Acquire rival companies and integrate them as subsidiaries' },
-    { icon: '📉', label: 'Options Trading', desc: 'Buy calls and puts on your own company\'s stock post-IPO' },
+    { icon: '📉', label: 'Executive Stock Options', desc: 'Grant yourself options and use margin loans against your equity' },
     { icon: '💳', label: 'Margin Loans', desc: 'Borrow against your founder equity for personal leverage' },
     { icon: '📄', label: '10b5-1 Plans', desc: 'Automated insider selling schedule for compliance' },
     { icon: '🏛️', label: 'Congressional Lobbying', desc: 'Influence regulations to protect your market position' },
@@ -122,7 +122,7 @@ const LandingPage = () => {
       <div className="v2-banner">
         <Sparkles size={13} style={{ color: 'var(--amber)' }} />
         <span className="v2-banner-text">🎉 VERSION 2.0.0 — THE EMPIRE ERA — IS NOW LIVE</span>
-        <span className="v2-banner-sub">12 major new features including M&A, Options Trading & the Earnings Call system</span>
+        <span className="v2-banner-sub">12 major new features including M&A, Corporate Debt & the Earnings Call system</span>
         <a href="#v2" className="v2-banner-cta">See What's New <ArrowRight size={11} /></a>
       </div>
 

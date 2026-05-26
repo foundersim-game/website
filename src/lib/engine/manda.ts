@@ -124,10 +124,10 @@ export function generateMnATargets(playerValuation: number): MnATarget[] {
         const sector = sectors[Math.floor(Math.random() * sectors.length)];
         const rationale = rationales[Math.floor(Math.random() * rationales.length)];
         
-        // Target valuation is 1% to 15% of player valuation, capped at $20 Billion
-        const scale = 0.01 + Math.random() * 0.14;
+        // Target valuation scales dynamically (from 0.5% to 15% of player valuation) without an arbitrary cap
+        const scale = 0.005 + Math.random() * 0.145;
         let ask = Math.floor(playerValuation * scale);
-        ask = Math.min(20_000_000_000, Math.max(1_000_000, ask)); // Min 1M, Max 20B
+        ask = Math.max(1_000_000, ask); // Minimum $1M, scales naturally up to trillions
 
         // Variance for true value (0.7x to 1.3x of ask)
         const true_value = Math.floor(ask * (0.7 + Math.random() * 0.6));

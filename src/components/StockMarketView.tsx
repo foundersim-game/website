@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     TrendingUp, TrendingDown, X, BarChart2, Newspaper, Briefcase,
     ChevronRight, Building2, User, ArrowUpRight, ArrowDownRight,
-    AlertTriangle, Zap, Info, ShieldAlert, Users, RefreshCw
+    AlertTriangle, Zap, Info, ShieldAlert, Users, RefreshCw,
+    Shield, ChevronDown
 } from "lucide-react";
+import { adService } from "@/lib/services/adService";
 import {
     MarketStock, PortfolioPosition, Startup, Founder,
     PublicCompanyState, FounderPersonalWealth
@@ -18,6 +20,8 @@ import {
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function fmt(n: number): string {
+    if (n >= 1e15) return `$${(n / 1e15).toFixed(2)}Q`;
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
     if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
     if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
     if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
@@ -123,6 +127,7 @@ function ShareholdersPanel({ stock, playerOwnershipPct }: { stock: MarketStock; 
         vc: "bg-purple-100 text-purple-700",
         public_float: "bg-slate-100 text-slate-600",
         player: "bg-emerald-100 text-emerald-700",
+        parent_company: "bg-indigo-100 text-indigo-700",
     };
     const typeLabel: Record<string, string> = {
         institution: "Fund",
@@ -130,24 +135,23 @@ function ShareholdersPanel({ stock, playerOwnershipPct }: { stock: MarketStock; 
         vc: "VC",
         public_float: "Float",
         player: "You",
+        parent_company: "Parent",
     };
 
     return (
         <div className="space-y-1.5">
             {displayHolders.map((sh, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${typeColor[sh.type]}`}>
-                        {typeLabel[sh.type]}
+                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider w-[48px] text-center shrink-0 ${typeColor[sh.type] || "bg-slate-100 text-slate-600"}`}>
+                        {typeLabel[sh.type] || sh.type}
                     </span>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center mb-0.5">
-                            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name}</span>
-                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 ml-2 shrink-0">{sh.ownershipPct.toFixed(1)}%</span>
-                        </div>
-                        <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${sh.type === "player" ? "bg-emerald-500" : sh.type === "founder" ? "bg-amber-400" : "bg-blue-400"}`}
+                    <div className="grid grid-cols-[100px_1fr_40px] items-center gap-3 flex-1 min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name}</span>
+                        <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden w-full">
+                            <div className={`h-full rounded-full transition-all ${sh.type === "player" ? "bg-emerald-500" : sh.type === "parent_company" ? "bg-indigo-500" : sh.type === "founder" ? "bg-amber-400" : sh.type === "vc" ? "bg-purple-400" : "bg-blue-400"}`}
                                 style={{ width: `${Math.min(100, sh.ownershipPct)}%` }} />
                         </div>
+                        <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 text-right">{sh.ownershipPct.toFixed(1)}%</span>
                     </div>
                 </div>
             ))}
@@ -467,6 +471,7 @@ interface StockMarketViewProps {
     onTradePersonal: (symbol: string, shares: number, price: number) => void;
     onTradeCorporate: (symbol: string, shares: number, price: number) => void;
     onTenderOffer: (stock: MarketStock, premiumPct: number, account: "personal" | "corporate") => void;
+    onBlockBuy?: (stock: MarketStock, shareholderIndex: number, premiumPct: number, account: "personal" | "corporate") => void;
     onToggleCfoAutoTrade: () => void;
     personalPortfolio: PortfolioPosition[];
     corporatePortfolio: PortfolioPosition[];
@@ -474,13 +479,17 @@ interface StockMarketViewProps {
     corporateCash: number;
     personalPortfolioHistory?: { month: number; value: number }[];
     corporatePortfolioHistory?: { month: number; value: number }[];
+    geniusUsesThisHour: number;
+    lastGeniusResetTime: number;
+    onInsiderTipUsed: () => void;
 }
 
 export default function StockMarketView({
     onClose, stocks, startup, founder, month,
-    onTradePersonal, onTradeCorporate, onTenderOffer, onToggleCfoAutoTrade,
+    onTradePersonal, onTradeCorporate, onTenderOffer, onBlockBuy, onToggleCfoAutoTrade,
     personalPortfolio, corporatePortfolio, personalCash, corporateCash,
     personalPortfolioHistory = [], corporatePortfolioHistory = [],
+    geniusUsesThisHour, lastGeniusResetTime, onInsiderTipUsed
 }: StockMarketViewProps) {
     const [mainTab, setMainTab] = useState<"market" | "portfolio" | "news">("market");
     const [account, setAccount] = useState<"personal" | "corporate">("personal");
@@ -544,7 +553,7 @@ export default function StockMarketView({
                         <button key={acc} onClick={() => setAccount(acc)}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${account === acc ? "bg-white text-indigo-700" : "bg-white/15 text-white/70"}`}>
                             {acc === "personal" ? <User className="size-3" /> : <Building2 className="size-3" />}
-                            {acc === "personal" ? "Personal" : "Corporate"}
+                            <span className="font-bold">{acc === "personal" ? "Personal" : "Corporate"}</span>
                         </button>
                     ))}
                 </div>
@@ -580,6 +589,28 @@ export default function StockMarketView({
                         </div>
                     </button>
                 )}
+            </div>
+
+            {/* SEC WARNING & GENIUS HEADER */}
+            <div className="bg-slate-900 px-6 py-2 flex justify-between items-center text-xs border-b border-slate-800 shrink-0 shadow-sm">
+                <div className="flex items-center gap-2 text-rose-500 font-semibold tracking-wide uppercase">
+                    <Shield className="w-3.5 h-3.5" /> SEC Surveillance Active
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-slate-400">Genius Tips: {2 - geniusUsesThisHour}/2 left</span>
+                    <button 
+                        onClick={() => {
+                            if (geniusUsesThisHour >= 2) return;
+                            adService.showRewardedAd(() => {
+                                onInsiderTipUsed();
+                            }, 'default');
+                        }}
+                        disabled={geniusUsesThisHour >= 2}
+                        className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                        <Zap className="w-3.5 h-3.5" /> Insider Tip (Ad)
+                    </button>
+                </div>
             </div>
 
             {/* Main tabs */}
