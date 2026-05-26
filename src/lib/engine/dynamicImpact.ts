@@ -59,7 +59,7 @@ export function getDepartmentPower(category: string, startup: any, founder?: any
     // 1. Better Role Mapping
     const mapping: Record<string, { skill: string, roles: string[], cxo: string, founderAttr: string }> = {
         technical: { skill: "technical", roles: ["engineer", "software engineer", "dev", "tech"], cxo: "CTO", founderAttr: "technical_skill" },
-        product: { skill: "technical", roles: ["engineer", "software engineer", "dev", "tech", "product"], cxo: "CTO", founderAttr: "intelligence" },
+        product: { skill: "technical", roles: ["engineer", "software engineer", "dev", "tech", "product"], cxo: "CTO", founderAttr: "technical_skill" },
         marketing_skill: { skill: "marketing", roles: ["marketer", "marketing", "growth"], cxo: "CMO", founderAttr: "reputation" },
         growth: { skill: "marketing", roles: ["marketer", "marketing", "growth"], cxo: "CMO", founderAttr: "marketing_skill" },
         leadership: { skill: "sales", roles: ["sales", "account executive", "rep"], cxo: "COO", founderAttr: "leadership" },

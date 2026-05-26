@@ -475,9 +475,9 @@ export function HowToPlayContent() {
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📉 Options & Margin Loans</p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">🎲 Stock Options & Margin Loans</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Use personal wealth to buy calls and puts on your own stock post-IPO. You can also borrow cash via **Margin Loans** by leveraging your founder equity as collateral, bypassing compliance limits.
+                  Grant yourself **Executive Stock Option Plans** via Board approval to receive additional equity vesting over time. You can exercise these options to gain common shares, or leverage your existing equity as collateral for **Margin Loans** to get personal cash.
                 </p>
               </div>
 
@@ -485,6 +485,20 @@ export function HowToPlayContent() {
                 <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📄 10b5-1 Compliance Plans</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                   Avoid compliance investigations when selling founder equity. Set up a **10b5-1 Plan** in the Compliance tab to schedule automated, secondary sales of your shares for safe personal cash.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">🏦 Corporate Debt</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Once you reach Series A, you can access non-dilutive capital through **Venture Debt** or **Revenue-Based Loans**. This provides runway without giving up equity, but requires monthly interest and principal payments.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📉 Treasury & Stock Trading</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Put idle corporate or personal cash to work by investing in the **Stock Market**. Build a portfolio to generate yield, or engage in **Options Trading** once your company is public.
                 </p>
               </div>
             </div>
@@ -588,9 +602,9 @@ export function HowToPlayContent() {
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
-              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers & Acquisitions (M&A)</p>
+              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers, Acquisitions & Subsidiaries</p>
               <p className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium">
-                You can **acquire competitor companies** directly to absorb their users, cash, and market share! Go to the **Market** menu, view active rivals, and make an acquisition offer. If successful, their entire user base is merged into your startup. *(Titan owners get a permanent 50% cash discount on M&A acquisitions).*
+                You can **acquire competitor companies** directly to absorb their users, cash, and market share! Go to the **Market** menu, view active rivals, and make an acquisition offer. If successful, their entire user base is merged into your startup, and they become a **Subsidiary** that you can actively manage for additional synergies and revenue streams. *(Titan owners get a permanent 50% cash discount on M&A acquisitions).*
               </p>
             </div>
           </div>

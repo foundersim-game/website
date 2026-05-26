@@ -761,10 +761,17 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     if (engCount > 0) {
         const engPassiveDebtReduction = (engineerPower / engCount / 100) * engCount * 2 * teamEfficiency;
         metrics.technical_debt = Math.max(0, metrics.technical_debt - engPassiveDebtReduction);
+    } else if (!hasCTO) {
+        // If no engineers, technical systems passively accumulate debt/decay
+        metrics.technical_debt = Math.min(100, metrics.technical_debt + 3.0);
     }
+
     if (mktCount > 0) {
         const mktPassiveBrand = (marketerPower / mktCount / 100) * mktCount * 1.5 * teamEfficiency;
         metrics.brand_awareness = Math.min(100, (metrics.brand_awareness || 0) + mktPassiveBrand);
+    } else if (!hasCMO) {
+        // If no marketers, brand awareness passively decays
+        metrics.brand_awareness = Math.max(0, (metrics.brand_awareness || 0) - 1.5);
     }
 
     if (engineerPower === 0) engineerPower = attrs.technical_skill / 30;
@@ -773,8 +780,19 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const engMult = 1 + (engineerPower * 0.004 * teamEfficiency);
     const mktMult = 1 + (marketerPower * 0.004 * teamEfficiency);
     const debtPenalty = Math.min(0.5, metrics.technical_debt / 100);
-    const qualityIncrease = ((totalTechPower * 0.4) + (techBoost * 0.5)) / 10;
-    metrics.product_quality = Math.min(100, metrics.product_quality + (qualityIncrease * (1 - debtPenalty)));
+    
+    let qualityIncrease = 0;
+    if (engCount > 0 || hasCTO) {
+        qualityIncrease = ((totalTechPower * 0.4) + (techBoost * 0.5)) / 10;
+    } else {
+        // If no engineers, product quality decays passively unless the founder explicitly builds features this month
+        if (action === "build_mvp_features") {
+            qualityIncrease = ((totalTechPower * 0.4) + (techBoost * 0.5)) / 10;
+        } else {
+            qualityIncrease = -1.2; // passive code rot
+        }
+    }
+    metrics.product_quality = Math.max(0, Math.min(100, metrics.product_quality + (qualityIncrease * (1 - debtPenalty))));
 
     // REALISM FIX: Reliability is strictly capped by Product Quality. 
     // You can't have a 10% quality product that is 80% reliable.
@@ -832,11 +850,16 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // Prevent players from running a massive company with 0 staff
     const totalHeadcount = employees.length + Object.keys(cxoTeam).length + 1; // +1 for founder
     let maxUsersPerHeadcount = 10000;
-    if (industry === "Mobile Game") maxUsersPerHeadcount = 100000;
-    else if (industry === "SaaS Platform" || industry === "EdTech" || industry === "Dev Tools") maxUsersPerHeadcount = 5000;
-    else if (industry === "Marketplace") maxUsersPerHeadcount = 25000;
-    else if (industry === "FinTech App" || industry === "FinTech" || industry === "FinTech Platform") maxUsersPerHeadcount = 15000;
-    else if (isSLG) maxUsersPerHeadcount = 500; // High touch B2B requires massive headcount
+    if (employees.length === 0) {
+        // Solo founder cap is extremely tight: cannot scale operations/support alone
+        maxUsersPerHeadcount = (industry === "Mobile Game" || industry === "Marketplace") ? 1000 : 500;
+    } else {
+        if (industry === "Mobile Game") maxUsersPerHeadcount = 100000;
+        else if (industry === "SaaS Platform" || industry === "EdTech" || industry === "Dev Tools") maxUsersPerHeadcount = 5000;
+        else if (industry === "Marketplace") maxUsersPerHeadcount = 25000;
+        else if (industry === "FinTech App" || industry === "FinTech" || industry === "FinTech Platform") maxUsersPerHeadcount = 15000;
+        else if (isSLG) maxUsersPerHeadcount = 500; // High touch B2B requires massive headcount
+    }
 
     const maxSafeUsers = totalHeadcount * maxUsersPerHeadcount;
     let capacityStrainMult = 1.0;
@@ -857,6 +880,13 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         if (debtSpike > 3 && Math.random() > 0.5) {
             notices.push(`🚨 Capacity Overload! Your team of ${totalHeadcount} cannot support ${formatNumber(Math.floor(metrics.users))} users. Tech Debt spiked and morale is dropping. Hire more staff!`);
         }
+
+        // Severe Solo Founder burnout spike if running past safety without hiring
+        if (employees.length === 0) {
+            const soloBurnoutSpike = Math.min(20, Math.ceil((metrics.users / maxSafeUsers) * 3));
+            metrics.founder_burnout = Math.min(100, (metrics.founder_burnout || 0) + soloBurnoutSpike);
+            notices.push(`🔥 Solo Founder Overload! Supporting ${formatNumber(Math.floor(metrics.users))} users without a team causes extreme burnout (+${soloBurnoutSpike}!).`);
+        }
     }
 
     // --- MARKET DYNAMICS ---
@@ -864,6 +894,24 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const marketSentiment = 0.85 + (marketCycle * 0.1); 
     
     let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.4 + (metrics.brand_awareness || 0) * 0.2 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * capacityStrainMult * marketSentiment;
+
+    if (employees.length === 0 && metrics.users > (industry === "Mobile Game" || industry === "Marketplace" ? 1000 : 500)) {
+        // Solo founder growth penalty past initial traction
+        growthRate = 0;
+        if (Math.random() < 0.25) {
+            notices.push("📈 Growth Stalled: You cannot grow your company past traction without hiring team members. Recruit staff (Marketers, Engineers, Sales) to scale the business!");
+        }
+    }
+    
+    // --- SOLO FOUNDER DECAY ---
+    if (employees.length === 0 && monthsPassed >= 6 && metrics.users > 50) {
+        // Without a team, product rots and debt accumulates
+        metrics.product_quality = Math.max(0, metrics.product_quality - 3);
+        metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 5);
+        if (Math.random() < 0.3) {
+            notices.push("⚠️ Solo Founder Decay: Without engineers and marketers to maintain the product, quality is dropping and tech debt is rising. Hire a team!");
+        }
+    }
     
     if (startup.unlocked_perks?.includes("growth_hacker")) {
         growthRate *= 1.10;
@@ -922,7 +970,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         } else if (metrics.users > 0) {
             // BUFFED: Sales power now has a stronger impact on PLG growth (0.015 vs 0.006)
             const rawNewUsers = Math.floor(metrics.users * (growthRate * 0.12 * (1 + (salesPower * 0.015))));
-            grossNewUsers = Math.min(rawNewUsers + Math.floor(baselineOrganic), Math.floor(metrics.users * 0.15));
+            grossNewUsers = growthRate === 0 ? 0 : Math.min(rawNewUsers + Math.floor(baselineOrganic), Math.floor(metrics.users * 0.15));
             metrics.users = (metrics.users || 0) + grossNewUsers;
         } else if (metrics.users < 10) {
             // Catch-all for very early users
@@ -973,6 +1021,14 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         if ((metrics.reliability || 100) < 60) currentChurn += 0.05 * ((60 - (metrics.reliability || 100)) / 60);
         // Poor team morale leads to poor support, increasing churn
         if ((metrics.team_morale || 100) < 40) currentChurn += 0.02 * ((40 - (metrics.team_morale || 100)) / 40);
+
+        // Capacity overload churn: if users exceed capacity, customers get terrible support and buggy software, increasing churn
+        if (metrics.users > maxSafeUsers && maxSafeUsers > 0) {
+            const overloadRatio = metrics.users / maxSafeUsers;
+            // Up to +25% churn penalty if severely overloaded
+            const overloadChurn = Math.min(0.25, (overloadRatio - 1) * 0.05);
+            currentChurn += overloadChurn;
+        }
 
         if (scenarioRules.churnMultiplier) currentChurn *= scenarioRules.churnMultiplier;
 

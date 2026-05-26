@@ -35,7 +35,7 @@ export function StoreModal({ open, onClose, startup, setStartup }: StoreModalPro
                 { identifier: IAP_PRODUCT_IDS.AD_FREE, title: "Ad-Free Pro", description: "Remove all banners and interstitials.", price: 4.99, priceString: "$4.99", currencyCode: "USD" } as Product,
                 { identifier: IAP_PRODUCT_IDS.STARTER_PACK, title: "Founder's Starter Pack", description: "Get $5,000,000 instantly to kickstart your journey.", price: 1.99, priceString: "$1.99", currencyCode: "USD" } as Product,
                 { identifier: IAP_PRODUCT_IDS.CAFFEINE_DRIP, title: "Caffeine IV Drip", description: "+100 Max Focus Hours permanently.", price: 9.99, priceString: "$9.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TITAN_INDUSTRY, title: "Titan of Industry", description: "$100M Corporate Cash + 50% off M&A and Fundraising.", price: 19.99, priceString: "$19.99", currencyCode: "USD" } as Product
+                { identifier: IAP_PRODUCT_IDS.TITAN_INDUSTRY, title: "Titan of Industry", description: "$100M Corporate Cash + 50% off M&A and Fundraising + Ad-Free play.", price: 19.99, priceString: "$19.99", currencyCode: "USD" } as Product
             ]);
         }
         setIsLoading(false);
@@ -94,7 +94,7 @@ export function StoreModal({ open, onClose, startup, setStartup }: StoreModalPro
 
     if (!open) return null;
 
-    const adFreeOwned = startup.iap_ad_free || localStorage.getItem("founder_sim_premium") === "true";
+    const adFreeOwned = startup.iap_ad_free || startup.iap_titan || localStorage.getItem("founder_sim_premium") === "true";
     const caffeineOwned = startup.iap_caffeine;
     const titanOwned = startup.iap_titan;
 

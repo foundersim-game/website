@@ -25,7 +25,7 @@ import { EarningsCallModal } from "@/components/EarningsCallModal";
 import { getStorylineDialog, StorylineState, StorylineDialog, getSamConsultDialog, TUTORIAL_STEPS } from "@/lib/engine/storyline";
 import { PublicMarketTicker } from "@/components/PublicMarketTicker";
 import { checkAchievements, Achievement } from "@/lib/engine/achievements";
-import { initializeMarketStocks, processMarketMonth, executeTrade, checkMacroEventSpawn } from "@/lib/engine/publicMarket";
+import { initializeMarketStocks, processMarketMonth, executeTrade, checkMacroEventSpawn, getPlayerOwnershipPct, checkPoisonPill, executeTenderOffer, getControlThreshold, createSubsidiaryStock } from "@/lib/engine/publicMarket";
 import { calcDynamicImpact, applyEffectsToState, getDepartmentPower, type ActionUsageLog, type GameContext } from "@/lib/engine/dynamicImpact";
 import { ReviewTriggers } from "@/lib/services/reviewService";
 import { getActionDef, getOngoingProgramDef, calcFocusHours, ONGOING_PROGRAMS, IMMEDIATE_ACTIONS, type ActionDef } from "@/lib/engine/actions";
@@ -43,6 +43,7 @@ import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negot
 import { AnimatePresence, motion } from "framer-motion";
 import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark, Sparkles, Instagram } from "lucide-react";
 import { HowToPlayContent } from "@/components/HowToPlay";
+import StockMarketView from "@/components/StockMarketView";
 import { StoreModal } from "@/components/StoreModal";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 
@@ -549,6 +550,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing, handleAcquireRival, setCompetitors }: ActionSheetProps) {
 
     const employees = allEmployees;
+    const [borrowSlideVal, setBorrowSlideVal] = useState<number>(0);
+    const [repaySlideVal, setRepaySlideVal] = useState<number>(0);
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
     const liveNetProfit = liveRevenue - (m.cogs || 0) - (m.opex || 0);
     const profitable = liveNetProfit >= 0;
@@ -3321,7 +3324,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     (isActive || isIPO) && (
                                         <button
                                             onClick={() => {
-                                                const ddCost = Math.max(5000, Math.floor(comp.valuation * 0.005));
+                                                const ddCost = Math.min(250000, Math.max(5000, Math.floor(comp.valuation * 0.005)));
                                                 if (startup.metrics.cash < ddCost) { toast.error("Not enough corporate cash!"); return; }
                                                 const newStartup = { ...startup };
                                                 newStartup.metrics.cash -= ddCost;
@@ -3331,7 +3334,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             }}
                                             className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[8px] rounded-lg transition-all active:scale-95 shadow-sm"
                                         >
-                                            🔬 Run Due Diligence ({formatMoney(Math.max(5000, Math.floor(comp.valuation * 0.005)))})
+                                            🔬 Run Due Diligence ({formatMoney(Math.min(250000, Math.max(5000, Math.floor(comp.valuation * 0.005))))})
                                         </button>
                                     )
                                 )}
@@ -3902,60 +3905,54 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     </p>
                 </div>
 
-                {/* Draw Presets */}
+                {/* Draw Slider */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Draw Cash (Costs 6% APR Interest)</p>
-                    <div className="flex gap-2 mb-2">
-                        <button
-                            onClick={() => handleBorrow(1000000)}
-                            disabled={availableLoan < 1000000}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
-                        >
-                            Borrow $1M
-                        </button>
-                        <button
-                            onClick={() => handleBorrow(5000000)}
-                            disabled={availableLoan < 5000000}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
-                        >
-                            Borrow $5M
-                        </button>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Draw Cash (Costs 6% APR Interest)</p>
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-black text-indigo-600">{formatMoney(borrowSlideVal)}</span>
+                        <span className="text-[9px] text-slate-400 font-bold">Max: {formatMoney(availableLoan)}</span>
                     </div>
+                    <input
+                        type="range"
+                        min={0}
+                        max={availableLoan}
+                        step={Math.max(10000, Math.floor(availableLoan / 100)) || 1000}
+                        value={Math.min(borrowSlideVal, availableLoan)}
+                        onChange={(e) => setBorrowSlideVal(Number(e.target.value))}
+                        className="w-full accent-indigo-500 mb-3"
+                    />
                     <button
-                        onClick={() => handleBorrow(availableLoan)}
-                        disabled={availableLoan < 100000}
-                        className="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                        onClick={() => { handleBorrow(borrowSlideVal); setBorrowSlideVal(0); }}
+                        disabled={borrowSlideVal <= 0 || borrowSlideVal > availableLoan}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                     >
-                        Borrow Max Capacity ({formatMoney(availableLoan)})
+                        Borrow {formatMoney(borrowSlideVal)}
                     </button>
                 </div>
 
-                {/* Repay Presets */}
+                {/* Settle Debt Slider */}
                 {currentLoan > 0 && (
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Repay Balance (Settle Debt)</p>
-                        <div className="flex gap-2 mb-2">
-                            <button
-                                onClick={() => handleRepay(1000000)}
-                                disabled={(founder.personal_wealth || 0) < 1000000}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
-                            >
-                                Repay $1M
-                            </button>
-                            <button
-                                onClick={() => handleRepay(5000000)}
-                                disabled={(founder.personal_wealth || 0) < 5000000}
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
-                            >
-                                Repay $5M
-                            </button>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Repay Balance (Settle Debt)</p>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-black text-emerald-600">{formatMoney(repaySlideVal)}</span>
+                            <span className="text-[9px] text-slate-400 font-bold">Max: {formatMoney(Math.min(currentLoan, founder.personal_wealth || 0))}</span>
                         </div>
+                        <input
+                            type="range"
+                            min={0}
+                            max={Math.min(currentLoan, founder.personal_wealth || 0)}
+                            step={Math.max(10000, Math.floor(Math.min(currentLoan, founder.personal_wealth || 0) / 100)) || 1000}
+                            value={Math.min(repaySlideVal, Math.min(currentLoan, founder.personal_wealth || 0))}
+                            onChange={(e) => setRepaySlideVal(Number(e.target.value))}
+                            className="w-full accent-emerald-500 mb-3"
+                        />
                         <button
-                            onClick={() => handleRepay(currentLoan)}
-                            disabled={(founder.personal_wealth || 0) <= 0}
-                            className="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                            onClick={() => { handleRepay(repaySlideVal); setRepaySlideVal(0); }}
+                            disabled={repaySlideVal <= 0 || repaySlideVal > Math.min(currentLoan, founder.personal_wealth || 0)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                         >
-                            Repay Full Balance ({formatMoney(Math.min(currentLoan, founder.personal_wealth || 0))})
+                            Repay {formatMoney(repaySlideVal)}
                         </button>
                     </div>
                 )}
@@ -5582,6 +5579,74 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             toast.success("Subsidiary Divested", { description: `Received ${formatMoney(payout)} in non-dilutive corporate cash!` });
         };
 
+        const handleListSubsidiary = (rawName: string) => {
+            try {
+                const parsed = parseSubsidiary(rawName);
+                const fee = 2000000;
+                const corporateCash = startup.metrics.cash || 0;
+                if (corporateCash < fee) {
+                    toast.error("Insufficient Treasury Cash", { description: `Listing ${parsed.name} requires $2,000,000 in IPO fees.` });
+                    return;
+                }
+
+                // IPO Requirements Validation for Subsidiary
+                const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
+                if (!hasCFO) {
+                    toast.error("CFO Required for IPO", { description: "You must hire a CFO before underwriting a subsidiary stock market listing." });
+                    return;
+                }
+
+                const subARR = parsed.valuation * 0.15;
+                if (subARR < 50000000) {
+                    toast.error("IPO Requirements Not Met", { description: `${parsed.name} must have at least $50,000,000 ARR to qualify (currently ${formatMoney(subARR)}).` });
+                    return;
+                }
+
+                const subUsers = Math.floor(parsed.valuation / 200);
+                if (subUsers < 10000) {
+                    toast.error("IPO Requirements Not Met", { description: `${parsed.name} must have at least 10,000 users to qualify (currently ${subUsers.toLocaleString()}).` });
+                    return;
+                }
+
+                const existingTickers = (marketStocks || []).map(s => s.symbol);
+                const newStock = createSubsidiaryStock(
+                    parsed.name,
+                    parsed.valuation,
+                    existingTickers,
+                    startup.name || "Parent Corp"
+                );
+
+                const newStartup = { ...startup };
+                newStartup.metrics.cash -= fee;
+                newStartup.subsidiaries = (newStartup.subsidiaries || []).filter((s: any) => s !== rawName);
+
+                // Parent company retains 80% stake (16,000,000 shares)
+                const isPublic = !!startup.public_company;
+                if (!isPublic) {
+                    const port = newStartup.treasury_portfolio || [];
+                    newStartup.treasury_portfolio = [
+                        ...port,
+                        { symbol: newStock.symbol, shares: 16000000, averageCost: newStock.currentPrice }
+                    ];
+                } else if (newStartup.public_company) {
+                    const port = newStartup.public_company.corporate_portfolio || [];
+                    newStartup.public_company.corporate_portfolio = [
+                        ...port,
+                        { symbol: newStock.symbol, shares: 16000000, averageCost: newStock.currentPrice }
+                    ];
+                }
+
+                const updatedStocks = [...(marketStocks || []), newStock];
+                if (setMarketStocks) setMarketStocks(updatedStocks);
+                setStartup(newStartup);
+
+                addTimelineEvent(`🏢 Subsidiary IPO: Carved out division "${parsed.name}" and listed it on the public market as ${newStock.symbol} at $${newStock.currentPrice.toFixed(2)}/share (IPO Fee: $2,000,000). Parent Corp retains 80% stake.`);
+                toast.success("Subsidiary Listed!", { description: `"${parsed.name}" is now trading publicly under symbol ${newStock.symbol}.` });
+            } catch (e: any) {
+                toast.error(e.message || "IPO failed");
+            }
+        };
+
         return (
             <div className="flex flex-col gap-4 min-h-[82vh] justify-between">
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between gap-4 shadow-lg">
@@ -5625,21 +5690,58 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     {subs.map((subRaw: string, idx: number) => {
                                         const sub = parseSubsidiary(subRaw);
                                         const divestPrice = Math.max(10000000, Math.floor(sub.valuation * 0.8));
+                                        
+                                        const subARR = sub.valuation * 0.15;
+                                        const subUsers = Math.floor(sub.valuation / 200);
+                                        const subProfit = sub.monthlySynergy * 12;
+                                        const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
+
+                                        const passARR = subARR >= 50000000;
+                                        const passUsers = subUsers >= 10000;
+                                        const passCFO = hasCFO;
+                                        const canIPO = passARR && passUsers && passCFO && corporateCash >= 2000000;
+
                                         return (
                                             <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-xs">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">{sub.name}</p>
-                                                        <p className="text-[8px] font-semibold text-slate-500 mt-0.5">Asset Value: {formatMoney(sub.valuation)}</p>
-                                                        <div className="flex gap-1.5 items-center mt-1 flex-wrap">
+                                                        
+                                                        {/* Basic Financials Grid */}
+                                                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                                <span>ARR:</span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(subARR)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                                <span>Users:</span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{subUsers.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                                <span>Asset Val:</span>
+                                                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(sub.valuation)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                                <span>Net Profit:</span>
+                                                                <span className={cn("font-bold", subProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                                                                    {subProfit >= 0 ? "+" : ""}{formatMoney(subProfit)}/yr
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* IPO Readiness Badges */}
+                                                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                                                            <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">IPO Readiness:</span>
                                                             <span className={cn(
-                                                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded border",
-                                                                sub.monthlySynergy >= 0 ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50" : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50"
+                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md border",
+                                                                canIPO 
+                                                                    ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200" 
+                                                                    : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-200"
                                                             )}>
-                                                                {sub.monthlySynergy >= 0 ? '+' : ''}{formatMoney(sub.monthlySynergy)}/mo
+                                                                {canIPO ? "✅ Qualified" : `❌ ${!passCFO ? "Need CFO" : !passARR ? "Need $50M ARR" : "Not Qualified"}`}
                                                             </span>
                                                             <span className={cn(
-                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded border",
+                                                                "text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md border",
                                                                 sub.integrationRisk === "High" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200" :
                                                                     sub.integrationRisk === "Medium" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200" :
                                                                         "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200"
@@ -5656,20 +5758,27 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     </button>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                                <div className="grid grid-cols-3 gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                                                     <button
                                                         onClick={() => handleInjectCapital(sub.raw)}
                                                         disabled={corporateCash < 10000000}
-                                                        className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 font-black uppercase text-[8px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                        className="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
                                                     >
                                                         💉 Inject $10M
                                                     </button>
                                                     <button
                                                         onClick={() => handleRebrandSubsidiary(sub.raw)}
                                                         disabled={corporateCash < 5000000}
-                                                        className="bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/20 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-900/50 disabled:opacity-40 text-violet-700 dark:text-violet-400 font-black uppercase text-[8px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                        className="bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/20 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-900/50 disabled:opacity-40 text-violet-700 dark:text-violet-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
                                                     >
                                                         🎯 Rebrand ($5M)
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleListSubsidiary(sub.raw)}
+                                                        disabled={!canIPO}
+                                                        className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 font-black uppercase text-[7px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                    >
+                                                        📈 IPO Stock ($2M)
                                                     </button>
                                                 </div>
                                             </div>
@@ -5840,6 +5949,7 @@ export default function Dashboard() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [endgameStory, setEndgameStory] = useState<string | null>(null);
     const [isEndgameOpen, setIsEndgameOpen] = useState(false);
+    const [isStockMarketOpen, setIsStockMarketOpen] = useState(false);
     const [isFocusBreakdownOpen, setIsFocusBreakdownOpen] = useState(false);
     const [dismissedEndgame, setDismissedEndgame] = useState(false);
     const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -5992,10 +6102,10 @@ export default function Dashboard() {
     // Specifically to prevent the "Modal Behind Sheet" issue. 
     // If a primary interaction starts (Negotiate, Fundraising, Event, AI Dialog, etc), we must close any side sheets.
     useEffect(() => {
-        if (pendingCandidate || pendingInvestor || activeEvent || isCharacterDialogOpen || isEndgameOpen || confirmedFunding || confirmedHire) {
+        if (pendingInvestor || activeEvent || isCharacterDialogOpen || isEndgameOpen || confirmedFunding) {
             if (actionCategory !== null) setActionCategory(null);
         }
-    }, [pendingCandidate, pendingInvestor, activeEvent, isCharacterDialogOpen, isEndgameOpen, confirmedFunding, confirmedHire, actionCategory]);
+    }, [pendingInvestor, activeEvent, isCharacterDialogOpen, isEndgameOpen, confirmedFunding, actionCategory]);
 
     useEffect(() => {
         if (startup.iap_ad_free || startup.iap_titan) {
@@ -6527,6 +6637,223 @@ export default function Dashboard() {
         }
         router.push("/");
     };
+
+        const handleTradePersonal = (symbol: string, shares: number, price: number) => {
+        try {
+            const currentWealthProfile = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
+            const { newCash, newPortfolio } = executeTrade(
+                currentWealthProfile.portfolio || [],
+                founder.personal_wealth || 0,
+                symbol,
+                shares,
+                price
+            );
+            
+            // Check if we trigger poison pill
+            let updatedStocks = [...marketStocks];
+            const stockIndex = updatedStocks.findIndex(s => s.symbol === symbol);
+            if (stockIndex >= 0) {
+                const prevOwnership = getPlayerOwnershipPct(symbol, updatedStocks[stockIndex], currentWealthProfile.portfolio || [], startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []);
+                const nextShares = (currentWealthProfile.portfolio || []).map(p => p.symbol === symbol ? { ...p, shares: p.shares + shares } : p);
+                if (!nextShares.find(p => p.symbol === symbol) && shares > 0) {
+                    nextShares.push({ symbol, shares, averageCost: price });
+                }
+                const newOwnership = getPlayerOwnershipPct(symbol, updatedStocks[stockIndex], nextShares, startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []);
+                const updatedStock = checkPoisonPill(updatedStocks[stockIndex], prevOwnership, newOwnership);
+                if (updatedStock.poisonPillActive && !updatedStocks[stockIndex].poisonPillActive) {
+                    toast.warning(`☠️ Poison pill defense triggered by ${updatedStock.companyName}! They issued new shares, diluting your power!`);
+                }
+                updatedStocks[stockIndex] = updatedStock;
+                setMarketStocks(updatedStocks);
+            }
+
+            setFounder(prev => ({
+                ...prev,
+                personal_wealth: newCash,
+                wealth_profile: {
+                    ...currentWealthProfile,
+                    portfolio: newPortfolio
+                }
+            }));
+            toast.success(`${shares > 0 ? "Bought" : "Sold"} ${Math.abs(shares).toLocaleString()} shares of ${symbol}`);
+        } catch (e: any) {
+            toast.error(e.message || "Trade failed");
+        }
+    };
+
+    const handleTradeCorporate = (symbol: string, shares: number, price: number) => {
+        try {
+            const isPublic = !!startup.public_company;
+            const currentCorpPortfolio = isPublic 
+                ? (startup.public_company?.corporate_portfolio || [])
+                : (startup.treasury_portfolio || []);
+            const { newCash, newPortfolio } = executeTrade(
+                currentCorpPortfolio,
+                startup.metrics?.cash || 0,
+                symbol,
+                shares,
+                price
+            );
+
+            // Check if we trigger poison pill
+            let updatedStocks = [...marketStocks];
+            const stockIndex = updatedStocks.findIndex(s => s.symbol === symbol);
+            if (stockIndex >= 0) {
+                const prevOwnership = getPlayerOwnershipPct(symbol, updatedStocks[stockIndex], founder.wealth_profile?.portfolio || [], currentCorpPortfolio);
+                const nextShares = currentCorpPortfolio.map(p => p.symbol === symbol ? { ...p, shares: p.shares + shares } : p);
+                if (!nextShares.find(p => p.symbol === symbol) && shares > 0) {
+                    nextShares.push({ symbol, shares, averageCost: price });
+                }
+                const newOwnership = getPlayerOwnershipPct(symbol, updatedStocks[stockIndex], founder.wealth_profile?.portfolio || [], nextShares);
+                const updatedStock = checkPoisonPill(updatedStocks[stockIndex], prevOwnership, newOwnership);
+                if (updatedStock.poisonPillActive && !updatedStocks[stockIndex].poisonPillActive) {
+                    toast.warning(`☠️ Poison pill defense triggered by ${updatedStock.companyName}! They issued new shares, diluting your power!`);
+                }
+                updatedStocks[stockIndex] = updatedStock;
+                setMarketStocks(updatedStocks);
+            }
+
+            setStartup(prev => {
+                if (isPublic && prev.public_company) {
+                    return {
+                        ...prev,
+                        metrics: {
+                            ...prev.metrics,
+                            cash: newCash
+                        },
+                        public_company: {
+                            ...prev.public_company,
+                            corporate_portfolio: newPortfolio
+                        }
+                    };
+                } else {
+                    return {
+                        ...prev,
+                        metrics: {
+                            ...prev.metrics,
+                            cash: newCash
+                        },
+                        treasury_portfolio: newPortfolio
+                    };
+                }
+            });
+            toast.success(`Corporate ${shares > 0 ? "bought" : "sold"} ${Math.abs(shares).toLocaleString()} shares of ${symbol}`);
+        } catch (e: any) {
+            toast.error(e.message || "Trade failed");
+        }
+    };
+
+    const handleTenderOffer = (stock: MarketStock, premiumPct: number, account: "personal" | "corporate") => {
+        try {
+            const personalPortfolio = founder.wealth_profile?.portfolio || [];
+            const corporatePortfolio = startup.public_company?.corporate_portfolio || startup.treasury_portfolio || [];
+            const personalCash = founder.personal_wealth || 0;
+            const corporateCash = startup.metrics?.cash || 0;
+
+            const availableCash = account === "personal" ? personalCash : corporateCash;
+            const currentSharesHeld = (account === "personal" ? personalPortfolio : corporatePortfolio)
+                .find(p => p.symbol === stock.symbol)?.shares || 0;
+
+            const result = executeTenderOffer(stock, premiumPct, availableCash, currentSharesHeld);
+
+            if (result.blocked) {
+                toast.error(`Tender Offer Blocked: ${result.blockReason}`);
+                return;
+            }
+
+            if (result.sharesAcquired <= 0) {
+                toast.info("Tender offer received no acceptance from public float.");
+                return;
+            }
+
+            // Adjust portfolio position with the shares acquired
+            let updatedPortfolio = account === "personal" ? [...personalPortfolio] : [...corporatePortfolio];
+            const posIndex = updatedPortfolio.findIndex(p => p.symbol === stock.symbol);
+            const offeredPrice = stock.currentPrice * (1 + premiumPct / 100);
+            const finalOfferedPrice = stock.poisonPillActive ? offeredPrice * 1.4 : offeredPrice;
+
+            if (posIndex >= 0) {
+                const pos = updatedPortfolio[posIndex];
+                const totalVal = pos.shares * pos.averageCost + result.sharesAcquired * finalOfferedPrice;
+                const newShares = pos.shares + result.sharesAcquired;
+                updatedPortfolio[posIndex] = { ...pos, shares: newShares, averageCost: totalVal / newShares };
+            } else {
+                updatedPortfolio.push({ symbol: stock.symbol, shares: result.sharesAcquired, averageCost: finalOfferedPrice });
+            }
+
+            const updatedCash = availableCash - result.totalCost;
+
+            if (account === "personal") {
+                setFounder(prev => ({
+                    ...prev,
+                    personal_wealth: updatedCash,
+                    wealth_profile: {
+                        ...(prev.wealth_profile || { margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] }),
+                        portfolio: updatedPortfolio
+                    }
+                }));
+            } else {
+                const isPublic = !!startup.public_company;
+                setStartup(prev => {
+                    if (isPublic && prev.public_company) {
+                        return {
+                            ...prev,
+                            metrics: {
+                                ...prev.metrics,
+                                cash: updatedCash
+                            },
+                            public_company: {
+                                ...prev.public_company,
+                                corporate_portfolio: updatedPortfolio
+                            }
+                        };
+                    } else {
+                        return {
+                            ...prev,
+                            metrics: {
+                                ...prev.metrics,
+                                cash: updatedCash
+                            },
+                            treasury_portfolio: updatedPortfolio
+                        };
+                    }
+                });
+            }
+
+            // Check if we took control of the company
+            const newPersonalPortfolio = account === "personal" ? updatedPortfolio : personalPortfolio;
+            const newCorporatePortfolio = account === "corporate" ? updatedPortfolio : corporatePortfolio;
+            const newOwnership = getPlayerOwnershipPct(stock.symbol, stock, newPersonalPortfolio, newCorporatePortfolio);
+            const controlThreshold = getControlThreshold(stock.companyTier || "large_cap");
+
+            if (newOwnership >= controlThreshold) {
+                // Add to startup subsidiaries!
+                const existingSubs = startup.subsidiaries || [];
+                if (!existingSubs.includes(stock.symbol)) {
+                    setStartup(prev => ({
+                        ...prev,
+                        subsidiaries: [...(prev.subsidiaries || []), stock.symbol]
+                    }));
+                    toast.success(`🎉 Hostile Takeover Successful! ${stock.companyName} (${stock.symbol}) is now a subsidiary of ${startup.name}!`);
+                } else {
+                    toast.success(`Tender offer completed! Acquired ${result.sharesAcquired.toLocaleString()} additional shares.`);
+                }
+            } else {
+                toast.success(`Tender offer completed! Acquired ${result.sharesAcquired.toLocaleString()} shares. Current stake: ${newOwnership.toFixed(1)}%`);
+            }
+        } catch (e: any) {
+            toast.error(e.message || "Tender offer failed");
+        }
+    };
+
+    const handleToggleCfoAutoTrade = () => {
+        setStartup(prev => ({
+            ...prev,
+            cfo_auto_trade_enabled: !prev.cfo_auto_trade_enabled
+        }));
+        toast.info(`CFO Auto-Trading ${!startup.cfo_auto_trade_enabled ? "enabled" : "disabled"}`);
+    };
+
 
     const handleOpenSaveModal = () => {
         try {
@@ -7374,25 +7701,6 @@ export default function Dashboard() {
                     }
                 }
 
-                // 3.5 Process Subsidiaries cashflow synergies
-                const subsList = newStartup.subsidiaries || pub.subsidiaries || [];
-                if (subsList.length > 0) {
-                    let totalSynergy = 0;
-                    subsList.forEach((subStr: string) => {
-                        const parsed = parseSubsidiary(subStr);
-                        totalSynergy += parsed.monthlySynergy;
-                    });
-                    newStartup.metrics.cash += totalSynergy;
-                    if (totalSynergy !== 0) {
-                        addTimelineEvent(
-                            totalSynergy >= 0
-                                ? `🏢 Corporate Synergies: Subsidiaries contributed +${formatMoney(totalSynergy)} profit to corporate treasury.`
-                                : `🏢 Corporate Synergies: Subsidiaries drained -${formatMoney(Math.abs(totalSynergy))} operating cash from corporate treasury.`,
-                            nextMonth
-                        );
-                    }
-                }
-
                 // 4. Lobbying score benefits
                 const lobbyingScore = pub.lobbying_score || 0;
                 if (lobbyingScore >= 70) {
@@ -7405,6 +7713,43 @@ export default function Dashboard() {
                 }
 
                 setFounder(newFounder);
+            }
+
+            // 3.5 Process Subsidiaries cashflow synergies and dynamic growth (Pre-IPO & Post-IPO)
+            const subsList = newStartup.subsidiaries || newStartup.public_company?.subsidiaries || [];
+            if (subsList.length > 0) {
+                let totalSynergy = 0;
+                const updatedSubs: string[] = [];
+                subsList.forEach((subStr: string) => {
+                    const parsed = parseSubsidiary(subStr);
+                    totalSynergy += parsed.monthlySynergy;
+                    
+                    // Compounding growth if profitable, or decay if losing money
+                    let newVal = parsed.valuation;
+                    let newSyn = parsed.monthlySynergy;
+                    if (parsed.monthlySynergy > 0) {
+                        const growth = 0.005 + Math.random() * 0.01; // 0.5% to 1.5% monthly compounding growth
+                        newVal = Math.floor(parsed.valuation * (1 + growth));
+                        newSyn = Math.floor(parsed.monthlySynergy * (1 + growth * 0.5));
+                    } else if (parsed.monthlySynergy < 0) {
+                        const decay = 0.01 + Math.random() * 0.01; // 1% to 2% cash drain decay
+                        newVal = Math.max(1000000, Math.floor(parsed.valuation * (1 - decay)));
+                    }
+                    updatedSubs.push(`${parsed.name}::${newVal}::${newSyn}::${parsed.integrationRisk}`);
+                });
+                newStartup.subsidiaries = updatedSubs;
+                if (newStartup.public_company) {
+                    newStartup.public_company.subsidiaries = updatedSubs;
+                }
+                newStartup.metrics.cash += totalSynergy;
+                if (totalSynergy !== 0) {
+                    addTimelineEvent(
+                        totalSynergy >= 0
+                            ? `🏢 Corporate Synergies: Subsidiaries contributed +${formatMoney(totalSynergy)} profit to corporate treasury.`
+                            : `🏢 Corporate Synergies: Subsidiaries drained -${formatMoney(Math.abs(totalSynergy))} operating cash from corporate treasury.`,
+                        nextMonth
+                    );
+                }
             }
 
             // Chadly Dynamic IPO
@@ -8504,7 +8849,7 @@ export default function Dashboard() {
                     )}
 
                     {/* 4 MAIN CATEGORIES GRID */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-5 gap-1.5">
                         {/* Operations */}
                         <button onClick={() => { setTerminalTab("operations"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-blue-100 dark:border-blue-800/50"><span className="drop-shadow-sm">🏢</span></div>
@@ -8524,6 +8869,11 @@ export default function Dashboard() {
                         <button onClick={() => { setTerminalTab("corporate"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-amber-100 dark:border-amber-800/50"><span className="drop-shadow-sm">🏛️</span></div>
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Corporate</span>
+                        </button>
+                        {/* Markets */}
+                        <button onClick={() => setIsStockMarketOpen(true)} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
+                            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-indigo-100 dark:border-indigo-800/50"><span className="drop-shadow-sm">📊</span></div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Markets</span>
                         </button>
                     </div>
 
@@ -8569,7 +8919,7 @@ export default function Dashboard() {
                                             { id: "analysts", emoji: "🎙️", label: "PR/Comms", color: "#f5f3ff", border: "#ddd6fe", text: "#7c3aed", desc: "Public relations" },
                                             { id: "manda_acquire", emoji: "🦈", label: "Acquire", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8", desc: "M&A acquisition", isLocked: false },
                                             { id: "subsidiary", emoji: "🏢", label: "Manage", color: "#f8fafc", border: "#cbd5e1", text: "#475569", desc: "Subsidiary oversight", isLocked: false },
-                                            { id: "options", emoji: "🎲", label: "Options", color: "#fff7ed", border: "#ffedd5", text: "#ea580c", desc: "Derivatives market", isLocked: !startup.public_company }
+                                            { id: "options", emoji: "🎲", label: "Options", color: "#fff7ed", border: "#ffedd5", text: "#ea580c", desc: "ESOP & Stock Grants", isLocked: !startup.public_company }
                                         ];
                                     } else if (terminalTab === "corporate") {
                                         cats = [
@@ -8577,7 +8927,7 @@ export default function Dashboard() {
                                             { id: "board_mgmt", emoji: "🪑", label: "Board", color: "#fefce8", border: "#fde68a", text: "#b45309", desc: "Manage board" },
                                             { id: "fines", emoji: "⚖️", label: "Legal", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Settle lawsuits" },
                                             { id: "lobbying", emoji: "🏛️", label: "Lobbying", color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8", desc: "Influence regulations", isLocked: !startup.public_company },
-                                            { id: "trade_stock", emoji: "📉", label: "Trade", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1", desc: "Treasury investing", isLocked: false },
+
                                             { id: "buyback", emoji: "💸", label: "Buyback", color: "#fefce8", border: "#fde68a", text: "#b45309", desc: "Share buybacks", isLocked: !startup.public_company },
                                             { id: "corporate_debt", emoji: "🏦", label: "Debt", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Venture debt & bonds", isLocked: false },
                                         ];
@@ -8586,7 +8936,7 @@ export default function Dashboard() {
                                             { id: "founder", emoji: "👤", label: "Founder", color: "#fff1f2", border: "#fecdd3", text: "#be123c", desc: "Manage energy" },
                                             { id: "lifestyle", emoji: "💎", label: "Lifestyle", color: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9", desc: "Luxury assets & perks" },
                                             { id: "philanthropy", emoji: "🕊️", label: "Donate", color: "#fdf4ff", border: "#e9d5ff", text: "#7e22ce", desc: "Charity for reputation" },
-                                            { id: "personal_trade", emoji: "📉", label: "Stock Market", color: "#f0f9ff", border: "#bae6fd", text: "#0369a1", desc: "Personal stock trading" },
+
                                             { id: "margin_loan", emoji: "💳", label: "Margin", color: "#f0fdf4", border: "#bbf7d0", text: "#15803d", desc: "Borrow against stock", isLocked: !startup.public_company },
                                             { id: "10b51", emoji: "📄", label: "10b51", color: "#fff7ed", border: "#ffedd5", text: "#9a3412", desc: "Automated trading", isLocked: !startup.public_company }
                                         ];
@@ -10203,6 +10553,29 @@ export default function Dashboard() {
                             </button>
                         </motion.div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* STOCK MARKET OVERHAUL MODAL */}
+            <AnimatePresence>
+                {isStockMarketOpen && (
+                    <StockMarketView
+                        onClose={() => setIsStockMarketOpen(false)}
+                        stocks={marketStocks}
+                        startup={startup}
+                        founder={founder}
+                        month={month}
+                        onTradePersonal={handleTradePersonal}
+                        onTradeCorporate={handleTradeCorporate}
+                        onTenderOffer={handleTenderOffer}
+                        onToggleCfoAutoTrade={handleToggleCfoAutoTrade}
+                        personalPortfolio={founder.wealth_profile?.portfolio || []}
+                        corporatePortfolio={startup.public_company?.corporate_portfolio || startup.treasury_portfolio || []}
+                        personalCash={founder.personal_wealth || 0}
+                        corporateCash={startup.metrics?.cash || 0}
+                        personalPortfolioHistory={founder.wealth_profile?.portfolioHistory || []}
+                        corporatePortfolioHistory={startup.corporatePortfolioHistory || []}
+                    />
                 )}
             </AnimatePresence>
 

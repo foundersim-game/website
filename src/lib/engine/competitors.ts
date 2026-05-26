@@ -129,17 +129,18 @@ export function generateNewCompetitor(index: number, playerIndustry?: string, pl
     const risks: ("Low" | "Medium" | "High")[] = ["Low", "Medium", "High"];
     const healths: ("Profitable" | "Break-Even" | "Burning Cash")[] = ["Profitable", "Break-Even", "Burning Cash"];
     
-    // Scale new competitor valuation to be around 5% to 30% of the player's current valuation, min $500k
-    const compValuation = Math.max(500000, Math.floor(playerValuation * (0.05 + Math.random() * 0.25)));
+    // Start realistically as a seed-stage startup
+    const compValuation = 500000 + Math.round(Math.random() * 1500000); // $500K to $2.0M
+    const compUsers = Math.round(10 + Math.random() * 190); // 10 to 200 users
     
     return {
         id: `comp_${Date.now()}_${index}`,
         name: randomNames[Math.floor(Math.random() * randomNames.length)] + " " + (index + 1),
         industry: playerIndustry || industries[Math.floor(Math.random() * industries.length)],
         valuation: compValuation,
-        users: Math.max(50, Math.floor(compValuation / 5000)),
+        users: compUsers,
         status: "active",
-        growth_rate: 1.04 + Math.random() * 0.08,
+        growth_rate: 1.05 + Math.random() * 0.12, // Fast early growth rate (5% to 17% monthly growth)
         velocity: Math.random() > 0.7 ? "accelerating" : "steady",
         sentiment: "neutral",
         is_diligent: false,
@@ -174,8 +175,20 @@ export function simulateCompetitors(
             newComp.velocity = "steady";
         }
 
-        newComp.users = Math.floor(newComp.users * newComp.growth_rate);
-        newComp.valuation = Math.floor(newComp.valuation * (1 + (newComp.growth_rate - 1) * 0.5));
+        // Growth slows down as they scale (market saturation)
+        let effectiveGrowthRate = newComp.growth_rate;
+        if (newComp.users > 1000000000) { // 1B users
+            effectiveGrowthRate = 1 + (newComp.growth_rate - 1) * 0.02;
+        } else if (newComp.users > 100000000) { // 100M users
+            effectiveGrowthRate = 1 + (newComp.growth_rate - 1) * 0.1;
+        } else if (newComp.users > 10000000) { // 10M users
+            effectiveGrowthRate = 1 + (newComp.growth_rate - 1) * 0.3;
+        } else if (newComp.users > 1000000) { // 1M users
+            effectiveGrowthRate = 1 + (newComp.growth_rate - 1) * 0.6;
+        }
+
+        newComp.users = Math.min(2000000000, Math.floor(newComp.users * effectiveGrowthRate)); // Hard cap at 2B users
+        newComp.valuation = Math.floor(newComp.valuation * (1 + (effectiveGrowthRate - 1) * 0.5));
 
         // Random events for competitors
         const roll = Math.random();

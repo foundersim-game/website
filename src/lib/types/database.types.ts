@@ -360,6 +360,11 @@ export type Startup = {
     public_company?: PublicCompanyState;
     subsidiaries?: string[];       // Symbols/IDs of acquired companies (available pre and post IPO)
 
+    // ── STOCK MARKET MODULE ──────────────────────────────────────────────────
+    cfo_auto_trade_enabled?: boolean;   // Toggle: let CFO manage corporate portfolio
+    treasury_portfolio?: PortfolioPosition[]; // Pre-IPO corporate portfolio
+    corporatePortfolioHistory?: { month: number; value: number }[]; // Up to 60 data points
+
     // ── LEGAL & LAWSUITS ─────────────────────────────────────────────────────
     active_lawsuits?: Lawsuit[];
 };
@@ -414,6 +419,12 @@ export type MacroEvent = {
     }[];
 };
 
+export type StockShareholder = {
+    name: string;                // "Vantage Index Fund", "Chad Williams (Founder)", etc.
+    type: "institution" | "founder" | "vc" | "public_float" | "player";
+    ownershipPct: number;        // 0-100
+};
+
 export type MarketStock = {
     symbol: string;
     companyName: string;
@@ -425,8 +436,20 @@ export type MarketStock = {
     volatility: number;
     rsi: number;
     priceHistory: number[]; // Last 12 months
-    recentNews?: string; // Idiosyncratic news event for this month
+    recentNews?: string;     // Short headline for this month
+    newsContext?: string;    // 1-sentence context/detail for this month's news
+    newsHistory?: string[];  // Last 3 months of headlines (newest first)
+    shareholders?: StockShareholder[]; // Top 5 holders
+    // Hostile takeover / ownership tracking
+    isRival?: boolean;           // True if this is a competitor company
+    isSubsidiary?: boolean;      // True if player acquired this company
+    rivalId?: string;            // Links to Competitor.id
+    founderOwnershipPct?: number;// % owned by insiders/founders
+    companyTier?: "rival" | "small_cap" | "mid_cap" | "large_cap";
+    poisonPillActive?: boolean;  // True if board triggered a poison pill defense
+    isDelisted?: boolean;        // True if bankrupt / acquired
 };
+
 
 export type PortfolioPosition = {
     symbol: string;
@@ -473,6 +496,7 @@ export type PublicCompanyState = {
     corporate_portfolio: PortfolioPosition[]; // MarketStock shares owned by company
     corporate_debt: DebtInstrument[];
     subsidiaries: string[];        // Symbols of companies where >50% is owned
+    portfolioHistory?: { month: number; value: number }[]; // Up to 60 data points
 };
 
 export type ExecutiveOption = {
@@ -491,4 +515,18 @@ export type FounderPersonalWealth = {
     philanthropy_score: number;
     active_10b51_plans: TenB51Plan[];
     vesting_options?: ExecutiveOption[];
+    portfolioHistory?: { month: number; value: number }[]; // Up to 60 data points
 };
+
+// ── HOSTILE TAKEOVER / TENDER OFFER Types ───────────────────────────────────
+export type TenderOfferTarget = {
+    symbol: string;
+    premiumPct: number;         // e.g. 30 = 30% above market price
+    offeredPricePerShare: number;
+    totalCost: number;
+    estimatedAcceptance: number; // 0-1 fraction of float expected to tender
+    sharesAcquired?: number;     // Set after execution
+    status: "pending" | "executed" | "failed" | "blocked_antitrust";
+    initiatedMonth: number;
+};
+
