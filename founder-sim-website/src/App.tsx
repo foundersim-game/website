@@ -227,7 +227,7 @@ const LandingPage = () => {
                   <span className="store-badge-main">App Store</span>
                 </div>
               </a>
-              <a href="https://play.google.com/store" target="_blank" rel="noreferrer" className="store-badge">
+              <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer" className="store-badge">
                 <span style={{ fontSize: 24 }}>🤖</span>
                 <div>
                   <span className="store-badge-sub">Get it on</span>
@@ -575,7 +575,7 @@ const LandingPage = () => {
               <span style={{ fontSize: 26 }}>🍎</span>
               <div><span className="store-badge-sub">Download on the</span><span className="store-badge-main">App Store</span></div>
             </a>
-            <a href="https://play.google.com/store" target="_blank" rel="noreferrer" className="store-badge">
+            <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer" className="store-badge">
               <span style={{ fontSize: 26 }}>🤖</span>
               <div><span className="store-badge-sub">Get it on</span><span className="store-badge-main">Google Play</span></div>
             </a>
@@ -605,7 +605,7 @@ const LandingPage = () => {
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
                 🍎 App Store
               </a>
-              <a href="https://play.google.com/store" target="_blank" rel="noreferrer"
+              <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', transition: 'all .2s' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>

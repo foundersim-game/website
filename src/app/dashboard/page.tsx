@@ -41,11 +41,12 @@ import { SaveSlot } from "@/app/page";
 import { generateCandidate, calculateHiringSuccess, Candidate, CANDIDATE_NAMES } from "@/lib/engine/negotiations";
 import { generateInvestor, negotiateFunding, Investor } from "@/lib/engine/negotiations";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark, Sparkles, Instagram } from "lucide-react";
+import { Zap, Users, User, GraduationCap, Award, TrendingUp, DollarSign, Briefcase, Menu, Save, RefreshCw, HelpCircle, Trash2, Plus, Check, X, Shield, Info, Rocket, AlertCircle, Percent, ChevronDown, Volume2, VolumeX, Star, Sun, Moon, Loader2, Landmark, Sparkles, Instagram, Bug } from "lucide-react";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import StockMarketView from "@/components/StockMarketView";
 import { StoreModal } from "@/components/StoreModal";
 import { ManageSubsidiaryModal } from "@/components/ManageSubsidiaryModal";
+import { ReportBugModal } from "@/components/ReportBugModal";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 
 // ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
@@ -6017,6 +6018,7 @@ export default function Dashboard() {
         return false;
     });
     const [isBurnBreakdownOpen, setIsBurnBreakdownOpen] = useState(false);
+    const [isBugModalOpen, setIsBugModalOpen] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
     const [interstitialAdOwed, setInterstitialAdOwed] = useState<boolean>(() => {
         if (typeof window !== "undefined") {
@@ -6100,6 +6102,49 @@ export default function Dashboard() {
             }
         }
     }, [isLoaded, startup.public_company, startup.symbol, startup.name, marketStocks.length]);
+
+    // Self-healing effect: ensure any stock in portfolios (like subsidiaries) that got wiped are restored
+    useEffect(() => {
+        if (isLoaded && marketStocks.length > 0) {
+            const corpPortfolio = startup.public_company?.corporate_portfolio || (startup as any).treasury_portfolio || [];
+            const personalPortfolio = founder.wealth_profile?.portfolio || [];
+            
+            const allPositions = [...corpPortfolio, ...personalPortfolio];
+            let missingStocks: MarketStock[] = [];
+            
+            allPositions.forEach(pos => {
+                // Don't reconstruct the player's own company (handled above)
+                if (pos.symbol === (startup.symbol || "CORP")) return;
+                
+                const exists = marketStocks.some(s => s.symbol === pos.symbol);
+                const alreadyMissing = missingStocks.some(s => s.symbol === pos.symbol);
+                if (!exists && !alreadyMissing) {
+                    missingStocks.push({
+                        symbol: pos.symbol,
+                        companyName: `${pos.symbol} Inc`,
+                        sector: "Technology",
+                        currentPrice: pos.averageCost,
+                        sharesOutstanding: 20_000_000,
+                        peRatio: 25,
+                        momentum: 0,
+                        volatility: 0.09,
+                        rsi: 50,
+                        priceHistory: [pos.averageCost],
+                        companyTier: "small_cap",
+                        isSubsidiary: true,
+                        shareholders: [
+                            { name: startup.name || "Parent", type: "founder", ownershipPct: 80 },
+                            { name: "Public Float", type: "public_float", ownershipPct: 20 }
+                        ]
+                    });
+                }
+            });
+            
+            if (missingStocks.length > 0) {
+                setMarketStocks(prev => [...prev, ...missingStocks]);
+            }
+        }
+    }, [isLoaded, startup.public_company?.corporate_portfolio, founder.wealth_profile?.portfolio, marketStocks.length, startup.symbol, startup.name]);
     const [isEarningsCallOpen, setIsEarningsCallOpen] = useState(false);
     const [isStoreOpen, setIsStoreOpen] = useState(false);
 
@@ -8467,8 +8512,16 @@ export default function Dashboard() {
                         personal_wealth: (founder.personal_wealth || 0) + ipoFounderTake,
                     };
 
-                    const newMarket = initializeMarketStocks(newStartup.symbol || "CORP", finalSharePrice, newStartup.name);
-                    setMarketStocks(newMarket);
+                    const playerSymbol = newStartup.symbol || "CORP";
+                    const newMarketTemplate = initializeMarketStocks(playerSymbol, finalSharePrice, newStartup.name);
+                    const playerStock = newMarketTemplate.find(s => s.symbol === playerSymbol);
+                    
+                    setMarketStocks(prev => {
+                        if (prev.length > 0 && playerStock) {
+                            return [playerStock, ...prev.filter(s => s.symbol !== playerSymbol)];
+                        }
+                        return newMarketTemplate;
+                    });
 
                     setFounder(newFounder);
                     setStartup(newStartup);
@@ -9077,6 +9130,9 @@ export default function Dashboard() {
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-emerald-50 focus:text-emerald-600 font-bold transition-colors" onClick={() => setIsHowToPlayOpen(true)}>
                                     <HelpCircle className="mr-2 h-4 w-4" /> How To Play
                                 </DropdownMenuItem>
+                                <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 dark:focus:bg-rose-950/40 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsBugModalOpen(true)}>
+                                    <Bug className="mr-2 h-4 w-4" /> Report a Bug
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     className={cn(
                                         "rounded-xl cursor-pointer py-2 font-bold transition-colors",
@@ -9440,13 +9496,17 @@ export default function Dashboard() {
                     >
                         {/* Submenu Top Bar */}
                         <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
-                            <button onClick={() => setViewState("dashboard")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform mt-auto mb-1">
-                                <span className="text-xl">←</span> <span className="font-black text-sm uppercase tracking-widest">Dashboard</span>
-                            </button>
-                            <h2 className="mx-auto font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center gap-2 mt-auto mb-1.5">
+                            <div className="flex-1 flex items-end mb-1">
+                                <button onClick={() => setViewState("dashboard")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
+                                    <span className="text-xl leading-none">←</span> 
+                                    <span className="font-black text-[11px] sm:text-sm uppercase tracking-widest hidden sm:inline">Dashboard</span>
+                                    <span className="font-black text-[11px] uppercase tracking-widest sm:hidden">Back</span>
+                                </button>
+                            </div>
+                            <h2 className="shrink-0 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-auto mb-1.5 mx-2">
                                 {terminalTab === "operations" ? "🏢 Operations" : terminalTab === "market" ? "📈 Strategy" : terminalTab === "personal" ? "👤 Founder" : "🏛️ Corporate"}
                             </h2>
-                            <div className="w-[104px]" /> {/* Spacer to balance Back button */}
+                            <div className="flex-1" /> {/* Spacer to balance Back button */}
                         </div>
                         {/* Submenu Content */}
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + 2rem)` : '2rem' }}>
@@ -9537,13 +9597,16 @@ export default function Dashboard() {
                     >
                         {/* Action Top Bar */}
                         <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
-                            <button onClick={() => setViewState("submenu")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform mt-auto mb-1">
-                                <span className="text-xl">←</span> <span className="font-black text-sm uppercase tracking-widest">Back</span>
-                            </button>
-                            <h2 className="mx-auto font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm text-center mt-auto mb-1.5">
+                            <div className="flex-1 flex items-end mb-1">
+                                <button onClick={() => setViewState("submenu")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
+                                    <span className="text-xl leading-none">←</span> 
+                                    <span className="font-black text-[11px] sm:text-sm uppercase tracking-widest">Back</span>
+                                </button>
+                            </div>
+                            <h2 className="shrink-0 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm text-center mt-auto mb-1.5 mx-2">
                                 {actionCategory.replace("_", " ")}
                             </h2>
-                            <div className="w-[104px]" /> {/* Spacer */}
+                            <div className="flex-1" /> {/* Spacer */}
                         </div>
                         {/* Action Content */}
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + 2rem)` : '2rem' }}>
@@ -11127,6 +11190,7 @@ export default function Dashboard() {
                         geniusUsesThisHour={geniusUsesThisHour}
                         lastGeniusResetTime={lastGeniusResetTime}
                         onInsiderTipUsed={handleInsiderTipUsed}
+                        activeTips={insiderStockPicks}
                     />
                 )}
             </AnimatePresence>
@@ -11219,6 +11283,11 @@ export default function Dashboard() {
                 onClose={() => setIsStoreOpen(false)} 
                 startup={startup} 
                 setStartup={setStartup as any} 
+            />
+
+            <ReportBugModal 
+                isOpen={isBugModalOpen}
+                onClose={() => setIsBugModalOpen(false)}
             />
         </div>
     );
