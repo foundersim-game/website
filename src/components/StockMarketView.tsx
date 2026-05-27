@@ -5,7 +5,7 @@ import {
     TrendingUp, TrendingDown, X, BarChart2, Newspaper, Briefcase,
     ChevronRight, Building2, User, ArrowUpRight, ArrowDownRight,
     AlertTriangle, Zap, Info, ShieldAlert, Users, RefreshCw,
-    Shield, ChevronDown
+    Shield, ChevronDown, Lock, Clock
 } from "lucide-react";
 import { adService } from "@/lib/services/adService";
 import {
@@ -113,13 +113,37 @@ function EquityCurve({ history }: { history: { month: number; value: number }[] 
 }
 
 // ── SHAREHOLDERS PANEL ────────────────────────────────────────────────────────
-function ShareholdersPanel({ stock, playerOwnershipPct }: { stock: MarketStock; playerOwnershipPct: number }) {
-    const holders = stock.shareholders || [];
-    const displayHolders = playerOwnershipPct > 1
-        ? [...holders.filter(h => h.type !== "player"), { name: "You (Player)", type: "player" as const, ownershipPct: playerOwnershipPct }]
-            .sort((a, b) => b.ownershipPct - a.ownershipPct)
-            .slice(0, 6)
-        : holders;
+function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct, startup }: { stock: MarketStock; personalOwnershipPct: number; corporateOwnershipPct: number; startup: any }) {
+    let holders = [...(stock.shareholders || [])];
+    
+    // Filter out previous dynamic artifacts if they exist
+    holders = holders.filter(h => h.name !== "You (Player)" && h.name !== "You (Personal)" && h.name !== "Corporate Treasury");
+
+    const isOwnCompany = stock.symbol === startup.symbol;
+
+    if (personalOwnershipPct > 0) {
+        holders.push({ name: "You (Personal)", type: "player" as const, ownershipPct: personalOwnershipPct });
+    }
+
+    if (corporateOwnershipPct > 0) {
+        if (stock.isSubsidiary) {
+            // Find the parent entry and update it
+            const existing = holders.find(h => h.name === startup.name || h.name === "Parent");
+            if (existing) {
+                existing.ownershipPct = corporateOwnershipPct;
+            } else {
+                holders.push({ name: startup.name || "Corporate Treasury", type: "parent_company" as const, ownershipPct: corporateOwnershipPct });
+            }
+        } else {
+            holders.push({ name: isOwnCompany ? "Corporate Treasury" : (startup.name || "Corporate Treasury"), type: "parent_company" as const, ownershipPct: corporateOwnershipPct });
+        }
+    }
+
+    if (isOwnCompany && holders.length === 0 && personalOwnershipPct === 0 && corporateOwnershipPct === 0) {
+        holders.push({ name: "You (Founder)", type: "founder" as const, ownershipPct: 100 });
+    }
+
+    const displayHolders = holders.sort((a, b) => b.ownershipPct - a.ownershipPct).slice(0, 6);
 
     const typeColor: Record<string, string> = {
         institution: "bg-blue-100 text-blue-700",
@@ -162,7 +186,7 @@ function ShareholdersPanel({ stock, playerOwnershipPct }: { stock: MarketStock; 
 // ── STOCK DETAIL PANEL ────────────────────────────────────────────────────────
 function StockDetail({
     stock, personalPortfolio, corporatePortfolio, personalCash, corporateCash,
-    account, onTrade, onTenderOffer, onClose, month
+    account, onTrade, onTenderOffer, onClose, month, startup
 }: {
     stock: MarketStock;
     personalPortfolio: PortfolioPosition[];
@@ -174,6 +198,7 @@ function StockDetail({
     onTenderOffer: (stock: MarketStock, premiumPct: number, account: "personal" | "corporate") => void;
     onClose: () => void;
     month: number;
+    startup: any;
 }) {
     const [shareInput, setShareInput] = useState("0");
     const [tab, setTab] = useState<"trade" | "info" | "shareholders">("trade");
@@ -188,6 +213,11 @@ function StockDetail({
     const canBuy = cash >= cost && shares > 0;
     const canSell = !!pos && pos.shares >= shares && shares > 0;
 
+    const playerSharesPersonal = personalPortfolio.find(p => p.symbol === stock.symbol)?.shares || 0;
+    const playerSharesCorp = corporatePortfolio.find(p => p.symbol === stock.symbol)?.shares || 0;
+    
+    const personalOwnershipPct = stock.sharesOutstanding > 0 ? (playerSharesPersonal / stock.sharesOutstanding) * 100 : 0;
+    const corporateOwnershipPct = stock.sharesOutstanding > 0 ? (playerSharesCorp / stock.sharesOutstanding) * 100 : (stock.isSubsidiary ? 100 : 0);
     const playerOwnershipPct = getPlayerOwnershipPct(stock.symbol, stock, personalPortfolio, corporatePortfolio);
     const takeoverCheck = checkHostileTakeoverEligibility(playerOwnershipPct, stock);
     const tier = stock.companyTier || "large_cap";
@@ -235,10 +265,13 @@ function StockDetail({
                     <div className="mt-3 bg-white/10 rounded-xl px-3 py-2">
                         <div className="flex justify-between text-white/80 text-[9px] font-bold mb-1">
                             <span>YOUR STAKE</span>
-                            <span>{playerOwnershipPct.toFixed(2)}% / {threshold}% needed for takeover</span>
+                            <span>
+                                {playerOwnershipPct === Infinity ? "100" : playerOwnershipPct.toFixed(2)}%
+                                {(!stock.isSubsidiary && stock.symbol !== startup.symbol) && ` / ${threshold}% needed for takeover`}
+                            </span>
                         </div>
                         <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-white rounded-full transition-all" style={{ width: `${Math.min(100, (playerOwnershipPct / threshold) * 100)}%` }} />
+                            <div className="h-full bg-white rounded-full transition-all" style={{ width: `${Math.min(100, (playerOwnershipPct === Infinity ? 100 : playerOwnershipPct) / (!stock.isSubsidiary && stock.symbol !== startup.symbol ? threshold : 100) * 100)}%` }} />
                         </div>
                     </div>
                 )}
@@ -358,7 +391,7 @@ function StockDetail({
                         </div>
 
                         {/* Hostile Takeover CTA */}
-                        {takeoverCheck.eligible && (
+                        {takeoverCheck.eligible && !stock.isSubsidiary && stock.symbol !== startup.symbol && (
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 space-y-3">
                                 <div className="flex items-center gap-2">
                                     <ShieldAlert className="size-4 text-amber-600" />
@@ -382,7 +415,7 @@ function StockDetail({
                         )}
 
                         {/* Poison pill warning when approaching threshold */}
-                        {!takeoverCheck.eligible && playerOwnershipPct >= 15 && playerOwnershipPct < threshold && (
+                        {!takeoverCheck.eligible && !stock.isSubsidiary && stock.symbol !== startup.symbol && playerOwnershipPct >= 15 && playerOwnershipPct < threshold && (
                             <div className="bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex gap-2 items-start">
                                 <AlertTriangle className="size-3 text-rose-500 mt-0.5 shrink-0" />
                                 <p className="text-[9px] text-rose-600 font-medium">
@@ -442,8 +475,8 @@ function StockDetail({
                             <Users className="size-3.5 text-slate-400" />
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Top Shareholders</p>
                         </div>
-                        <ShareholdersPanel stock={stock} playerOwnershipPct={playerOwnershipPct} />
-                        {playerOwnershipPct >= 5 && (
+                        <ShareholdersPanel stock={stock} personalOwnershipPct={personalOwnershipPct} corporateOwnershipPct={corporateOwnershipPct} startup={startup} />
+                        {playerOwnershipPct >= 5 && !stock.isSubsidiary && stock.symbol !== startup.symbol && (
                             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[9px] text-amber-700 font-medium">
                                 📋 SEC 13D Filing — Your {playerOwnershipPct.toFixed(1)}% stake is now public. Other shareholders are watching.
                             </div>
@@ -482,6 +515,7 @@ interface StockMarketViewProps {
     geniusUsesThisHour: number;
     lastGeniusResetTime: number;
     onInsiderTipUsed: () => void;
+    activeTips?: { symbol: string; monthsLeft: number }[];
 }
 
 export default function StockMarketView({
@@ -489,9 +523,26 @@ export default function StockMarketView({
     onTradePersonal, onTradeCorporate, onTenderOffer, onBlockBuy, onToggleCfoAutoTrade,
     personalPortfolio, corporatePortfolio, personalCash, corporateCash,
     personalPortfolioHistory = [], corporatePortfolioHistory = [],
-    geniusUsesThisHour, lastGeniusResetTime, onInsiderTipUsed
+    geniusUsesThisHour, lastGeniusResetTime, onInsiderTipUsed, activeTips
 }: StockMarketViewProps) {
     const [mainTab, setMainTab] = useState<"market" | "portfolio" | "news">("market");
+    
+    // Timer for Insider Tip cooldown
+    const [timeLeft, setTimeLeft] = useState<number>(0);
+    React.useEffect(() => {
+        if (geniusUsesThisHour >= 2) {
+            const updateTimer = () => setTimeLeft(Math.max(0, (lastGeniusResetTime + 3600000) - Date.now()));
+            updateTimer();
+            const interval = setInterval(updateTimer, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [geniusUsesThisHour, lastGeniusResetTime]);
+
+    const formatTime = (ms: number) => {
+        const mins = Math.floor(ms / 60000);
+        const secs = Math.floor((ms % 60000) / 1000);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
     const [account, setAccount] = useState<"personal" | "corporate">("personal");
     const [selectedStock, setSelectedStock] = useState<MarketStock | null>(null);
     const [sectorFilter, setSectorFilter] = useState<string>("All");
@@ -592,12 +643,18 @@ export default function StockMarketView({
             </div>
 
             {/* SEC WARNING & GENIUS HEADER */}
-            <div className="bg-slate-900 px-6 py-2 flex justify-between items-center text-xs border-b border-slate-800 shrink-0 shadow-sm">
-                <div className="flex items-center gap-2 text-rose-500 font-semibold tracking-wide uppercase">
-                    <Shield className="w-3.5 h-3.5" /> SEC Surveillance Active
-                </div>
+            <div className="bg-slate-900 px-4 py-2 flex justify-between items-center text-xs border-b border-slate-800 shrink-0 shadow-sm">
+                {geniusUsesThisHour >= 2 ? (
+                    <div className="flex items-center gap-2 text-rose-500 font-semibold tracking-wide uppercase">
+                        <Shield className="w-3.5 h-3.5" /> SEC Surveillance Active ({formatTime(timeLeft)})
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 text-purple-400 font-semibold tracking-wide uppercase">
+                        <Zap className="w-3.5 h-3.5" /> Market Genius
+                    </div>
+                )}
                 <div className="flex items-center gap-3">
-                    <span className="text-slate-400">Genius Tips: {2 - geniusUsesThisHour}/2 left</span>
+                    <span className="text-slate-400">Tips: {2 - geniusUsesThisHour}/2 left</span>
                     <button 
                         onClick={() => {
                             if (geniusUsesThisHour >= 2) return;
@@ -606,9 +663,9 @@ export default function StockMarketView({
                             }, 'default');
                         }}
                         disabled={geniusUsesThisHour >= 2}
-                        className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors"
+                        className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors"
                     >
-                        <Zap className="w-3.5 h-3.5" /> Insider Tip (Ad)
+                        {geniusUsesThisHour >= 2 ? <Lock className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />} Insider Tip
                     </button>
                 </div>
             </div>
@@ -646,6 +703,19 @@ export default function StockMarketView({
                                 ))}
                             </div>
                         </div>
+
+                        {/* Active Tips */}
+                        {activeTips && activeTips.length > 0 && (
+                            <div className="px-4 py-2 bg-purple-50 dark:bg-slate-800/80 border-b border-purple-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-inner">
+                                <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider whitespace-nowrap">Active Tips:</span>
+                                {activeTips.map(t => (
+                                    <div key={t.symbol} className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-200 dark:border-purple-900 text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap shadow-sm">
+                                        <Zap className="w-3 h-3 text-purple-500" />
+                                        {t.symbol} <span className="text-slate-400 font-normal">({t.monthsLeft}mo)</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Stock list */}
                         <div className="divide-y divide-slate-50 dark:divide-slate-900">
@@ -720,21 +790,33 @@ export default function StockMarketView({
                             <div className="space-y-2">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Holdings</p>
                                 {portfolio.map(pos => {
-                                    const stock = stocks.find(s => s.symbol === pos.symbol);
-                                    if (!stock) return null;
-                                    const currentVal = pos.shares * stock.currentPrice;
+                                    const foundStock = stocks.find(s => s.symbol === pos.symbol);
+                                    // Fallback for private/pre-IPO shares (like founder equity) not yet listed
+                                    const displayStock: MarketStock = foundStock || {
+                                            symbol: pos.symbol,
+                                            companyName: pos.symbol === (startup?.symbol || "CORP") ? (startup?.name || "Startup") : `${pos.symbol} (Private)`,
+                                            sector: "Technology",
+                                            currentPrice: pos.averageCost,
+                                            sharesOutstanding: 20000000,
+                                            peRatio: 0, momentum: 0, volatility: 0, rsi: 50,
+                                            priceHistory: [pos.averageCost],
+                                            companyTier: "small_cap",
+                                            isSubsidiary: true,
+                                            shareholders: []
+                                        };
+                                    const currentVal = pos.shares * displayStock.currentPrice;
                                     const costBasis = pos.shares * pos.averageCost;
                                     const gainLoss = currentVal - costBasis;
-                                    const gainLossPct = ((stock.currentPrice / pos.averageCost) - 1) * 100;
+                                    const gainLossPct = ((displayStock.currentPrice / pos.averageCost) - 1) * 100;
                                     const isGain = gainLoss >= 0;
                                     return (
-                                        <button key={pos.symbol} onClick={() => setSelectedStock(stock)}
+                                        <button key={pos.symbol} onClick={() => setSelectedStock(displayStock)}
                                             className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-3 flex items-center gap-3 hover:border-indigo-200 transition-all active:scale-[0.99]">
-                                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${SECTOR_COLORS[stock.sector] || "from-slate-400 to-slate-500"} flex items-center justify-center shrink-0`}>
-                                                <span className="text-white text-[8px] font-black">{stock.symbol.slice(0, 4)}</span>
+                                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${SECTOR_COLORS[displayStock.sector] || "from-slate-400 to-slate-500"} flex items-center justify-center shrink-0`}>
+                                                <span className="text-white text-[8px] font-black">{displayStock.symbol.slice(0, 4)}</span>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-black text-slate-800 dark:text-slate-100">{stock.symbol}</p>
+                                                <p className="text-sm font-black text-slate-800 dark:text-slate-100">{displayStock.symbol}</p>
                                                 <p className="text-[10px] text-slate-400">{pos.shares.toLocaleString()} shares · avg ${pos.averageCost.toFixed(2)}</p>
                                             </div>
                                             <div className="text-right shrink-0">
@@ -744,7 +826,7 @@ export default function StockMarketView({
                                                     {isGain ? "+" : ""}{gainLossPct.toFixed(1)}%
                                                 </p>
                                             </div>
-                                            <Sparkline data={stock.priceHistory} positive={isGain} />
+                                            <Sparkline data={displayStock.priceHistory} positive={isGain} />
                                         </button>
                                     );
                                 })}
@@ -809,6 +891,7 @@ export default function StockMarketView({
                         onTenderOffer={onTenderOffer}
                         onClose={() => setSelectedStock(null)}
                         month={month}
+                        startup={startup}
                     />
                 )}
             </AnimatePresence>
