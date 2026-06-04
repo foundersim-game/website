@@ -1,0 +1,102 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "75CEA14D",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6773030897",
+      "localizations" : [
+        {
+          "description" : "Remove all ads. One-time purchase, permanent",
+          "displayName" : "Ad-Free Play",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_premium",
+      "referenceName" : "Ad Free Play",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6773032358",
+      "localizations" : [
+        {
+          "description" : "Permanent energy boost. Prevents burnout",
+          "displayName" : "Caffeine IV Drip",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_caffeine",
+      "referenceName" : "Caffeine IV",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "6773031157",
+      "localizations" : [
+        {
+          "description" : "Inject $500K capital into your startup",
+          "displayName" : "Founder's Starter Pack",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_starter_pack",
+      "referenceName" : "Founder's Starter Pack ",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "19.99",
+      "familyShareable" : false,
+      "internalID" : "6773034109",
+      "localizations" : [
+        {
+          "description" : "Unlocks Titan perks, industries, and no ads",
+          "displayName" : "Titan Industry Pass",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_titan",
+      "referenceName" : "Titan of Industry",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6761432505",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "4SV4NMHB82",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 802257431.108459,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

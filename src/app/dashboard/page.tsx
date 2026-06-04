@@ -47,6 +47,7 @@ import StockMarketView from "@/components/StockMarketView";
 import { StoreModal } from "@/components/StoreModal";
 import { ManageSubsidiaryModal } from "@/components/ManageSubsidiaryModal";
 import { ReportBugModal } from "@/components/ReportBugModal";
+import { LiveNoticeModal } from "@/components/LiveNoticeModal";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 
 // ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
@@ -608,7 +609,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
     const renderActionCard = (action: ActionDef, category: string) => {
         const usedCount = actionUsageLog.thisMonth[action.id] ?? 0;
-        const isOver = (focusHoursUsed + action.energyCost) > maxHours * (category === 'founder' ? 1.0 : 1.2);
+        const _isFocusOver = (focusHoursUsed + action.energyCost) > maxHours;
 
         const { scaledEffects } = calcDynamicImpact(action, actionUsageLog, { month, startup, founder, m });
 
@@ -643,10 +644,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         };
         const colorClass = (colors as any)[category] || colors.founder;
 
+        const isBurnedOut = (m.founder_burnout || 0) > 85;
+        const cashCost = (scaledEffects.cash && scaledEffects.cash < 0) ? Math.abs(scaledEffects.cash) : 0;
+        const notEnoughCash = (startup.metrics.cash || 0) < cashCost;
+        const notEnoughFocus = (focusHoursUsed + action.energyCost) > maxHours;
+
+        const isOver = notEnoughFocus || isBurnedOut || notEnoughCash;
+
         return (
-            <div key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)}
-                className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
-                    isOver ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : `bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 ${colorClass}`)}>
+            <button key={action.id} onClick={() => !isOver && handleImmediateAction(action.id)} disabled={isOver}
+                className={cn("w-full text-left flex items-center gap-2.5 p-2.5 rounded-2xl border-2 transition-all active:scale-[0.98]",
+                    isOver ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-40 cursor-not-allowed" : `bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 cursor-pointer ${colorClass}`)}>
                 <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
                 <div className="flex-1 min-w-0 pr-1">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
@@ -661,7 +669,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>
                     </div>
                 </div>
-            </div>
+            </button>
         );
     };
 
@@ -710,11 +718,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const newEmployees = (startup.employees || []).map(processPerson);
 
         const newCxoTeam = { ...(startup.cxoTeam || {}) };
-        Object.keys(newCxoTeam).forEach(role => {
-            if (newCxoTeam[role]) {
-                newCxoTeam[role] = processPerson(newCxoTeam[role]);
-            }
-        });
+        const cxoCount = Object.keys(newCxoTeam).filter(role => newCxoTeam[role]).length;
+        if (type === "bonus") totalCost += 2500 * cxoCount;
+        if (type === "offsite") totalCost += 5000 * cxoCount;
+        if (type === "stock_grant") poolCost += 0.05 * cxoCount;
+
 
         // Validation
         if (type !== "salary_raise" && type !== "stock_grant" && startup.metrics.cash < totalCost) {
@@ -726,6 +734,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             return;
         }
 
+        const moraleBoost = type === "offsite" ? 30 : type === "bonus" ? 20 : type === "salary_raise" ? 15 : 10;
         setStartup((prev: any) => ({
             ...prev,
             employees: newEmployees,
@@ -733,7 +742,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             metrics: {
                 ...prev.metrics,
                 cash: prev.metrics.cash - (type === "salary_raise" ? 0 : totalCost),
-                option_pool: (prev.metrics.option_pool || 0) - poolCost
+                option_pool: (prev.metrics.option_pool || 0) - poolCost,
+                team_morale: Math.min(100, (prev.metrics.team_morale || 50) + moraleBoost)
             }
         }));
 
@@ -1432,7 +1442,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
                                         const salary = tier.salaryBase + ((seed + ti) % 500);
                                         const cultureFit = Math.max(50, Math.min(99, tier.cultureFit + ((seed + ri) % 15) - 7));
-                                        const isOver = focusHoursUsed + 20 > maxHours * 1.2;
+                                        const isOver = focusHoursUsed + 20 > maxHours;
                                         const candidateAction = roleDef.role === "engineer" ? "hire_engineer" : roleDef.role === "marketer" ? "hire_marketer" : roleDef.role === "legal" ? "hire_legal" : "hire_sales";
                                         return (
                                             <div
@@ -1517,7 +1527,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <button
                                 onClick={() => {
                                     if (isProcessing) return;
-                                    if (focusHoursUsed + 15 > maxHours * 1.2) {
+                                    if (focusHoursUsed + 15 > maxHours) {
                                         toast.error("Not enough Focus Energy!");
                                         return;
                                     }
@@ -1629,7 +1639,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Candidate Pool</p>
                                 {hrCandidates.map((cand: any) => {
                                     const roleDef = ROLE_DEFS.find(r => r.role === cand.role)!;
-                                    const isOver = focusHoursUsed + 20 > maxHours * 1.2;
+                                    const isOver = focusHoursUsed + 20 > maxHours;
                                     const candidateAction = cand.role === "engineer" ? "hire_engineer" : cand.role === "marketer" ? "hire_marketer" : "hire_sales";
 
                                     return (
@@ -2148,7 +2158,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Instant Action (Costs Energy)</p>
                         {pitchActions.map((pa, idx) => {
-                            const isOver = focusHoursUsed + fundCost > maxHours * 1.2;
+                            const isOver = focusHoursUsed + fundCost > maxHours;
                             return (
                                 <div key={idx} onClick={() => isOver ? null : setSelectedAction("pitch_investors")}
                                     className={cn("flex items-center gap-2.5 p-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98]",
@@ -2557,9 +2567,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     // ── STATS ─────────────────────────────────────────────────────────────────
     if (category === "stats") {
         const toggle = (metricName: string) => setExpandedMetric(expandedMetric === metricName ? null : metricName);
-        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, avgVolume: liveAvgVolume } = calculateFinancials(startup, founder);
+        const { monthlyRevenue: liveRevenue, monthlyCogs, monthlyOpex, avgVolume: liveAvgVolume, paidUsers: livePaidUsers } = calculateFinancials(startup, founder);
         const pbKey = `${startup.industry}_${startup.gtm_motion}`;
         const pbConfig = STRATEGY_PLAYBOOK[pbKey];
+        const pricingConfigBase = INDUSTRY_PRICING_CONFIG[startup.industry || "SaaS Platform"] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
+        const pricingConfig = startup.gtm_motion === "SLG" ? pricingConfigBase.SLG : pricingConfigBase.PLG;
         const liveNetProfit = liveRevenue - monthlyCogs - monthlyOpex;
         const profitable = liveNetProfit >= 0;
         const liveBurn = liveNetProfit < 0 ? Math.abs(liveNetProfit) : 0;
@@ -2633,24 +2645,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3 mb-3">
-                    <StatRow label={startup.gtm_motion === "SLG" ? "Deals Closed" : "Users"} value={m.users.toLocaleString()} color="text-indigo-600 dark:text-indigo-400"
-                        explanation={startup.gtm_motion === "SLG" ? "Number of active enterprise contracts or licenses." : "Number of active users. The primary driver of MRR and valuation in PLG models."}
+                    <StatRow label={pricingConfig?.usersLabel || (startup.gtm_motion === "SLG" ? "Deals Closed" : "Users")} value={m.users.toLocaleString()} color="text-indigo-600 dark:text-indigo-400"
+                        explanation={pricingConfig?.usersExplanation || (startup.gtm_motion === "SLG" ? "Number of active enterprise contracts or licenses." : "Number of active users. The primary driver of MRR and valuation in PLG models.")}
                         isExpanded={expandedMetric === "users"} onToggle={() => toggle("users")}
                     />
-                    {startup.gtm_motion === "PLG" && pbConfig?.showPaidUsers !== false && (
-                        <StatRow label="Paid Users" value={(m.paid_users || 0).toLocaleString()} color="text-violet-600 dark:text-violet-400"
-                            explanation="Number of users who have converted from free to paid tiers (e.g. 5% Freemium conversion rate)."
+                    {startup.gtm_motion === "PLG" && pricingConfig?.showPaidUsers !== false && (
+                        <StatRow label={pricingConfig?.paidUsersLabel || "Paid Users"} value={(livePaidUsers || 0).toLocaleString()} color="text-violet-600 dark:text-violet-400"
+                            explanation={pricingConfig?.paidUsersExplanation || "Number of users who have converted from free to paid tiers (e.g. 5% Freemium conversion rate)."}
                             isExpanded={expandedMetric === "paid_users"} onToggle={() => toggle("paid_users")}
                         />
                     )}
-                    {pbConfig?.volumeLabel && (
-                        <StatRow label={pbConfig.volumeLabel} value={startup.industry === "AI Platform" ? `${liveAvgVolume.toFixed(1)} tokens` : formatMoney(liveAvgVolume)} color="text-amber-600 dark:text-amber-400"
-                            explanation={`Average ${pbConfig.volumeLabel} generated per user month-to-month. This scales as your product matures.`}
+                    {pricingConfig?.volumeLabel && (
+                        <StatRow label={pricingConfig.volumeLabel} value={startup.industry === "AI Platform" ? `${liveAvgVolume.toFixed(1)} tokens` : formatMoney(liveAvgVolume)} color="text-amber-600 dark:text-amber-400"
+                            explanation={`Average ${pricingConfig.volumeLabel} generated per user month-to-month. This scales as your product matures.`}
                             isExpanded={expandedMetric === "volume"} onToggle={() => toggle("volume")}
                         />
                     )}
                     <StatRow label="MRR" value={formatMoney(liveRevenue || 0)} color="text-emerald-600 dark:text-emerald-400"
-                        explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : `Monthly Recurring Revenue. Formula: ${pbConfig?.mrrFormula || "Paid Users × Pricing"}.`}
+                        explanation={startup.gtm_motion === "SLG" ? "Monthly Recurring Revenue. Calculated as Deals × Contract Size." : `Monthly Recurring Revenue. Formula: ${pricingConfig?.mrrFormula || "Paid Users × Pricing"}.`}
                         isExpanded={expandedMetric === "mrr"} onToggle={() => toggle("mrr")}
                     />
                     <StatRow label="Growth Rate" value={`${((m.growth_rate || 0) * 100).toFixed(0)}%/mo`} color="text-teal-600 dark:text-teal-400"
@@ -3231,7 +3243,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         if (isChadly) {
                             return (
-                                <div key={comp.id} className="p-4 rounded-[2rem] border-2 border-indigo-200 dark:border-indigo-900 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-slate-900 dark:to-slate-950 shadow-xl shadow-indigo-100/20 dark:shadow-none relative overflow-hidden group mb-4">
+                                <div key={comp.id} className="p-4 rounded-[2rem] border-2 border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-900 dark:to-slate-950 shadow-xl shadow-indigo-100/20 dark:shadow-none relative overflow-hidden group mb-4">
                                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
 
                                     <div className="flex items-start justify-between mb-4 relative z-10">
@@ -3282,7 +3294,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="grid grid-cols-2 gap-2">
                                             {RIVALRY_ACTIONS.map(action => {
                                                 const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
-                                                const isDisabled = (focusHoursUsed + action.energyCost > maxHours * 1.1) || (startup.metrics.cash < action.cashCost);
+                                                const isDisabled = (focusHoursUsed + action.energyCost > maxHours) || (startup.metrics.cash < action.cashCost);
 
                                                 return (
                                                     <button
@@ -4817,7 +4829,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 const newStartup = { ...startup };
                 newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 5);
                 newStartup.metrics.users = (newStartup.metrics.users || 0) + 500;
-                
+
                 if (setStartup) setStartup(newStartup);
                 addTimelineEvent(`🔥 Viral Stunt (Ad) triggered! +5 Brand Awareness, +500 Users.`);
                 toast.success("Going Viral!", { description: "Gained +5 Brand Awareness and +500 Users for free.", icon: "🔥" });
@@ -5825,8 +5837,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         const canIPO = passARR && passUsers && passCFO && corporateCash >= 2000000;
 
                                         return (
-                                            <div 
-                                                key={idx} 
+                                            <div
+                                                key={idx}
                                                 onClick={() => {
                                                     setSelectedSubRaw(subRaw);
                                                     setIsManageSubModalOpen(true);
@@ -5849,7 +5861,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        
+
                                                         {/* Per-entity P&L Grid */}
                                                         <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
                                                             <div className="flex justify-between text-[8px] font-semibold text-slate-500">
@@ -5880,8 +5892,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                                         <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">IPO:</span>
                                                                         <span className={cn(
                                                                             "text-[7px] font-black uppercase px-1 py-0.5 rounded border",
-                                                                            canIPO 
-                                                                                ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200" 
+                                                                            canIPO
+                                                                                ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200"
                                                                                 : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-200"
                                                                         )}>
                                                                             {canIPO ? "✅ Qualified" : "❌ Not Qualified"}
@@ -6033,13 +6045,20 @@ export default function Dashboard() {
     const [eventsTimeline, setEventsTimeline] = useState<{ month: number; text: string }[]>([]);
     const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
 
+    // Sync premium state instantly when startup IAP flags change (e.g. via StoreModal purchase)
+    useEffect(() => {
+        if (startup?.iap_ad_free || startup?.iap_titan || (typeof window !== "undefined" && localStorage.getItem("founder_sim_premium") === "true")) {
+            setIsPremium(true);
+        }
+    }, [startup?.iap_ad_free, startup?.iap_titan]);
+
     // Pillar 2 States
     const [viewState, setViewState] = useState<"dashboard" | "submenu" | "action">("dashboard");
     const [showPostIpoCinematic, setShowPostIpoCinematic] = useState(false);
     const [terminalTab, setTerminalTab] = useState<"operations" | "market" | "treasury" | "personal" | "compliance" | "corporate">("operations");
     const [marketStocks, setMarketStocks] = useState<MarketStock[]>([]);
     const [mnaTargets, setMnaTargets] = useState<MnATarget[]>([]);
-    
+
     // Stock Market Genius State
     const [geniusUsesThisHour, setGeniusUsesThisHour] = useState(0);
     const [lastGeniusResetTime, setLastGeniusResetTime] = useState(0);
@@ -6108,14 +6127,14 @@ export default function Dashboard() {
         if (isLoaded && marketStocks.length > 0) {
             const corpPortfolio = startup.public_company?.corporate_portfolio || (startup as any).treasury_portfolio || [];
             const personalPortfolio = founder.wealth_profile?.portfolio || [];
-            
+
             const allPositions = [...corpPortfolio, ...personalPortfolio];
             let missingStocks: MarketStock[] = [];
-            
+
             allPositions.forEach(pos => {
                 // Don't reconstruct the player's own company (handled above)
                 if (pos.symbol === (startup.symbol || "CORP")) return;
-                
+
                 const exists = marketStocks.some(s => s.symbol === pos.symbol);
                 const alreadyMissing = missingStocks.some(s => s.symbol === pos.symbol);
                 if (!exists && !alreadyMissing) {
@@ -6139,7 +6158,7 @@ export default function Dashboard() {
                     });
                 }
             });
-            
+
             if (missingStocks.length > 0) {
                 setMarketStocks(prev => [...prev, ...missingStocks]);
             }
@@ -6147,6 +6166,14 @@ export default function Dashboard() {
     }, [isLoaded, startup.public_company?.corporate_portfolio, founder.wealth_profile?.portfolio, marketStocks.length, startup.symbol, startup.name]);
     const [isEarningsCallOpen, setIsEarningsCallOpen] = useState(false);
     const [isStoreOpen, setIsStoreOpen] = useState(false);
+    const [isInstagramModalOpen, setIsInstagramModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (isLoaded && month === 3 && typeof window !== "undefined" && !localStorage.getItem("founder_sim_insta_followed")) {
+            setIsInstagramModalOpen(true);
+            localStorage.setItem("founder_sim_insta_followed", "true");
+        }
+    }, [isLoaded, month]);
 
     const [isSamModalOpen, setIsSamModalOpen] = useState(false);
     const [samAdvice, setSamAdvice] = useState<AdviceContent | null>(null);
@@ -6162,7 +6189,7 @@ export default function Dashboard() {
             chadMustRespondNext: false,
             lastChadMonth: -1,
             act: 1,
-            tutorialStep: 0,
+            tutorialStep: typeof window !== "undefined" && localStorage.getItem("founder_sim_tutorial_completed") === "true" ? -1 : 0,
             samGoneToIsland: false,
             hasConsultedSam: false,
         };
@@ -6353,7 +6380,12 @@ export default function Dashboard() {
                             setIsPremium(true);
                         }
                         if (owned.includes("founder_sim_caffeine")) next.iap_caffeine = true;
-                        if (owned.includes("founder_sim_titan")) next.iap_titan = true;
+                        if (owned.includes("founder_sim_titan")) {
+                            if (!prev.iap_titan && next.metrics) {
+                                next.metrics.cash += 100_000_000;
+                            }
+                            next.iap_titan = true;
+                        }
                         return next;
                     });
                 }
@@ -6660,7 +6692,6 @@ export default function Dashboard() {
                         const bg = d.background;
                         if (bg === "Engineer") {
                             newAttrs.technical_skill = (newAttrs.technical_skill || 0) + 25;
-                            newAttrs.networking = Math.max(0, (newAttrs.networking || 0) - 15);
                             newAttrs.marketing_skill = Math.max(0, (newAttrs.marketing_skill || 0) - 10);
                         } else if (bg === "MBA") {
                             newAttrs.networking = (newAttrs.networking || 0) + 20;
@@ -6700,7 +6731,7 @@ export default function Dashboard() {
                     });
 
                     setStartup(s => {
-                        let baseCash = mods.cash ?? (isSLG ? 75000 : s.metrics.cash);
+                        let baseCash = (mods.cash ?? (isSLG ? 75000 : s.metrics.cash)) + 150000;
                         if (perks.includes("rich_founder")) {
                             baseCash += 100000;
                         }
@@ -6724,7 +6755,7 @@ export default function Dashboard() {
                                 cash: baseCash,
                                 team_morale: baseMorale,
                                 users: mods.users ?? s.metrics.users,
-                                technical_debt: mods.tech_debt ?? s.metrics.technical_debt,
+                                technical_debt: (mods.tech_debt ?? s.metrics.technical_debt) - 10,
                                 innovation: mods.innovation ?? s.metrics.innovation,
                                 pmf_score: mods.pmf ?? s.metrics.pmf_score,
                                 pricing: isSLG ? 250 : 29,
@@ -6827,61 +6858,26 @@ export default function Dashboard() {
     };
 
     const handleRateAndClaim = async () => {
-        if (!startup.hasRateRewardClaimed) {
-            setStartup(prev => ({
-                ...prev,
-                hasRateRewardClaimed: true,
-                metrics: {
-                    ...prev.metrics,
-                    cash: prev.metrics.cash + 50000,
-                    pmf_score: Math.min(100, (prev.metrics.pmf_score || 0) + 5)
-                }
-            }));
-
-            // Focus Boost: Give back 50 hours of focus
-            const newFocusUsed = Math.max(0, focusHoursUsed - 50);
-            setFocusHoursUsed(newFocusUsed);
-
-            toast.success("Support Applied! 🎁", {
-                description: "Gained $50k Cash, +50h focus refill, and +5 PMF for supporting the devs!"
-            });
-            playSound("success");
-
-            // Record to persistent storage immediately
-            const updatedStartup = { ...startup, hasRateRewardClaimed: true };
-            localStorage.setItem("founder_sim_state", JSON.stringify({
-                startup: updatedStartup,
-                founder,
-                month,
-                eventsTimeline,
-                competitors,
-                ongoingPrograms,
-                seenEventIds,
-                founderMeta,
-                focusHoursUsed: newFocusUsed,
-                actionUsageLog,
-                storyState,
-                marketStocks,
-                insiderStockPicks,
-                geniusUsesThisHour,
-                lastGeniusResetTime
-            }));
+        try {
+            await requestStoreReview();
+            toast.success("Thank you for your support!");
+        } catch (e) {
+            console.error(e);
         }
-        await openStoreListing();
-     };
- 
-     const addTimelineEvent = (text: string, monthOverride?: number) => {
-         setEventsTimeline(prev => [...prev, { month: monthOverride ?? month, text }]);
-     };
- 
-     const handleSaveAndQuit = () => {
-         if (startup.name !== "New Startup") {
-             localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime }));
-         }
-         router.push("/");
-     };
+    };
 
-        const handleTradePersonal = (symbol: string, shares: number, price: number) => {
+    const addTimelineEvent = (text: string, monthOverride?: number) => {
+        setEventsTimeline(prev => [...prev, { month: monthOverride ?? month, text }]);
+    };
+
+    const handleSaveAndQuit = () => {
+        if (startup.name !== "New Startup") {
+            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime }));
+        }
+        router.push("/");
+    };
+
+    const handleTradePersonal = (symbol: string, shares: number, price: number) => {
         try {
             const currentWealthProfile = founder.wealth_profile || { portfolio: [], margin_loan_balance: 0, philanthropy_score: 0, active_10b51_plans: [] };
             const { newCash, newPortfolio } = executeTrade(
@@ -6891,7 +6887,7 @@ export default function Dashboard() {
                 shares,
                 price
             );
-            
+
             // Check if we trigger poison pill
             let updatedStocks = [...marketStocks];
             const stockIndex = updatedStocks.findIndex(s => s.symbol === symbol);
@@ -6949,7 +6945,7 @@ export default function Dashboard() {
     const handleTradeCorporate = (symbol: string, shares: number, price: number) => {
         try {
             const isPublic = !!startup.public_company;
-            const currentCorpPortfolio = isPublic 
+            const currentCorpPortfolio = isPublic
                 ? (startup.public_company?.corporate_portfolio || [])
                 : (startup.treasury_portfolio || []);
             const { newCash, newPortfolio } = executeTrade(
@@ -7373,8 +7369,18 @@ export default function Dashboard() {
         const energyCost = forceFree ? 0 : def.energyCost;
         const newHoursUsed = focusHoursUsed + energyCost;
 
+        const cashCost = (scaledEffects.cash && scaledEffects.cash < 0) ? Math.abs(scaledEffects.cash) : 0;
+
         if (!forceFree && newHoursUsed > maxHours) {
             toast.error("Not enough focus energy!", { description: "You cannot exceed maximum focus hours." });
+            return;
+        }
+        if (!forceFree && (startup.metrics.founder_burnout || 0) > 85) {
+            toast.error("Burnout Critical", { description: "You are too burned out to execute this action." });
+            return;
+        }
+        if (!forceFree && (startup.metrics.cash || 0) < cashCost) {
+            toast.error("Insufficient Funds", { description: `You need $${cashCost.toLocaleString()} to execute this.` });
             return;
         }
         const { startup: ns, founder: nf } = applyEffectsToState(scaledEffects, startup, founder);
@@ -7490,6 +7496,9 @@ export default function Dashboard() {
 
             const investor = generateInvestor(startup.funding_stage);
             const mktTerms = generateFundingTerms(startup, nextStage);
+            if (startup.iap_sv_darling || (typeof window !== "undefined" && localStorage.getItem("founder_sim_sv_darling") === "true")) {
+                mktTerms.valuation = Math.floor(mktTerms.valuation * 1.5);
+            }
 
             setPendingInvestor(investor);
             setFundingOffer({ valuation: mktTerms.valuation, equity: mktTerms.equityGiven });
@@ -7954,7 +7963,7 @@ export default function Dashboard() {
         }
 
         const maxHours = calcFocusHours(startup.metrics.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
-        if (focusHoursUsed + action.energyCost > maxHours * 1.1) {
+        if (focusHoursUsed + action.energyCost > maxHours) {
             toast.error("Not enough focus energy!", { description: "You are too burned out. Advance to next month to refill energy." });
             return;
         }
@@ -8039,7 +8048,7 @@ export default function Dashboard() {
             ];
 
             const updatedMarket = processMarketMonth(marketStocks, m.current_season || "Normal", newMacro, insiderStockPicks.map(p => p.symbol), heldSymbols);
-            
+
             // Decrement insider picks and remove expired ones
             setInsiderStockPicks(prev => prev.map(p => ({ ...p, monthsLeft: p.monthsLeft - 1 })).filter(p => p.monthsLeft > 0));
             setMarketStocks(updatedMarket);
@@ -8066,11 +8075,11 @@ export default function Dashboard() {
                         * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
                         * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
                     const targetSharePrice = fairVal / newStartup.public_company.shares_outstanding;
-                    
+
                     if (targetSharePrice > 0) {
                         const difference = (targetSharePrice - playerStock.currentPrice) / playerStock.currentPrice;
                         playerStock.currentPrice = playerStock.currentPrice * (1 + Math.max(-0.2, Math.min(0.2, difference * 0.15)));
-                        
+
                         if (playerStock.priceHistory.length > 0) {
                             playerStock.priceHistory[playerStock.priceHistory.length - 1] = playerStock.currentPrice;
                         }
@@ -8284,7 +8293,7 @@ export default function Dashboard() {
 
                 subsList.forEach((subStr: string) => {
                     const parsed = parseSubsidiary(subStr);
-                    
+
                     // Check if listed
                     const listedStock = marketStocks?.find(s => (s.companyName === parsed.name || s.symbol === parsed.name || s.symbol === subStr) && !s.isDelisted);
                     const isListed = !!listedStock;
@@ -8371,7 +8380,7 @@ export default function Dashboard() {
 
                     updatedSubs.forEach((subStr: string) => {
                         const parsed = parseSubsidiary(subStr);
-                        
+
                         // Only listed subsidiaries (those present in marketStocks)
                         const listedStock = marketStocks.find(s => (s.companyName === parsed.name || s.symbol === parsed.name || s.symbol === subStr) && !s.isDelisted);
                         if (!listedStock) return;
@@ -8515,7 +8524,7 @@ export default function Dashboard() {
                     const playerSymbol = newStartup.symbol || "CORP";
                     const newMarketTemplate = initializeMarketStocks(playerSymbol, finalSharePrice, newStartup.name);
                     const playerStock = newMarketTemplate.find(s => s.symbol === playerSymbol);
-                    
+
                     setMarketStocks(prev => {
                         if (prev.length > 0 && playerStock) {
                             return [playerStock, ...prev.filter(s => s.symbol !== playerSymbol)];
@@ -8655,12 +8664,20 @@ export default function Dashboard() {
             let ev: GameEvent | null = null;
             let aiBanter: any = null;
 
-            if (!storyDialog && isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
+            const shouldTriggerEvent = !storyDialog && Math.random() <= 0.20; // 20% chance for random event per month
+            const chadlyAttacked = rivalActions.some(a => a.competitorName.toLowerCase().includes("chadly"));
+
+            if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
                 try {
-                    const [aiEventResult, aiBanterResult] = await Promise.all([
-                        generateAIEvent(newStartup, founder, seenEventIds),
-                        chadlyComp ? generateChadBanter(newStartup, founder, chadlyComp) : Promise.resolve(null)
-                    ]);
+                    const promises: Promise<any>[] = [];
+                    
+                    if (shouldTriggerEvent) promises.push(generateAIEvent(newStartup, founder, seenEventIds));
+                    else promises.push(Promise.resolve(null));
+
+                    if (chadlyAttacked && chadlyComp) promises.push(generateChadBanter(newStartup, founder, chadlyComp));
+                    else promises.push(Promise.resolve(null));
+
+                    const [aiEventResult, aiBanterResult] = await Promise.all(promises);
 
                     if (aiEventResult) ev = aiEventResult as GameEvent;
                     aiBanter = aiBanterResult;
@@ -8669,8 +8686,8 @@ export default function Dashboard() {
                 }
             }
 
-            // Fallback to local random event if AI failed or timed out
-            if (!ev && !storyDialog) {
+            // Fallback to local random event if AI failed or timed out, but ONLY if we rolled for an event
+            if (!ev && shouldTriggerEvent) {
                 ev = getRandomEvent(newStartup.phase, seenEventIds, newStartup.scenario);
             }
 
@@ -8707,19 +8724,19 @@ export default function Dashboard() {
                     });
                     addTimelineEvent(`💔 Staff Poached: ${poached.name} left to join ${competitorName}`, nextMonth);
                 } else if (action.type === "price_cut") {
-                    if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
+                    if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline && (newStartup.metrics.b2b_pipeline.closed_won || 0) > 0) {
                         const lostDeals = Math.max(1, Math.floor((newStartup.metrics.b2b_pipeline.closed_won || 0) * 0.05));
                         newStartup.metrics.b2b_pipeline.closed_won = Math.max(0, (newStartup.metrics.b2b_pipeline.closed_won || 0) - lostDeals);
                         toast.error(`💸 Lost ${lostDeals} Deals to ${competitorName}'s price cuts!`);
                         addTimelineEvent(`💸 Lost ${lostDeals} Enterprise Deals to ${competitorName} (Price Cut)`, nextMonth);
-                    } else {
-                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.96)); // 4% churn
+                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // Heavier churn instead of pricing change
+                    } else if (newStartup.gtm_motion !== "SLG") {
+                        newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // Standard PLG churn
                     }
-                    newStartup.metrics.pricing = Math.max(5, Math.floor(newStartup.metrics.pricing * 0.95)); // Pricing pressure
                 } else if (action.type === "massive_marketing") {
                     newStartup.metrics.brand_awareness = Math.max(0, (newStartup.metrics.brand_awareness || 0) - 10);
                     if (newStartup.gtm_motion === "SLG" && newStartup.metrics.b2b_pipeline) {
-                        newStartup.metrics.b2b_pipeline.leads = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.leads || 0) * 0.8));
+                        newStartup.metrics.b2b_pipeline.leads = Math.max(0, Math.floor((newStartup.metrics.b2b_pipeline.leads || 0) * 0.8) || 0);
                         toast.error(`📉 Lead Pipeline drained by ${competitorName}'s ad blitz!`);
                     } else {
                         newStartup.metrics.users = Math.max(0, Math.floor(newStartup.metrics.users * 0.94)); // 6% churn
@@ -8852,13 +8869,13 @@ export default function Dashboard() {
             }
 
 
-            if (nextMonth % 3 === 0 && !isPremium) {
+            if (nextMonth % 12 === 0 && !isPremium) {
                 if (isOnline) {
                     await adService.showInterstitial();
                 } else {
                     // Offline bypass attempt: queue the ad for when they reconnect
                     setInterstitialAdOwed(true);
-                    toast.info("Offline Mode", { description: "Mandatory check-in queued for next connection." });
+                    toast.info("Offline Mode", { description: "Annual check-in queued for next connection." });
                 }
             }
 
@@ -9134,16 +9151,11 @@ export default function Dashboard() {
                                     <Bug className="mr-2 h-4 w-4" /> Report a Bug
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                    className={cn(
-                                        "rounded-xl cursor-pointer py-2 font-bold transition-colors",
-                                        startup.hasRateRewardClaimed
-                                            ? "opacity-60 focus:bg-slate-50 focus:text-slate-500"
-                                            : "focus:bg-amber-50 focus:text-amber-600"
-                                    )}
+                                    className="rounded-xl cursor-pointer py-2 font-bold transition-colors focus:bg-amber-50 focus:text-amber-600"
                                     onClick={handleRateAndClaim}
                                 >
                                     <Star className="mr-2 h-4 w-4" />
-                                    {startup.hasRateRewardClaimed ? "Rate & Support ✓" : "Rate & Support 🎁 (Claim $50k)"}
+                                    Rate & Support
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="rounded-xl cursor-pointer py-2 focus:bg-rose-50 focus:text-rose-600 font-bold transition-colors" onClick={() => setIsRoadmapOpen(true)}>
                                     <Rocket className="mr-2 h-4 w-4" /> V2: The Empire Era
@@ -9413,7 +9425,7 @@ export default function Dashboard() {
             <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 p-4 pb-8" style={{
                 position: "relative",
                 zIndex: storyState.tutorialStep >= 2 ? 50 : 1,
-                paddingBottom: isNative ? `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '20px' : '85px'})` : '1rem'
+                paddingBottom: isNative ? (isPremium ? '20px' : 'calc(env(safe-area-inset-bottom, 0px) + 65px)') : '1rem'
             }}>
                 <div className="max-w-md mx-auto flex flex-col gap-4">
 
@@ -9432,7 +9444,11 @@ export default function Dashboard() {
                                         setStoryState(prev => {
                                             const safeTriggers = prev.seenTriggers || [];
                                             const updatedSeen = safeTriggers.includes(currentTrigger) ? safeTriggers : [...safeTriggers, currentTrigger];
-                                            return { ...prev, tutorialStep: next >= TUTORIAL_STEPS.length ? -1 : next, seenTriggers: updatedSeen };
+                                            const isFinished = next >= TUTORIAL_STEPS.length;
+                                            if (isFinished && typeof window !== "undefined") {
+                                                localStorage.setItem("founder_sim_tutorial_completed", "true");
+                                            }
+                                            return { ...prev, tutorialStep: isFinished ? -1 : next, seenTriggers: updatedSeen };
                                         });
                                     }}
                                     className="w-full h-14 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
@@ -9498,12 +9514,12 @@ export default function Dashboard() {
                         <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
                             <div className="flex-1 flex items-end mb-1">
                                 <button onClick={() => setViewState("dashboard")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
-                                    <span className="text-xl leading-none">←</span> 
-                                    <span className="font-black text-[11px] sm:text-sm uppercase tracking-widest hidden sm:inline">Dashboard</span>
-                                    <span className="font-black text-[11px] uppercase tracking-widest sm:hidden">Back</span>
+                                    <span className="text-xl leading-none">←</span>
+                                    <span className="font-black text-[11px] md:text-sm uppercase tracking-widest hidden md:inline">Dashboard</span>
+                                    <span className="font-black text-[11px] uppercase tracking-widest md:hidden">Back</span>
                                 </button>
                             </div>
-                            <h2 className="shrink-0 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-auto mb-1.5 mx-2">
+                            <h2 className="absolute left-1/2 -translate-x-1/2 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-auto mb-1.5">
                                 {terminalTab === "operations" ? "🏢 Operations" : terminalTab === "market" ? "📈 Strategy" : terminalTab === "personal" ? "👤 Founder" : "🏛️ Corporate"}
                             </h2>
                             <div className="flex-1" /> {/* Spacer to balance Back button */}
@@ -9599,7 +9615,7 @@ export default function Dashboard() {
                         <div className="border-b border-slate-200 dark:border-slate-800 flex items-center px-4 bg-white dark:bg-slate-900 shrink-0 shadow-sm" style={{ paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px', paddingBottom: '8px', minHeight: isNative ? 'calc(env(safe-area-inset-top, 0px) + 56px)' : '56px' }}>
                             <div className="flex-1 flex items-end mb-1">
                                 <button onClick={() => setViewState("submenu")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
-                                    <span className="text-xl leading-none">←</span> 
+                                    <span className="text-xl leading-none">←</span>
                                     <span className="font-black text-[11px] sm:text-sm uppercase tracking-widest">Back</span>
                                 </button>
                             </div>
@@ -10101,10 +10117,10 @@ export default function Dashboard() {
                                 })()}
 
                                 {/* ── Vesting Disclaimer Note ── */}
-                                <div className="mt-4 bg-indigo-50/50 border border-indigo-100 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                                <div className="mt-4 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl px-3 py-2 flex items-start gap-1.5">
                                     <span className="text-sm">💡</span>
-                                    <p className="text-[8px] font-medium text-slate-600 leading-tight">
-                                        <span className="font-bold text-indigo-700">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
+                                    <p className="text-[8px] font-medium text-slate-600 dark:text-slate-400 leading-tight">
+                                        <span className="font-bold text-indigo-700 dark:text-indigo-400">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
                                     </p>
                                 </div>
                             </>
@@ -10699,8 +10715,8 @@ export default function Dashboard() {
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
                                                 { label: "Cash", val: formatMoney(m.cash), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50", explanation: "Your company bank account. Maintain at least 3 months of runway." },
-                                                { label: "MRR", val: formatMoney(financialsMRR), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Monthly Recurring Revenue. Lifeblood of the business." },
-                                                { label: "Valuation", val: formatMoney(startup.valuation), color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30 border-violet-100 dark:border-violet-900/50", explanation: "Calculated based on MRR, growth, and product quality." },
+                                                { label: "Revenue", val: formatMoney(financialsMRR), color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900/50", explanation: "Total Monthly Revenue. Lifeblood of the business." },
+                                                { label: "Valuation", val: formatMoney(startup.valuation), color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/30 border-violet-100 dark:border-violet-900/50", explanation: "Calculated based on Revenue, growth, and product quality." },
                                                 { label: "Runway", val: netProfit > 0 ? "∞ Profitable" : (netProfit < 0 ? `${m.runway}mo` : "—"), color: netProfit > 0 ? "text-emerald-600 dark:text-emerald-400" : (netProfit < 0 ? (m.runway <= 3 ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400") : "text-slate-400 dark:text-slate-500"), bg: netProfit > 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50" : (netProfit < 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700"), explanation: "Time until cash runs out. Increase this by raising funds or reaching profitability." },
                                             ].map(r => (
                                                 <div
@@ -10785,7 +10801,7 @@ export default function Dashboard() {
                                                 <p className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2">Month {entry.month}</p>
                                                 <StatRow label="Revenue" value={formatMoney(entry.revenue)} color="text-green-600 dark:text-green-400" />
                                                 <StatRow label="COGS" value={formatMoney(-entry.cogs)} color="text-rose-400 dark:text-rose-300" />
-                                                <StatRow label="Gross Profit" value={formatMoney(entry.grossProfit)} color="text-slate-700 dark:text-slate-300" />
+                                                <StatRow label="Gross Profit" value={formatMoney((entry.revenue || 0) - (entry.cogs || 0))} color="text-slate-700 dark:text-slate-300" />
                                                 <StatRow label="OpEx" value={formatMoney(-entry.opex)} color="text-rose-500 dark:text-rose-400" />
                                                 <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between">
                                                     <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Net Income</span>
@@ -11278,17 +11294,56 @@ export default function Dashboard() {
             />
 
 
-            <StoreModal 
-                open={isStoreOpen} 
-                onClose={() => setIsStoreOpen(false)} 
-                startup={startup} 
-                setStartup={setStartup as any} 
+            <StoreModal
+                open={isStoreOpen}
+                onClose={() => setIsStoreOpen(false)}
+                startup={startup}
+                setStartup={setStartup as any}
+                setFounder={setFounder as any}
             />
 
-            <ReportBugModal 
+            <ReportBugModal
                 isOpen={isBugModalOpen}
                 onClose={() => setIsBugModalOpen(false)}
             />
+
+            <Dialog open={isInstagramModalOpen} onOpenChange={setIsInstagramModalOpen}>
+                <DialogContent className="sm:max-w-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden [&>button]:hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-purple-500/5 pointer-events-none" />
+                    <div className="flex flex-col items-center text-center gap-4 relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-500/20">
+                            <Instagram className="size-8" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Claim $50,000 Cash!</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Follow Founder Sim on Instagram for exclusive updates, tips, and sneak peeks of upcoming features!
+                            </p>
+                        </div>
+                        <Button 
+                            className="w-full h-12 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-all mt-2"
+                            onClick={() => {
+                                playSound("success");
+                                window.open("https://instagram.com/foundersim", "_blank");
+                                setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, cash: (s.metrics?.cash || 0) + 50000 } }));
+                                toast.success("$50,000 added to your cash balance!");
+                                setIsInstagramModalOpen(false);
+                            }}
+                        >
+                            FOLLOW & CLAIM $50,000
+                        </Button>
+                        <button 
+                            onClick={() => {
+                                playSound("click");
+                                setIsInstagramModalOpen(false);
+                            }}
+                            className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-500 transition-colors mt-2"
+                        >
+                            No thanks, I don't want free cash
+                        </button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

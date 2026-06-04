@@ -48,6 +48,7 @@ Stats: Intelligence ${attributes.intelligence}, Leadership ${attributes.leadersh
                     content: `You are an AI generating structured game events for a startup simulation game.
 Based on the startup's current context, generate a realistic, challenging, or opportunistic situational event.
 The event should feel like it belongs in the specific industry and phase they are in.
+CRITICALLY IMPORTANT: The event MUST match the current scale of the startup. If they are in Month 2 with 500 users, they should NOT receive "Enterprise Deals" or "Major PR scandals". If they have $50M in cash, they shouldn't stress over a $500 software bill. Scale the magnitude of the narrative and the numbers appropriately.
 
 CRITICAL EFFECTS FORMULATION:
 All quantities inside the "effects" dictionary MUST be RAW NUMBERS (integers or floats). Do NOT format values asStrings (e.g. use -5000, NOT "-5000" or "spent $5k").
@@ -83,9 +84,9 @@ ${seenEvents.length > 0 ? `Do NOT generate any events similar in premise or titl
         if (content && content.title && content.choices) {
             // Whitelist of strictly valid game parameters that exist on startup/founder model structures
             const ALLOWED_KEYS = [
-                "cash", "burn_rate", "product_quality", "users", "growth_rate", 
-                "brand_awareness", "team_morale", "technical_debt", "innovation", "pmf_score", 
-                "intelligence", "technical_skill", "leadership", "networking", "marketing_skill", "sales_skill", 
+                "cash", "burn_rate", "product_quality", "users", "growth_rate",
+                "brand_awareness", "team_morale", "technical_debt", "innovation", "pmf_score",
+                "intelligence", "technical_skill", "leadership", "networking", "marketing_skill", "sales_skill",
                 "risk_appetite", "stress_tolerance", "reputation", "founder_health", "founder_burnout"
             ];
 

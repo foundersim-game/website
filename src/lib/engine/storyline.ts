@@ -369,7 +369,7 @@ export function getStorylineDialog(
             return TUTORIAL_STEPS[state.tutorialStep];
         }
         // Repeat player: show the expert welcome if they skipped tutorial
-        if (!seen.has("sam_expert_welcome")) {
+        if (!seen.has("tutorial_4") && !seen.has("sam_expert_welcome")) {
             return SAM_EXPERT_WELCOME;
         }
     }

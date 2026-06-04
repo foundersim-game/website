@@ -1224,8 +1224,7 @@ export const PREDEFINED_EVENTS: GameEvent[] = [
 ];
 
 export function getRandomEvent(stage: string, seenIds: string[] = [], scenarioId?: string): GameEvent | null {
-    // ~70% chance to trigger an event per month
-    if (Math.random() > 0.30) return null;
+    // Event triggering frequency is now controlled globally by the caller
 
     // Map game phases to event stages
     const mappedStage = (stage || "").toLowerCase();

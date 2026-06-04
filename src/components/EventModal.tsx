@@ -38,7 +38,7 @@ export const generateImpactSentence = (choiceText: string, effects: Record<strin
 
         const isMoney = ['cash', 'burn_rate', 'revenue', 'monthlyCost', 'salary'].includes(key.toLowerCase());
         const displayVal = isMoney ? formatMoney(Math.abs(adjustedVal)) : Math.abs(adjustedVal).toString();
-        
+
         if (key === 'team_morale') changes.push(`morale ${adjustedVal > 0 ? 'improved' : 'dropped'}`);
         else if (key === 'product_quality') changes.push(`product quality ${adjustedVal > 0 ? 'grew' : 'sank'}`);
         else if (isMoney) changes.push(`${key.split('_').join(' ').toUpperCase()} ${adjustedVal > 0 ? 'gained' : 'spent'} ${displayVal}`);
@@ -119,7 +119,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
     const { isDark } = useTheme();
     const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
     const [isExiting, setIsExiting] = useState(false);
-    
+
     // Typewriter for the event description
     const { displayed: displayedDesc, done: descDone, skip } = useTypewriter(event?.description || "", !!event && !resolvedChoice);
 
@@ -240,7 +240,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                 >
                                     <Zap style={{ width: 40, height: 40, color: "#fff", fill: "#fff" }} />
                                 </motion.div>
-                                
+
                                 <span style={{
                                     background: THEME.badgeBg,
                                     color: THEME.badgeText,
@@ -260,10 +260,10 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                             }} />
                         </div>
 
-                        {/* --- CONTENT PANEL --- */}
-                        <div style={{ 
-                            background: isDark ? "#0f172a" : "#ffffff", 
-                            padding: `16px 24px ${isPremium ? '32px' : 'calc(32px + env(safe-area-inset-bottom, 0px) + 70px)'}`
+                        <div style={{
+                            background: isDark ? "#0f172a" : "#ffffff",
+                            paddingTop: 16, paddingLeft: 24, paddingRight: 24,
+                            paddingBottom: isPremium ? 32 : 'calc(env(safe-area-inset-bottom, 0px) + 70px)'
                         }}>
                             {!resolvedChoice ? (
                                 <>
@@ -282,10 +282,10 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                         {event.title}
                                     </motion.h2>
 
-                                     <div 
+                                    <div
                                         onClick={skip}
                                         style={{ cursor: descDone ? "default" : "pointer", marginBottom: 24 }}
-                                     >
+                                    >
                                         <p style={{
                                             fontSize: 14, color: isDark ? "#94a3b8" : "#475569",
                                             lineHeight: 1.6, minHeight: 60,
@@ -368,23 +368,23 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                         <h2 style={{ fontSize: 24, fontWeight: 900, color: isDark ? "#f1f5f9" : "#0f172a", marginBottom: 12 }}>
                                             The Outcome
                                         </h2>
-                                        <div style={{ 
-                                            background: isDark ? "#1e293b" : "#f8fafc", 
+                                        <div style={{
+                                            background: isDark ? "#1e293b" : "#f8fafc",
                                             border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
                                             borderRadius: 24,
                                             padding: 20,
                                             display: "flex", flexDirection: "column", gap: 12
                                         }}>
-                                            {Object.entries(resolvedChoice.effects).map(([metric, val], idx) => {
+                                            {Object.entries((resolvedChoice.effects || {})).map(([metric, val], idx) => {
                                                 const amount = val * multiplier;
                                                 if (amount === 0) return null;
                                                 const isPositive = amount > 0;
                                                 const color = isPositive ? "#10b981" : "#ef4444";
-                                                
+
                                                 return (
                                                     <div key={idx} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                                        <div style={{ 
-                                                            width: 32, height: 32, borderRadius: 10, 
+                                                        <div style={{
+                                                            width: 32, height: 32, borderRadius: 10,
                                                             background: `${color}15`, color: color,
                                                             display: "flex", alignItems: "center", justifyContent: "center"
                                                         }}>

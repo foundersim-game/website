@@ -351,6 +351,8 @@ export type Startup = {
     iap_ad_free?: boolean;
     iap_caffeine?: boolean;
     iap_titan?: boolean;
+    iap_god_mode?: boolean;
+    iap_sv_darling?: boolean;
 
     // ── CRISIS ENGINE ────────────────────────────────────────────────────────────
     active_crisis?: ActiveCrisis;  // Currently active cascading crisis

@@ -79,7 +79,7 @@ export default function Home() {
 
       const activeState = localStorage.getItem("founder_sim_state");
       setHasActiveGame(!!activeState);
-      
+
       const premium = localStorage.getItem("founder_sim_premium") === "true" || localStorage.getItem("founder_sim_titan") === "true";
       setIsPremium(premium);
     } catch {
@@ -89,14 +89,14 @@ export default function Home() {
     }
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     const premium = localStorage.getItem("founder_sim_premium") === "true" || localStorage.getItem("founder_sim_titan") === "true";
     if (premium) {
       adService.hideBanner();
     } else {
       adService.showBanner();
     }
-    loadSaves(); 
+    loadSaves();
     setLegacyData(getLegacyData());
 
     const handleFocus = () => {
@@ -111,7 +111,7 @@ export default function Home() {
     try {
       const { notificationService } = await import("@/lib/services/notificationService");
       await notificationService.askPermissions();
-    } catch {}
+    } catch { }
     router.push("/dashboard");
   };
 
@@ -120,7 +120,7 @@ export default function Home() {
     try {
       const { notificationService } = await import("@/lib/services/notificationService");
       await notificationService.askPermissions();
-    } catch {}
+    } catch { }
     localStorage.removeItem("founder_sim_state");
     localStorage.removeItem("founder_data");
     router.push("/create-founder");
@@ -131,10 +131,10 @@ export default function Home() {
     try {
       const { notificationService } = await import("@/lib/services/notificationService");
       await notificationService.askPermissions();
-    } catch {}
-    localStorage.setItem("founder_sim_state", JSON.stringify({ 
-      ...save.data, 
-      founderMeta: { logo: save.logo, brandColor: save.brandColor } 
+    } catch { }
+    localStorage.setItem("founder_sim_state", JSON.stringify({
+      ...save.data,
+      founderMeta: { logo: save.logo, brandColor: save.brandColor }
     }));
     router.push("/dashboard");
   };
@@ -149,9 +149,8 @@ export default function Home() {
 
   const stageColor = (stage: string) => STAGE_COLORS[stage] || "bg-slate-100 text-slate-600";
 
-    return (
-    <main className="min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden relative bg-slate-50 dark:bg-slate-950 select-none">
-
+  return (
+    <main className="h-[100dvh] flex flex-col items-center justify-center overflow-hidden relative bg-slate-50 dark:bg-slate-950 select-none">
       {/* Splash Screen */}
       <AnimatePresence>
         {showSplash && (
@@ -168,8 +167,8 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center"
             >
-              <div className="w-32 h-32 rounded-[2rem] shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-900/50 mb-6 overflow-hidden bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
+              <div className="w-full max-w-[12rem] rounded-2xl shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-900/50 mb-6 overflow-hidden bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <img src="/app-logo.png" alt="Founder Sim" className="w-full h-auto object-contain" />
               </div>
               <motion.p
                 animate={{ opacity: [0.4, 1, 0.4] }}
@@ -188,25 +187,25 @@ export default function Home() {
         <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-indigo-100/40 dark:from-indigo-950/40 to-transparent" />
         <div className="absolute top-[-10%] right-[-10%] w-[60%] aspect-square rounded-full bg-violet-400/20 dark:bg-violet-600/10 blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[60%] aspect-square rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px]" />
-        
+
         {/* Animated Floating Elements */}
         {Array.from({ length: 8 }).map((_, i) => (
           <motion.div
             key={i}
-            initial={{ 
-              x: Math.random() * 100 + "%", 
-              y: Math.random() * 100 + "%", 
+            initial={{
+              x: Math.random() * 100 + "%",
+              y: Math.random() * 100 + "%",
               opacity: 0,
-              rotate: 0 
+              rotate: 0
             }}
-            animate={{ 
+            animate={{
               y: [null, "-20%", "20%", null],
               opacity: [0, 0.4, 0],
               rotate: [0, 180, 360]
             }}
-            transition={{ 
-              duration: 15 + Math.random() * 10, 
-              repeat: Infinity, 
+            transition={{
+              duration: 15 + Math.random() * 10,
+              repeat: Infinity,
               delay: i * 2,
               ease: "linear"
             }}
@@ -226,26 +225,26 @@ export default function Home() {
         {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
 
-      <div 
-        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden"
-        style={{ 
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '16px' : '76px'})`
+      <div
+        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden justify-evenly py-2"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '8px' : '76px'})`
         }}
       >
-
+        {/* --- TOP SECTION (Logo & Stats) --- */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.8 }}
-          className="flex flex-col items-center flex-1 justify-center gap-1.5 pt-2 min-h-0 pb-2"
+          className="flex flex-col items-center gap-[max(1vh,0.5rem)] shrink w-full"
         >
           {/* Simple Premium Logo */}
-          <div className="relative group mb-1 shrink min-w-16 min-h-16 h-[min(25vh,9rem)] w-[min(25vh,9rem)] aspect-square flex items-center justify-center">
-            <div className="absolute inset-0 bg-indigo-500/10 blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500 rounded-full" />
-            <motion.div 
+          <div className="relative group mb-1 shrink-0 w-[min(15vh,6rem)] h-[min(15vh,6rem)] aspect-square flex items-center justify-center">
+            <div className="absolute inset-0 bg-indigo-500/10 blur-xl group-hover:bg-indigo-500/20 transition-all duration-500 rounded-full" />
+            <motion.div
               whileHover={{ scale: 1.05 }}
-              className="w-full h-full rounded-[20%] shadow-xl shadow-indigo-500/10 dark:shadow-indigo-950/40 overflow-hidden relative z-10"
+              className="w-full h-full rounded-[1.5rem] shadow-xl shadow-indigo-500/10 dark:shadow-indigo-950/40 overflow-hidden relative z-10"
             >
               <img src="/app-logo.png" alt="Founder Sim" className="w-full h-full object-cover" />
             </motion.div>
@@ -256,89 +255,94 @@ export default function Home() {
           </p>
 
           {/* Version tag - Refined v1.6 */}
-          <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5">
+          <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5 mb-1">
             <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 2.0.0</span>
           </div>
 
           {/* Career Stats - Compact Glassmorphic Cards */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-1 sm:mt-2 grid grid-cols-2 gap-3 w-full shrink-0"
+            className="grid grid-cols-2 gap-2 w-full shrink"
           >
-            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-3 flex flex-col items-center shadow-sm relative group overflow-hidden">
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-2 flex flex-col items-center shadow-sm relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
-              <div className="size-8 rounded-xl bg-amber-500 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
-                <Trophy className="size-4" />
+              <div className="size-6 rounded-lg bg-amber-500 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white mb-1 group-hover:scale-110 transition-transform">
+                <Trophy className="size-3" />
               </div>
               <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Exits</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-xl font-black text-slate-900 dark:text-white leading-tight">{legacyData?.totalExits || 0}</p>
+              <div className="flex items-baseline gap-1 mt-0">
+                <p className="text-lg font-black text-slate-900 dark:text-white leading-tight">{legacyData?.totalExits || 0}</p>
                 <span className="text-[8px] font-bold text-slate-400 uppercase">Wins</span>
               </div>
             </div>
-            
-            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-3 flex flex-col items-center shadow-sm relative group overflow-hidden">
+
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 rounded-2xl p-2 flex flex-col items-center shadow-sm relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-              <div className="size-8 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white mb-1.5 group-hover:scale-110 transition-transform">
-                <Award className="size-4" />
+              <div className="size-6 rounded-lg bg-indigo-600 shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white mb-1 group-hover:scale-110 transition-transform">
+                <Award className="size-3" />
               </div>
               <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Experience</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-xl font-black text-slate-900 dark:text-white leading-tight">{legacyData?.unspentPoints || 0}</p>
+              <div className="flex items-baseline gap-1 mt-0">
+                <p className="text-lg font-black text-slate-900 dark:text-white leading-tight">{legacyData?.unspentPoints || 0}</p>
                 <span className="text-[8px] font-bold text-indigo-500 dark:text-indigo-400 uppercase">XP</span>
               </div>
             </div>
           </motion.div>
+        </motion.div>
 
+        {/* --- MIDDLE SECTION (Hall of Fame) --- */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35, duration: 0.8 }}
+          className="flex flex-col items-center w-full shrink min-h-[5rem] max-h-[35vh]"
+        >
           {/* Hall of Fame - Compact */}
-          <div className="mt-2 sm:mt-4 w-full flex flex-col relative flex-1 min-h-0">
-             <div className="absolute inset-0 bg-indigo-500/5 blur-2xl -z-10" />
-             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-2 text-center flex items-center justify-center gap-2 shrink-0">
-               <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
-             </p>
-             <div className="space-y-2 overflow-y-auto w-full custom-scrollbar pr-1 flex-1 min-h-0 max-h-[140px]">
-               {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired').length > 0 ? (
-                 legacyData.hallOfFame
-                   .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired')
-                   .slice(0, 10)
-                   .map(entry => (
-                    <motion.div 
-                      key={entry.id} 
+          <div className="w-full flex flex-col relative shrink h-full">
+            <div className="absolute inset-0 bg-indigo-500/5 blur-2xl -z-10" />
+            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-1 text-center flex items-center justify-center gap-1.5 shrink-0">
+              <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
+            </p>
+            <div className="space-y-1.5 overflow-y-auto w-full custom-scrollbar pr-1 shrink min-h-0 h-full">
+              {legacyData && legacyData.hallOfFame.filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired').length > 0 ? (
+                legacyData.hallOfFame
+                  .filter(e => e.outcome === 'ipo' || e.outcome === 'acquisition' || e.outcome === 'acquired')
+                  .slice(0, 10)
+                  .map(entry => (
+                    <motion.div
+                      key={entry.id}
                       whileHover={{ x: 4 }}
-                      className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-white dark:border-white/5 shadow-sm rounded-xl px-3 py-2 flex items-center justify-between shrink-0"
+                      className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-white dark:border-white/5 shadow-sm rounded-xl px-2.5 py-1.5 flex items-center justify-between shrink-0"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="size-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-base">{entry.outcome === 'ipo' ? '🏛️' : '💰'}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="size-6 rounded-lg bg-indigo-500/10 flex items-center justify-center text-sm">{entry.outcome === 'ipo' ? '🏛️' : '💰'}</div>
                         <div className="min-w-0">
-                          <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
+                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-0">
                             <span className={cn(entry.outcome === 'ipo' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>
-                             {entry.outcome === 'acquired' || entry.outcome === 'acquisition' ? 'acquired' : entry.outcome}
-                           </span> · {formatMoney(entry.valuation)}
+                              {entry.outcome === 'acquired' || entry.outcome === 'acquisition' ? 'acquired' : entry.outcome}
+                            </span> · {formatMoney(entry.valuation)}
                           </p>
                         </div>
                       </div>
                       <div className="text-right ml-2 shrink-0">
-                        <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400">+{entry.pointsEarned} XP</span>
+                        <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400">+{entry.pointsEarned} XP</span>
                       </div>
                     </motion.div>
                   ))
-               ) : (
-                 <div className="bg-white/20 dark:bg-slate-900/20 backdrop-blur-sm border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl px-3 py-6 text-center flex flex-col items-center gap-1.5 group">
-                   <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform">
-                     <Award className="size-4" />
-                   </div>
-                   <p className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">No successful exits yet</p>
-                 </div>
-               )}
-             </div>
+              ) : (
+                <div className="w-full h-full min-h-[4rem] py-2 bg-white/20 dark:bg-slate-900/20 backdrop-blur-sm border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl px-3 flex flex-col items-center justify-center gap-1 group">
+                  <p className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">No successful exits yet</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Feature Pills - Compact */}
-          <div className="mt-2 flex flex-wrap gap-1.5 justify-center shrink-0">
+          <div className="mt-[max(1vh,0.5rem)] flex flex-wrap gap-1.5 justify-center shrink-0">
             {[
               { label: "Real Unit Economics", icon: "🏢" },
               { label: "100+ Events", icon: "📈" },
@@ -352,27 +356,28 @@ export default function Home() {
           </div>
         </motion.div>
 
+        {/* --- BOTTOM SECTION (Actions & Footer) --- */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.6 }}
-          className="flex flex-col gap-2.5 mt-auto mb-2 shrink-0"
+          className="flex flex-col gap-[max(1vh,0.5rem)] shrink-0 w-full"
         >
           {hasActiveGame && (
             <button
               onClick={handleContinue}
-              className="group relative w-full h-14 rounded-2xl overflow-hidden shadow-xl shadow-indigo-500/10 active:scale-95 transition-all"
+              className="group relative w-full h-[min(7vh,3.5rem)] rounded-2xl overflow-hidden shadow-xl shadow-indigo-500/10 active:scale-95 transition-all shrink-0"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-600" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
               <div className="absolute inset-[1px] bg-gradient-to-r from-indigo-400/20 to-violet-500/20 rounded-[15px] pointer-events-none border border-white/20" />
-              <div className="relative z-10 flex items-center justify-center gap-2.5">
-                <div className="size-7 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
-                  <Zap className="size-4 fill-white text-white" />
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                <div className="size-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                  <Zap className="size-3.5 fill-white text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[8px] font-black text-white/70 uppercase tracking-widest leading-none mb-0.5">Resume Career</p>
-                  <p className="text-xs font-black text-white uppercase tracking-wider leading-none">CONTINUE GAME</p>
+                  <p className="text-[7px] font-black text-white/70 uppercase tracking-widest leading-none mb-0.5">Resume Career</p>
+                  <p className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider leading-none">CONTINUE GAME</p>
                 </div>
               </div>
             </button>
@@ -381,8 +386,8 @@ export default function Home() {
           <button
             onClick={handleNewGame}
             className={cn(
-              "group relative w-full rounded-2xl overflow-hidden transition-all active:scale-95 shadow-md",
-              hasActiveGame ? "h-12" : "h-14 shadow-indigo-500/10"
+              "group relative w-full rounded-2xl overflow-hidden transition-all active:scale-95 shadow-md shrink-0",
+              hasActiveGame ? "h-[min(6vh,3rem)]" : "h-[min(7vh,3.5rem)] shadow-indigo-500/10"
             )}
           >
             {hasActiveGame ? (
@@ -390,8 +395,8 @@ export default function Home() {
                 <div className="absolute inset-0 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800" />
                 <div className="absolute inset-0 group-hover:bg-slate-50 dark:group-hover:bg-white/5 transition-colors" />
                 <div className="relative z-10 flex items-center justify-center gap-2">
-                  <Plus className="size-3.5 text-slate-400" />
-                  <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">New Game</span>
+                  <Plus className="size-3 text-slate-400" />
+                  <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">New Game</span>
                 </div>
               </>
             ) : (
@@ -400,43 +405,43 @@ export default function Home() {
                 <div className="absolute inset-0 group-hover:bg-black/10 transition-colors" />
                 <div className="absolute inset-[1px] bg-gradient-to-r from-white/10 to-transparent rounded-[15px] border border-white/10" />
                 <div className="relative z-10 flex items-center justify-center gap-2">
-                   <Plus className="size-4 text-white" />
-                   <span className="text-xs font-black text-white uppercase tracking-widest">START NEW JOURNEY</span>
+                  <Plus className="size-3.5 text-white" />
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">START NEW JOURNEY</span>
                 </div>
               </>
             )}
           </button>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2 shrink-0">
             <button
               onClick={() => { playSound("click"); loadSaves(); setShowLoadModal(true); }}
-              className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
+              className="h-[min(6vh,3rem)] rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0 group"
             >
-              <FolderOpen className="size-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-              <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Load Saves</span>
+              <FolderOpen className="size-3 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Load Saves</span>
             </button>
 
             <button
               onClick={() => { playSound("click"); setShowHowToPlay(true); }}
-              className="h-12 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 group"
+              className="h-[min(6vh,3rem)] rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0 group"
             >
-              <HelpCircle className="size-3.5 text-slate-400 group-hover:text-violet-500 transition-colors" />
-              <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Help</span>
+              <HelpCircle className="size-3 text-slate-400 group-hover:text-violet-500 transition-colors" />
+              <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Help</span>
             </button>
           </div>
 
         </motion.div>
 
-        <div className="flex flex-col items-center gap-1.5 shrink-0 pb-2.5 text-center">
+        <div className="flex flex-col items-center gap-[max(0.5vh,0.25rem)] shrink-0 pt-[max(0.5vh,0.25rem)] text-center">
           <p className="text-[9px] text-slate-400 font-bold tracking-tight">
             FounderSim · Real startup simulation
           </p>
           <p className="text-[9px] text-slate-400/80 font-bold tracking-tight">
             © {new Date().getFullYear()} SMISH Ventures. All rights reserved.
           </p>
-          <a 
-            href="https://foundersim.fun/privacy" 
-            target="_blank" 
+          <a
+            href="https://foundersim.fun/privacy"
+            target="_blank"
             className="text-[9px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold hover:underline transition-colors"
           >
             Privacy Policy

@@ -213,8 +213,9 @@ export function simulateCompetitors(
             news.push(`💼 RIVAL DEFEAT: ${newComp.name} couldn't match your hyper-growth and has capitulated!`);
         }
         
-        // Attack earlier (at 10 users instead of 50)
-        if (playerUsers > 10 && Math.random() < actionChance && newComp.status === "active") {
+        // Chadly attacks from Day 1, others wait until you have some traction
+        const canAttack = isChadly || playerUsers > 10;
+        if (canAttack && Math.random() < actionChance && newComp.status === "active") {
             const rivalAction = COMPETITOR_ACTIONS[Math.floor(Math.random() * COMPETITOR_ACTIONS.length)];
             newComp.last_action = rivalAction.type;
             

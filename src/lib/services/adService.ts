@@ -138,7 +138,7 @@ class AdService {
             adId: this.platform === 'ios' ? IDS.ios.banner : IDS.android.banner,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
             position: BannerAdPosition.BOTTOM_CENTER,
-            margin: 0,
+            margin: 0, // Capacitor AdMob natively handles safe area on modern iOS; hardcoding 34px breaks older models (overlapping).
             isTesting: false
         };
 
@@ -148,6 +148,11 @@ class AdService {
                 await AdMob.hideBanner().catch(() => {});
             }
             await AdMob.showBanner(options);
+            
+            // Race condition check: If premium was unlocked while the ad was loading, hide it immediately
+            if (this.isPremium) {
+                await AdMob.hideBanner().catch(() => {});
+            }
         } catch (e: any) {
             console.error('showBanner failed', e);
         }
@@ -259,27 +264,36 @@ class AdService {
                 return;
             }
 
-            const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
+            let rewardListener: any;
+            let dismissListener: any;
+            let failedListener: any;
+
+            const cleanup = () => {
+                if (rewardListener) rewardListener.remove().catch(()=>{});
+                if (dismissListener) dismissListener.remove().catch(()=>{});
+                if (failedListener) failedListener.remove().catch(()=>{});
+                rewardListener = null;
+                dismissListener = null;
+                failedListener = null;
+            };
+
+            rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
                 console.log('User earned reward:', reward);
                 this.rewardedLoaded[adType] = false;
                 onReward();
-                rewardListener.remove();
             });
 
-            const dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+            dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
                 console.log('Ad dismissed');
-                dismissListener.remove();
-                rewardListener.remove();
+                cleanup();
                 // Reload next one
                 this.prepareRewarded(adType);
             });
 
-            const failedListener = await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
+            failedListener = await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
                 console.error('Ad failed to show', err);
                 toast.error("Ad failed to play. Please check your connection.");
-                failedListener.remove();
-                dismissListener.remove();
-                rewardListener.remove();
+                cleanup();
                 this.rewardedLoaded[adType] = false;
                 this.prepareRewarded(adType);
             });

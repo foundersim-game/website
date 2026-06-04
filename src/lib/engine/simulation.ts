@@ -13,6 +13,13 @@ export interface PricingConfigNode {
     calc: (p: number, m: any) => { conversion: number; churn: number; loopPower: number };
     salesRoleName: string;
     salesRoleDescription: string;
+    mrrFormula?: string;
+    showPaidUsers?: boolean;
+    volumeLabel?: string;
+    usersLabel?: string;
+    paidUsersLabel?: string;
+    usersExplanation?: string;
+    paidUsersExplanation?: string;
 }
 
 export type IndustryConfig = {
@@ -58,6 +65,12 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     "AI Platform": {
         PLG: {
             maxPrice: 30, label: "Token Bundle Price", unit: "/ 10k",
+            mrrFormula: "Billed Projects × API Calls × Pricing",
+            usersLabel: "API Developers",
+            usersExplanation: "Developers integrating your API.",
+            paidUsersLabel: "Billed Projects",
+            paidUsersExplanation: "Projects that exceed the free tier and pay for usage.",
+            volumeLabel: "API Calls / Mo",
             calc: (p) => {
                 return {
                     conversion: p === 0 ? 6.0 : Math.max(0.5, 20 / (p + 3)),
@@ -82,6 +95,8 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     "OTT / Streaming": {
         PLG: {
             maxPrice: 30, label: "Sub Price", unit: "/ mo",
+            usersLabel: "Free Viewers",
+            paidUsersLabel: "Premium Subs",
             calc: (p) => {
                 return { 
                     conversion: p === 0 ? 8.0 : Math.max(0.1, 80 / (p * 2 + 5)),
@@ -106,6 +121,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     "Mobile Game": {
         PLG: {
             maxPrice: 20, label: "IAP Item Size", unit: " scale",
+            usersLabel: "Daily Active Users",
+            usersExplanation: "DAU. Core metric for ad revenue and IAP potential.",
+            paidUsersLabel: "IAP Spenders",
+            paidUsersExplanation: "Players purchasing in-game items (whales & dolphins).",
             sliders: [{ key: "ad_intensity", label: "Ad Frequency", min: 0, max: 100, step: 1, unit: "%" }],
             calc: (p, m) => {
                 const ads = m.ad_intensity || 0;
@@ -137,7 +156,11 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     },
     "FinTech": {
         PLG: {
+            showPaidUsers: false,
             maxPrice: 5, label: "% Interchange Fee", unit: "%",
+            usersLabel: "Active Wallets",
+            usersExplanation: "Users with verified KYC and funded accounts.",
+            volumeLabel: "Avg Txn Size",
             calc: (p) => {
                 return { 
                     conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
@@ -162,6 +185,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     // Aliases — same config as FinTech so growth/churn curves match the revenue model
     "FinTech App": {
         PLG: {
+            showPaidUsers: false,
             maxPrice: 5, label: "% Interchange Fee", unit: "%",
             calc: (p) => ({
                 conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
@@ -184,6 +208,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     },
     "FinTech Platform": {
         PLG: {
+            showPaidUsers: false,
             maxPrice: 5, label: "% Interchange Fee", unit: "%",
             calc: (p) => ({
                 conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
@@ -255,6 +280,11 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
     "Marketplace": {
         PLG: {
             maxPrice: 15, label: "Take Rate", unit: "%",
+            usersLabel: "Active Listings",
+            usersExplanation: "Total number of goods or services listed on the marketplace.",
+            paidUsersLabel: "Completed Txns",
+            paidUsersExplanation: "Listings that successfully converted to a sale this month.",
+            volumeLabel: "Avg Order Value",
             calc: (p) => {
                 return { 
                     conversion: p === 0 ? 8.0 : Math.max(0.01, 10.0 / (p + 2)),
@@ -705,12 +735,17 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     const employeesLeft: any[] = [];
     let engineerPower = 0, marketerPower = 0, salesPower = 0, totalSalaries = 0;
-    const turnoverRisk = Math.max(0, 110 - metrics.team_morale - (metrics.culture_score || 50)) / 100;
+    const combinedScore = (metrics.team_morale || 50) + (metrics.culture_score || 50);
+    const baseTurnoverRisk = Math.max(0, 120 - combinedScore) / 1000;
 
     employees.forEach(emp => {
-        if (Math.random() < turnoverRisk) {
-            const monthsPassed = startup.history?.length || 0;
-            const monthsEmployed = Math.max(0, monthsPassed - (emp.joined_at || 0));
+        const monthsPassed = startup.history?.length || 0;
+        const monthsEmployed = Math.max(0, monthsPassed - (emp.joined_at || 0));
+        
+        const isGracePeriod = monthsEmployed < 3 && (metrics.team_morale || 50) >= 20;
+        const actualRisk = isGracePeriod ? 0 : baseTurnoverRisk;
+
+        if (Math.random() < actualRisk) {
             
             let vestedEquity = 0;
             if (monthsEmployed >= 12) { // 1-year cliff
@@ -822,8 +857,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const configRef = INDUSTRY_PRICING_CONFIG[industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
     const activeConfig = isPLG ? configRef.PLG : configRef.SLG;
 
-    const currentPrice = metrics.pricing ?? (isPLG ? activeConfig.maxPrice * 0.1 : activeConfig.maxPrice * 0.5);
-    metrics.pricing = Math.min(currentPrice, activeConfig.maxPrice);
+    const currentPrice = (typeof metrics.pricing === 'number' && !isNaN(metrics.pricing)) ? metrics.pricing : (isPLG ? activeConfig.maxPrice * 0.1 : activeConfig.maxPrice * 0.5);
+    // Remove aggressive mid-month clamping so we don't accidentally overwrite player-set pricing
+    metrics.pricing = currentPrice;
 
     const { conversion: configConversion, churn: configChurn, loopPower } = activeConfig.calc(metrics.pricing, metrics);
 
@@ -932,6 +968,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     if (isSLG) {
         if (!metrics.b2b_pipeline) metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
+        metrics.b2b_pipeline.leads = isNaN(metrics.b2b_pipeline.leads) ? 0 : metrics.b2b_pipeline.leads;
+        metrics.b2b_pipeline.active_deals = isNaN(metrics.b2b_pipeline.active_deals) ? 0 : metrics.b2b_pipeline.active_deals;
+        metrics.b2b_pipeline.closed_won = isNaN(metrics.b2b_pipeline.closed_won) ? 0 : metrics.b2b_pipeline.closed_won;
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
         
@@ -1338,6 +1377,24 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             }
         };
     });
+
+    // ── SYNC TEAM MORALE ────────────────────────────────────────────────────────
+    // Global team morale naturally drifts toward the real average of your employees
+    if (newStartup.employees && newStartup.employees.length > 0) {
+        let totalMorale = newStartup.employees.reduce((acc, e) => acc + (e.morale ?? 70), 0);
+        let headcount = newStartup.employees.length;
+        
+        const cxoKeys = Object.keys((newStartup as any).cxoTeam || {}).filter(k => (newStartup as any).cxoTeam[k]);
+        cxoKeys.forEach(k => {
+            totalMorale += 70; // CXOs are represented as booleans, baseline morale is 70
+            headcount += 1;
+        });
+
+        const avgMorale = totalMorale / headcount;
+        const diff = avgMorale - (newStartup.metrics.team_morale || 50);
+        // Pull team morale 30% of the distance toward the actual average
+        newStartup.metrics.team_morale = Math.max(0, Math.min(100, (newStartup.metrics.team_morale || 50) + (diff * 0.3)));
+    }
 
     // ── TRAIT REVELATION ────────────────────────────────────────────────────────────
     // Hidden traits are revealed slowly over 2-3 months after hire.

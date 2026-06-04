@@ -58,7 +58,7 @@ export function generateStockShareholders(
         const inst3 = 5 + Math.round(Math.random() * 5);
         const floatPct = 100 - insiderPct - inst1 - inst2 - inst3;
         return [
-            { name: "Insider / Management", type: "founder", ownershipPct: insiderPct },
+            { name: "Management", type: "founder", ownershipPct: insiderPct },
             { name: shuffled[0], type: "institution", ownershipPct: inst1 },
             { name: shuffled[1], type: "institution", ownershipPct: inst2 },
             { name: shuffled[2], type: "institution", ownershipPct: inst3 },
@@ -78,7 +78,7 @@ export function generateStockShareholders(
             { name: shuffled[1], type: "institution", ownershipPct: inst2 },
             { name: shuffled[2], type: "institution", ownershipPct: inst3 },
             { name: shuffled[3], type: "institution", ownershipPct: inst4 },
-            { name: "Insider / Management", type: "founder", ownershipPct: insiderPct },
+            { name: "Management", type: "founder", ownershipPct: insiderPct },
             { name: "Public Float", type: "public_float", ownershipPct: floatPct },
         ];
     }
@@ -95,7 +95,7 @@ export function generateStockShareholders(
         { name: shuffled[1], type: "institution", ownershipPct: inst2 },
         { name: shuffled[2], type: "institution", ownershipPct: inst3 },
         { name: shuffled[3], type: "institution", ownershipPct: inst4 },
-        { name: "Insider / Management", type: "founder", ownershipPct: insiderPct },
+        { name: "Management", type: "founder", ownershipPct: insiderPct },
         { name: "Public Float", type: "public_float", ownershipPct: floatPct },
     ];
 }

@@ -155,7 +155,7 @@ function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct,
     };
     const typeLabel: Record<string, string> = {
         institution: "Fund",
-        founder: "Insider",
+        founder: "MGMT",
         vc: "VC",
         public_float: "Float",
         player: "You",
@@ -170,7 +170,7 @@ function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct,
                         {typeLabel[sh.type] || sh.type}
                     </span>
                     <div className="grid grid-cols-[100px_1fr_40px] items-center gap-3 flex-1 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name}</span>
+                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name === "Insider / Management" || sh.name === "MGMT" ? "Management" : sh.name}</span>
                         <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden w-full">
                             <div className={`h-full rounded-full transition-all ${sh.type === "player" ? "bg-emerald-500" : sh.type === "parent_company" ? "bg-indigo-500" : sh.type === "founder" ? "bg-amber-400" : sh.type === "vc" ? "bg-purple-400" : "bg-blue-400"}`}
                                 style={{ width: `${Math.min(100, sh.ownershipPct)}%` }} />
@@ -548,7 +548,7 @@ export default function StockMarketView({
     const [sectorFilter, setSectorFilter] = useState<string>("All");
     const [searchQ, setSearchQ] = useState("");
 
-    const hasCfo = !!(startup.cxoTeam as any)?.cfo;
+    const hasCfo = !!(startup.cxoTeam as any)?.CFO;
     const cfoAutoTrade = startup.cfo_auto_trade_enabled;
 
     const portfolio = account === "personal" ? personalPortfolio : corporatePortfolio;
