@@ -1,8 +1,8 @@
 {
-    "id": "v2_0_2_welcome_v2",
+    "id": "v2_0_2_welcome_v3",
     "active": true,
-    "title": "Welcome to Version 2.0.1! 🎉",
+    "title": "Welcome to Version 2.0.2! 🎉",
     "message": "We've listened to your feedback! Ads are now much less frequent, and you start with $150k extra cash. Have fun!",
-    "actionText": "Awesome!",
-    "actionUrl": ""
+    "actionText": "Follow Us On Instagram!",
+    "actionUrl": "https://www.instagram.com/foundersim/"
 }

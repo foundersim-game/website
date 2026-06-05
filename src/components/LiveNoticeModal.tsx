@@ -71,7 +71,6 @@ export function LiveNoticeModal() {
                 className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col"
             >
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-center text-white relative shrink-0">
-                    <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
                     <button onClick={() => handleDismiss(false)} className="absolute top-4 right-4 text-white/80 hover:text-white z-20">
                         <X size={20} />
                     </button>
