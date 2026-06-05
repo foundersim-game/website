@@ -1,8 +1,8 @@
 {
-    "id": "v2_0_2_welcome_v3",
+    "id": "v2_0_3_release",
     "active": true,
-    "title": "Welcome to Version 2.0.2! 🎉",
-    "message": "We've listened to your feedback! Ads are now much less frequent, and you start with $150k extra cash. Have fun!",
+    "title": "Version 2.0.3 is Live! 🚀",
+    "message": "IAP fixes for Gov Contract & SV Darling — your purchases now reflect correctly. Plus a live alert system so we can keep you informed instantly!",
     "actionText": "Follow Us On Instagram!",
     "actionUrl": "https://www.instagram.com/foundersim/",
     "banner": {
