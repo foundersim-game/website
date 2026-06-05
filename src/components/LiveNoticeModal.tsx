@@ -19,7 +19,7 @@ export function LiveNoticeModal() {
         const fetchNotice = async () => {
             try {
                 // Add a cache-buster so we always get the freshest notice!
-                const res = await fetch(`https://foundersim.fun/notice.json?t=${Date.now()}`);
+                const res = await fetch(`https://www.foundersim.fun/notice.json?t=${Date.now()}`);
                 if (!res.ok) return;
                 const data: NoticeData = await res.json();
                 
