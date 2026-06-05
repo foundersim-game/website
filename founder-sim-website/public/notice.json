@@ -6,7 +6,7 @@
     "actionText": "Follow Us On Instagram!",
     "actionUrl": "https://www.instagram.com/foundersim/",
     "banner": {
-        "active": true,
+        "active": false,
         "text": "Hey Founders, if your In-App Purchases are not working, please submit the report from 'Main Menu' > 'Report a Bug'. Thanks for your patience!"
     }
 }
