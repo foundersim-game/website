@@ -19,19 +19,32 @@ export function LiveNoticeModal() {
         const fetchNotice = async () => {
             try {
                 // Add a cache-buster so we always get the freshest notice!
-                const res = await fetch(`https://www.foundersim.fun/notice.json?t=${Date.now()}`);
-                if (!res.ok) return;
+                const url = `https://www.foundersim.fun/notice.json?t=${Date.now()}`;
+                console.log("[LiveNotice] Fetching from:", url);
+                const res = await fetch(url, { cache: "no-store" });
+                console.log("[LiveNotice] Response status:", res.status, res.ok);
+                if (!res.ok) {
+                    console.error("[LiveNotice] Bad response:", res.status);
+                    return;
+                }
                 const data: NoticeData = await res.json();
+                console.log("[LiveNotice] Data received:", data);
                 
                 if (data && data.active && data.id) {
                     const lastSeenId = localStorage.getItem("foundersim_last_notice");
+                    console.log("[LiveNotice] lastSeenId:", lastSeenId, "data.id:", data.id);
                     if (lastSeenId !== data.id) {
                         setNotice(data);
                         setOpen(true);
+                        console.log("[LiveNotice] Showing notice!");
+                    } else {
+                        console.log("[LiveNotice] Notice already seen, skipping.");
                     }
+                } else {
+                    console.log("[LiveNotice] Notice inactive or missing id.");
                 }
             } catch (e) {
-                console.error("Failed to fetch live notice", e);
+                console.error("[LiveNotice] Failed to fetch live notice:", e);
             }
         };
         fetchNotice();
