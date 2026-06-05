@@ -11307,6 +11307,8 @@ export default function Dashboard() {
                 onClose={() => setIsBugModalOpen(false)}
             />
 
+            <LiveNoticeModal />
+
             <Dialog open={isInstagramModalOpen} onOpenChange={setIsInstagramModalOpen}>
                 <DialogContent className="sm:max-w-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden [&>button]:hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-purple-500/5 pointer-events-none" />

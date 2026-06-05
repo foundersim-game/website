@@ -1284,6 +1284,11 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         finalValuation *= 1.3;
     }
 
+    // Silicon Valley Darling Perk Premium (IAP)
+    if (startup.iap_sv_darling || (typeof window !== "undefined" && localStorage.getItem("founder_sim_sv_darling") === "true")) {
+        finalValuation *= 1.5;
+    }
+
     // --- VALUATION PERSISTENCE (Damping) ---
     // Prevent sudden crashes after a high-valuation round, BUT punish if metrics legitimately decline.
     const previousValuation = startup.valuation || 500000;

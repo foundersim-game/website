@@ -101,11 +101,19 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                             });
                         }
                         break;
-                    case IAP_PRODUCT_IDS.GOV_CONTRACT:
+                    case IAP_PRODUCT_IDS.GOV_CONTRACT: {
+                        const addedUsers = Math.max(1, Math.floor(1000000 / 12 / (next.metrics.pricing || 10)));
                         next.metrics.cash += 1000000;
-                        next.metrics.users += Math.max(1, Math.floor(1000000 / 12 / (next.metrics.pricing || 10)));
+                        next.metrics.users += addedUsers;
+                        next.metrics.paid_users = (next.metrics.paid_users || 0) + addedUsers;
+                        // Instantly boost valuation to reflect the new ARR
+                        next.valuation = (next.valuation || 500000) + 1000000 * 10; 
                         break;
+                    }
                     case IAP_PRODUCT_IDS.SV_DARLING:
+                        if (!prev.iap_sv_darling) {
+                            next.valuation = Math.floor((next.valuation || 500000) * 1.5);
+                        }
                         next.iap_sv_darling = true;
                         break;
                 }
@@ -122,7 +130,12 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                 if (restoredIds.includes(IAP_PRODUCT_IDS.AD_FREE)) next.iap_ad_free = true;
                 if (restoredIds.includes(IAP_PRODUCT_IDS.CAFFEINE_DRIP)) next.iap_caffeine = true;
                 if (restoredIds.includes(IAP_PRODUCT_IDS.GOD_MODE)) next.iap_god_mode = true;
-                if (restoredIds.includes(IAP_PRODUCT_IDS.SV_DARLING)) next.iap_sv_darling = true;
+                if (restoredIds.includes(IAP_PRODUCT_IDS.SV_DARLING)) {
+                    if (!prev.iap_sv_darling) {
+                        next.valuation = Math.floor((next.valuation || 500000) * 1.5);
+                    }
+                    next.iap_sv_darling = true;
+                }
                 
                 // Handle restored consumables (e.g. from promo codes redeemed outside the app)
                 const starterPackCount = restoredIds.filter(id => id === IAP_PRODUCT_IDS.STARTER_PACK).length;
@@ -133,8 +146,11 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                 }
                 const govContractCount = restoredIds.filter(id => id === IAP_PRODUCT_IDS.GOV_CONTRACT).length;
                 if (govContractCount > 0 && next.metrics) {
+                    const addedUsers = Math.max(1, Math.floor(1000000 / 12 / (next.metrics.pricing || 10))) * govContractCount;
                     next.metrics.cash += 1000000 * govContractCount;
-                    next.metrics.users += Math.max(1, Math.floor(1000000 / 12 / (next.metrics.pricing || 10))) * govContractCount;
+                    next.metrics.users += addedUsers;
+                    next.metrics.paid_users = (next.metrics.paid_users || 0) + addedUsers;
+                    next.valuation = (next.valuation || 500000) + 1000000 * 10 * govContractCount;
                 }
 
                 if (restoredIds.includes(IAP_PRODUCT_IDS.TITAN_INDUSTRY)) {

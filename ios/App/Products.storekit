@@ -60,6 +60,51 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "14.99",
+      "familyShareable" : false,
+      "internalID" : "6776585824",
+      "localizations" : [
+        {
+          "description" : "Maxes out all founder attributes permanently.",
+          "displayName" : "God Mode",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_god_mode",
+      "referenceName" : "God Mode",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "6776587881",
+      "localizations" : [
+        {
+          "description" : "Instantly injects $1,000,000 in cash and $1M in ARR.",
+          "displayName" : "Government Contract",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_gov_contract",
+      "referenceName" : "Government Contract",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6776588426",
+      "localizations" : [
+        {
+          "description" : "Permanent +50% valuation multiplier on funding rounds",
+          "displayName" : "Silicon Valley Darling",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_sv_darling",
+      "referenceName" : "Silicon Valley Darling",
+      "type" : "NonConsumable"
+    },
+    {
       "displayPrice" : "19.99",
       "familyShareable" : false,
       "internalID" : "6773034109",
@@ -83,7 +128,7 @@
     "_developerTeamID" : "4SV4NMHB82",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 802257431.108459,
+    "_lastSynchronizedDate" : 802331586.553527,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
