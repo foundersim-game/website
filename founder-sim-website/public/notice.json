@@ -4,5 +4,9 @@
     "title": "Welcome to Version 2.0.2! 🎉",
     "message": "We've listened to your feedback! Ads are now much less frequent, and you start with $150k extra cash. Have fun!",
     "actionText": "Follow Us On Instagram!",
-    "actionUrl": "https://www.instagram.com/foundersim/"
+    "actionUrl": "https://www.instagram.com/foundersim/",
+    "banner": {
+        "active": true,
+        "text": "Hey Founders, if your In-App Purchases are not working, please submit the report from 'Main Menu' > 'Report a Bug'. Thanks for your patience!"
+    }
 }

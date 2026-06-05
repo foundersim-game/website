@@ -29,7 +29,7 @@ export function LiveNoticeModal() {
                 }
                 const data: NoticeData = await res.json();
                 console.log("[LiveNotice] Data received:", data);
-                
+
                 if (data && data.active && data.id) {
                     const lastSeenId = localStorage.getItem("foundersim_last_notice");
                     console.log("[LiveNotice] lastSeenId:", lastSeenId, "data.id:", data.id);
@@ -74,11 +74,11 @@ export function LiveNoticeModal() {
                     <button onClick={() => handleDismiss(false)} className="absolute top-4 right-4 text-white/80 hover:text-white z-20">
                         <X size={20} />
                     </button>
-                    
+
                     <div className="mx-auto bg-white/20 p-3 rounded-full w-14 h-14 flex items-center justify-center backdrop-blur-md mb-3 shadow-inner relative z-10">
                         <Bell size={28} className="text-white" />
                     </div>
-                    
+
                     <h2 className="text-2xl font-black tracking-tight relative z-10 drop-shadow-sm">
                         {notice.title}
                     </h2>

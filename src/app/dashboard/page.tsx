@@ -48,6 +48,7 @@ import { StoreModal } from "@/components/StoreModal";
 import { ManageSubsidiaryModal } from "@/components/ManageSubsidiaryModal";
 import { ReportBugModal } from "@/components/ReportBugModal";
 import { LiveNoticeModal } from "@/components/LiveNoticeModal";
+import { LiveBanner } from "@/components/LiveBanner";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
 
 // ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
@@ -8979,6 +8980,8 @@ export default function Dashboard() {
     return (
         <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0 bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
 
+            {/* LIVE ALERT BANNER */}
+            <LiveBanner />
             {/* GLOBAL BLOCKING OVERLAY (DURING SIMULATION) */}
             <AnimatePresence>
                 {isProcessing && (
