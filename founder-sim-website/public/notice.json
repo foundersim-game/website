@@ -1,12 +1,12 @@
 {
-    "id": "v2_0_3_release",
+    "id": "v2_1_update",
     "active": true,
-    "title": "Version 2.0.3 is Live! 🚀",
-    "message": "IAP fixes for Gov Contract & SV Darling — your purchases now reflect correctly. Plus a live alert system so we can keep you informed instantly!",
-    "actionText": "Follow Us On Instagram!",
-    "actionUrl": "https://www.instagram.com/foundersim/",
+    "title": "🚀 Founder Sim v2.1 is Here!",
+    "message": "Update now to experience the latest features! Version 2.1 brings new improvements, bug fixes, and an enhanced startup journey.",
+    "actionText": "Update to v2.1",
+    "actionUrl": "https://apps.apple.com/app/founder-sim-startup-game/id6761432505",
     "banner": {
-        "active": false,
-        "text": "Hey Founders, if your In-App Purchases are not working, please submit the report from 'Main Menu' > 'Report a Bug'. Thanks for your patience!"
+        "active": true,
+        "text": "🏆 Global Leaderboards are now LIVE! Claim your username and climb the ranks today."
     }
 }
