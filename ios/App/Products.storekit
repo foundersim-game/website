@@ -30,6 +30,21 @@
       "type" : "NonConsumable"
     },
     {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6778926872",
+      "localizations" : [
+        {
+          "description" : "Force a global Bull Market for 12 months",
+          "displayName" : "Bribe a Senator",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_bribe_senator",
+      "referenceName" : "Bribe a Senator",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "9.99",
       "familyShareable" : false,
       "internalID" : "6773032358",
@@ -43,6 +58,21 @@
       "productID" : "founder_sim_caffeine",
       "referenceName" : "Caffeine IV",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "6778925763",
+      "localizations" : [
+        {
+          "description" : "Max out team morale to 100%",
+          "displayName" : "Corporate Retreat to Bali",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_bali_retreat",
+      "referenceName" : "Corporate Retreat to Bali",
+      "type" : "Consumable"
     },
     {
       "displayPrice" : "1.99",
@@ -90,6 +120,21 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6778926508",
+      "localizations" : [
+        {
+          "description" : "Instantly hire a Senior Genius",
+          "displayName" : "Poach 10x Rockstar",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_poach_10x",
+      "referenceName" : "Poach 10x Rockstar",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "9.99",
       "familyShareable" : false,
       "internalID" : "6776588426",
@@ -105,6 +150,21 @@
       "type" : "NonConsumable"
     },
     {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6778922896",
+      "localizations" : [
+        {
+          "description" : "Instantly settle lawsuits and restore CEO Rep",
+          "displayName" : "The PR Fixer",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_pr_fixer",
+      "referenceName" : "The PR Fixer",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "19.99",
       "familyShareable" : false,
       "internalID" : "6773034109",
@@ -118,6 +178,66 @@
       "productID" : "founder_sim_titan",
       "referenceName" : "Titan of Industry",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6778927199",
+      "localizations" : [
+        {
+          "description" : "Mass train a small team (+25 perf)",
+          "displayName" : "Training Agency (Boutique)",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_train_boutique",
+      "referenceName" : "Training Agency (Boutique)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6778940551",
+      "localizations" : [
+        {
+          "description" : "Mass train a medium team (+25 perf)",
+          "displayName" : "Training Agency (Corporate)",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_train_corporate",
+      "referenceName" : "Training Agency (Corporate)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6778941080",
+      "localizations" : [
+        {
+          "description" : "Mass train a large team (+25 perf).",
+          "displayName" : "Training Agency (Global)",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_train_global",
+      "referenceName" : "Training Agency (Global)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "6778925384",
+      "localizations" : [
+        {
+          "description" : "Instantly gain massive traction",
+          "displayName" : "Viral TikTok Moment",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "founder_sim_tiktok_viral",
+      "referenceName" : "Viral TikTok Moment",
+      "type" : "Consumable"
     }
   ],
   "settings" : {
@@ -128,7 +248,7 @@
     "_developerTeamID" : "4SV4NMHB82",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 802331586.553527,
+    "_lastSynchronizedDate" : 802857138.65646195,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",

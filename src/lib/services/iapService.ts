@@ -1,6 +1,7 @@
 import { NativePurchases } from '@capgo/native-purchases';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
+import { analyticsService } from '@/lib/services/analyticsService';
 
 export const IAP_PRODUCT_IDS = {
     AD_FREE: "founder_sim_premium",
@@ -10,6 +11,35 @@ export const IAP_PRODUCT_IDS = {
     GOD_MODE: "founder_sim_god_mode",
     GOV_CONTRACT: "founder_sim_gov_contract",
     SV_DARLING: "founder_sim_sv_darling",
+
+    // New Contextual Consumables
+    TRAIN_BOUTIQUE: "founder_sim_train_boutique",
+    TRAIN_CORPORATE: "founder_sim_train_corporate",
+    TRAIN_GLOBAL: "founder_sim_train_global",
+    PR_FIXER: "founder_sim_pr_fixer",
+    TIKTOK_VIRAL: "founder_sim_tiktok_viral",
+    BALI_RETREAT: "founder_sim_bali_retreat",
+    POACH_10X: "founder_sim_poach_10x",
+    BRIBE_SENATOR: "founder_sim_bribe_senator",
+};
+
+// Price & type metadata for enriched analytics logging
+const PRODUCT_METADATA: Record<string, { price: number; type: "consumable" | "non_consumable" }> = {
+    founder_sim_premium:        { price: 4.99,  type: "non_consumable" },
+    founder_sim_caffeine:       { price: 9.99,  type: "non_consumable" },
+    founder_sim_titan:          { price: 19.99, type: "non_consumable" },
+    founder_sim_god_mode:       { price: 9.99,  type: "non_consumable" },
+    founder_sim_sv_darling:     { price: 4.99,  type: "non_consumable" },
+    founder_sim_starter_pack:   { price: 1.99,  type: "consumable" },
+    founder_sim_gov_contract:   { price: 2.99,  type: "consumable" },
+    founder_sim_train_boutique: { price: 1.99,  type: "consumable" },
+    founder_sim_train_corporate:{ price: 2.99,  type: "consumable" },
+    founder_sim_train_global:   { price: 4.99,  type: "consumable" },
+    founder_sim_pr_fixer:       { price: 1.99,  type: "consumable" },
+    founder_sim_tiktok_viral:   { price: 1.99,  type: "consumable" },
+    founder_sim_bali_retreat:   { price: 1.99,  type: "consumable" },
+    founder_sim_poach_10x:      { price: 2.99,  type: "consumable" },
+    founder_sim_bribe_senator:  { price: 2.99,  type: "consumable" },
 };
 
 export class IAPService {
@@ -97,6 +127,13 @@ export class IAPService {
     }
 
     public async purchaseProduct(productId: string): Promise<boolean> {
+        const meta = PRODUCT_METADATA[productId];
+        analyticsService.logEvent("iap_attempt", {
+            product_id: productId,
+            product_price: meta?.price ?? 0,
+            product_type: meta?.type ?? "unknown",
+        });
+
         // For development/web simulation
         if (!Capacitor.isNativePlatform()) {
             if (productId === IAP_PRODUCT_IDS.AD_FREE) {
@@ -115,14 +152,33 @@ export class IAPService {
             if (productId === IAP_PRODUCT_IDS.SV_DARLING) {
                 localStorage.setItem("founder_sim_sv_darling", "true");
             }
+            analyticsService.logEvent("iap_success", {
+                product_id: productId,
+                product_price: meta?.price ?? 0,
+                product_type: meta?.type ?? "unknown",
+                mode: "web",
+            });
             toast.success("Test Purchase Successful (Web Mode)");
             return true;
         }
 
         try {
+            const consumableIds = [
+                IAP_PRODUCT_IDS.STARTER_PACK,
+                IAP_PRODUCT_IDS.GOV_CONTRACT,
+                IAP_PRODUCT_IDS.TRAIN_BOUTIQUE,
+                IAP_PRODUCT_IDS.TRAIN_CORPORATE,
+                IAP_PRODUCT_IDS.TRAIN_GLOBAL,
+                IAP_PRODUCT_IDS.PR_FIXER,
+                IAP_PRODUCT_IDS.TIKTOK_VIRAL,
+                IAP_PRODUCT_IDS.BALI_RETREAT,
+                IAP_PRODUCT_IDS.POACH_10X,
+                IAP_PRODUCT_IDS.BRIBE_SENATOR
+            ];
+
             const transaction = await NativePurchases.purchaseProduct({
                 productIdentifier: productId,
-                productType: (productId === IAP_PRODUCT_IDS.STARTER_PACK || productId === IAP_PRODUCT_IDS.GOV_CONTRACT) ? ("consumable" as any) : ("inapp" as any),
+                productType: consumableIds.includes(productId) ? ("consumable" as any) : ("inapp" as any),
                 autoAcknowledgePurchases: true
             });
 
@@ -153,6 +209,12 @@ export class IAPService {
                 if (productId === IAP_PRODUCT_IDS.SV_DARLING) {
                     localStorage.setItem("founder_sim_sv_darling", "true");
                 }
+                analyticsService.logEvent("iap_success", {
+                    product_id: productId,
+                    product_price: meta?.price ?? 0,
+                    product_type: meta?.type ?? "unknown",
+                    revenue: meta?.price ?? 0,
+                });
                 toast.success("Purchase Successful!", { description: "Thank you for supporting Founder Sim!" });
                 return true;
             } else if (!isIOS && transaction.purchaseState === "0") {
@@ -163,8 +225,10 @@ export class IAPService {
             console.error("[IAP] Purchase failed", error);
             const msg = error?.message?.toLowerCase() || "";
             if (msg.includes("cancel") || msg.includes("canceled") || msg.includes("user canceled")) {
+                analyticsService.logEvent("iap_failed", { product_id: productId, reason: "user_cancelled" });
                 console.log("[IAP] Purchase cancelled by user.");
             } else {
+                analyticsService.logEvent("iap_failed", { product_id: productId, reason: "error", error_message: msg });
                 toast.error("Purchase Failed", { description: "There was a problem processing your request. Please try again." });
             }
         }
@@ -175,23 +239,23 @@ export class IAPService {
         if (!Capacitor.isNativePlatform()) return this.getOwnedNonConsumables();
         try {
             await NativePurchases.restorePurchases();
-            
+
             let extraRestored: string[] = [];
             try {
                 // Fetch all purchases to see if there are unprocessed consumables (like promo codes)
                 const { purchases } = await NativePurchases.getPurchases({ productType: "inapp" as any });
                 const isIOS = Capacitor.getPlatform() === 'ios';
-                
+
                 for (const p of purchases) {
                     const txId = isIOS ? p.transactionId : p.purchaseToken;
                     if (!txId) continue;
-                    
+
                     if (p.productIdentifier === IAP_PRODUCT_IDS.STARTER_PACK || p.productIdentifier === IAP_PRODUCT_IDS.GOV_CONTRACT) {
                         const processedKey = `processed_consumable_${txId}`;
                         if (localStorage.getItem(processedKey) !== "true") {
                             localStorage.setItem(processedKey, "true");
                             extraRestored.push(p.productIdentifier);
-                            
+
                             // Try to consume it natively on Android
                             if (!isIOS && p.purchaseToken) {
                                 try {
@@ -209,7 +273,7 @@ export class IAPService {
 
             const owned = await this.getOwnedNonConsumables();
             const allRestored = [...owned, ...extraRestored];
-            
+
             if (allRestored.length > 0) {
                 toast.success("Purchases Restored", { description: "Your purchases were successfully synced." });
             } else {

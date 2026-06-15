@@ -246,6 +246,7 @@ export type Lawsuit = {
     legal_fees_per_month: number;
     months_to_trial: number;    // Countdown
     win_probability: number;    // 0-1 chance of winning at trial
+    proBonoUses?: number;       // How many times Pro Bono ad was used
 };
 
 export type Startup = {
@@ -314,6 +315,7 @@ export type Startup = {
         sleep_quality: number;    // 0-100; affects focus energy & burnout recovery
         
         current_season: SeasonType;
+        season_locked_until?: number;
         has_legal_dept: boolean;
         
         active_macro_event?: MacroEvent | null;
@@ -433,6 +435,7 @@ export type MarketStock = {
     sector: "Technology" | "Energy" | "Healthcare" | "Defense" | "Real Estate" | "Broad Market";
     currentPrice: number;
     sharesOutstanding: number;
+    publicFloat?: number; // Tradable shares in the open market
     peRatio: number;
     momentum: number; // -1 to +1
     volatility: number;

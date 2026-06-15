@@ -9,11 +9,17 @@ export function formatMoney(v: number) {
   const absV = Math.abs(v);
   const sign = v < 0 ? "-" : "";
   
-  if (absV >= 1_000_000_000_000_000) return `${sign}$${(absV / 1_000_000_000_000_000).toFixed(1)}Q`;
-  if (absV >= 1_000_000_000_000) return `${sign}$${(absV / 1_000_000_000_000).toFixed(1)}T`;
-  if (absV >= 1_000_000_000) return `${sign}$${(absV / 1_000_000_000).toFixed(1)}B`;
-  if (absV >= 1_000_000) return `${sign}$${(absV / 1_000_000).toFixed(1)}M`;
-  if (absV >= 1_000) return `${sign}$${(absV / 1_000).toFixed(1)}K`;
+  if (absV >= 1e33) return `${sign}$${(absV / 1e33).toFixed(1)}Dc`; // Decillion
+  if (absV >= 1e30) return `${sign}$${(absV / 1e30).toFixed(1)}No`; // Nonillion
+  if (absV >= 1e27) return `${sign}$${(absV / 1e27).toFixed(1)}Oc`; // Octillion
+  if (absV >= 1e24) return `${sign}$${(absV / 1e24).toFixed(1)}Sp`; // Septillion
+  if (absV >= 1e21) return `${sign}$${(absV / 1e21).toFixed(1)}Sx`; // Sextillion
+  if (absV >= 1e18) return `${sign}$${(absV / 1e18).toFixed(1)}Qi`; // Quintillion
+  if (absV >= 1e15) return `${sign}$${(absV / 1e15).toFixed(1)}Qa`; // Quadrillion
+  if (absV >= 1e12) return `${sign}$${(absV / 1e12).toFixed(1)}T`; // Trillion
+  if (absV >= 1e9)  return `${sign}$${(absV / 1e9).toFixed(1)}B`;  // Billion
+  if (absV >= 1e6)  return `${sign}$${(absV / 1e6).toFixed(1)}M`;  // Million
+  if (absV >= 1e3)  return `${sign}$${(absV / 1e3).toFixed(1)}K`;  // Thousand
   return `${sign}$${absV.toFixed(0)}`;
 }
 
@@ -21,10 +27,16 @@ export function formatNumber(v: number) {
   const absV = Math.abs(v);
   const sign = v < 0 ? "-" : "";
   
-  if (absV >= 1_000_000_000_000_000) return `${sign}${(absV / 1_000_000_000_000_000).toFixed(1)}Q`;
-  if (absV >= 1_000_000_000_000) return `${sign}${(absV / 1_000_000_000_000).toFixed(1)}T`;
-  if (absV >= 1_000_000_000) return `${sign}${(absV / 1_000_000_000).toFixed(1)}B`;
-  if (absV >= 1_000_000) return `${sign}${(absV / 1_000_000).toFixed(1)}M`;
-  if (absV >= 1_000) return `${sign}${(absV / 1_000).toFixed(1)}K`;
+  if (absV >= 1e33) return `${sign}${(absV / 1e33).toFixed(1)}Dc`;
+  if (absV >= 1e30) return `${sign}${(absV / 1e30).toFixed(1)}No`;
+  if (absV >= 1e27) return `${sign}${(absV / 1e27).toFixed(1)}Oc`;
+  if (absV >= 1e24) return `${sign}${(absV / 1e24).toFixed(1)}Sp`;
+  if (absV >= 1e21) return `${sign}${(absV / 1e21).toFixed(1)}Sx`;
+  if (absV >= 1e18) return `${sign}${(absV / 1e18).toFixed(1)}Qi`;
+  if (absV >= 1e15) return `${sign}${(absV / 1e15).toFixed(1)}Qa`;
+  if (absV >= 1e12) return `${sign}${(absV / 1e12).toFixed(1)}T`;
+  if (absV >= 1e9)  return `${sign}${(absV / 1e9).toFixed(1)}B`;
+  if (absV >= 1e6)  return `${sign}${(absV / 1e6).toFixed(1)}M`;
+  if (absV >= 1e3)  return `${sign}${(absV / 1e3).toFixed(1)}K`;
   return `${sign}${absV.toLocaleString()}`;
 }

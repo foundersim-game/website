@@ -22,23 +22,14 @@ export type EventName =
   | "ipo_success"
   | "bankruptcy"
   | "hiring_success"
-  | "ad_view";
+  | "ad_view"
+  | "iap_attempt"
+  | "iap_success"
+  | "iap_failed"
+  | "story_mode_vote"
+  | "story_mode_waitlist";
 
-// Lazy-load the native firebase analytics plugin only on native platforms.
-// This prevents the web build from crashing if the native module isn't available.
-let _firebaseAnalytics: any = null;
-
-async function getFirebaseAnalytics() {
-  if (_firebaseAnalytics) return _firebaseAnalytics;
-  try {
-    const { FirebaseAnalytics } = await import("@capacitor-firebase/analytics");
-    _firebaseAnalytics = FirebaseAnalytics;
-    return _firebaseAnalytics;
-  } catch (e) {
-    console.warn("[Analytics] Failed to load native Firebase Analytics:", e);
-    return null;
-  }
-}
+import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 
 export const analyticsService = {
   /**
@@ -53,19 +44,22 @@ export const analyticsService = {
 
     // ── Native Path (iOS / Android) ──────────────────────────────────────────
     if (isNative) {
-      const analytics = await getFirebaseAnalytics();
-      if (analytics) {
+      console.log(`[Analytics] PRE-FIRE NATIVE: ${event}`, params);
+      if (FirebaseAnalytics) {
         try {
-          await analytics.logEvent({
+          await FirebaseAnalytics.logEvent({
             name: event,
             params: {
               platform,
               ...params,
             },
           });
+          console.log(`[Analytics] NATIVE FIRED SUCCESS: ${event}`);
         } catch (e) {
           console.warn(`[Analytics] Native logEvent failed for "${event}":`, e);
         }
+      } else {
+        console.warn(`[Analytics] NATIVE SKIPPED: getFirebaseAnalytics() returned null for "${event}"`);
       }
       return;
     }
@@ -131,10 +125,9 @@ export const analyticsService = {
     const isNative = Capacitor.isNativePlatform();
 
     if (isNative) {
-      const analytics = await getFirebaseAnalytics();
-      if (analytics) {
+      if (FirebaseAnalytics) {
         try {
-          await analytics.setUserId({ userId });
+          await FirebaseAnalytics.setUserId({ userId });
         } catch (e) {
           console.warn("[Analytics] setUserId failed:", e);
         }
@@ -155,10 +148,9 @@ export const analyticsService = {
     const isNative = Capacitor.isNativePlatform();
 
     if (isNative) {
-      const analytics = await getFirebaseAnalytics();
-      if (analytics) {
+      if (FirebaseAnalytics) {
         try {
-          await analytics.setUserProperty({ name, value });
+          await FirebaseAnalytics.setUserProperty({ key: name, value });
         } catch (e) {
           console.warn("[Analytics] setUserProperty failed:", e);
         }
@@ -172,3 +164,6 @@ export const analyticsService = {
     }
   },
 };
+
+
+

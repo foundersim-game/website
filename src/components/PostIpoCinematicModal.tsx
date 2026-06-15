@@ -414,7 +414,7 @@ export function PostIpoCinematicModal({ isOpen, onComplete }: PostIpoCinematicMo
                         e.stopPropagation();
                         toggleMute();
                     }}
-                    className="absolute top-6 right-6 z-50 w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-white/15 hover:text-white transition-all active:scale-90"
+                    className="absolute top-[calc(env(safe-area-inset-top,24px)+1.5rem)] right-6 z-50 w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-white/15 hover:text-white transition-all active:scale-90"
                     aria-label="Toggle cinematic music"
                 >
                     {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4 animate-pulse" />}

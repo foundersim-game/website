@@ -82,7 +82,7 @@ export function getDepartmentPower(category: string, startup: any, founder?: any
     const founderSkill = founder?.attributes?.[map.founderAttr] || 40;
 
     const avgSkill = (staffCount + (hasCXO ? 1 : 0)) > 0 
-        ? (relevantStaff.reduce((acc: number, e: any) => acc + ((e.skills as any)[map.skill] || 50), 0) + (hasCXO ? 90 : 0)) / (staffCount + (hasCXO ? 1 : 0))
+        ? (relevantStaff.reduce((acc: number, e: any) => acc + (((e.skills || {}) as any)[map.skill] || 50), 0) + (hasCXO ? 90 : 0)) / (staffCount + (hasCXO ? 1 : 0))
         : founderSkill;
 
     const teamEfficiency = Math.max(0.3, (m.team_morale || 100) / 100);

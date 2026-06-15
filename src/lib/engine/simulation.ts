@@ -85,7 +85,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 10000, label: "Enterprise Solution", unit: " value",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 15 / (p/100 + 10)),
-                churn: 0.015,
+                churn: 0.01 + (p / 10000) * 0.04,
                 loopPower: 2 
             }),
             salesRoleName: "Solutions Architect",
@@ -111,7 +111,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 50000, label: "Content License Price", unit: " deal",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 10 / (p/1000 + 5)),
-                churn: 0.01,
+                churn: 0.01 + (p / 50000) * 0.05,
                 loopPower: 0.5 
             }),
             salesRoleName: "Content Partnership",
@@ -146,7 +146,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
                 const convMult = 10 / (p/100 + 5); 
                 return {
                     conversion: Math.max(0.01, convMult),
-                    churn: 0.02, 
+                    churn: 0.01 + (p / 5000) * 0.04, 
                     loopPower: 3 
                 };
             },
@@ -175,7 +175,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 15 / (p/100 + 10)),
-                churn: 0.01,
+                churn: 0.01 + (p / 5000) * 0.04,
                 loopPower: 1 
             }),
             salesRoleName: "Partnership Manager",
@@ -199,7 +199,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
             calc: (p) => ({
                 conversion: Math.max(0.01, 15 / (p/100 + 10)),
-                churn: 0.01,
+                churn: 0.01 + (p / 5000) * 0.04,
                 loopPower: 1
             }),
             salesRoleName: "Partnership Manager",
@@ -222,7 +222,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
             calc: (p) => ({
                 conversion: Math.max(0.01, 15 / (p/100 + 10)),
-                churn: 0.01,
+                churn: 0.01 + (p / 5000) * 0.04,
                 loopPower: 1
             }),
             salesRoleName: "Partnership Manager",
@@ -246,7 +246,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 200, label: "Per Seat/mo", unit: "/ mo",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 10 / (p/10 + 5)),
-                churn: 0.02,
+                churn: 0.01 + (p / 200) * 0.04,
                 loopPower: 2 
             }),
             salesRoleName: "Institutional Sales",
@@ -270,7 +270,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 1000, label: "Enterprise SSO Package", unit: "/ mo",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 15 / (p/50 + 5)),
-                churn: 0.015, 
+                churn: 0.01 + (p / 1000) * 0.03, 
                 loopPower: 3 
             }),
             salesRoleName: "Enterprise Sales",
@@ -288,7 +288,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             calc: (p) => {
                 return { 
                     conversion: p === 0 ? 8.0 : Math.max(0.01, 10.0 / (p + 2)),
-                    churn: p > 15 ? 0.08 : 0.04,
+                    churn: 0.03 + (p / 15) * 0.12,
                     loopPower: 6
                 };
             },
@@ -299,7 +299,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 500, label: "Supplier Retainer", unit: "/ mo",
             calc: (p) => ({ 
                 conversion: Math.max(0.01, 10 / (p/25 + 5)),
-                churn: 0.04,
+                churn: 0.02 + (p / 500) * 0.06,
                 loopPower: 1 
             }),
             salesRoleName: "Merchant Success",
@@ -378,7 +378,7 @@ export function calculateFinancials(
     // Sales Department Impact on Conversion (PLG)
     const salesPower = (startup.employees || [])
         .filter(e => e.role === "sales")
-        .reduce((sum, e) => sum + (e.skills.sales * (e.performance / 100)), 0);
+        .reduce((sum, e) => sum + ((e.skills?.sales || 50) * ((e.performance || 100) / 100)), 0);
     const salesConversionBoost = 1 + (salesPower * 0.005); // 100 sales power = +50% conversion boost
 
     // Global Drivers
@@ -768,11 +768,11 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             metrics.employees = Math.max(0, metrics.employees - 1);
         } else {
             employeesLeft.push(emp);
-            const perfMult = emp.performance / 100;
+            const perfMult = (emp.performance || 100) / 100;
             totalSalaries += emp.salary / 12;
-            if (emp.role === "engineer") engineerPower += emp.skills.technical * perfMult;
-            else if (emp.role === "marketer") marketerPower += emp.skills.marketing * perfMult;
-            else if (emp.role === "sales") salesPower += emp.skills.sales * perfMult;
+            if (emp.role === "engineer") engineerPower += (emp.skills?.technical || 50) * perfMult;
+            else if (emp.role === "marketer") marketerPower += (emp.skills?.marketing || 50) * perfMult;
+            else if (emp.role === "sales") salesPower += (emp.skills?.sales || 50) * perfMult;
             else if ((emp as any).isCXO) {
                 const cxoRole = emp.role as string;
                 if (cxoRole === "cto") engineerPower += 80;
@@ -1221,12 +1221,26 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         }
     }
 
+    if (newStartup.active_lawsuits && newStartup.active_lawsuits.length > 0) {
+        const debuff = newStartup.active_lawsuits.length;
+        metrics.team_morale = Math.max(0, (metrics.team_morale || 50) - debuff);
+        metrics.brand_awareness = Math.max(0, (metrics.brand_awareness || 0) - debuff);
+    }
+
     // Step 3: Passively update CEO reputation (slow natural drift toward 75)
     const currentRep = newStartup.ceo_reputation ?? 80;
     const repDrift = currentRep > 75 ? -0.5 : currentRep < 75 ? 0.5 : 0;
     newStartup.ceo_reputation = Math.max(0, Math.min(100, currentRep + repDrift));
 
     // --- FOUNDER STATS ---
+    // Scale Stress: Running a massive company passively drains founder energy
+    const companyHeadcount = newStartup.employees?.length || 0;
+    const baseScaleStress = Math.floor(companyHeadcount / 10); // +1 burnout per 10 employees
+    const revenueStress = monthlyRevenue > 10000000 ? 10 : monthlyRevenue > 1000000 ? 5 : monthlyRevenue > 100000 ? 2 : 0;
+    const scaleStress = Math.min(30, baseScaleStress + revenueStress);
+    
+    metrics.founder_burnout = Math.min(100, (metrics.founder_burnout || 0) + scaleStress);
+
     const burnoutPenalty = metrics.founder_burnout > 60 ? (metrics.founder_burnout - 60) / 40 : 0;
     if (burnoutPenalty > 0) {
         metrics.team_morale = Math.max(0, metrics.team_morale - Math.floor(burnoutPenalty * 5));
@@ -1373,18 +1387,20 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
         return {
             ...emp,
-            performance: Math.max(10, emp.performance - skillDecay),
+            performance: Math.max(10, (emp.performance || 100) - skillDecay),
             morale: newMorale,
             skills: {
-                technical: Math.max(0, emp.skills.technical - (emp.role === "engineer" ? skillDecay : 0)),
-                marketing: Math.max(0, emp.skills.marketing - (emp.role === "marketer" ? skillDecay : 0)),
-                sales: Math.max(0, emp.skills.sales - (emp.role === "sales" ? skillDecay : 0)),
+                technical: Math.max(0, (emp.skills?.technical || (emp as any).skill || 40) - (emp.role === "engineer" ? skillDecay : 0)),
+                marketing: Math.max(0, (emp.skills?.marketing || (emp as any).skill || 40) - (emp.role === "marketer" ? skillDecay : 0)),
+                sales: Math.max(0, (emp.skills?.sales || (emp as any).skill || 40) - (emp.role === "sales" ? skillDecay : 0)),
+                legal: Math.max(0, (emp.skills?.legal || (emp as any).skill || 40) - (emp.role === "legal" ? skillDecay : 0)),
             }
         };
     });
 
     // ── SYNC TEAM MORALE ────────────────────────────────────────────────────────
-    // Global team morale naturally drifts toward the real average of your employees
+    // Global team morale absorbs event hits (like burnout, PR disasters).
+    // We must distribute this gap to the individual employees so the roster matches the company vibe.
     if (newStartup.employees && newStartup.employees.length > 0) {
         let totalMorale = newStartup.employees.reduce((acc, e) => acc + (e.morale ?? 70), 0);
         let headcount = newStartup.employees.length;
@@ -1396,9 +1412,18 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         });
 
         const avgMorale = totalMorale / headcount;
-        const diff = avgMorale - (newStartup.metrics.team_morale || 50);
-        // Pull team morale 30% of the distance toward the actual average
-        newStartup.metrics.team_morale = Math.max(0, Math.min(100, (newStartup.metrics.team_morale || 50) + (diff * 0.3)));
+        const globalMoraleGap = avgMorale - (newStartup.metrics.team_morale || 50);
+        
+        // If there is a gap (e.g. global morale took a -20 hit from burnout), apply it to employees
+        if (Math.abs(globalMoraleGap) > 1) {
+            newStartup.employees = newStartup.employees.map(e => ({
+                ...e,
+                morale: Math.max(0, Math.min(100, (e.morale ?? 70) - globalMoraleGap))
+            }));
+        }
+        
+        // Lock team_morale to the exact average (which is now correctly penalized/buffed)
+        newStartup.metrics.team_morale = Math.max(0, Math.min(100, avgMorale - globalMoraleGap));
     }
 
     // ── TRAIT REVELATION ────────────────────────────────────────────────────────────
@@ -1443,11 +1468,15 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     // -- SEASON TRANSITION (7% change) --
     if (Math.random() < 0.07) {
-        const seasons: SeasonType[] = ["Normal", "Bull Market", "Bear Market", "AI Boom", "Privacy Scare"];
-        const newSeason = seasons[Math.floor(Math.random() * seasons.length)];
-        if (newSeason !== metrics.current_season) {
-            metrics.current_season = newSeason;
-            notices.push(`🌍 Macro Shift: The industry is now in a ${newSeason}!`);
+        const currentMonth = (startup.history?.length || 0) + 1;
+        const isLocked = metrics.season_locked_until && currentMonth < metrics.season_locked_until;
+        if (!isLocked) {
+            const seasons: SeasonType[] = ["Normal", "Bull Market", "Bear Market", "AI Boom", "Privacy Scare"];
+            const newSeason = seasons[Math.floor(Math.random() * seasons.length)];
+            if (newSeason !== metrics.current_season) {
+                metrics.current_season = newSeason;
+                notices.push(`🌍 Macro Shift: The industry is now in a ${newSeason}!`);
+            }
         }
     }
 
@@ -1463,7 +1492,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     // ---- LEGAL SYSTEM (LAWSUITS) ----
     if (newStartup.active_lawsuits && newStartup.active_lawsuits.length > 0) {
-        const legalPower = startup.employees?.filter(e => e.role === "legal").reduce((sum, e) => sum + (e.skills.legal || 0) * (e.performance / 100), 0) || 0;
+        const legalPower = startup.employees?.filter(e => e.role === "legal").reduce((sum, e) => sum + (e.skills?.legal || 50) * ((e.performance || 100) / 100), 0) || 0;
         
         newStartup.active_lawsuits = newStartup.active_lawsuits.map((suit: Lawsuit) => {
             // Deduct monthly legal fees

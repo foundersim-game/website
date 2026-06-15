@@ -50,6 +50,8 @@ import { ReportBugModal } from "@/components/ReportBugModal";
 import { LiveNoticeModal } from "@/components/LiveNoticeModal";
 import { LiveBanner } from "@/components/LiveBanner";
 import { requestStoreReview, openStoreListing } from "@/lib/os/review";
+import { LeaderboardModal } from "@/components/LeaderboardModal";
+import { getLbUsername, getLbRunId, upsertCurrentVenture, finalizeVenture } from "@/lib/services/leaderboardService";
 
 // ── SUBSIDIARY SERIALIZATION HELPER ──────────────────────────────────────────
 // Subsidiary string format (v2): name::valuation::revenue::expenses::risk::dividendRatio
@@ -136,9 +138,10 @@ function TraitBadge({ trait }: { trait: EmployeeTrait }) {
     );
 }
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
+
+import { iapService, IAP_PRODUCT_IDS } from "@/lib/services/iapService";
 import { adService } from "@/lib/services/adService";
 import { analyticsService } from "@/lib/services/analyticsService";
-import { iapService } from "@/lib/services/iapService";
 import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook";
 import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
 import { NetworkStatusOverlay } from "@/components/NetworkStatusOverlay";
@@ -595,6 +598,86 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     const employees = allEmployees;
     const [isManageSubModalOpen, setIsManageSubModalOpen] = useState(false);
     const [selectedSubRaw, setSelectedSubRaw] = useState<string>("");
+
+    const handleIAP_TikTokViral = async () => {
+        const success = await iapService.purchaseProduct(IAP_PRODUCT_IDS.TIKTOK_VIRAL);
+        if (success) {
+            setStartup((s: any) => {
+                const addedUsers = s.gtm_motion === "SLG" ? 250 : 50000;
+                return {
+                    ...s,
+                    metrics: {
+                        ...s.metrics,
+                        brand_awareness: Math.min(100, (s.metrics.brand_awareness || 0) + 50),
+                        users: (s.metrics.users || 0) + addedUsers,
+                    }
+                };
+            });
+            playSound("success");
+            toast.success("Viral Hit!", { description: "You just gained massive traction and massively boosted your brand awareness!" });
+        }
+    };
+
+    const handleIAP_BribeSenator = async () => {
+        const success = await iapService.purchaseProduct(IAP_PRODUCT_IDS.BRIBE_SENATOR);
+        if (success) {
+            setStartup((s: any) => ({
+                ...s,
+                metrics: {
+                    ...s.metrics,
+                    current_season: 'Bull Market',
+                    season_locked_until: month + 12
+                }
+            }));
+            playSound("success");
+            toast.success("Bull Market Triggered!", { description: "The senator pulled some strings. The economy is booming for the next 12 months!" });
+        }
+    };
+
+    const handleIAP_PRFixer = async () => {
+        const success = await iapService.purchaseProduct(IAP_PRODUCT_IDS.PR_FIXER);
+        if (success) {
+            setStartup((s: any) => ({
+                ...s,
+                active_lawsuits: []
+            }));
+            const newFounder = { ...founder };
+            newFounder.attributes.reputation = Math.max(newFounder.attributes.reputation || 0, 50);
+            if (setFounder) setFounder(newFounder);
+            playSound("success");
+            toast.success("Crisis Averted!", { description: "The PR Fixer worked their magic. Lawsuits dropped, board is happy!" });
+        }
+    };
+
+    const handleIAP_Poach10x = async (role: "engineer" | "marketer" | "sales") => {
+        const success = await iapService.purchaseProduct(IAP_PRODUCT_IDS.POACH_10X);
+        if (success) {
+            const newEmployee = {
+                id: `emp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                name: CANDIDATE_NAMES[Math.floor(Math.random() * CANDIDATE_NAMES.length)],
+                role: role,
+                level: "Senior",
+                salary: role === "engineer" ? 15000 : 12000,
+                equity: 0,
+                performance: 100,
+                morale: 100,
+                isCXO: false,
+                traits: ["Genius", "loyalist"],
+                skills: {
+                    technical: role === "engineer" ? 100 : 50,
+                    marketing: role === "marketer" ? 100 : 50,
+                    sales: role === "sales" ? 100 : 50,
+                }
+            };
+
+            setStartup((s: any) => ({
+                ...s,
+                employees: [...(s.employees || []), newEmployee],
+            }));
+            playSound("success");
+            toast.success("10x Rockstar Hired!", { description: `${newEmployee.name} has joined the team!` });
+        }
+    };
     const [borrowSlideVal, setBorrowSlideVal] = useState<number>(0);
     const [repaySlideVal, setRepaySlideVal] = useState<number>(0);
     const { monthlyRevenue: liveRevenue } = calculateFinancials(startup, founder);
@@ -903,7 +986,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 </div>
                                 <input
                                     type="range"
-                                    min="0" max={cfg.maxPrice} step="1"
+                                    min="0" max={cfg.maxPrice} step={startup.gtm_motion === "SLG" ? 500 : 1}
                                     value={m.pricing || 0}
                                     onChange={(e) => {
                                         const newPrice = Number(e.target.value);
@@ -1136,6 +1219,29 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     );
                 })()}
 
+                {/* === VIRAL TIKTOK MOMENT (IAP) === */}
+                <div className="mb-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-2 border-pink-100 dark:border-pink-900/50 rounded-2xl p-3">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-pink-800 dark:text-pink-300 uppercase tracking-widest flex items-center gap-1.5">
+                                💎 Viral TikTok Moment
+                            </p>
+                            <p className="text-[8px] text-pink-600 dark:text-pink-400 leading-tight">
+                                Instantly gain {startup.gtm_motion === "SLG" ? "250 high-intent leads" : "50,000 active users"} and +50% Brand Awareness.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleIAP_TikTokViral}
+                        className="w-full py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                    >
+                        <span className="flex items-center gap-2">📱 Trigger Viral Hit</span>
+                        <span className="bg-pink-900/30 px-2 py-0.5 rounded-full text-[8px] border border-pink-400/30">$1.99</span>
+                    </button>
+                </div>
+
+                {/* ── Action Grid ── */}
+
                 <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 rounded-2xl px-3 py-2 mb-4 flex justify-between items-center">
                     <div className="text-center">
                         <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Growth Rate</p>
@@ -1239,6 +1345,43 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     );
                 })()}
 
+                {/* === POACH 10X ROCKSTAR (IAP) === */}
+                <div className="mb-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border-2 border-violet-100 dark:border-violet-900/50 rounded-2xl p-3">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest flex items-center gap-1.5">
+                                💎 Poach a 10x Rockstar
+                            </p>
+                            <p className="text-[8px] text-violet-600 dark:text-violet-400 leading-tight">
+                                Bypass the RNG. Instantly hire a Level 99 Senior employee.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <button
+                            onClick={() => handleIAP_Poach10x("engineer")}
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                        >
+                            <span className="flex items-center gap-2">👨‍💻 Poach Software Engineer</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                        </button>
+                        <button
+                            onClick={() => handleIAP_Poach10x("marketer")}
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                        >
+                            <span className="flex items-center gap-2">📣 Poach Growth Marketer</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                        </button>
+                        <button
+                            onClick={() => handleIAP_Poach10x("sales")}
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                        >
+                            <span className="flex items-center gap-2">🤝 Poach {activeConfig.salesRoleName}</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* === OPTION POOL MANAGEMENT === */}
                 <div className="mb-4 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
@@ -1341,7 +1484,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide mt-0.5">Team Size</p>
                                 </div>
                                 <div className="bg-pink-50 dark:bg-rose-950/20 border border-pink-100 dark:border-rose-900/50 rounded-2xl p-2.5 text-center">
-                                    <p className="text-lg font-black text-pink-700 dark:text-rose-400 leading-none">{Math.round(m.team_morale || 0)}%</p>
+                                    <p className="text-lg font-black text-pink-700 dark:text-rose-400 leading-none">{employees.length > 0 ? Math.round(employees.reduce((acc: number, e: any) => acc + (e.morale ?? 70), 0) / employees.length) : Math.round(m.team_morale || 0)}%</p>
                                     <p className="text-[8px] font-black text-pink-500 dark:text-rose-400 uppercase tracking-wide mt-0.5">Morale</p>
                                 </div>
                                 <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-2.5 text-center">
@@ -1632,6 +1775,79 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             >
                                 <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">⭐</span> Exec Search</p>
                                 <p className="text-[9px] font-bold text-fuchsia-200 uppercase tracking-wider">Watch Ad · 0 Energy</p>
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2 mb-4">
+                            <button
+                                onClick={() => {
+                                    if (isProcessing) return;
+                                    if (focusHoursUsed + 50 > maxHours) {
+                                        toast.error("Not enough Focus Energy!");
+                                        return;
+                                    }
+                                    const roleDef = ROLE_DEFS.find(r => r.role === hrSearchRole)!;
+                                    const baseSeed = Date.now();
+                                    const newEmployees: any[] = [];
+
+                                    for (let i = 0; i < 5; i++) {
+                                        const tier = SKILL_TIERS.find(t => t.label === "Mid")!;
+                                        const nameIdx = (baseSeed + i) % CANDIDATE_NAMES.length;
+                                        const skillVariance = Math.floor(Math.random() * 20) - 10;
+                                        const skill = Math.max(20, Math.min(99, tier.skillBase + skillVariance));
+                                        const salary = tier.salaryBase + Math.floor(Math.random() * 500);
+
+                                        const basePct = tier.label === "Lead" ? 0.8 : tier.label === "Senior" ? 0.4 : tier.label === "Mid" ? 0.2 : 0.1;
+                                        const vScale = Math.sqrt(Math.max(1, startup.valuation / 1000000));
+                                        let expectedPct = basePct / vScale;
+                                        const maxValue = tier.label === "Lead" ? 600000 : tier.label === "Senior" ? 350000 : tier.label === "Mid" ? 150000 : 75000;
+                                        if ((expectedPct / 100) * startup.valuation > maxValue) expectedPct = (maxValue / startup.valuation) * 100;
+
+                                        newEmployees.push({
+                                            id: `emp-mass-${Date.now()}-${i}`,
+                                            name: CANDIDATE_NAMES[nameIdx] + " " + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + ".",
+                                            role: hrSearchRole,
+                                            level: "Mid",
+                                            salary: salary * 12,
+                                            equity: parseFloat(Math.max(0.001, expectedPct).toFixed(3)),
+                                            skills: {
+                                                technical: hrSearchRole === "engineer" ? skill : 40,
+                                                marketing: hrSearchRole === "marketer" ? skill : 40,
+                                                sales: hrSearchRole === "sales" ? skill : 40,
+                                                legal: hrSearchRole === "legal" ? skill : 40,
+                                            },
+                                            performance: 100,
+                                            experience: 4,
+                                            morale: 80,
+                                            joined_at: month,
+                                            traits: []
+                                        });
+                                    }
+
+                                    setStartup((s: any) => {
+                                        const ns = {
+                                            ...s,
+                                            employees: [...(s.employees || []), ...newEmployees],
+                                            metrics: {
+                                                ...s.metrics,
+                                                employees: (s.metrics.employees || 0) + 5,
+                                                option_pool: Math.max(0, (s.metrics.option_pool || 0) - (0.2 * 5))
+                                            }
+                                        };
+                                        if (hrSearchRole === "engineer") ns.metrics.engineers = (ns.metrics.engineers || 0) + 5;
+                                        else if (hrSearchRole === "marketer") ns.metrics.marketers = (ns.metrics.marketers || 0) + 5;
+                                        else if (hrSearchRole === "sales") ns.metrics.sales = (ns.metrics.sales || 0) + 5;
+                                        return ns;
+                                    });
+
+                                    setFocusHoursUsed(focusHoursUsed + 50);
+                                    addTimelineEvent(`🚀 Mass recruited 5 Mid-Level ${roleDef.label}s`);
+                                    toast.success(`Hired 5 Mid-Level ${roleDef.label}s!`);
+                                }}
+                                className="flex-1 bg-amber-500 hover:bg-amber-600 border-2 border-amber-500 rounded-xl p-3 text-center transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
+                            >
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">🚀</span> Mass Recruit (5x)</p>
+                                <p className="text-[9px] font-bold text-amber-100 uppercase tracking-wider">Mid-Level · 50 Energy</p>
                             </button>
                         </div>
 
@@ -2126,8 +2342,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={!isOnline && !isPremium}
-                                        className={`h-6 text-[8px] font-black uppercase tracking-widest ${(!isOnline && !isPremium) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
+                                        disabled={!isOnline}
+                                        className={`h-6 text-[8px] font-black uppercase tracking-widest ${(!isOnline) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
                                         onClick={() => {
                                             if (isLimited) {
                                                 const nextAvail = Math.min(...validGrants) + 60 * 60 * 1000;
@@ -2423,11 +2639,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     const IPO_STAGE_LABELS = ["", "📝 Pre-IPO Planning", "📄 S-1 Filing & Roadshow", "💰 Pricing & Lock-Up", "🏛️ IPO Day!"];
 
                     // Stage 3: Pricing UI
+                    const currentVal = startup.valuation || 0;
                     const pricingTargets = [
-                        { label: "Conservative (5× ARR)", mult: 5, risk: "Low" },
-                        { label: "Market Rate (8× ARR)", mult: 8, risk: "Medium" },
-                        { label: "Aggressive (12× ARR)", mult: 12, risk: "High" },
-                        { label: "Sovereign (18× ARR)", mult: 18, risk: "Very High" },
+                        { label: "Conservative (0.8× Val)", mult: 0.8, risk: "Low" },
+                        { label: "Market Rate (1.0× Val)", mult: 1.0, risk: "Medium" },
+                        { label: "Aggressive (1.5× Val)", mult: 1.5, risk: "High" },
+                        { label: "Sovereign (2.0× Val)", mult: 2.0, risk: "Very High" },
                     ];
 
                     return (
@@ -2446,11 +2663,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             {ipoStage === 3 && (
                                 <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
                                     <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">💰 Set Your IPO Price</p>
-                                    <p className="text-[8px] text-amber-600 dark:text-amber-500 mb-2">Based on your ARR of {formatMoney(liveArr)}. Market demand depends on your PMF, growth & brand.</p>
+                                    <p className="text-[8px] text-amber-600 dark:text-amber-500 mb-2">Based on your private valuation of {formatMoney(currentVal)}. Market demand depends on your PMF & growth.</p>
                                     <div className="space-y-1.5">
                                         {pricingTargets.map(pt => {
-                                            const targetVal = liveArr * pt.mult;
-                                            const fairVal = liveArr * 8 * ((m.pmf_score ?? 0) > 80 ? 1.3 : 1.0) * ((m.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
+                                            const targetVal = currentVal * pt.mult;
+                                            const fairVal = currentVal * ((m.pmf_score ?? 0) > 80 ? 1.3 : 1.0) * ((m.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
                                             const ratio = fairVal / targetVal;
                                             const demandLabel = ratio >= 1.5 ? "🚀 Oversubscribed" : ratio >= 1.2 ? "✅ Full demand" : ratio >= 0.8 ? "⚠️ Partial demand" : "📉 Undersubscribed";
                                             const isSelected = (startup as any).ipo_price_mult === pt.mult;
@@ -2686,7 +2903,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         explanation="How many people know your company. Driven by marketing efforts and organic word-of-mouth."
                         isExpanded={expandedMetric === "brand"} onToggle={() => toggle("brand")}
                     />
-                    <StatRow label="Team Morale" value={`${Math.round(m.team_morale || 0)}%`} color={m.team_morale < 50 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}
+                    <StatRow label="Team Morale" value={`${employees.length > 0 ? Math.round(employees.reduce((acc: number, e: any) => acc + (e.morale ?? 70), 0) / employees.length) : Math.round(m.team_morale || 0)}%`} color={m.team_morale < 50 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}
                         explanation="Happy employees are more productive. Low morale reduces Department output."
                         isExpanded={expandedMetric === "morale"} onToggle={() => toggle("morale")}
                     />
@@ -2775,8 +2992,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline && !isPremium) && "grayscale opacity-50")}
-                                    disabled={isRefillLimited || (!isOnline && !isPremium)}
+                                    className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline) && "grayscale opacity-50")}
+                                    disabled={isRefillLimited || (!isOnline)}
                                     onClick={() => {
                                         if (isRefillLimited) {
                                             const nextAvail = Math.min(...validRefills) + 60 * 60 * 1000;
@@ -4081,6 +4298,27 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             <div className="flex flex-col gap-4 animate-in fade-in-50 duration-300">
                 {sheetHeader("🏛️", "Lobbying & Capture", "Washington Influence Terminal")}
 
+                {/* === BRIBE THE SENATOR (IAP) === */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-3 mb-2">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
+                                💎 Bribe a Senator
+                            </p>
+                            <p className="text-[8px] text-emerald-600 dark:text-emerald-400 leading-tight">
+                                Call in a massive favor. Forces a global Bull Market for 12 months.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleIAP_BribeSenator}
+                        className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                    >
+                        <span className="flex items-center gap-2">📈 Force Bull Market</span>
+                        <span className="bg-emerald-900/30 px-2 py-0.5 rounded-full text-[8px] border border-emerald-400/30">$4.99</span>
+                    </button>
+                </div>
+
                 {/* Regulatory Progress Gauge */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
                     <div className="flex justify-between items-end mb-2">
@@ -4246,6 +4484,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             newStartup.public_company.eps_last_quarter = ((newStartup.metrics.net_profit || 0) * 3) / newStartup.public_company.shares_outstanding;
 
             setStartup(newStartup);
+
+            if (setMarketStocks) {
+                const updatedStocks = marketStocks?.map((s: MarketStock) => {
+                    if (s.symbol === newStartup.symbol) {
+                        return {
+                            ...s,
+                            sharesOutstanding: newStartup.public_company!.shares_outstanding,
+                            currentPrice: newStartup.public_company!.share_price
+                        };
+                    }
+                    return s;
+                }) || [];
+                setMarketStocks(updatedStocks);
+            }
 
             const label = isTender ? "Dutch Auction Tender Offer" : "Open Market Repurchase";
             addTimelineEvent(`💸 ${label}: Executed ${formatMoney(amount)} buyback, retiring ${sharesRetired.toLocaleString("en-US")} shares. Share price popped +${((pricePopFactor - 1) * 100).toFixed(3)}%.`);
@@ -4917,6 +5169,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         };
 
         const handleProBonoCounsel = (suitId: string) => {
+            const suit = suits.find((s: Lawsuit) => s.id === suitId);
+            if (!suit) return;
+            if ((suit.proBonoUses || 0) >= 3) {
+                toast.error("Pro Bono Limit Reached", { description: "You can only use Pro Bono counsel 3 times per lawsuit." });
+                return;
+            }
+
             adService.showRewardedAd(() => {
                 setStartup((s: Startup) => {
                     if (!s.active_lawsuits) return s;
@@ -4926,6 +5185,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             if (l.id === suitId) {
                                 return {
                                     ...l,
+                                    proBonoUses: (l.proBonoUses || 0) + 1,
                                     demand_amount: Math.floor(l.demand_amount * 0.8),
                                     settlement_offer: l.settlement_offer ? Math.floor(l.settlement_offer * 0.8) : undefined,
                                     win_probability: Math.min(1.0, l.win_probability + 0.15)
@@ -4944,6 +5204,27 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1">
                     <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest">Legal & Compliance</h3>
                     <p className="text-[10px] text-slate-500">Manage ongoing litigation and regulatory risk.</p>
+                </div>
+
+                {/* === THE PR FIXER (IAP) === */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-100 dark:border-amber-900/50 rounded-2xl p-3">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
+                                💎 The PR Fixer
+                            </p>
+                            <p className="text-[8px] text-amber-600 dark:text-amber-400 leading-tight">
+                                Instantly settle all lawsuits, reset Board Anger, and restore Reputation.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleIAP_PRFixer}
+                        className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                    >
+                        <span className="flex items-center gap-2">🛑 Make Problems Disappear</span>
+                        <span className="bg-amber-900/30 px-2 py-0.5 rounded-full text-[8px] border border-amber-400/30">$0.99</span>
+                    </button>
                 </div>
 
                 {suits.length === 0 ? (
@@ -4992,9 +5273,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     </div>
                                     <button
                                         onClick={() => handleProBonoCounsel(suit.id)}
-                                        className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-1.5"
+                                        disabled={(suit.proBonoUses || 0) >= 3}
+                                        className={`w-full py-2 border rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${(suit.proBonoUses || 0) >= 3 ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed" : "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"}`}
                                     >
-                                        <span className="text-xs">💼</span> Pro Bono Counsel (Ad)
+                                        <span className="text-xs">💼</span> {(suit.proBonoUses || 0) >= 3 ? "Pro Bono Exhausted" : `Pro Bono Counsel (${3 - (suit.proBonoUses || 0)} Left)`}
                                     </button>
                                 </div>
                             </div>
@@ -5626,10 +5908,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             toast.success("Subsidiary Spun Off", { description: `"${name}" is now an active subsidiary.` });
         };
 
-        const handleInjectCapital = (rawName: string) => {
-            const cost = 10000000;
+        const handleInjectCapital = (rawName: string, amount: number = 10000000) => {
+            const cost = amount;
             if (corporateCash < cost) {
-                toast.error("Insufficient Treasury Cash", { description: "Injecting capital requires $10,000,000 corporate cash." });
+                toast.error("Insufficient Treasury Cash", { description: `Injecting capital requires ${formatMoney(cost)} corporate cash.` });
                 return;
             }
 
@@ -5642,20 +5924,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             let note = "";
 
             if (parsed.netIncome < 0) {
-                // Restructured from Burning to Profitable — cut expenses by 40%
+                // Restructured from Burning to Profitable — cut expenses by 40% plus linear revenue scaling
                 updatedExpenses = Math.floor(parsed.expenses * 0.6);
+                updatedRevenue += Math.floor(cost * 0.005);
                 const newNet = updatedRevenue - updatedExpenses;
-                note = `Restructured ${parsed.name} operational efficiencies! Expenses cut by 40%. Now contributing +${formatMoney(newNet)}/mo net income.`;
+                note = `Restructured ${parsed.name} operational efficiencies with ${formatMoney(cost)}! Now contributing +${formatMoney(newNet)}/mo net income.`;
             } else {
                 // Already profitable — capital injection boosts revenue
                 updatedRevenue += Math.floor(cost * 0.012);
-                note = `Injected $10M capital into ${parsed.name}. Monthly revenue expanded by +${formatMoney(Math.floor(cost * 0.012))}/mo!`;
+                note = `Injected ${formatMoney(cost)} capital into ${parsed.name}. Monthly revenue expanded by +${formatMoney(Math.floor(cost * 0.012))}/mo!`;
             }
 
             const newSubStr = serializeSubsidiary({ ...parsed, valuation: parsed.valuation + cost, revenue: updatedRevenue, expenses: updatedExpenses });
             newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
 
-            newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + 6);
+            const awarenessBoost = Math.floor(6 * (cost / 10000000));
+            newStartup.metrics.brand_awareness = Math.min(100, (newStartup.metrics.brand_awareness || 0) + awarenessBoost);
             setStartup(newStartup);
 
             addTimelineEvent(`🏢 Capital Injection: ${note}`, month);
@@ -6020,13 +6304,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+    const [isBannerActive, setIsBannerActive] = useState(false);
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
 
     // 1. ALL STATES FIRST
     const [isPremium, setIsPremium] = useState<boolean>(() => {
         if (typeof window !== "undefined") {
-            return localStorage.getItem("founder_sim_premium") === "true";
+            return localStorage.getItem("founder_sim_premium") === "true" || localStorage.getItem("founder_sim_titan") === "true";
         }
         return false;
     });
@@ -6206,6 +6491,7 @@ export default function Dashboard() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [endgameStory, setEndgameStory] = useState<string | null>(null);
     const [isEndgameOpen, setIsEndgameOpen] = useState(false);
+    const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
     const [isStockMarketOpen, setIsStockMarketOpen] = useState(false);
     const [isFocusBreakdownOpen, setIsFocusBreakdownOpen] = useState(false);
     const [dismissedEndgame, setDismissedEndgame] = useState(false);
@@ -6381,6 +6667,39 @@ export default function Dashboard() {
                             setIsPremium(true);
                         }
                         if (owned.includes("founder_sim_caffeine")) next.iap_caffeine = true;
+                        if (owned.includes("founder_sim_god_mode")) {
+                            next.iap_god_mode = true;
+                            if (setFounder) {
+                                setFounder((prevF: any) => {
+                                    const nf = { ...prevF };
+                                    if (!nf.attributes) nf.attributes = {};
+                                    nf.attributes.networking = 99;
+                                    nf.attributes.marketing_skill = 99;
+                                    nf.attributes.technical_skill = 99;
+                                    nf.attributes.leadership = 99;
+                                    nf.attributes.intelligence = 99;
+                                    nf.attributes.stress_tolerance = 99;
+                                    nf.attributes.risk_appetite = 99;
+                                    nf.attributes.reputation = 99;
+                                    nf.attributes.sales_skill = 99;
+                                    if (!nf.unlocked_skill_nodes || nf.unlocked_skill_nodes.length < 15) {
+                                        nf.unlocked_skill_nodes = [
+                                            "system_design", "distributed_systems", "code_quality", "security_first",
+                                            "growth_hacking", "viral_loops", "brand_strategy", "pr_mastery",
+                                            "people_management", "culture_builder", "executive_presence", "board_mastery",
+                                            "term_sheet_reader", "valuation_mastery", "lp_relationships"
+                                        ];
+                                    }
+                                    return nf;
+                                });
+                            }
+                        }
+                        if (owned.includes("founder_sim_sv_darling")) {
+                            if (!prev.iap_sv_darling) {
+                                next.valuation = Math.floor((next.valuation || 500000) * 1.5);
+                            }
+                            next.iap_sv_darling = true;
+                        }
                         if (owned.includes("founder_sim_titan")) {
                             if (!prev.iap_titan && next.metrics) {
                                 next.metrics.cash += 100_000_000;
@@ -6431,6 +6750,7 @@ export default function Dashboard() {
     }, [startup.employees, (startup as any).cxoTeam]);
 
     const getDisplayRoleName = (role: string, plural: boolean = false) => {
+        if (!role) return "";
         if (role !== "sales") return plural ? role + "s" : role;
         const configRef = INDUSTRY_PRICING_CONFIG[startup.industry] || INDUSTRY_PRICING_CONFIG["SaaS Platform"];
         const salesName = (startup.gtm_motion === "PLG" ? configRef.PLG : configRef.SLG).salesRoleName;
@@ -6555,7 +6875,8 @@ export default function Dashboard() {
             try {
                 adService.setPremium(isPremium);
                 await adService.initialize();
-                // adService.initialize() now calls showBanner() and preLoadAll() internally if not premium
+                // adService.initialize() calls showBanner() and preloads Interstitial internally if not premium.
+                // Rewarded ads are intentionally NOT preloaded here to protect AdMob Show Rate.
             } catch (e) {
                 console.error("AdMob initialization failed", e);
             }
@@ -7780,16 +8101,119 @@ export default function Dashboard() {
             metrics: { ...s.metrics, cash: s.metrics.cash - cost },
             employees: s.employees?.map(e => e.id === id ? {
                 ...e,
-                performance: Math.min(100, e.performance + 10),
+                performance: Math.min(100, (e.performance || 100) + 10),
                 morale: Math.min(100, (e.morale ?? 70) + 5),
                 skills: {
-                    technical: e.role === "engineer" ? Math.min(100, e.skills.technical + 5) : e.skills.technical,
-                    marketing: e.role === "marketer" ? Math.min(100, e.skills.marketing + 5) : e.skills.marketing,
-                    sales: e.role === "sales" ? Math.min(100, e.skills.sales + 5) : e.skills.sales,
+                    technical: e.role === "engineer" ? Math.min(100, (e.skills?.technical || (e as any).skill || 40) + 5) : (e.skills?.technical || (e as any).skill || 40),
+                    marketing: e.role === "marketer" ? Math.min(100, (e.skills?.marketing || (e as any).skill || 40) + 5) : (e.skills?.marketing || (e as any).skill || 40),
+                    sales: e.role === "sales" ? Math.min(100, (e.skills?.sales || (e as any).skill || 40) + 5) : (e.skills?.sales || (e as any).skill || 40),
+                    legal: e.role === "legal" ? Math.min(100, (e.skills?.legal || (e as any).skill || 40) + 5) : (e.skills?.legal || (e as any).skill || 40),
                 }
             } : e),
         }));
         toast.success("Training complete!", { description: "-$2,000" });
+    };
+
+
+
+    const handleIAP_TrainingAgency = async () => {
+        const product_id = startup.employees.length <= 20
+            ? IAP_PRODUCT_IDS.TRAIN_BOUTIQUE
+            : startup.employees.length <= 100
+                ? IAP_PRODUCT_IDS.TRAIN_CORPORATE
+                : IAP_PRODUCT_IDS.TRAIN_GLOBAL;
+
+        const success = await iapService.purchaseProduct(product_id);
+        if (success) {
+            setStartup(s => ({
+                ...s,
+                employees: s.employees?.map(e => ({
+                    ...e,
+                    performance: Math.min(100, (e.performance || 100) + 25),
+                    morale: Math.min(100, (e.morale ?? 70) + 25),
+                    skills: {
+                        technical: e.role === "engineer" ? Math.min(100, (e.skills?.technical || (e as any).skill || 40) + 15) : (e.skills?.technical || (e as any).skill || 40),
+                        marketing: e.role === "marketer" ? Math.min(100, (e.skills?.marketing || (e as any).skill || 40) + 15) : (e.skills?.marketing || (e as any).skill || 40),
+                        sales: e.role === "sales" ? Math.min(100, (e.skills?.sales || (e as any).skill || 40) + 15) : (e.skills?.sales || (e as any).skill || 40),
+                        legal: e.role === "legal" ? Math.min(100, (e.skills?.legal || (e as any).skill || 40) + 15) : (e.skills?.legal || (e as any).skill || 40),
+                    }
+                }))
+            }));
+            playSound("success");
+            toast.success("Training Complete!", { description: "The agency did incredible work. The team is hyper-productive!" });
+        }
+    };
+
+    const handleIAP_BaliRetreat = async () => {
+        const success = await iapService.purchaseProduct(IAP_PRODUCT_IDS.BALI_RETREAT);
+        if (success) {
+            setStartup(s => ({
+                ...s,
+                metrics: {
+                    ...s.metrics,
+                    team_morale: 100
+                },
+                employees: s.employees?.map(e => ({
+                    ...e,
+                    morale: 100
+                }))
+            }));
+            playSound("success");
+            toast.success("Retreat Complete!", { description: "The team is fully recharged and ready to build!" });
+        }
+    };
+
+
+
+    const handleMassTrainAd = () => {
+        const cooldownKey = `ad_cooldown_until_mass_train`;
+        const countKey = `ad_watch_count_mass_train`;
+
+        const cooldownStr = localStorage.getItem(cooldownKey);
+        if (cooldownStr) {
+            const cooldownUntil = parseInt(cooldownStr);
+            if (Date.now() < cooldownUntil) {
+                const minutesLeft = Math.ceil((cooldownUntil - Date.now()) / 60000);
+                toast.error(`Mass Train is cooling down`, { description: `Please wait ${minutesLeft} minutes before training again.` });
+                return;
+            } else {
+                localStorage.removeItem(cooldownKey);
+                localStorage.setItem(countKey, '0');
+            }
+        }
+
+        const countStr = localStorage.getItem(countKey);
+        const count = countStr ? parseInt(countStr) : 0;
+
+        adService.showRewardedAd(
+            () => {
+                const newCount = count + 1;
+                localStorage.setItem(countKey, newCount.toString());
+
+                if (newCount >= 2) {
+                    const cooldownUntil = Date.now() + 60 * 60 * 1000;
+                    localStorage.setItem(cooldownKey, cooldownUntil.toString());
+                }
+
+                setStartup(s => ({
+                    ...s,
+                    employees: s.employees?.map(e => ({
+                        ...e,
+                        performance: Math.min(100, (e.performance || 100) + 5),
+                        morale: Math.min(100, (e.morale ?? 70) + 5),
+                        skills: {
+                            technical: e.role === "engineer" ? Math.min(100, (e.skills?.technical || (e as any).skill || 40) + 3) : (e.skills?.technical || (e as any).skill || 40),
+                            marketing: e.role === "marketer" ? Math.min(100, (e.skills?.marketing || (e as any).skill || 40) + 3) : (e.skills?.marketing || (e as any).skill || 40),
+                            sales: e.role === "sales" ? Math.min(100, (e.skills?.sales || (e as any).skill || 40) + 3) : (e.skills?.sales || (e as any).skill || 40),
+                            legal: e.role === "legal" ? Math.min(100, (e.skills?.legal || (e as any).skill || 40) + 3) : (e.skills?.legal || (e as any).skill || 40),
+                        }
+                    }))
+                }));
+                playSound("success");
+                toast.success("Mass Training Complete!", { description: "The entire team feels slightly more skilled and motivated." });
+            },
+            'default'
+        );
     };
 
     const handlePromoteEmployee = (id: string) => {
@@ -8453,10 +8877,9 @@ export default function Dashboard() {
 
                 if (newStartup.ipo_stage === 4) {
                     // Resolve IPO subscription pricing
-                    const priceMult = (newStartup as any).ipo_price_mult ?? 8;
-                    const liveArr = (newStartup.metrics.revenue || 0) * 12;
-                    const targetVal = liveArr * priceMult;
-                    const fairVal = liveArr * 8
+                    const priceMult = (newStartup as any).ipo_price_mult ?? 1.0;
+                    const targetVal = newStartup.valuation * priceMult;
+                    const fairVal = newStartup.valuation
                         * ((newStartup.metrics.pmf_score ?? 0) > 80 ? 1.3 : 1.0)
                         * ((newStartup.metrics.growth_rate ?? 0) > 15 ? 1.2 : 1.0);
                     const ratio = fairVal / Math.max(1, targetVal);
@@ -8633,6 +9056,17 @@ export default function Dashboard() {
                 const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: Founder burned out completely. +${pts} XP earned.` }];
                 setEventsTimeline(finalTimeline);
                 toast("Game Over — Burnout", { description: `You worked yourself to the ground. Earned ${pts} XP.` });
+                // Leaderboard: finalize this venture
+                (() => {
+                    const lbUser = getLbUsername();
+                    if (!lbUser) return;
+                    const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+                    const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
+                    const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
+                    const assetVal = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
+                    const totalNW = (founder.personal_wealth || 0) + assetVal + (newStartup.valuation * founderEquityPct / 100);
+                    finalizeVenture(lbUser, { runId: getLbRunId(), startupName: newStartup.name || "Unknown", industry: newStartup.industry || "", outcome: "burnout", totalNetWorth: Math.round(totalNW), peakValuation: newStartup.peak_valuation ?? newStartup.valuation, peakUsers: newStartup.peak_users ?? newStartup.metrics.users, monthsSurvived: nextMonth, legacyScore: lbLeg.score, tier: lbLeg.tier.name, isActive: false }).catch(() => { });
+                })();
                 setIsEndgameOpen(true); setIsProcessing(false);
                 return;
             }
@@ -8646,6 +9080,17 @@ export default function Dashboard() {
                 const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: ${endgame.toUpperCase()}! +${pts} XP earned.` }];
                 setEventsTimeline(finalTimeline);
                 toast("Game Over - " + endgame.toUpperCase(), { description: `Generating your founder story... Earned ${pts} XP.` });
+                // Leaderboard: finalize this venture
+                (() => {
+                    const lbUser = getLbUsername();
+                    if (!lbUser) return;
+                    const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+                    const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
+                    const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
+                    const assetVal = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
+                    const totalNW = (founder.personal_wealth || 0) + assetVal + (newStartup.valuation * founderEquityPct / 100);
+                    finalizeVenture(lbUser, { runId: getLbRunId(), startupName: newStartup.name || "Unknown", industry: newStartup.industry || "", outcome: newStartup.outcome ?? endgame, totalNetWorth: Math.round(totalNW), peakValuation: newStartup.peak_valuation ?? newStartup.valuation, peakUsers: newStartup.peak_users ?? newStartup.metrics.users, monthsSurvived: nextMonth, legacyScore: lbLeg.score, tier: lbLeg.tier.name, isActive: false }).catch(() => { });
+                })();
                 setIsEndgameOpen(true); setIsProcessing(false);
                 return;
             }
@@ -8671,7 +9116,7 @@ export default function Dashboard() {
             if (isOnline && process.env.NEXT_PUBLIC_OPENAI_API_KEY && process.env.NEXT_PUBLIC_OPENAI_API_KEY !== "dummy") {
                 try {
                     const promises: Promise<any>[] = [];
-                    
+
                     if (shouldTriggerEvent) promises.push(generateAIEvent(newStartup, founder, seenEventIds));
                     else promises.push(Promise.resolve(null));
 
@@ -8790,6 +9235,9 @@ export default function Dashboard() {
                 if (s.impact.reputation) nextFounder.attributes.reputation = Math.min(100, Math.max(0, (nextFounder.attributes.reputation || 0) + s.impact.reputation));
             });
 
+            // Sync reputation to startup object for events/market logic
+            newStartup.ceo_reputation = nextFounder.attributes.reputation;
+
             if (totalLifestyleCost > nextFounder.personal_wealth) {
                 addTimelineEvent(`⚠️ Lifestyle cut! Insufficient funds to maintain active services.`, nextMonth);
                 nextFounder.activeToggles = []; // Cut all if can't afford
@@ -8881,6 +9329,30 @@ export default function Dashboard() {
             }
 
             setMonth(nextMonth);
+
+            // Leaderboard: upsert live venture snapshot (non-blocking)
+            (() => {
+                const lbUser = getLbUsername();
+                if (!lbUser) return;
+                const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
+                const assetValue = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
+                const totalNetWorth = (founder.personal_wealth || 0) + assetValue + (newStartup.valuation * founderEquityPct / 100);
+                const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+                const lbLegacy = computeLegacyScore(founder, newStartup, nextMonth);
+                upsertCurrentVenture(lbUser, {
+                    runId: getLbRunId(),
+                    startupName: newStartup.name || "Unknown",
+                    industry: newStartup.industry || "",
+                    outcome: "active",
+                    totalNetWorth: Math.round(totalNetWorth),
+                    peakValuation: Math.max(newStartup.peak_valuation ?? 0, newStartup.valuation),
+                    peakUsers: Math.max(newStartup.peak_users ?? 0, newStartup.metrics.users),
+                    monthsSurvived: nextMonth,
+                    legacyScore: lbLegacy.score,
+                    tier: lbLegacy.tier.name,
+                    isActive: true,
+                }).catch(() => { });
+            })();
 
             // M&A Offer Generation Check
             const newOffer = generateAcquisitionOffer(newStartup, founder);
@@ -8977,11 +9449,30 @@ export default function Dashboard() {
     const maxHours = calcFocusHours(m.founder_burnout || 0, startup.employees || [], (startup as any).hasCoFounder, startup.iap_caffeine);
     const energyPct = Math.min(100, (focusHoursUsed / maxHours) * 100);
 
+    let stageIndex = 0;
+    const val = startup.valuation || 0;
+    if (val >= 1000000000000) stageIndex = 5;
+    else if (val >= 1000000000) stageIndex = 4;
+    else if (val >= 100000000) stageIndex = 3;
+    else if (val >= 15000000) stageIndex = 2;
+    else if (val >= 2000000) stageIndex = 1;
+    else stageIndex = 0;
+
+    const STAGE_DATA = [
+        { icon: "🏠", label: "Garage", next: "Traction", desc: "You are building the foundation in your garage. Validate your idea, build the MVP, and gather initial organic users to prove demand.", pct: "15%" },
+        { icon: "🚀", label: "Traction", next: "PMF", desc: "You've got initial validation. Now test channels, expand user onboarding streams, and prepare to scale server operations.", pct: "30%" },
+        { icon: "📈", label: "PMF", next: "Scaling", desc: "Institutional backing setup. Accelerate growth rates, expand active marketing departments, and scale structural hires.", pct: "50%" },
+        { icon: "🏢", label: "Scaling", next: "Empire", desc: "Scale aggressively, optimize unit economics, and prepare for market domination or exit opportunities.", pct: "75%" },
+        { icon: "🦄", label: "Empire", next: "Legend", desc: "You have reached unicorn status and built an empire. Continue dominating the market.", pct: "95%" },
+        { icon: "👑", label: "Legend", next: null, desc: "A Trillion dollar titan. You aren't just playing the game anymore, you are the game. Establish a lasting legacy.", pct: "100%" }
+    ];
+    const currentStage = STAGE_DATA[stageIndex];
+
     return (
         <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden pt-0 sm:pt-0 bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
 
             {/* LIVE ALERT BANNER */}
-            <LiveBanner />
+            <LiveBanner onActiveChange={setIsBannerActive} />
             {/* GLOBAL BLOCKING OVERLAY (DURING SIMULATION) */}
             <AnimatePresence>
                 {isProcessing && (
@@ -9032,7 +9523,7 @@ export default function Dashboard() {
             {/* TOP DASHBOARD SECTION (Elevated during Steps 1+) */}
             <div className="shrink-0 flex flex-col" style={{ position: "relative", zIndex: storyState.tutorialStep >= 1 ? 50 : 1 }}>
                 {/* HEADER */}
-                <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
+                <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shadow-sm" style={{ paddingBottom: '10px', paddingTop: isNative && !isBannerActive ? 'calc(env(safe-area-inset-top, 0px) + 8px)' : '8px' }}>
 
 
 
@@ -9040,83 +9531,27 @@ export default function Dashboard() {
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100" style={{ background: `${founderMeta.brandColor}15` }}>
                             {founderMeta.logo}
                         </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{startup.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Month {month} · {startup.industry} {isPremium && <span className="text-indigo-600 ml-1">🚀 PRESTIGE</span>}</p>
+                        <div className="flex flex-col gap-0.5">
+                            <p className="text-sm font-black text-slate-900 dark:text-white leading-none flex items-center gap-1">{startup.name}</p>
+                            <p className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {month}</p>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">{startup.industry}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
 
-                        {(() => {
-                            const hourAgo = currentTime - 60 * 60 * 1000;
-                            const validConsults = (samConsults || []).filter(t => t > hourAgo);
-                            const isLimited = validConsults.length >= 2;
 
-                            return (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={!isOnline}
-                                    className={`h-7 text-[9px] font-black uppercase tracking-widest rounded-full flex items-center gap-1 shadow-sm px-2 pr-2.5 ${!isOnline ? 'bg-slate-50 border-slate-200 text-slate-400 grayscale' : 'bg-violet-600 border-violet-700 text-white hover:bg-violet-700 dark:bg-violet-500 dark:border-violet-400'}`}
-                                    onClick={() => {
-                                        const now = Date.now();
-                                        const hourAgo = now - 60 * 60 * 1000;
-                                        const validConsults = samConsults.filter(t => t > hourAgo);
 
-                                        if (validConsults.length >= 2) {
-                                            const nextAvail = Math.min(...validConsults) + 60 * 60 * 1000;
-                                            setConfirmDialog({
-                                                open: true,
-                                                title: "🧠 Sam is Processing...",
-                                                description: `Even a super-mentor needs a break! Sam is synthesizing market data. Check back in ${formatCooldown(nextAvail, currentTime)}.`,
-                                                confirmText: "LET HIM COOK",
-                                                onConfirm: () => { }
-                                            });
-                                            return;
-                                        }
-
-                                        const consultAction = () => {
-                                            setSamConsults([...validConsults, now]);
-                                            setStoryState(prev => ({ ...prev, hasConsultedSam: true }));
-                                            const advice = getConsultationAdvice(startup);
-                                            const dialog = getSamConsultDialog({
-                                                title: advice.title,
-                                                message: advice.message,
-                                                buttonText: advice.buttonText || "THANKS, SAM 🏄",
-                                            }, storyState.hasConsultedSam);
-                                            setCharacterDialog(dialog);
-                                            setIsCharacterDialogOpen(true);
-                                        };
-
-                                        if (isPremium) {
-                                            consultAction();
-                                        } else {
-                                            adService.showRewardedAd(consultAction, 'mentor');
-                                        }
-                                    }}
-                                >
-                                    <div className="w-4 h-4 rounded-full overflow-hidden border border-white/20 shrink-0">
-                                        <img src="/characters/sam_mentor.png" alt="Sam" className="w-full h-full object-cover scale-125" />
-                                    </div>
-                                    {isLimited ? (
-                                        <span className="text-white font-bold ml-0.5">{formatCooldown(validConsults[0] + 60 * 60 * 1000, currentTime)}</span>
-                                    ) : (
-                                        <span className="ml-0.5">SAM</span>
-                                    )}
-                                </Button>
-                            );
-                        })()}
-
-                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-2.5 py-1 rounded-full shrink-0">{formatMoney(m.cash)}</div>
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1"><span className="text-[10px]">💰</span> {formatMoney(m.cash)}</div>
                         <button
                             onClick={() => setIsStoreOpen(true)}
-                            className="h-8 w-8 rounded-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800 flex items-center justify-center transition-colors shadow-sm shrink-0"
+                            className="h-9 px-3 rounded-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 transition-colors shadow-sm shrink-0"
                             title="Premium Store"
                         >
-                            <Sparkles className="h-4 w-4" />
+                            <Sparkles className="h-4 w-4 shrink-0" />
+                            <span className="text-[10px] font-black uppercase tracking-widest mt-[1px]">Store</span>
                         </button>
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="h-8 w-8 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
+                            <DropdownMenuTrigger className="h-9 w-9 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
                                 <Menu className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 mr-2 shadow-xl border-slate-200">
@@ -9209,24 +9644,16 @@ export default function Dashboard() {
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <span className="text-2xl">{
-                                startup.funding_stage === "Bootstrapping" ? "🏠" :
-                                    startup.funding_stage === "Angel Investment" ? "🚀" :
-                                        startup.funding_stage === "Seed Round" ? "📈" : "🏢"
-                            }</span>
+                            <span className="text-2xl">{currentStage.icon}</span>
                             <div>
                                 <p className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
                                 <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                                    {startup.funding_stage === "Bootstrapping" ? "Garage" :
-                                        startup.funding_stage === "Angel Investment" ? "Traction" :
-                                            startup.funding_stage === "Seed Round" ? "PMF" : "Scaling"}
-                                    <span className="text-slate-300 font-medium text-[9px] ml-1">
-                                        → Next: {
-                                            startup.funding_stage === "Bootstrapping" ? "Traction" :
-                                                startup.funding_stage === "Angel Investment" ? "PMF" :
-                                                    startup.funding_stage === "Seed Round" ? "Scaling" : "Exit / IPO 🦄"
-                                        }
-                                    </span>
+                                    {currentStage.label}
+                                    {currentStage.next && (
+                                        <span className="text-slate-300 font-medium text-[9px] ml-1">
+                                            → Next: {currentStage.next}
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -9234,11 +9661,7 @@ export default function Dashboard() {
 
                             <div className="flex items-center gap-2">
                                 <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-indigo-500 rounded-full" style={{
-                                        width: startup.funding_stage === "Bootstrapping" ? "25%" :
-                                            startup.funding_stage === "Angel Investment" ? "50%" :
-                                                startup.funding_stage === "Seed Round" ? "75%" : "100%"
-                                    }} />
+                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: currentStage.pct }} />
                                 </div>
                                 <ChevronDown className={cn("h-4 w-4 text-slate-300 transition-transform", isMilestoneExpanded ? "rotate-180" : "")} />
                             </div>
@@ -9247,12 +9670,7 @@ export default function Dashboard() {
                     {isMilestoneExpanded && (
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 mt-1">
                             <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
-                                {
-                                    startup.funding_stage === "Bootstrapping" ? "You are building the foundation in your garage. Validate your idea, build the MVP, and gather initial organic users to prove demand." :
-                                        startup.funding_stage === "Angel Investment" ? "You've got initial validation. Now test channels, expand user onboarding streams, and prepare to scale server operations." :
-                                            startup.funding_stage === "Seed Round" ? "Institutional backing setup. Accelerate growth rates, expand active marketing departments, and scale structural hires." :
-                                                "Scale aggressively, optimize unit economics, and prepare for market domination or exit opportunities."
-                                }
+                                {currentStage.desc}
                             </p>
                         </div>
                     )}
@@ -9421,6 +9839,71 @@ export default function Dashboard() {
                     });
                     return items;
                 })()}
+            </div>
+
+            {/* FLOATING ICONS (Pinned just above bottom nav) */}
+            <div className="relative w-full h-0 z-40 pointer-events-none flex justify-end px-4" style={{ top: '-1rem' }}>
+                <div className="absolute bottom-4 right-4 pointer-events-none flex flex-col gap-3 items-end">
+                    <button
+                        onClick={() => setIsLeaderboardOpen(true)}
+                        className="pointer-events-auto flex items-center justify-center w-14 h-14 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-amber-200 dark:border-amber-700 shadow-lg shadow-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-2xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all active:scale-95"
+                    >
+                        🏆
+                    </button>
+                    {(() => {
+                        const hourAgo = currentTime - 60 * 60 * 1000;
+                        const validConsults = (samConsults || []).filter(t => t > hourAgo);
+                        const isLimited = validConsults.length >= 2;
+
+                        return (
+                            <button
+                                disabled={!isOnline}
+                                className={`pointer-events-auto relative flex items-center justify-center w-14 h-14 rounded-full backdrop-blur-sm border-2 shadow-lg transition-all active:scale-95 p-0 ${!isOnline ? 'bg-slate-50/90 border-slate-200 text-slate-400 grayscale' : 'bg-violet-600/90 border-violet-700 shadow-violet-500/20 hover:bg-violet-700/90 dark:bg-violet-500/90 dark:border-violet-400'}`}
+                                onClick={() => {
+                                    const now = Date.now();
+                                    const hourAgo = now - 60 * 60 * 1000;
+                                    const validConsults = samConsults.filter(t => t > hourAgo);
+
+                                    if (validConsults.length >= 2) {
+                                        const nextAvail = Math.min(...validConsults) + 60 * 60 * 1000;
+                                        setConfirmDialog({
+                                            open: true,
+                                            title: "🧠 Sam is Processing...",
+                                            description: `Even a super-mentor needs a break! Sam is synthesizing market data. Check back in ${formatCooldown(nextAvail, currentTime)}.`,
+                                            confirmText: "LET HIM COOK",
+                                            onConfirm: () => { }
+                                        });
+                                        return;
+                                    }
+
+                                    const consultAction = () => {
+                                        setSamConsults([...validConsults, now]);
+                                        setStoryState(prev => ({ ...prev, hasConsultedSam: true }));
+                                        const advice = getConsultationAdvice(startup);
+                                        const dialog = getSamConsultDialog({
+                                            title: advice.title,
+                                            message: advice.message,
+                                            buttonText: advice.buttonText || "THANKS, SAM 🏄",
+                                        }, storyState.hasConsultedSam);
+                                        setCharacterDialog(dialog);
+                                        setIsCharacterDialogOpen(true);
+                                    };
+
+                                    adService.showRewardedAd(consultAction, 'mentor');
+                                }}
+                            >
+                                <div className="w-full h-full rounded-full overflow-hidden relative">
+                                    <img src="/sam.png" alt="Sam" className="w-full h-full object-cover scale-125" />
+                                    {isLimited && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
+                                            {formatCooldown(validConsults[0] + 60 * 60 * 1000, currentTime)}
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })()}
+                </div>
             </div>
 
 
@@ -10304,7 +10787,7 @@ export default function Dashboard() {
                             <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
                             <div className="flex gap-2">
                                 <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
-                                    😊 Morale: {Math.round(startup.metrics.team_morale)}%
+                                    😊 Morale: {allEmployees.length > 0 ? Math.round(allEmployees.reduce((acc, e) => acc + (e.morale ?? 70), 0) / allEmployees.length) : Math.round(startup.metrics.team_morale)}%
                                 </span>
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                     ESOP: {(startup.metrics.option_pool || 0).toFixed(1)}%
@@ -10353,6 +10836,47 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900/50 flex flex-col gap-2 shrink-0">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Training Agency (IAP)</p>
+                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Massive boost for {startup.employees.length} employees</p>
+                            </div>
+                            <button
+                                onClick={handleIAP_TrainingAgency}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                            >
+                                <span>💎</span> {startup.employees.length <= 20 ? "$0.99" : startup.employees.length <= 100 ? "$2.99" : "$4.99"}
+                            </button>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30">
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Corporate Retreat</p>
+                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Maxes out Morale to 100%</p>
+                            </div>
+                            <button
+                                onClick={handleIAP_BaliRetreat}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                            >
+                                <span>💎</span> $1.99
+                            </button>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30">
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Mass Training Session</p>
+                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Boost Morale & Skills slightly</p>
+                            </div>
+                            <button
+                                onClick={handleMassTrainAd}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                            >
+                                <span>📺</span> Free (Ad)
+                            </button>
+                        </div>
+                    </div>
+
                     <ScrollArea className="flex-1 px-4 py-2 min-h-0">
                         {(() => {
                             const allEmployeesForRoster = allEmployees;
@@ -10375,7 +10899,7 @@ export default function Dashboard() {
                             const staff = filtered.filter((e: any) => !e.isCXO);
 
                             const renderCXOCard = (emp: any) => {
-                                const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                const skillVal = emp.role === "engineer" ? (emp.skills?.technical || emp.skill || 40) : emp.role === "marketer" ? (emp.skills?.marketing || emp.skill || 40) : emp.role === "legal" ? (emp.skills?.legal || emp.skill || 40) : (emp.skills?.sales || emp.skill || 40);
                                 const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
                                 const isDissatisfied = monthsSinceRaise > 12;
                                 const tenure = typeof emp.joined_at === "number" ? Math.max(0, month - emp.joined_at) : 0;
@@ -10474,7 +10998,7 @@ export default function Dashboard() {
                             };
 
                             const renderStaffCard = (emp: any) => {
-                                const skillVal = emp.role === "engineer" ? emp.skills.technical : emp.role === "marketer" ? emp.skills.marketing : emp.skills.sales;
+                                const skillVal = emp.role === "engineer" ? (emp.skills?.technical || emp.skill || 40) : emp.role === "marketer" ? (emp.skills?.marketing || emp.skill || 40) : emp.role === "legal" ? (emp.skills?.legal || emp.skill || 40) : (emp.skills?.sales || emp.skill || 40);
                                 const isExpanded = selectedEmpIdx === startup.employees.findIndex(original => original.id === emp.id);
                                 const monthsSinceRaise = month - (emp.last_increment_at ?? emp.joined_at);
                                 const isDissatisfied = monthsSinceRaise > 12;
@@ -10938,6 +11462,12 @@ export default function Dashboard() {
 
                             {/* Footer buttons - fixed bottom with safe area */}
                             <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
+                                <button
+                                    onClick={() => setIsLeaderboardOpen(true)}
+                                    className="w-full py-3 rounded-2xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-black uppercase tracking-widest text-xs hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    🏆 See Global Leaderboard
+                                </button>
 
 
                                 {outcome === "ipo" ? (
@@ -11310,6 +11840,12 @@ export default function Dashboard() {
                 onClose={() => setIsBugModalOpen(false)}
             />
 
+            <LeaderboardModal
+                open={isLeaderboardOpen}
+                onClose={() => setIsLeaderboardOpen(false)}
+                currentIndustry={startup.industry}
+            />
+
             <LiveNoticeModal />
 
             <Dialog open={isInstagramModalOpen} onOpenChange={setIsInstagramModalOpen}>
@@ -11325,7 +11861,7 @@ export default function Dashboard() {
                                 Follow Founder Sim on Instagram for exclusive updates, tips, and sneak peeks of upcoming features!
                             </p>
                         </div>
-                        <Button 
+                        <Button
                             className="w-full h-12 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-all mt-2"
                             onClick={() => {
                                 playSound("success");
@@ -11337,7 +11873,7 @@ export default function Dashboard() {
                         >
                             FOLLOW & CLAIM $50,000
                         </Button>
-                        <button 
+                        <button
                             onClick={() => {
                                 playSound("click");
                                 setIsInstagramModalOpen(false);

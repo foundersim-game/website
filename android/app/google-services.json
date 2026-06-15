@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "440106931045",
+    "project_id": "founder-sim-e86b7",
+    "storage_bucket": "founder-sim-e86b7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:440106931045:android:61f977ba8859e4c21a878c",
+        "android_client_info": {
+          "package_name": "com.foundersim.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWqXtlFiZwJ544IqMTUwVUUQzPX6SAXVc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

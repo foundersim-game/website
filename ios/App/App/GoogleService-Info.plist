@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.foundersim.fun</string>
+	<string>com.foundersim.app</string>
 	<key>PROJECT_ID</key>
 	<string>founder-sim-e86b7</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:440106931045:ios:3bb618c349771a371a878c</string>
+	<string>1:440106931045:ios:dcc9a5afb8667a311a878c</string>
 </dict>
 </plist>

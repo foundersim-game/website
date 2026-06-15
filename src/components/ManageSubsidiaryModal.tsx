@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Startup, MarketStock } from "@/lib/types/database.types";
 import { cn, formatMoney, formatNumber } from "@/lib/utils";
@@ -53,7 +53,7 @@ interface ManageSubsidiaryModalProps {
     subRaw: string;
     startup: Startup;
     marketStocks: MarketStock[];
-    onInjectCapital: (subRaw: string) => void;
+    onInjectCapital: (subRaw: string, amount: number) => void;
     onRebrandSubsidiary: (subRaw: string) => void;
     onListSubsidiary: (subRaw: string) => void;
     onDivestSubsidiary: (subRaw: string, payout: number) => void;
@@ -70,6 +70,8 @@ export function ManageSubsidiaryModal({
     onListSubsidiary,
     onDivestSubsidiary
 }: ManageSubsidiaryModalProps) {
+    const [injectAmount, setInjectAmount] = useState<number>(1000000);
+
     if (!open || !subRaw) return null;
 
     const sub = parseSubsidiaryString(subRaw);
@@ -85,13 +87,13 @@ export function ManageSubsidiaryModal({
     const corpPortfolio = startup.public_company?.corporate_portfolio || startup.treasury_portfolio || [];
     const corpPos = isListed ? corpPortfolio.find(p => p.symbol === listedStock.symbol) : null;
     const corpShares = corpPos?.shares || 0;
-    const ownershipPct = isListed && listedStock.sharesOutstanding > 0 
-        ? (corpShares / listedStock.sharesOutstanding) * 100 
+    const ownershipPct = isListed && listedStock.sharesOutstanding > 0
+        ? (corpShares / listedStock.sharesOutstanding) * 100
         : 0;
 
     // Override sub details if listed
-    const valuation = isListed 
-        ? listedStock.currentPrice * listedStock.sharesOutstanding 
+    const valuation = isListed
+        ? listedStock.currentPrice * listedStock.sharesOutstanding
         : sub.valuation;
 
     // Derive financials dynamically if listed, to ensure consistency
@@ -132,12 +134,12 @@ export function ManageSubsidiaryModal({
                 {/* Header */}
                 <div className={cn(
                     "p-6 text-center text-white relative shrink-0",
-                    isListed 
-                        ? "bg-gradient-to-r from-violet-600 to-indigo-700" 
+                    isListed
+                        ? "bg-gradient-to-r from-violet-600 to-indigo-700"
                         : "bg-gradient-to-r from-slate-700 to-slate-900"
                 )}>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors text-lg"
                     >
                         ✕
@@ -152,7 +154,7 @@ export function ManageSubsidiaryModal({
 
                 {/* Content */}
                 <div className="p-5 overflow-y-auto flex-1 space-y-4">
-                    
+
                     {/* Public Market Card */}
                     {isListed ? (
                         <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/20 dark:to-violet-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-4 space-y-3">
@@ -213,7 +215,7 @@ export function ManageSubsidiaryModal({
                                     <p className={cn(
                                         "text-sm font-black mt-0.5 uppercase tracking-wider",
                                         sub.integrationRisk === "High" ? "text-rose-500" :
-                                        sub.integrationRisk === "Medium" ? "text-amber-500" : "text-emerald-500"
+                                            sub.integrationRisk === "Medium" ? "text-amber-500" : "text-emerald-500"
                                     )}>
                                         {sub.integrationRisk}
                                     </p>
@@ -254,7 +256,7 @@ export function ManageSubsidiaryModal({
 
                         {isListed ? (
                             <div className="p-3 bg-violet-50/50 dark:bg-violet-950/10 rounded-xl text-[10px] font-semibold text-violet-700 dark:text-violet-400 leading-relaxed border border-violet-100 dark:border-violet-900/30">
-                                💼 <strong className="font-black">Consolidated P&L Note:</strong> Listed subsidiaries do not transfer net income directly to your corporate cash. Instead, they pay dividends quarterly: 
+                                💼 <strong className="font-black">Consolidated P&L Note:</strong> Listed subsidiaries do not transfer net income directly to your corporate cash. Instead, they pay dividends quarterly:
                                 <div className="mt-1 text-[9px] font-black text-slate-600 dark:text-slate-400">
                                     • Dividend Ratio: {(dividendRatio * 100).toFixed(0)}% payout of quarterly profits<br />
                                     • Estimated Dividend: ~{formatMoney(Math.max(0, Math.floor(netIncome * 3 * dividendRatio * (ownershipPct / 100)) || 0))} every 3 months
@@ -305,36 +307,52 @@ export function ManageSubsidiaryModal({
                     {/* Actions Panel */}
                     <div className="space-y-2">
                         <p className="text-[10px] font-black uppercase text-slate-500">Corporate Actions</p>
-                        
+
                         {isListed ? (
                             <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-2">
                                 <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                                    This division is publicly listed on the stock market. Direct corporate actions like capital injection, rebranding, or private PE trade sale are not available.
-                                </p>
-                                <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-wider">
-                                    Manage your stake or divest shares under the Stock Market tab.
+                                    This division is publicly listed on the stock market. Direct corporate actions like rebranding or private PE trade sale are not available. However, you can make a PIPE (Private Investment in Public Equity) cash injection to bolster its valuation and increase your corporate ownership.
                                 </p>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-2">
-                                {/* Inject Capital */}
+                        ) : null}
+
+                        <div className="grid grid-cols-1 gap-2 mb-2">
+                            {/* Inject Capital */}
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2 flex justify-between">
+                                <span>Inject Capital</span>
+                                <span className="text-indigo-500">Injecting: {formatMoney(Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000))) * 1000000)}</span>
+                            </p>
+                            <div className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max={Math.max(1, Math.floor(corporateCash / 1000000))}
+                                    step="1"
+                                    value={Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000)))}
+                                    onChange={(e) => setInjectAmount(Number(e.target.value) * 1000000)}
+                                    className="w-full accent-indigo-600 cursor-pointer"
+                                    disabled={corporateCash < 1000000}
+                                />
+                                <div className="flex justify-between w-full mt-1 px-1 text-[8px] font-black text-slate-400 uppercase">
+                                    <span>$1M</span>
+                                    <span>{formatMoney(Math.max(1, Math.floor(corporateCash / 1000000)) * 1000000)} (Max)</span>
+                                </div>
                                 <button
                                     onClick={() => {
-                                        onInjectCapital(subRaw);
+                                        const amount = Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000))) * 1000000;
+                                        onInjectCapital(subRaw, amount);
                                         onClose();
                                     }}
-                                    disabled={corporateCash < 10000000}
-                                    className="p-3 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 rounded-xl text-left transition-all active:scale-[0.98] group flex flex-col gap-0.5"
+                                    disabled={corporateCash < 1000000}
+                                    className="w-full mt-3 p-3 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 rounded-xl text-center transition-all active:scale-[0.98] font-black uppercase tracking-wide text-[11px]"
                                 >
-                                    <span className="text-[10px] font-black uppercase">💉 Inject Capital</span>
-                                    <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium">
-                                        Cost: $10M corporate cash
-                                    </span>
-                                    <span className="text-[7.5px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                        Boosts revenue, valuation & growth.
-                                    </span>
+                                    Confirm Inject {formatMoney(Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000))) * 1000000)}
                                 </button>
+                            </div>
+                        </div>
 
+                        {!isListed && (
+                            <div className="grid grid-cols-2 gap-2">
                                 {/* Rebrand */}
                                 <button
                                     onClick={() => {
@@ -394,8 +412,8 @@ export function ManageSubsidiaryModal({
 
                 {/* Footer */}
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end shrink-0">
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase shadow-md transition-all active:scale-95"
                     >
                         Close

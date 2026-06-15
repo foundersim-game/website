@@ -216,6 +216,11 @@ function StockDetail({
     const playerSharesPersonal = personalPortfolio.find(p => p.symbol === stock.symbol)?.shares || 0;
     const playerSharesCorp = corporatePortfolio.find(p => p.symbol === stock.symbol)?.shares || 0;
     
+    const floatShareholder = stock.shareholders?.find(s => s.type === "public_float");
+    const initialFloatPct = floatShareholder ? floatShareholder.ownershipPct : 100;
+    const maxFloatShares = stock.publicFloat || Math.floor(stock.sharesOutstanding * (initialFloatPct / 100));
+    const availableFloatShares = Math.max(0, maxFloatShares - playerSharesPersonal - playerSharesCorp);
+    
     const personalOwnershipPct = stock.sharesOutstanding > 0 ? (playerSharesPersonal / stock.sharesOutstanding) * 100 : 0;
     const corporateOwnershipPct = stock.sharesOutstanding > 0 ? (playerSharesCorp / stock.sharesOutstanding) * 100 : (stock.isSubsidiary ? 100 : 0);
     const playerOwnershipPct = getPlayerOwnershipPct(stock.symbol, stock, personalPortfolio, corporatePortfolio);
@@ -332,7 +337,7 @@ function StockDetail({
                             <div className="flex justify-between items-center">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Shares</label>
                                 <span className="text-[10px] font-bold text-slate-400">
-                                    {tradeMode === "buy" ? `Max buyable: ${Math.floor(cash / stock.currentPrice).toLocaleString()}` : `Owned: ${pos ? pos.shares.toLocaleString() : 0}`}
+                                    {tradeMode === "buy" ? `Max buyable: ${Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares).toLocaleString()}` : `Owned: ${pos ? pos.shares.toLocaleString() : 0}`}
                                 </span>
                             </div>
                             <input
@@ -340,7 +345,7 @@ function StockDetail({
                                 value={shareInput}
                                 onChange={e => {
                                     const val = Math.max(0, parseInt(e.target.value) || 0);
-                                    const maxS = tradeMode === "buy" ? Math.floor(cash / stock.currentPrice) : (pos ? pos.shares : 0);
+                                    const maxS = tradeMode === "buy" ? Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares) : (pos ? pos.shares : 0);
                                     setShareInput(String(Math.min(val, maxS)));
                                 }}
                                 className="w-full h-12 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 text-base font-black text-slate-900 dark:text-slate-100 border-2 border-transparent focus:border-indigo-400 outline-none transition-all"
@@ -348,7 +353,7 @@ function StockDetail({
                             />
                             {/* Range Slider */}
                             {(() => {
-                                const maxS = tradeMode === "buy" ? Math.floor(cash / stock.currentPrice) : (pos ? pos.shares : 0);
+                                const maxS = tradeMode === "buy" ? Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares) : (pos ? pos.shares : 0);
                                 return (
                                     <div className="px-1">
                                         <input

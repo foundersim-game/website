@@ -27,39 +27,46 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" id="theme-color-meta" content="#0f1117" />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-W7N2170J6N"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+            // Only load Web Google Analytics if NOT running inside the native mobile app
+            if (typeof window !== 'undefined' && !window.Capacitor) {
+                var script = document.createElement('script');
+                script.src = "https://www.googletagmanager.com/gtag/js?id=G-W7N2170J6N";
+                script.async = true;
+                document.head.appendChild(script);
 
-            var clientId = localStorage.getItem('ga_client_id_v2');
-            if (!clientId) {
-              clientId = 'cid_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-              localStorage.setItem('ga_client_id_v2', clientId);
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+
+                var clientId = localStorage.getItem('ga_client_id_v2');
+                if (!clientId) {
+                  clientId = 'cid_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+                  localStorage.setItem('ga_client_id_v2', clientId);
+                }
+
+                var sessionId = sessionStorage.getItem('ga_session_id');
+                if (!sessionId) {
+                  sessionId = Date.now().toString();
+                  sessionStorage.setItem('ga_session_id', sessionId);
+                }
+
+                gtag('config', 'G-W7N2170J6N', {
+                  client_id: clientId,
+                  session_id: sessionId,
+                  client_storage: 'none',
+                  page_location: 'https://foundersim.fun' + window.location.pathname,
+                  send_page_view: true
+                });
             }
-
-            var sessionId = sessionStorage.getItem('ga_session_id');
-            if (!sessionId) {
-              sessionId = Date.now().toString();
-              sessionStorage.setItem('ga_session_id', sessionId);
-            }
-
-            gtag('config', 'G-W7N2170J6N', {
-              client_id: clientId,
-              session_id: sessionId,
-              client_storage: 'none',
-              page_location: 'https://foundersim.fun' + window.location.pathname,
-              send_page_view: true
-            });
           `
         }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
+      <body suppressHydrationWarning className={`${inter.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

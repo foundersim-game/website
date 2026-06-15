@@ -97,7 +97,7 @@ class AdService {
     }
 
     async preLoadAll() {
-        if (!this.isNative || this.isPremium) return;
+        if (!this.isNative) return;
         console.log('Pre-loading all ads...');
         this.prepareInterstitial();
         this.prepareRewarded('energy');
@@ -205,7 +205,7 @@ class AdService {
 
     async prepareRewarded(adType: 'cash' | 'energy' | 'mentor' | 'default' = 'default') {
         if (!this.initialized) await this.initialize();
-        if (!this.isNative || this.isPremium) return;
+        if (!this.isNative) return;
         if (this.rewardedLoaded[adType] || this.rewardedLoading[adType]) return;
 
         this.rewardedLoading[adType] = true;
@@ -234,12 +234,8 @@ class AdService {
         if (!this.initialized) await this.initialize();
 
         if (!this.isNative) {
-            toast.info("Ads available on the mobile app only.", { description: "Download the app to earn rewards via ads." });
-            return;
-        }
-
-        if (this.isPremium) {
-            onReward(); // Premium users get rewards instantly
+            toast.info("Ads available on the mobile app only.", { description: "Simulating ad reward for testing..." });
+            onReward();
             return;
         }
 

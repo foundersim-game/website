@@ -9,7 +9,7 @@ interface BannerData {
     text: string;
 }
 
-export function LiveBanner() {
+export function LiveBanner({ onActiveChange }: { onActiveChange?: (active: boolean) => void }) {
     const [banner, setBanner] = useState<BannerData | null>(null);
     const [dismissed, setDismissed] = useState(false);
 
@@ -20,20 +20,32 @@ export function LiveBanner() {
                     `https://www.foundersim.fun/notice.json?t=${Date.now()}`,
                     { cache: "no-store" }
                 );
-                if (!res.ok) return;
+                if (!res.ok) {
+                    console.error("[LiveBanner] Bad response:", res.status);
+                    return;
+                }
                 const data = await res.json();
+                console.log("[LiveBanner] Fetched data:", data);
+
                 if (data?.banner?.active && data.banner.text) {
-                    // Use a composite key so changing the text auto-shows it again
-                    const bannerKey = `foundersim_banner_dismissed_${btoa(data.banner.text).slice(0, 16)}`;
+                    // Safe base64 encoding for unicode/emojis
+                    const safeText = encodeURIComponent(data.banner.text);
+                    const bannerKey = `foundersim_banner_dismissed_${btoa(safeText).slice(0, 32)}`;
                     const wasDismissed = localStorage.getItem(bannerKey) === "true";
+                    console.log("[LiveBanner] wasDismissed:", wasDismissed, "Key:", bannerKey);
                     if (!wasDismissed) {
                         setBanner({ active: true, text: data.banner.text });
-                        // Store key for later use in dismiss handler
                         (window as any).__bannerKey = bannerKey;
+                        console.log("[LiveBanner] Banner state set to show!");
+                        if (onActiveChange) onActiveChange(true);
                     }
+                } else {
+                    console.log("[LiveBanner] No active banner in data");
+                    if (onActiveChange) onActiveChange(false);
                 }
             } catch (e) {
-                // Silently fail — banner is non-critical
+                console.error("[LiveBanner] Fetch failed:", e);
+                if (onActiveChange) onActiveChange(false);
             }
         };
         fetchBanner();
@@ -43,6 +55,7 @@ export function LiveBanner() {
         const key = (window as any).__bannerKey;
         if (key) localStorage.setItem(key, "true");
         setDismissed(true);
+        if (onActiveChange) onActiveChange(false);
     };
 
     if (!banner || !banner.active || dismissed) return null;
@@ -50,52 +63,52 @@ export function LiveBanner() {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 text-white shrink-0"
-                style={{ backgroundSize: "200% 100%", animation: "shimmer 4s linear infinite" }}
+                key="live-banner"
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0, scaleY: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{ transformOrigin: "top" }}
+                className="sticky top-0 z-[9999] bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 text-white shrink-0 overflow-hidden"
             >
                 <style>{`
-                    @keyframes shimmer {
-                        0% { background-position: 200% 0; }
-                        100% { background-position: -200% 0; }
-                    }
-                    @keyframes marquee {
-                        0% { transform: translateX(100vw); }
-                        100% { transform: translateX(-100%); }
+                    @keyframes marqueeScroll {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
                     }
                 `}</style>
 
-                <div className="flex items-center gap-2 px-3 py-1.5 relative">
-                    {/* Icon */}
+                {/* Safe-area spacer — fills the notch/status bar with the gradient, no content hidden */}
+                <div style={{ height: "env(safe-area-inset-top)" }} />
+
+                {/* Readable content — always inside the safe zone */}
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                    {/* Icon + label */}
                     <div className="shrink-0 flex items-center gap-1.5">
                         <Megaphone size={12} className="text-yellow-300 shrink-0" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-yellow-300 whitespace-nowrap">
-                            LIVE
+                            ALERT
                         </span>
                     </div>
 
-                    {/* Scrolling text container */}
+                    {/* Seamless marquee — two copies so it loops without jumping */}
                     <div className="flex-1 overflow-hidden relative">
                         <div
-                            className="whitespace-nowrap text-[11px] font-bold text-white/95 inline-block"
-                            style={{
-                                animation: "marquee 20s linear infinite",
-                                paddingLeft: "100%"
-                            }}
+                            className="whitespace-nowrap text-[11px] font-semibold text-white/95 inline-flex"
+                            style={{ animation: "marqueeScroll 18s linear infinite" }}
                         >
-                            {banner.text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{banner.text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{banner.text}
+                            <span className="pr-16">{banner.text}</span>
+                            <span className="pr-16">{banner.text}</span>
                         </div>
                     </div>
 
-                    {/* Dismiss button */}
+                    {/* Dismiss button — always reachable */}
                     <button
                         onClick={handleDismiss}
-                        className="shrink-0 ml-1 text-white/60 hover:text-white transition-colors p-0.5 rounded"
+                        className="shrink-0 ml-2 w-6 h-6 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 transition-colors"
+                        aria-label="Dismiss alert"
                     >
-                        <X size={12} />
+                        <X size={11} className="text-white" />
                     </button>
                 </div>
             </motion.div>

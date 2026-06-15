@@ -10,6 +10,41 @@ export type LegacyTier = {
 
 export const LEGACY_TIERS: LegacyTier[] = [
     {
+        name: "Universal Overlord",
+        emoji: "🌌",
+        flavourText: "\"The economy isn't a human concept anymore. You own the stars.\"",
+        perk: "+50 to all stats for your next startup.",
+        minScore: 245,
+    },
+    {
+        name: "Emperor of Humanity",
+        emoji: "🌍",
+        flavourText: "\"Governments report to your board of directors.\"",
+        perk: "+35 to all stats for your next startup.",
+        minScore: 200,
+    },
+    {
+        name: "God of Wealth",
+        emoji: "⚡",
+        flavourText: "\"Your net worth rivals small nations. The economy bends to your will.\"",
+        perk: "+25 to all stats for your next startup.",
+        minScore: 150,
+    },
+    {
+        name: "Global Legend",
+        emoji: "👑",
+        flavourText: "\"You aren't just playing the game anymore. You are the game.\"",
+        perk: "+20 to all stats for your next startup.",
+        minScore: 130,
+    },
+    {
+        name: "Industry Titan",
+        emoji: "🏛️",
+        flavourText: "\"You didn't just build a company, you built an empire.\"",
+        perk: "+15 Networking & +10 Leadership next run.",
+        minScore: 110,
+    },
+    {
         name: "Unicorn Founder",
         emoji: "🦄",
         flavourText: "\"Exits define generations. You built something the world still talks about.\"",
@@ -62,8 +97,14 @@ export function computeLegacyScore(
     const peakVal = startup.peak_valuation ?? startup.valuation;
     const peakUsers = startup.peak_users ?? m.users;
 
-    // ── Peak Valuation (0–30 pts) ──────────────────────────────────────────
-    const valScore = Math.min(30, Math.floor(Math.log10(Math.max(1, peakVal)) * 4));
+    // ── Peak Valuation (Piecewise: accelerates after $1B to support Trillions/Quadrillions) ──
+    const logV = Math.log10(Math.max(1, peakVal));
+    let valScore = 0;
+    if (logV <= 9) {
+        valScore = Math.floor(logV * 5); // Up to $1B: max 45 pts
+    } else {
+        valScore = 45 + Math.floor((logV - 9) * 20); // Beyond $1B: +20 pts per 10x
+    }
 
     // ── Exit Outcome (0–25 pts) ────────────────────────────────────────────
     const outcomeScores: Record<StartupOutcome, number> = {

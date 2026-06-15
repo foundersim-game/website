@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Plus, FolderOpen, Trash2, HelpCircle, Award, History, Trophy, Sun, Moon } from "lucide-react";
+import { Zap, Plus, FolderOpen, Trash2, HelpCircle, Award, History, Trophy, Sun, Moon, BookOpen, Sparkles } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { HowToPlayContent } from "@/components/HowToPlay";
 import { Button } from "@/components/ui/button";
@@ -410,6 +410,30 @@ export default function Home() {
                 </div>
               </>
             )}
+          </button>
+
+          <button
+            onClick={() => { playSound("click"); router.push("/story-mode"); }}
+            className={cn(
+              "group relative w-full rounded-2xl overflow-hidden transition-all active:scale-95 shadow-lg shadow-amber-500/10 shrink-0 h-[min(6.5vh,3.25rem)] border-2 border-amber-200/50 dark:border-amber-900/50 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/50 dark:hover:to-orange-900/50 backdrop-blur-sm"
+            )}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            <div className="relative z-10 flex items-center justify-between px-4 h-full">
+              <div className="flex items-center gap-2.5">
+                <div className="size-6 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-inner">
+                  <BookOpen className="size-3.5 text-white" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[11px] font-black text-amber-900 dark:text-amber-100 uppercase tracking-widest leading-none">Story Mode</span>
+                  <span className="text-[8px] font-bold text-amber-700/70 dark:text-amber-400/70 uppercase tracking-wider mt-0.5">Rewrite History</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 bg-gradient-to-r from-rose-500 to-orange-500 text-white px-2.5 py-1 rounded-full shadow-md animate-pulse">
+                <Sparkles className="size-2.5 fill-white" />
+                <span className="text-[9px] font-black uppercase tracking-widest leading-none mt-0.5">NEW</span>
+              </div>
+            </div>
           </button>
 
           <div className="grid grid-cols-2 gap-2 shrink-0">
