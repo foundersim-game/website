@@ -371,6 +371,11 @@ export type Startup = {
 
     // ── LEGAL & LAWSUITS ─────────────────────────────────────────────────────
     active_lawsuits?: Lawsuit[];
+
+    // ── STORY MODE ────────────────────────────────────────────────────────────
+    // Only set when a player is in Story Mode. ALL sandbox code ignores this.
+    // The `?` means it's undefined for every normal sandbox game — zero impact.
+    story_mode?: import("../story/types").StoryModeState;
 };
 
 export type GameSession = {

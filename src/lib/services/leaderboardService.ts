@@ -266,6 +266,7 @@ export interface LeaderboardEntry {
     iap_god_mode?: boolean;
     iap_titan?: boolean;
     iap_premium?: boolean;
+    shadowbanned?: boolean; // set by Cloud Function when piracy is detected
 }
 
 // Minimum wealth to appear on the global leaderboard ($0 so everyone appears)
@@ -277,6 +278,8 @@ export async function getLeaderboard(category: "bestVentureValuation" | "totalLi
         const q = query(
             collection(db, "players"),
             where(category, ">=", LEADERBOARD_MIN_WEALTH),
+            where("shadowbanned", "!=", true),
+            orderBy("shadowbanned"),   // Firestore requires orderBy for != filters
             orderBy(category, "desc"),
             limit(limitCount)
         );

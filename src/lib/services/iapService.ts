@@ -2,6 +2,23 @@ import { NativePurchases } from '@capgo/native-purchases';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 import { analyticsService } from '@/lib/services/analyticsService';
+import { getLbUsername } from '@/lib/services/leaderboardService';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyC1eT6e1KGwD331wvhqdOu6fxs5qyI_3P4",
+    authDomain: "founder-sim-e86b7.firebaseapp.com",
+    projectId: "founder-sim-e86b7",
+    storageBucket: "founder-sim-e86b7.firebasestorage.app",
+    messagingSenderId: "440106931045",
+    appId: "1:440106931045:ios:dcc9a5afb8667a311a878c",
+};
+
+function getFirebaseApp() {
+    return getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG);
+}
+
 
 export const IAP_PRODUCT_IDS = {
     AD_FREE: "founder_sim_premium",
@@ -25,21 +42,21 @@ export const IAP_PRODUCT_IDS = {
 
 // Price & type metadata for enriched analytics logging
 const PRODUCT_METADATA: Record<string, { price: number; type: "consumable" | "non_consumable" }> = {
-    founder_sim_premium:        { price: 4.99,  type: "non_consumable" },
-    founder_sim_caffeine:       { price: 9.99,  type: "non_consumable" },
-    founder_sim_titan:          { price: 19.99, type: "non_consumable" },
-    founder_sim_god_mode:       { price: 9.99,  type: "non_consumable" },
-    founder_sim_sv_darling:     { price: 4.99,  type: "non_consumable" },
-    founder_sim_starter_pack:   { price: 1.99,  type: "consumable" },
-    founder_sim_gov_contract:   { price: 2.99,  type: "consumable" },
-    founder_sim_train_boutique: { price: 1.99,  type: "consumable" },
-    founder_sim_train_corporate:{ price: 2.99,  type: "consumable" },
-    founder_sim_train_global:   { price: 4.99,  type: "consumable" },
-    founder_sim_pr_fixer:       { price: 1.99,  type: "consumable" },
-    founder_sim_tiktok_viral:   { price: 1.99,  type: "consumable" },
-    founder_sim_bali_retreat:   { price: 1.99,  type: "consumable" },
-    founder_sim_poach_10x:      { price: 2.99,  type: "consumable" },
-    founder_sim_bribe_senator:  { price: 2.99,  type: "consumable" },
+    founder_sim_premium: { price: 4.99, type: "non_consumable" },
+    founder_sim_caffeine: { price: 9.99, type: "non_consumable" },
+    founder_sim_titan: { price: 19.99, type: "non_consumable" },
+    founder_sim_god_mode: { price: 9.99, type: "non_consumable" },
+    founder_sim_sv_darling: { price: 4.99, type: "non_consumable" },
+    founder_sim_starter_pack: { price: 1.99, type: "consumable" },
+    founder_sim_gov_contract: { price: 2.99, type: "consumable" },
+    founder_sim_train_boutique: { price: 1.99, type: "consumable" },
+    founder_sim_train_corporate: { price: 2.99, type: "consumable" },
+    founder_sim_train_global: { price: 4.99, type: "consumable" },
+    founder_sim_pr_fixer: { price: 1.99, type: "consumable" },
+    founder_sim_tiktok_viral: { price: 1.99, type: "consumable" },
+    founder_sim_bali_retreat: { price: 1.99, type: "consumable" },
+    founder_sim_poach_10x: { price: 2.99, type: "consumable" },
+    founder_sim_bribe_senator: { price: 2.99, type: "consumable" },
 };
 
 export class IAPService {
@@ -47,6 +64,27 @@ export class IAPService {
     private initialized = false;
 
     private constructor() { }
+
+    /**
+     * Silently calls the server-side Cloud Function to verify an Android purchaseToken.
+     * The result is only used for shadowbanning — the user always gets their perk locally
+     * regardless of the outcome, so pirates have no idea they've been flagged.
+     */
+    private async silentlyVerifyAndroidToken(purchaseToken: string, productId: string): Promise<void> {
+        try {
+            const functions = getFunctions(getFirebaseApp());
+            const verify = httpsCallable(functions, 'verifyAndroidPurchase');
+            await verify({
+                purchaseToken,
+                productId,
+                username: getLbUsername(), // null if they haven't joined the leaderboard
+            });
+        } catch (e) {
+            // Never block the purchase flow — this is fire-and-forget
+            console.warn('[IAP] Background receipt verification failed silently:', e);
+        }
+    }
+
 
     public static getInstance(): IAPService {
         if (!IAPService.instance) {
@@ -193,6 +231,15 @@ export class IAPService {
                         console.error("[IAP] Failed to consume Starter Pack on Android", e);
                     }
                 }
+
+                // --- ANDROID SHADOWBAN GUARD ---
+                // Silently verify the purchaseToken with Google's servers via Cloud Function.
+                // If it's fake (Lucky Patcher etc.), the server will shadowban the user.
+                // The pirate still gets the perk locally and has no idea.
+                if (!isIOS && transaction.purchaseToken) {
+                    this.silentlyVerifyAndroidToken(transaction.purchaseToken, productId);
+                }
+
                 if (productId === IAP_PRODUCT_IDS.AD_FREE) {
                     localStorage.setItem("founder_sim_premium", "true");
                 }

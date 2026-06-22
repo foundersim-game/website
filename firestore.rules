@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public leaderboard — anyone can read players, only authenticated writes
+    match /players/{username} {
+      allow read: if true;
+      allow write: if false; // writes only via Admin SDK (Cloud Functions)
+    }
+
+    // Venture sub-collection — read-only for all, write via Admin SDK only
+    match /players/{username}/ventures/{ventureId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Shadowban log — only the Cloud Function (Admin SDK) can read/write
+    match /shadowban_log/{docId} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
