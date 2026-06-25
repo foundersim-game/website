@@ -2,22 +2,6 @@ import { NativePurchases } from '@capgo/native-purchases';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 import { analyticsService } from '@/lib/services/analyticsService';
-import { getLbUsername } from '@/lib/services/leaderboardService';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-
-const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyC1eT6e1KGwD331wvhqdOu6fxs5qyI_3P4",
-    authDomain: "founder-sim-e86b7.firebaseapp.com",
-    projectId: "founder-sim-e86b7",
-    storageBucket: "founder-sim-e86b7.firebasestorage.app",
-    messagingSenderId: "440106931045",
-    appId: "1:440106931045:ios:dcc9a5afb8667a311a878c",
-};
-
-function getFirebaseApp() {
-    return getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG);
-}
 
 
 export const IAP_PRODUCT_IDS = {
@@ -64,26 +48,6 @@ export class IAPService {
     private initialized = false;
 
     private constructor() { }
-
-    /**
-     * Silently calls the server-side Cloud Function to verify an Android purchaseToken.
-     * The result is only used for shadowbanning — the user always gets their perk locally
-     * regardless of the outcome, so pirates have no idea they've been flagged.
-     */
-    private async silentlyVerifyAndroidToken(purchaseToken: string, productId: string): Promise<void> {
-        try {
-            const functions = getFunctions(getFirebaseApp());
-            const verify = httpsCallable(functions, 'verifyAndroidPurchase');
-            await verify({
-                purchaseToken,
-                productId,
-                username: getLbUsername(), // null if they haven't joined the leaderboard
-            });
-        } catch (e) {
-            // Never block the purchase flow — this is fire-and-forget
-            console.warn('[IAP] Background receipt verification failed silently:', e);
-        }
-    }
 
 
     public static getInstance(): IAPService {
@@ -214,31 +178,59 @@ export class IAPService {
                 IAP_PRODUCT_IDS.BRIBE_SENATOR
             ];
 
+            const isConsumable = consumableIds.includes(productId);
             const transaction = await NativePurchases.purchaseProduct({
                 productIdentifier: productId,
-                productType: consumableIds.includes(productId) ? ("consumable" as any) : ("inapp" as any),
-                autoAcknowledgePurchases: true
+                productType: isConsumable ? ("consumable" as any) : ("inapp" as any),
+                autoAcknowledgePurchases: false
             });
 
             const isIOS = Capacitor.getPlatform() === 'ios';
             const isPurchased = isIOS ? !!transaction.transactionId : transaction.purchaseState === "1";
 
             if (isPurchased) {
-                if ((productId === IAP_PRODUCT_IDS.STARTER_PACK || productId === IAP_PRODUCT_IDS.GOV_CONTRACT) && !isIOS && transaction.purchaseToken) {
+                // --- ANDROID PIRACY BLOCKER ---
+                // Wait for the Vercel server to confirm Google Play actually received money.
+                if (!isIOS && transaction.purchaseToken) {
+                    toast.loading("Verifying purchase...", { id: "verify-iap" });
                     try {
-                        await NativePurchases.consumePurchase({ purchaseToken: transaction.purchaseToken });
+                        const res = await fetch('https://foundersim.in/api/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                purchaseToken: transaction.purchaseToken,
+                                productId
+                            })
+                        });
+                        const data = await res.json();
+                        if (!data.valid) {
+                            toast.dismiss("verify-iap");
+                            toast.error("Purchase verification failed. Device flagged.");
+                            return false; // EXIT EARLY: Do not grant the item
+                        }
+                        toast.dismiss("verify-iap");
                     } catch (e) {
-                        console.error("[IAP] Failed to consume Starter Pack on Android", e);
+                        toast.dismiss("verify-iap");
+                        toast.error("Network error during verification.");
+                        return false;
                     }
                 }
 
-                // --- ANDROID SHADOWBAN GUARD ---
-                // Silently verify the purchaseToken with Google's servers via Cloud Function.
-                // If it's fake (Lucky Patcher etc.), the server will shadowban the user.
-                // The pirate still gets the perk locally and has no idea.
-                if (!isIOS && transaction.purchaseToken) {
-                    this.silentlyVerifyAndroidToken(transaction.purchaseToken, productId);
+                // If valid (or iOS), finalize the transaction with the app stores
+                try {
+                    if (isIOS && transaction.transactionId) {
+                        await NativePurchases.acknowledgePurchase({ purchaseToken: transaction.transactionId });
+                    } else if (!isIOS && transaction.purchaseToken) {
+                        if (isConsumable) {
+                            await NativePurchases.consumePurchase({ purchaseToken: transaction.purchaseToken });
+                        } else {
+                            await NativePurchases.acknowledgePurchase({ purchaseToken: transaction.purchaseToken });
+                        }
+                    }
+                } catch (e) {
+                    console.error("[IAP] Failed to finalize transaction with store", e);
                 }
+
 
                 if (productId === IAP_PRODUCT_IDS.AD_FREE) {
                     localStorage.setItem("founder_sim_premium", "true");
