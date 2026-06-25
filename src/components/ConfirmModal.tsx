@@ -52,7 +52,7 @@ export function ConfirmModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[400px] bg-white border-none rounded-[2.5rem] p-8 shadow-2xl overflow-hidden [&>button]:hidden">
+            <DialogContent className="sm:max-w-[25rem] bg-white border-none rounded-[2.5rem] p-8 shadow-2xl overflow-hidden [&>button]:hidden">
                 <div className="flex flex-col items-center text-center">
                     {/* Icon Container */}
                     <div className={`mb-6 p-4 rounded-full ${getIconBg()} flex items-center justify-center`}>

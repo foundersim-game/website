@@ -143,7 +143,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
 
                                 <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex gap-2.5 mt-2">
                                     <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-snug">
+                                    <p className="text-[0.625rem] text-amber-700 dark:text-amber-400 leading-snug">
                                         If possible, include steps to reproduce the bug. We will follow up via email if we need more details.
                                     </p>
                                 </div>

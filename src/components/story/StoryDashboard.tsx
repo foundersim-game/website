@@ -498,15 +498,15 @@ export default function StoryDashboard({
           </div>
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{campaign.companyName}</p>
-            <p className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {currentMonth}</p>
-            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Story Mode · {campaign.founderName}</p>
+            <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {currentMonth}</p>
+            <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest leading-none">Story Mode · {campaign.founderName}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[11px] font-black px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1">
-            <span className="text-[10px]">💰</span> {fmtCash(m.cash)}
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[0.6875rem] font-black px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1">
+            <span className="text-[0.625rem]">💰</span> {fmtCash(m.cash)}
           </div>
-          <div className="text-[10px] font-black px-2.5 py-1.5 rounded-full shrink-0 hidden sm:flex items-center" style={{ background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}44` }}>
+          <div className="text-[0.625rem] font-black px-2.5 py-1.5 rounded-full shrink-0 hidden sm:flex items-center" style={{ background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}44` }}>
             ACT {storyState.currentAct}
           </div>
           <DropdownMenu>
@@ -534,10 +534,10 @@ export default function StoryDashboard({
           <div className="flex items-center gap-3">
             <span className="text-2xl">{currentStage.icon}</span>
             <div>
-              <p className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
+              <p className="text-[0.5625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
               <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
                 {currentStage.label}
-                {currentStage.next && <span className="text-slate-300 font-medium text-[9px] ml-1">→ Next: {currentStage.next}</span>}
+                {currentStage.next && <span className="text-slate-300 font-medium text-[0.5625rem] ml-1">→ Next: {currentStage.next}</span>}
               </p>
             </div>
           </div>
@@ -550,8 +550,8 @@ export default function StoryDashboard({
         </div>
         {isMilestoneExpanded && (
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 mt-1">
-            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-normal">{currentStage.desc}</p>
-            <p className="text-[9px] text-indigo-500 font-black uppercase tracking-widest mt-2">🎯 Win: {campaign.winCondition.description}</p>
+            <p className="text-[0.625rem] text-slate-600 dark:text-slate-400 font-medium leading-normal">{currentStage.desc}</p>
+            <p className="text-[0.5625rem] text-indigo-500 font-black uppercase tracking-widest mt-2">🎯 Win: {campaign.winCondition.description}</p>
           </div>
         )}
       </div>
@@ -562,7 +562,7 @@ export default function StoryDashboard({
           <span className="text-lg">⚡</span>
           <div>
             <p className="text-xs font-black text-indigo-900 dark:text-indigo-100 leading-none">Focus Energy</p>
-            <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-0.5">Refills each month</p>
+            <p className="text-[0.5625rem] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-0.5">Refills each month</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -587,11 +587,11 @@ export default function StoryDashboard({
           { icon: "🧭", label: `${m.pmf_score}/100`, sub: "PMF", color: "text-violet-600 dark:text-violet-400" },
           { icon: "🔴", label: `${m.technical_debt}/100`, sub: "Tech Debt", color: m.technical_debt > 60 ? "text-rose-600" : "text-slate-500" },
         ].map((stat, i) => (
-          <div key={i} className="flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[80px]">
+          <div key={i} className="flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[5rem]">
             <span className="text-lg">{stat.icon}</span>
             <div className="flex flex-col">
               <span className={cn("text-sm font-black leading-none", stat.color)}>{stat.label}</span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{stat.sub}</span>
+              <span className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{stat.sub}</span>
             </div>
           </div>
         ))}
@@ -623,7 +623,7 @@ export default function StoryDashboard({
             return (
               <div key={monthNum} className="mb-4">
                 <div className="flex items-center gap-2 mb-2 py-1">
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isCurrent ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
+                  <div className={`px-3 py-1 rounded-full text-[0.625rem] font-black uppercase tracking-widest ${isCurrent ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
                     Month {monthNum}{isCurrent ? " · Now" : ""}
                   </div>
                   <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
@@ -636,7 +636,7 @@ export default function StoryDashboard({
                         <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: style.strip }} />
                         <div className="flex-1 px-3 py-2.5 bg-white dark:bg-slate-900">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
+                            <span className="text-[0.5rem] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
                           </div>
                           <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold leading-snug">{ev.text}</p>
                         </div>
@@ -671,7 +671,7 @@ export default function StoryDashboard({
                 <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border", tab.color)}>
                   <span className="drop-shadow-sm">{tab.emoji}</span>
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{tab.label}</span>
+                <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -691,7 +691,7 @@ export default function StoryDashboard({
                 <span className="text-xl">{MAIN_TABS.find((t) => t.id === activeTab)?.emoji}</span>
                 <div>
                   <p className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight">{MAIN_TABS.find((t) => t.id === activeTab)?.label}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Story Mode · {campaign.founderName}</p>
+                  <p className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-widest">Story Mode · {campaign.founderName}</p>
                 </div>
               </div>
             </div>
@@ -705,7 +705,7 @@ export default function StoryDashboard({
                     <span className="text-4xl drop-shadow-sm">{cat.emoji}</span>
                     <div className="text-left flex-1">
                       <span className="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider leading-tight">{cat.label}</span>
-                      <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{cat.desc}</span>
+                      <span className="block text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-0.5">{cat.desc}</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-300" />
                   </button>
@@ -845,14 +845,14 @@ function ActionPanel({
         <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
         <div className="flex-1 min-w-0 pr-1">
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
-          <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight">{action.desc}</p>
+          <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500 leading-tight">{action.desc}</p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
-          {effectLines && <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right max-w-[120px] whitespace-normal leading-tight">{effectLines}</p>}
+          {effectLines && <p className="text-[0.5625rem] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right max-w-[7.5rem] whitespace-normal leading-tight">{effectLines}</p>}
           <div className="flex gap-1 items-center">
-            {(action.cashCost || 0) > 0 && <span className="text-[8px] font-bold text-rose-500 border border-rose-100 bg-rose-50 px-1.5 py-0.5 rounded-full">💸{fmtCash(action.cashCost!)}</span>}
-            {action.energyCost > 0 && <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>}
-            {action.energyCost === 0 && <span className="text-[8px] font-black bg-emerald-50 border border-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">Free</span>}
+            {(action.cashCost || 0) > 0 && <span className="text-[0.5rem] font-bold text-rose-500 border border-rose-100 bg-rose-50 px-1.5 py-0.5 rounded-full">💸{fmtCash(action.cashCost!)}</span>}
+            {action.energyCost > 0 && <span className="text-[0.5rem] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>}
+            {action.energyCost === 0 && <span className="text-[0.5rem] font-black bg-emerald-50 border border-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full">Free</span>}
           </div>
         </div>
       </button>
@@ -860,14 +860,14 @@ function ActionPanel({
   };
 
   const SH = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-5 first:mt-0">{children}</p>
+    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-5 first:mt-0">{children}</p>
   );
 
   const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
     <div className="mb-2">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-        <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">{Math.round(value)}</span>
+        <span className="text-[0.5625rem] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+        <span className="text-[0.625rem] font-black text-slate-700 dark:text-slate-300">{Math.round(value)}</span>
       </div>
       <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
         <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${Math.min(100, value)}%` }} />
@@ -884,11 +884,11 @@ function ActionPanel({
         <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
           <div className="flex justify-between items-end mb-1.5">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Engineering Capacity</p>
+              <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Engineering Capacity</p>
               <h3 className={cn("text-xl font-black italic leading-none", engCapacity < 50 ? "text-rose-500" : engCapacity < 80 ? "text-amber-500" : "text-emerald-500")}>{engCapacity}%</h3>
             </div>
             <div className="text-right">
-              <p className="text-[8px] font-bold text-slate-400 uppercase mb-0.5">Tech Debt</p>
+              <p className="text-[0.5rem] font-bold text-slate-400 uppercase mb-0.5">Tech Debt</p>
               <p className="text-xs font-black" style={{ color: m.technical_debt > 60 ? "#ef4444" : "#6366f1" }}>{m.technical_debt}/100</p>
             </div>
           </div>
@@ -900,18 +900,18 @@ function ActionPanel({
         {/* Innovation bar */}
         <div className="p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
           <div className="flex justify-between items-center mb-1.5">
-            <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest">🚀 Innovation Level</p>
+            <p className="text-[0.625rem] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest">🚀 Innovation Level</p>
             <p className="text-xs font-black text-violet-800 dark:text-violet-300">{Math.round(m.innovation || 0)}/100</p>
           </div>
           <div className="h-1.5 w-full bg-violet-100 dark:bg-violet-900/50 rounded-full overflow-hidden">
             <div className="h-full bg-violet-500 transition-all" style={{ width: `${m.innovation || 0}%` }} />
           </div>
-          <p className="mt-1.5 text-[7px] font-bold text-violet-600 uppercase leading-none">High Innovation boosts valuation & fundraising.</p>
+          <p className="mt-1.5 text-[0.4375rem] font-bold text-violet-600 uppercase leading-none">High Innovation boosts valuation & fundraising.</p>
         </div>
 
         {/* Pricing indicator */}
         <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 rounded-2xl flex justify-between items-center">
-          <p className="text-[9px] font-black text-indigo-700 uppercase tracking-widest">Pricing Tier</p>
+          <p className="text-[0.5625rem] font-black text-indigo-700 uppercase tracking-widest">Pricing Tier</p>
           <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">{fmtCash(m.pricing || 0)}/mo</span>
         </div>
 
@@ -941,7 +941,7 @@ function ActionPanel({
           ].map((s) => (
             <div key={s.label} className={cn("rounded-2xl p-2.5 text-center border", s.bg)}>
               <p className={cn("text-lg font-black leading-none", s.color)}>{s.value}</p>
-              <p className="text-[8px] font-black text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</p>
+              <p className="text-[0.5rem] font-black text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
@@ -949,16 +949,16 @@ function ActionPanel({
         {/* Sprint allocation quick view */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
           <div className="flex justify-between items-center mb-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sprint: Marketing Allocation</p>
-            <button onClick={onOpenSprint} className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg" style={{ color: accentColor, background: `${accentColor}15` }}>Adjust →</button>
+            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Sprint: Marketing Allocation</p>
+            <button onClick={onOpenSprint} className="text-[0.5625rem] font-black uppercase tracking-widest px-2 py-1 rounded-lg" style={{ color: accentColor, background: `${accentColor}15` }}>Adjust →</button>
           </div>
           <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${storyState.sprintAllocation.marketing}%`, background: accentColor }} />
           </div>
-          <p className="text-[9px] text-slate-400 mt-1">{storyState.sprintAllocation.marketing}% of sprint going to Marketing</p>
+          <p className="text-[0.5625rem] text-slate-400 mt-1">{storyState.sprintAllocation.marketing}% of sprint going to Marketing</p>
         </div>
 
-        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Growth Actions · Focus Required</p>
+        <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Growth Actions · Focus Required</p>
         <div className="space-y-1.5">{STORY_GROWTH_ACTIONS.map(renderActionCard)}</div>
       </div>
     );
@@ -971,13 +971,13 @@ function ActionPanel({
         <SH>Team Morale & Culture</SH>
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
           <div className="flex justify-between items-end mb-2">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Team Morale</p>
+            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Team Morale</p>
             <span className={cn("text-xl font-black", m.team_morale < 40 ? "text-rose-600" : m.team_morale > 70 ? "text-emerald-600" : "text-amber-600")}>{m.team_morale}/100</span>
           </div>
           <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div className={cn("h-full rounded-full transition-all", m.team_morale < 40 ? "bg-rose-500" : m.team_morale > 70 ? "bg-emerald-500" : "bg-amber-500")} style={{ width: `${m.team_morale}%` }} />
           </div>
-          {m.team_morale < 40 && <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mt-1.5">⚠️ CRISIS: Low morale causes resignations & productivity loss</p>}
+          {m.team_morale < 40 && <p className="text-[0.5rem] font-black text-rose-500 uppercase tracking-widest mt-1.5">⚠️ CRISIS: Low morale causes resignations & productivity loss</p>}
         </div>
 
         <SH>Bulk HR Policies</SH>
@@ -987,7 +987,7 @@ function ActionPanel({
         {storyState.keyPeople.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-6 text-center">
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No key people yet</p>
-            <p className="text-[10px] text-slate-300 mt-1">They'll appear as the story progresses</p>
+            <p className="text-[0.625rem] text-slate-300 mt-1">They'll appear as the story progresses</p>
           </div>
         ) : storyState.keyPeople.map((person) => {
           const hearts = Math.round((person.loyalty / 100) * 5);
@@ -999,15 +999,15 @@ function ActionPanel({
                   <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl">{person.emoji}</div>
                   <div>
                     <p className="text-sm font-black text-slate-900 dark:text-white">{person.displayName}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{person.title}</p>
+                    <p className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-widest">{person.title}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-base">{Array.from({ length: 5 }).map((_, i) => <span key={i} className={i < hearts ? "text-rose-500" : "text-slate-200 dark:text-slate-700"}>♥</span>)}</div>
-                  <p className="text-[9px] font-black text-slate-400">{person.loyalty}/100</p>
+                  <p className="text-[0.5625rem] font-black text-slate-400">{person.loyalty}/100</p>
                 </div>
               </div>
-              {isAtRisk && <p className="mt-2 text-[9px] font-black text-rose-500 uppercase tracking-widest">⚠️ AT RISK — Loyalty near betrayal threshold</p>}
+              {isAtRisk && <p className="mt-2 text-[0.5625rem] font-black text-rose-500 uppercase tracking-widest">⚠️ AT RISK — Loyalty near betrayal threshold</p>}
               <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full", person.loyalty < 40 ? "bg-rose-500" : person.loyalty < 70 ? "bg-amber-500" : "bg-emerald-500")} style={{ width: `${person.loyalty}%` }} />
               </div>
@@ -1034,7 +1034,7 @@ function ActionPanel({
             { label: "Burn Rate", value: fmtCash(burn), color: burn > m.revenue ? "text-rose-600" : "text-amber-600", bg: "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800" },
           ].map((card) => (
             <div key={card.label} className={cn("rounded-2xl p-3.5 border", card.bg)}>
-              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{card.label}</p>
+              <p className="text-[0.5rem] font-black text-slate-500 uppercase tracking-widest mb-1">{card.label}</p>
               <p className={cn("text-xl font-black italic leading-none", card.color)}>{card.value}</p>
             </div>
           ))}
@@ -1061,8 +1061,8 @@ function ActionPanel({
 
         {m.runway < 6 && (
           <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl">
-            <p className="text-[9px] font-black text-rose-700 dark:text-rose-400 uppercase tracking-widest">⚠️ CRITICAL: {m.runway} month runway</p>
-            <p className="text-[10px] text-rose-600 dark:text-rose-500 mt-1">Raise funding or cut costs immediately to survive.</p>
+            <p className="text-[0.5625rem] font-black text-rose-700 dark:text-rose-400 uppercase tracking-widest">⚠️ CRITICAL: {m.runway} month runway</p>
+            <p className="text-[0.625rem] text-rose-600 dark:text-rose-500 mt-1">Raise funding or cut costs immediately to survive.</p>
           </div>
         )}
 
@@ -1075,7 +1075,7 @@ function ActionPanel({
           ].map((s) => (
             <div key={s.label}>
               <p className={cn("text-lg font-black leading-none", s.color)}>{s.value}</p>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.label}</p>
+              <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
@@ -1105,16 +1105,16 @@ function ActionPanel({
                   <span className="text-2xl">{rival.emoji}</span>
                   <div>
                     <p className="text-sm font-black text-slate-900 dark:text-white">{rival.name}</p>
-                    <p className="text-[9px] text-slate-400 uppercase tracking-widest">{rival.tagline}</p>
+                    <p className="text-[0.5625rem] text-slate-400 uppercase tracking-widest">{rival.tagline}</p>
                   </div>
                 </div>
-                <span className={cn("text-[9px] font-black uppercase tracking-widest", statusColor)}>{rival.status}</span>
+                <span className={cn("text-[0.5625rem] font-black uppercase tracking-widest", statusColor)}>{rival.status}</span>
               </div>
               {upcomingActions.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800 space-y-1">
-                  <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest">Upcoming Moves:</p>
+                  <p className="text-[0.5rem] font-black text-rose-500 uppercase tracking-widest">Upcoming Moves:</p>
                   {upcomingActions.map((a, i) => (
-                    <p key={i} className="text-[10px] text-slate-500"><span className="font-black text-rose-500">Mo {a.atMonth}</span> — {a.description}</p>
+                    <p key={i} className="text-[0.625rem] text-slate-500"><span className="font-black text-rose-500">Mo {a.atMonth}</span> — {a.description}</p>
                   ))}
                 </div>
               )}
@@ -1132,14 +1132,14 @@ function ActionPanel({
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-100 rounded-2xl p-3 text-center">
             <p className="text-xl font-black text-violet-700 dark:text-violet-300">{snapshot.ceo_reputation}/100</p>
-            <p className="text-[8px] font-black text-violet-500 uppercase tracking-widest mt-0.5">CEO Reputation</p>
+            <p className="text-[0.5rem] font-black text-violet-500 uppercase tracking-widest mt-0.5">CEO Reputation</p>
             <div className="h-1.5 bg-violet-100 rounded-full overflow-hidden mt-2">
               <div className="h-full bg-violet-500" style={{ width: `${snapshot.ceo_reputation}%` }} />
             </div>
           </div>
           <div className="bg-pink-50 dark:bg-rose-950/20 border border-pink-100 rounded-2xl p-3 text-center">
             <p className="text-xl font-black text-pink-700 dark:text-rose-300">{m.brand_awareness}%</p>
-            <p className="text-[8px] font-black text-pink-500 uppercase tracking-widest mt-0.5">Brand Awareness</p>
+            <p className="text-[0.5rem] font-black text-pink-500 uppercase tracking-widest mt-0.5">Brand Awareness</p>
             <div className="h-1.5 bg-pink-100 rounded-full overflow-hidden mt-2">
               <div className="h-full bg-pink-500" style={{ width: `${m.brand_awareness}%` }} />
             </div>
@@ -1159,11 +1159,11 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 rounded-2xl">
-          <p className="text-[9px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-1">Current Stage</p>
+          <p className="text-[0.5625rem] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-1">Current Stage</p>
           <p className="text-lg font-black text-purple-900 dark:text-purple-200">{fundingStage}</p>
           <div className="flex items-center justify-between mt-2">
-            <p className="text-[10px] text-purple-600 dark:text-purple-500">Valuation: <span className="font-black">{fmtCash(snapshot.valuation)}</span></p>
-            <p className="text-[10px] text-purple-600 dark:text-purple-500">Runway: <span className="font-black">{m.runway === 99 ? "∞" : `${m.runway}mo`}</span></p>
+            <p className="text-[0.625rem] text-purple-600 dark:text-purple-500">Valuation: <span className="font-black">{fmtCash(snapshot.valuation)}</span></p>
+            <p className="text-[0.625rem] text-purple-600 dark:text-purple-500">Runway: <span className="font-black">{m.runway === 99 ? "∞" : `${m.runway}mo`}</span></p>
           </div>
         </div>
 
@@ -1187,8 +1187,8 @@ function ActionPanel({
         </div>
 
         <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 rounded-2xl">
-          <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest mb-1">💡 Fundraising Tip</p>
-          <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-relaxed">Build investor pipeline (6+ weeks) before running out of runway. Pitch at 60%+ PMF score for best terms.</p>
+          <p className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest mb-1">💡 Fundraising Tip</p>
+          <p className="text-[0.625rem] text-amber-700 dark:text-amber-400 leading-relaxed">Build investor pipeline (6+ weeks) before running out of runway. Pitch at 60%+ PMF score for best terms.</p>
         </div>
       </div>
     );
@@ -1200,12 +1200,12 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl">
-          <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest mb-1">Competitive Moat Score</p>
+          <p className="text-[0.5625rem] font-black text-emerald-700 uppercase tracking-widest mb-1">Competitive Moat Score</p>
           <p className="text-3xl font-black text-emerald-700 dark:text-emerald-300">{moatScore}<span className="text-base text-emerald-500">/100</span></p>
           <div className="h-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-full overflow-hidden mt-2">
             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${moatScore}%` }} />
           </div>
-          <p className="text-[9px] text-emerald-600 mt-1">Composite of Product Quality, Brand, Innovation & PMF</p>
+          <p className="text-[0.5625rem] text-emerald-600 mt-1">Composite of Product Quality, Brand, Innovation & PMF</p>
         </div>
 
         <SH>PMF Tracker</SH>
@@ -1218,8 +1218,8 @@ function ActionPanel({
           ].map((stat) => (
             <div key={stat.label}>
               <div className="flex justify-between mb-1">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
-                <span className={cn("text-[10px] font-black", stat.textColor)}>{stat.value}/100</span>
+                <span className="text-[0.5625rem] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                <span className={cn("text-[0.625rem] font-black", stat.textColor)}>{stat.value}/100</span>
               </div>
               <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full transition-all", stat.color)} style={{ width: `${stat.value}%` }} />
@@ -1230,7 +1230,7 @@ function ActionPanel({
 
         <SH>Win Condition Progress</SH>
         <div className="p-4 rounded-2xl border" style={{ background: `${accentColor}08`, borderColor: `${accentColor}40` }}>
-          <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Objective</p>
+          <p className="text-[0.5625rem] font-black uppercase tracking-widest mb-1" style={{ color: accentColor }}>Objective</p>
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{campaign.winCondition.description}</p>
         </div>
       </div>
@@ -1244,18 +1244,18 @@ function ActionPanel({
         <div className="grid grid-cols-2 gap-3">
           <div className={cn("p-4 rounded-2xl border text-center", m.founder_burnout > 60 ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-100")}>
             <p className={cn("text-3xl font-black leading-none", m.founder_burnout > 60 ? "text-rose-600" : "text-amber-600")}>{m.founder_burnout}%</p>
-            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">Burnout</p>
-            {m.founder_burnout > 80 && <p className="text-[8px] font-black text-rose-600 mt-1">🚨 CRITICAL</p>}
+            <p className="text-[0.5rem] font-black uppercase tracking-widest text-slate-500 mt-1">Burnout</p>
+            {m.founder_burnout > 80 && <p className="text-[0.5rem] font-black text-rose-600 mt-1">🚨 CRITICAL</p>}
           </div>
           <div className="p-4 rounded-2xl border bg-emerald-50 border-emerald-100 text-center">
             <p className="text-3xl font-black text-emerald-700 leading-none">{m.founder_health}%</p>
-            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">Health</p>
+            <p className="text-[0.5rem] font-black uppercase tracking-widest text-slate-500 mt-1">Health</p>
           </div>
         </div>
 
         {m.founder_burnout > 70 && (
           <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 rounded-2xl">
-            <p className="text-[9px] font-black text-rose-700 uppercase">⚠️ High burnout reduces max Focus Energy and risks game-ending collapse at 100%</p>
+            <p className="text-[0.5625rem] font-black text-rose-700 uppercase">⚠️ High burnout reduces max Focus Energy and risks game-ending collapse at 100%</p>
           </div>
         )}
 
@@ -1294,16 +1294,16 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 rounded-2xl">
-          <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest mb-1">Founder Skills</p>
-          <p className="text-[10px] text-blue-600 leading-relaxed">Skills grow automatically as you make decisions. Take bold actions to unlock higher tiers.</p>
+          <p className="text-[0.5625rem] font-black text-blue-700 uppercase tracking-widest mb-1">Founder Skills</p>
+          <p className="text-[0.625rem] text-blue-600 leading-relaxed">Skills grow automatically as you make decisions. Take bold actions to unlock higher tiers.</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3">
           {skillData.map((s) => (
             <div key={s.label}>
               <div className="flex justify-between mb-1">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{s.label}</span>
-                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">{s.value}/100</span>
+                <span className="text-[0.5625rem] font-black text-slate-500 uppercase tracking-widest">{s.label}</span>
+                <span className="text-[0.625rem] font-black text-slate-700 dark:text-slate-300">{s.value}/100</span>
               </div>
               <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full transition-all", s.color)} style={{ width: `${s.value}%` }} />
@@ -1318,7 +1318,7 @@ function ActionPanel({
         ) : (
           <div className="flex flex-wrap gap-2">
             {flags.map((flag) => (
-              <span key={flag} className="text-[10px] font-bold px-2.5 py-1 rounded-full border" style={{ background: `${accentColor}10`, color: accentColor, borderColor: `${accentColor}30` }}>
+              <span key={flag} className="text-[0.625rem] font-bold px-2.5 py-1 rounded-full border" style={{ background: `${accentColor}10`, color: accentColor, borderColor: `${accentColor}30` }}>
                 {flag.replace(/_/g, " ")}
               </span>
             ))}
@@ -1333,7 +1333,7 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 rounded-2xl flex justify-between items-center">
-          <p className="text-[9px] font-black text-violet-700 uppercase tracking-widest">CEO Reputation</p>
+          <p className="text-[0.5625rem] font-black text-violet-700 uppercase tracking-widest">CEO Reputation</p>
           <div className="flex items-center gap-2">
             <div className="w-20 h-1.5 bg-violet-100 rounded-full overflow-hidden">
               <div className="h-full bg-violet-500" style={{ width: `${snapshot.ceo_reputation}%` }} />
@@ -1342,7 +1342,7 @@ function ActionPanel({
           </div>
         </div>
 
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Presence Actions</p>
+        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Founder Presence Actions</p>
         <div className="space-y-1.5">{STORY_PERKS_ACTIONS.map(renderActionCard)}</div>
       </div>
     );
@@ -1353,8 +1353,8 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-100 rounded-2xl">
-          <p className="text-[9px] font-black text-purple-700 uppercase tracking-widest mb-1">🕊️ Philanthropy & Impact</p>
-          <p className="text-[10px] text-purple-600 leading-relaxed">Giving back enhances your CEO reputation, boosts team morale, and creates lasting brand differentiation.</p>
+          <p className="text-[0.5625rem] font-black text-purple-700 uppercase tracking-widest mb-1">🕊️ Philanthropy & Impact</p>
+          <p className="text-[0.625rem] text-purple-600 leading-relaxed">Giving back enhances your CEO reputation, boosts team morale, and creates lasting brand differentiation.</p>
         </div>
         <div className="space-y-1.5">{STORY_LEGACY_ACTIONS.map(renderActionCard)}</div>
       </div>
@@ -1380,8 +1380,8 @@ function ActionPanel({
             <span className="text-xl mt-0.5">{item.rival.emoji}</span>
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-black text-rose-500 uppercase">Month {item.action.atMonth}</span>
-                <span className="text-[9px] text-slate-400">· {item.rival.name}</span>
+                <span className="text-[0.625rem] font-black text-rose-500 uppercase">Month {item.action.atMonth}</span>
+                <span className="text-[0.5625rem] text-slate-400">· {item.rival.name}</span>
               </div>
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.action.description}</p>
             </div>
@@ -1394,7 +1394,7 @@ function ActionPanel({
         ) : storyState.pitchResults.slice(-5).map((p, i) => (
           <div key={i} className={cn("bg-white dark:bg-slate-900 rounded-2xl border px-4 py-3 flex items-center justify-between", p.won ? "border-emerald-100" : "border-rose-100")}>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{p.eventId.replace(/_/g, " ")}</span>
-            <span className={cn("text-[10px] font-black uppercase", p.won ? "text-emerald-600" : "text-rose-500")}>{p.result}</span>
+            <span className={cn("text-[0.625rem] font-black uppercase", p.won ? "text-emerald-600" : "text-rose-500")}>{p.result}</span>
           </div>
         ))}
       </div>
@@ -1417,7 +1417,7 @@ function ActionPanel({
               return (
                 <div key={id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 px-4 py-3">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{ev?.title || id.replace(/_/g, " ")}</p>
-                  {ev && <p className="text-[9px] text-slate-400 mt-0.5">Act {ev.act}</p>}
+                  {ev && <p className="text-[0.5625rem] text-slate-400 mt-0.5">Act {ev.act}</p>}
                 </div>
               );
             })}
@@ -1443,24 +1443,24 @@ function ActionPanel({
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-sm font-black text-slate-900 dark:text-white">{member.id.replace(/_/g, " ")}</p>
-                  <p className="text-[9px] text-slate-400 uppercase tracking-widest">{member.seat} · Agenda: {member.agenda}</p>
+                  <p className="text-[0.5625rem] text-slate-400 uppercase tracking-widest">{member.seat} · Agenda: {member.agenda}</p>
                 </div>
-                <span className={cn("text-[9px] font-black uppercase", isFriendly ? "text-emerald-600" : "text-rose-600")}>{isFriendly ? "Supportive" : "Hostile"}</span>
+                <span className={cn("text-[0.5625rem] font-black uppercase", isFriendly ? "text-emerald-600" : "text-rose-600")}>{isFriendly ? "Supportive" : "Hostile"}</span>
               </div>
               <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full", isFriendly ? "bg-emerald-500" : "bg-rose-500")} style={{ width: `${member.loyaltyToFounder}%` }} />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[8px] text-slate-400">Loyalty {member.loyaltyToFounder}/100</span>
-                <span className="text-[8px] text-slate-400">Influence {member.influence}/100</span>
+                <span className="text-[0.5rem] text-slate-400">Loyalty {member.loyaltyToFounder}/100</span>
+                <span className="text-[0.5rem] text-slate-400">Influence {member.influence}/100</span>
               </div>
             </div>
           );
         })}
 
         <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 rounded-2xl">
-          <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest mb-1">💡 Board Tip</p>
-          <p className="text-[10px] text-amber-700 leading-relaxed">Keep board members happy through successful milestones. Below 30 loyalty they vote against you.</p>
+          <p className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest mb-1">💡 Board Tip</p>
+          <p className="text-[0.625rem] text-amber-700 leading-relaxed">Keep board members happy through successful milestones. Below 30 loyalty they vote against you.</p>
         </div>
       </div>
     );
@@ -1477,9 +1477,9 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Legal Status</p>
+          <p className="text-[0.5625rem] font-black text-slate-500 uppercase tracking-widest mb-1">Legal Status</p>
           <p className="text-sm font-black text-emerald-600">✓ No active crises</p>
-          <p className="text-[10px] text-slate-400 mt-1">Story-driven legal crises appear as events. Resolve them below or via choices.</p>
+          <p className="text-[0.625rem] text-slate-400 mt-1">Story-driven legal crises appear as events. Resolve them below or via choices.</p>
         </div>
         <SH>Proactive Legal Actions</SH>
         <div className="space-y-1.5">{legalActions.map(renderActionCard)}</div>
@@ -1506,10 +1506,10 @@ function ActsPanel({ campaign, storyState, currentMonth, accentColor }: { campai
           <div key={act.act} className={cn("rounded-2xl border p-4 transition-all", isPast ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/10 opacity-70" : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900")}
             style={isCurrent ? { borderColor: `${accentColor}60`, background: `${accentColor}06` } : {}}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white" style={{ background: isPast ? "#10b981" : isCurrent ? accentColor : "#94a3b8" }}>
+              <span className="text-[0.5625rem] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white" style={{ background: isPast ? "#10b981" : isCurrent ? accentColor : "#94a3b8" }}>
                 Act {act.act} {isPast ? "✓" : isCurrent ? "← Now" : ""}
               </span>
-              {totalEvents > 0 && <span className="text-[9px] font-bold text-slate-400">{completedCount}/{totalEvents} events</span>}
+              {totalEvents > 0 && <span className="text-[0.5625rem] font-bold text-slate-400">{completedCount}/{totalEvents} events</span>}
             </div>
             <p className="text-sm font-black text-slate-900 dark:text-white">{act.title}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{act.description}</p>

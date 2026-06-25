@@ -104,7 +104,7 @@ function EquityCurve({ history }: { history: { month: number; value: number }[] 
                 <polyline points={svgPoints} fill="none" stroke={color} strokeWidth={2}
                     strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <div className="flex justify-between text-[9px] text-slate-400 font-medium mt-1 px-0.5">
+            <div className="flex justify-between text-[0.5625rem] text-slate-400 font-medium mt-1 px-0.5">
                 <span>Month {history[0].month}</span>
                 <span>Month {history[history.length - 1].month}</span>
             </div>
@@ -166,16 +166,16 @@ function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct,
         <div className="space-y-1.5">
             {displayHolders.map((sh, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider w-[48px] text-center shrink-0 ${typeColor[sh.type] || "bg-slate-100 text-slate-600"}`}>
+                    <span className={`text-[0.5rem] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider w-[3rem] text-center shrink-0 ${typeColor[sh.type] || "bg-slate-100 text-slate-600"}`}>
                         {typeLabel[sh.type] || sh.type}
                     </span>
                     <div className="grid grid-cols-[100px_1fr_40px] items-center gap-3 flex-1 min-w-0">
-                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name === "Insider / Management" || sh.name === "MGMT" ? "Management" : sh.name}</span>
+                        <span className="text-[0.625rem] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name === "Insider / Management" || sh.name === "MGMT" ? "Management" : sh.name}</span>
                         <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden w-full">
                             <div className={`h-full rounded-full transition-all ${sh.type === "player" ? "bg-emerald-500" : sh.type === "parent_company" ? "bg-indigo-500" : sh.type === "founder" ? "bg-amber-400" : sh.type === "vc" ? "bg-purple-400" : "bg-blue-400"}`}
                                 style={{ width: `${Math.min(100, sh.ownershipPct)}%` }} />
                         </div>
-                        <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 text-right">{sh.ownershipPct.toFixed(1)}%</span>
+                        <span className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200 text-right">{sh.ownershipPct.toFixed(1)}%</span>
                     </div>
                 </div>
             ))}
@@ -244,14 +244,14 @@ function StockDetail({
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-white/70 text-xs font-bold uppercase tracking-widest">{stock.symbol}</span>
-                            {stock.isRival && <span className="text-[8px] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">RIVAL</span>}
-                            {stock.isSubsidiary && <span className="text-[8px] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">SUBSIDIARY</span>}
-                            {stock.poisonPillActive && <span className="text-[8px] font-black bg-red-400/80 text-white px-2 py-0.5 rounded-full uppercase">☠️ Poison Pill</span>}
+                            {stock.isRival && <span className="text-[0.5rem] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">RIVAL</span>}
+                            {stock.isSubsidiary && <span className="text-[0.5rem] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">SUBSIDIARY</span>}
+                            {stock.poisonPillActive && <span className="text-[0.5rem] font-black bg-red-400/80 text-white px-2 py-0.5 rounded-full uppercase">☠️ Poison Pill</span>}
                         </div>
                         <h2 className="text-xl font-black text-white leading-tight">{stock.companyName}</h2>
-                        <p className="text-white/70 text-[10px] font-semibold mt-0.5">{stock.sector}</p>
+                        <p className="text-white/70 text-[0.625rem] font-semibold mt-0.5">{stock.sector}</p>
                     </div>
-                    <button onClick={onClose} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/20 text-white hover:bg-white/35 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest">
+                    <button onClick={onClose} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/20 text-white hover:bg-white/35 active:scale-95 transition-all text-[0.625rem] font-black uppercase tracking-widest">
                         <ChevronRight className="size-3.5 rotate-180" /> Back
                     </button>
                 </div>
@@ -268,7 +268,7 @@ function StockDetail({
                 {/* Ownership bar */}
                 {playerOwnershipPct > 0 && (
                     <div className="mt-3 bg-white/10 rounded-xl px-3 py-2">
-                        <div className="flex justify-between text-white/80 text-[9px] font-bold mb-1">
+                        <div className="flex justify-between text-white/80 text-[0.5625rem] font-bold mb-1">
                             <span>YOUR STAKE</span>
                             <span>
                                 {playerOwnershipPct === Infinity ? "100" : playerOwnershipPct.toFixed(2)}%
@@ -284,20 +284,20 @@ function StockDetail({
 
             {/* RSI + News quick bar */}
             <div className="shrink-0 px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                <div className={`text-[9px] font-black px-2 py-1 rounded-lg ${stock.rsi > 70 ? "bg-red-50 text-red-600" : stock.rsi < 30 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-600"}`}>
+                <div className={`text-[0.5625rem] font-black px-2 py-1 rounded-lg ${stock.rsi > 70 ? "bg-red-50 text-red-600" : stock.rsi < 30 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-600"}`}>
                     RSI {stock.rsi?.toFixed(0)}
                 </div>
-                <div className={`text-[9px] font-black px-2 py-1 rounded-lg ${stock.momentum > 0.2 ? "bg-emerald-50 text-emerald-600" : stock.momentum < -0.2 ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>
+                <div className={`text-[0.5625rem] font-black px-2 py-1 rounded-lg ${stock.momentum > 0.2 ? "bg-emerald-50 text-emerald-600" : stock.momentum < -0.2 ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>
                     MOM {stock.momentum > 0 ? "+" : ""}{(stock.momentum * 100).toFixed(0)}
                 </div>
-                <div className="flex-1 text-[9px] text-slate-500 font-medium truncate">{stock.recentNews || "No recent news"}</div>
+                <div className="flex-1 text-[0.5625rem] text-slate-500 font-medium truncate">{stock.recentNews || "No recent news"}</div>
             </div>
 
             {/* Sub-tabs */}
             <div className="shrink-0 flex border-b border-slate-100 dark:border-slate-800 px-4">
                 {(["trade", "info", "shareholders"] as const).map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                        className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-colors ${tab === t ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
+                        className={`flex-1 py-2.5 text-[0.625rem] font-black uppercase tracking-widest transition-colors ${tab === t ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
                         {t === "trade" ? "Trade" : t === "info" ? "Stock Info" : "Holders"}
                     </button>
                 ))}
@@ -312,9 +312,9 @@ function StockDetail({
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 flex items-center gap-3">
                                 <Briefcase className="size-4 text-indigo-500 shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Your Position</p>
+                                    <p className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Your Position</p>
                                     <p className="text-sm font-black text-indigo-900 dark:text-indigo-100">{pos.shares.toLocaleString()} shares</p>
-                                    <p className="text-[10px] text-indigo-500">Avg cost ${pos.averageCost.toFixed(2)} · P&L {pct(stock.currentPrice, pos.averageCost)}</p>
+                                    <p className="text-[0.625rem] text-indigo-500">Avg cost ${pos.averageCost.toFixed(2)} · P&L {pct(stock.currentPrice, pos.averageCost)}</p>
                                 </div>
                                 <p className={`text-sm font-black ${stock.currentPrice >= pos.averageCost ? "text-emerald-600" : "text-red-500"}`}>
                                     {stock.currentPrice >= pos.averageCost ? "+" : ""}{fmt((stock.currentPrice - pos.averageCost) * pos.shares)}
@@ -326,7 +326,7 @@ function StockDetail({
                         <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                             {(["buy", "sell"] as const).map(mode => (
                                 <button key={mode} onClick={() => { setTradeMode(mode); setShareInput("0"); }}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tradeMode === mode ? (mode === "buy" ? "bg-emerald-500 text-white shadow-sm" : "bg-rose-500 text-white shadow-sm") : "text-slate-500"}`}>
+                                    className={`flex-1 py-1.5 rounded-lg text-[0.625rem] font-black uppercase tracking-widest transition-all ${tradeMode === mode ? (mode === "buy" ? "bg-emerald-500 text-white shadow-sm" : "bg-rose-500 text-white shadow-sm") : "text-slate-500"}`}>
                                     {mode === "buy" ? "Buy Shares" : "Sell Shares"}
                                 </button>
                             ))}
@@ -335,8 +335,8 @@ function StockDetail({
                         {/* Trade input */}
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Shares</label>
-                                <span className="text-[10px] font-bold text-slate-400">
+                                <label className="text-[0.625rem] font-black text-slate-500 uppercase tracking-widest">Shares</label>
+                                <span className="text-[0.625rem] font-bold text-slate-400">
                                     {tradeMode === "buy" ? `Max buyable: ${Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares).toLocaleString()}` : `Owned: ${pos ? pos.shares.toLocaleString() : 0}`}
                                 </span>
                             </div>
@@ -365,7 +365,7 @@ function StockDetail({
                                             className="w-full accent-indigo-500"
                                             disabled={maxS <= 0}
                                         />
-                                        <div className="flex justify-between text-[8px] text-slate-400 font-bold mt-1">
+                                        <div className="flex justify-between text-[0.5rem] text-slate-400 font-bold mt-1">
                                             <span>0%</span>
                                             <span className="cursor-pointer hover:text-indigo-500" onClick={() => setShareInput(String(Math.floor(maxS * 0.25)))}>25%</span>
                                             <span className="cursor-pointer hover:text-indigo-500" onClick={() => setShareInput(String(Math.floor(maxS * 0.50)))}>50%</span>
@@ -378,7 +378,7 @@ function StockDetail({
                         </div>
 
                         {shares > 0 && (
-                            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-[11px] text-slate-600 dark:text-slate-400 flex justify-between">
+                            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-[0.6875rem] text-slate-600 dark:text-slate-400 flex justify-between">
                                 <span>{tradeMode === "buy" ? "Total cost" : "Est. proceeds"}</span>
                                 <span className="font-black text-slate-800 dark:text-slate-200">{fmt(cost)}</span>
                             </div>
@@ -402,14 +402,14 @@ function StockDetail({
                                     <ShieldAlert className="size-4 text-amber-600" />
                                     <p className="text-sm font-black text-amber-800">Hostile Takeover Eligible!</p>
                                 </div>
-                                <p className="text-[10px] text-amber-600">You hold {playerOwnershipPct.toFixed(1)}% — enough to initiate a {takeoverCheck.method}.</p>
+                                <p className="text-[0.625rem] text-amber-600">You hold {playerOwnershipPct.toFixed(1)}% — enough to initiate a {takeoverCheck.method}.</p>
                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-amber-700 uppercase tracking-widest">Tender Offer Premium: {toPremium}%</label>
+                                    <label className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest">Tender Offer Premium: {toPremium}%</label>
                                     <input type="range" min={15} max={60} value={toPremium} onChange={e => setToPremium(+e.target.value)}
                                         className="w-full accent-amber-500" />
-                                    <p className="text-[9px] text-amber-600">Est. acceptance: {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% of float · Offered price: ${(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/share</p>
+                                    <p className="text-[0.5625rem] text-amber-600">Est. acceptance: {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% of float · Offered price: ${(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/share</p>
                                     {stock.poisonPillActive && (
-                                        <p className="text-[9px] text-red-600 font-bold">☠️ Poison pill active — add 40% to your budget</p>
+                                        <p className="text-[0.5625rem] text-red-600 font-bold">☠️ Poison pill active — add 40% to your budget</p>
                                     )}
                                 </div>
                                 <button onClick={() => onTenderOffer(stock, toPremium, account)}
@@ -423,7 +423,7 @@ function StockDetail({
                         {!takeoverCheck.eligible && !stock.isSubsidiary && stock.symbol !== startup.symbol && playerOwnershipPct >= 15 && playerOwnershipPct < threshold && (
                             <div className="bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 flex gap-2 items-start">
                                 <AlertTriangle className="size-3 text-rose-500 mt-0.5 shrink-0" />
-                                <p className="text-[9px] text-rose-600 font-medium">
+                                <p className="text-[0.5625rem] text-rose-600 font-medium">
                                     You hold {playerOwnershipPct.toFixed(1)}%. Need {threshold}% for takeover. Crossing 20% may trigger a poison pill defense (15% chance).
                                 </p>
                             </div>
@@ -436,21 +436,21 @@ function StockDetail({
                         {/* Latest news */}
                         {stock.recentNews && (
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">This Month</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">This Month</p>
                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100">{stock.recentNews}</p>
                                 {stock.newsContext && (
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{stock.newsContext}</p>
+                                    <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{stock.newsContext}</p>
                                 )}
                             </div>
                         )}
                         {/* News history */}
                         {(stock.newsHistory || []).length > 0 && (
                             <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Previous Months</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Previous Months</p>
                                 {(stock.newsHistory || []).map((news, i) => (
                                     <div key={i} className="flex gap-2 items-start">
-                                        <span className="text-[8px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded shrink-0">{i + 1}mo ago</span>
-                                        <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">{news}</p>
+                                        <span className="text-[0.5rem] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded shrink-0">{i + 1}mo ago</span>
+                                        <p className="text-[0.625rem] text-slate-600 dark:text-slate-400 font-medium">{news}</p>
                                     </div>
                                 ))}
                             </div>
@@ -466,7 +466,7 @@ function StockDetail({
                                 { label: "52W Low", value: `$${Math.min(...stock.priceHistory).toFixed(2)}` },
                             ].map(({ label, value }) => (
                                 <div key={label} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                                    <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
                                     <p className="text-sm font-black text-slate-800 dark:text-slate-200 mt-0.5">{value}</p>
                                 </div>
                             ))}
@@ -478,18 +478,18 @@ function StockDetail({
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-1">
                             <Users className="size-3.5 text-slate-400" />
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Top Shareholders</p>
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Top Shareholders</p>
                         </div>
                         <ShareholdersPanel stock={stock} personalOwnershipPct={personalOwnershipPct} corporateOwnershipPct={corporateOwnershipPct} startup={startup} />
                         {playerOwnershipPct >= 5 && !stock.isSubsidiary && stock.symbol !== startup.symbol && (
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[9px] text-amber-700 font-medium">
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[0.5625rem] text-amber-700 font-medium">
                                 📋 SEC 13D Filing — Your {playerOwnershipPct.toFixed(1)}% stake is now public. Other shareholders are watching.
                             </div>
                         )}
                         <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2">
-                            <p className="text-[9px] text-slate-500">Control threshold for this company:</p>
+                            <p className="text-[0.5625rem] text-slate-500">Control threshold for this company:</p>
                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{threshold}%
-                                <span className="text-[10px] font-semibold text-slate-400 ml-1">({(stock.companyTier || "").replace("_", " ")})</span>
+                                <span className="text-[0.625rem] font-semibold text-slate-400 ml-1">({(stock.companyTier || "").replace("_", " ")})</span>
                             </p>
                         </div>
                     </div>
@@ -607,7 +607,7 @@ export default function StockMarketView({
                 <div className="flex gap-2 mb-4">
                     {(["personal", "corporate"] as const).map(acc => (
                         <button key={acc} onClick={() => setAccount(acc)}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${account === acc ? "bg-white text-indigo-700" : "bg-white/15 text-white/70"}`}>
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.625rem] font-black uppercase tracking-widest transition-all ${account === acc ? "bg-white text-indigo-700" : "bg-white/15 text-white/70"}`}>
                             {acc === "personal" ? <User className="size-3" /> : <Building2 className="size-3" />}
                             <span className="font-bold">{acc === "personal" ? "Personal" : "Corporate"}</span>
                         </button>
@@ -617,15 +617,15 @@ export default function StockMarketView({
                 {/* Wealth summary */}
                 <div className="bg-white/10 rounded-2xl px-4 py-3 grid grid-cols-3 gap-3 text-center">
                     <div>
-                        <p className="text-indigo-200 text-[8px] font-bold uppercase tracking-widest">Cash</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Cash</p>
                         <p className="text-white font-black text-sm mt-0.5">{fmt(cash)}</p>
                     </div>
                     <div>
-                        <p className="text-indigo-200 text-[8px] font-bold uppercase tracking-widest">Portfolio</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Portfolio</p>
                         <p className="text-white font-black text-sm mt-0.5">{fmt(portValue)}</p>
                     </div>
                     <div>
-                        <p className="text-indigo-200 text-[8px] font-bold uppercase tracking-widest">Total</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Total</p>
                         <p className="text-emerald-300 font-black text-sm mt-0.5">{fmt(totalWealth)}</p>
                     </div>
                 </div>
@@ -636,7 +636,7 @@ export default function StockMarketView({
                         className={`mt-2 w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${cfoAutoTrade ? "bg-emerald-500/20 border border-emerald-400/30" : "bg-white/10"}`}>
                         <div className="flex items-center gap-2">
                             <Zap className={`size-3 ${cfoAutoTrade ? "text-emerald-300" : "text-white/50"}`} />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${cfoAutoTrade ? "text-emerald-300" : "text-white/60"}`}>
+                            <span className={`text-[0.625rem] font-black uppercase tracking-widest ${cfoAutoTrade ? "text-emerald-300" : "text-white/60"}`}>
                                 CFO Auto-Trading {cfoAutoTrade ? "ON" : "OFF"}
                             </span>
                         </div>
@@ -685,7 +685,7 @@ export default function StockMarketView({
                     <button key={key} onClick={() => setMainTab(key as any)}
                         className={`flex-1 flex flex-col items-center py-3 gap-0.5 transition-colors ${mainTab === key ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
                         <Icon className="size-4" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+                        <span className="text-[0.5625rem] font-black uppercase tracking-widest">{label}</span>
                     </button>
                 ))}
             </div>
@@ -702,7 +702,7 @@ export default function StockMarketView({
                             <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                                 {sectors.map(s => (
                                     <button key={s} onClick={() => setSectorFilter(s)}
-                                        className={`shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${sectorFilter === s ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"}`}>
+                                        className={`shrink-0 px-2.5 py-1 rounded-full text-[0.5625rem] font-black uppercase tracking-widest transition-all border ${sectorFilter === s ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"}`}>
                                         {s}
                                     </button>
                                 ))}
@@ -712,9 +712,9 @@ export default function StockMarketView({
                         {/* Active Tips */}
                         {activeTips && activeTips.length > 0 && (
                             <div className="px-4 py-2 bg-purple-50 dark:bg-slate-800/80 border-b border-purple-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-inner">
-                                <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider whitespace-nowrap">Active Tips:</span>
+                                <span className="text-[0.625rem] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider whitespace-nowrap">Active Tips:</span>
                                 {activeTips.map(t => (
-                                    <div key={t.symbol} className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-200 dark:border-purple-900 text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap shadow-sm">
+                                    <div key={t.symbol} className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-200 dark:border-purple-900 text-[0.625rem] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap shadow-sm">
                                         <Zap className="w-3 h-3 text-purple-500" />
                                         {t.symbol} <span className="text-slate-400 font-normal">({t.monthsLeft}mo)</span>
                                     </div>
@@ -735,21 +735,21 @@ export default function StockMarketView({
                                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900 active:bg-slate-100 transition-colors text-left">
                                         {/* Symbol badge */}
                                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${SECTOR_COLORS[stock.sector] || "from-slate-400 to-slate-500"} flex items-center justify-center shrink-0`}>
-                                            <span className="text-white text-[8px] font-black">{stock.symbol.slice(0, 4)}</span>
+                                            <span className="text-white text-[0.5rem] font-black">{stock.symbol.slice(0, 4)}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100 truncate">{stock.companyName}</p>
-                                                {owned > 0 && <span className="text-[7px] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">HELD</span>}
-                                                {stock.isRival && <span className="text-[7px] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full shrink-0">RIVAL</span>}
+                                                {owned > 0 && <span className="text-[0.4375rem] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">HELD</span>}
+                                                {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full shrink-0">RIVAL</span>}
                                             </div>
-                                            <p className="text-[10px] text-slate-400 font-medium truncate">{stock.recentNews || "No news"}</p>
+                                            <p className="text-[0.625rem] text-slate-400 font-medium truncate">{stock.recentNews || "No news"}</p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <Sparkline data={stock.priceHistory} positive={change >= 0} />
                                             <div className="text-right">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">${stock.currentPrice.toFixed(2)}</p>
-                                                <p className={`text-[10px] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                                <p className={`text-[0.625rem] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                                                     {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                                                 </p>
                                             </div>
@@ -768,7 +768,7 @@ export default function StockMarketView({
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
                             <div className="flex justify-between items-center mb-3">
                                 <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Portfolio Value</p>
+                                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Portfolio Value</p>
                                     <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{fmt(portValue)}</p>
                                 </div>
                                 {portHistory.length >= 2 && (
@@ -777,7 +777,7 @@ export default function StockMarketView({
                                             {portHistory[portHistory.length - 1].value >= portHistory[0].value ? "+" : ""}
                                             {fmt(portHistory[portHistory.length - 1].value - portHistory[0].value)}
                                         </p>
-                                        <p className="text-[9px] text-slate-400">all time</p>
+                                        <p className="text-[0.5625rem] text-slate-400">all time</p>
                                     </div>
                                 )}
                             </div>
@@ -793,7 +793,7 @@ export default function StockMarketView({
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Holdings</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Holdings</p>
                                 {portfolio.map(pos => {
                                     const foundStock = stocks.find(s => s.symbol === pos.symbol);
                                     // Fallback for private/pre-IPO shares (like founder equity) not yet listed
@@ -818,15 +818,15 @@ export default function StockMarketView({
                                         <button key={pos.symbol} onClick={() => setSelectedStock(displayStock)}
                                             className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-3 flex items-center gap-3 hover:border-indigo-200 transition-all active:scale-[0.99]">
                                             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${SECTOR_COLORS[displayStock.sector] || "from-slate-400 to-slate-500"} flex items-center justify-center shrink-0`}>
-                                                <span className="text-white text-[8px] font-black">{displayStock.symbol.slice(0, 4)}</span>
+                                                <span className="text-white text-[0.5rem] font-black">{displayStock.symbol.slice(0, 4)}</span>
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100">{displayStock.symbol}</p>
-                                                <p className="text-[10px] text-slate-400">{pos.shares.toLocaleString()} shares · avg ${pos.averageCost.toFixed(2)}</p>
+                                                <p className="text-[0.625rem] text-slate-400">{pos.shares.toLocaleString()} shares · avg ${pos.averageCost.toFixed(2)}</p>
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">{fmt(currentVal)}</p>
-                                                <p className={`text-[10px] font-black flex items-center justify-end gap-0.5 ${isGain ? "text-emerald-500" : "text-red-500"}`}>
+                                                <p className={`text-[0.625rem] font-black flex items-center justify-end gap-0.5 ${isGain ? "text-emerald-500" : "text-red-500"}`}>
                                                     {isGain ? <ArrowUpRight className="size-2.5" /> : <ArrowDownRight className="size-2.5" />}
                                                     {isGain ? "+" : ""}{gainLossPct.toFixed(1)}%
                                                 </p>
@@ -844,7 +844,7 @@ export default function StockMarketView({
                     <div className="px-4 py-4 space-y-3">
                         <div className="flex items-center gap-2 mb-1">
                             <Info className="size-3 text-slate-400" />
-                            <p className="text-[9px] text-slate-400 font-medium">News for stocks you hold, your company, rivals & subsidiaries</p>
+                            <p className="text-[0.5625rem] text-slate-400 font-medium">News for stocks you hold, your company, rivals & subsidiaries</p>
                         </div>
                         {newsStocks.length === 0 ? (
                             <div className="text-center py-10">
@@ -861,18 +861,18 @@ export default function StockMarketView({
                                     <button key={stock.symbol} onClick={() => setSelectedStock(stock)}
                                         className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-left hover:border-indigo-200 transition-all active:scale-[0.99]">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${SECTOR_BADGE[stock.sector] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                                            <span className={`text-[0.5rem] font-black px-2 py-0.5 rounded-full border ${SECTOR_BADGE[stock.sector] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
                                                 {stock.symbol}
                                             </span>
-                                            {stock.isRival && <span className="text-[7px] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full">RIVAL</span>}
-                                            {stock.isSubsidiary && <span className="text-[7px] font-black bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full">SUBSIDIARY</span>}
-                                            <span className={`ml-auto text-[10px] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                            {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full">RIVAL</span>}
+                                            {stock.isSubsidiary && <span className="text-[0.4375rem] font-black bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full">SUBSIDIARY</span>}
+                                            <span className={`ml-auto text-[0.625rem] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                                                 {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                                             </span>
                                         </div>
                                         <p className="text-sm font-black text-slate-800 dark:text-slate-100">{stock.recentNews}</p>
                                         {stock.newsContext && (
-                                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{stock.newsContext}</p>
+                                            <p className="text-[0.625rem] text-slate-500 mt-1 leading-relaxed">{stock.newsContext}</p>
                                         )}
                                     </button>
                                 );

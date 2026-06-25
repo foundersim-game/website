@@ -254,7 +254,7 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                         </p>
                     </div>
                     {owned ? (
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase shrink-0">Owned</span>
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[0.625rem] font-black uppercase shrink-0">Owned</span>
                     ) : overrideBuyAction ? (
                         overrideBuyAction
                     ) : (
@@ -344,10 +344,10 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                                             key={role}
                                             onClick={() => handlePurchase(IAP_PRODUCT_IDS.POACH_10X, { role: role as any })}
                                             disabled={isLoading || getProductUI(IAP_PRODUCT_IDS.POACH_10X).priceString === "..."}
-                                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center"
+                                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[0.625rem] font-black uppercase shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center"
                                         >
                                             <span>Hire {role}</span>
-                                            <span className="opacity-80 text-[8px]">{getProductUI(IAP_PRODUCT_IDS.POACH_10X).priceString}</span>
+                                            <span className="opacity-80 text-[0.5rem]">{getProductUI(IAP_PRODUCT_IDS.POACH_10X).priceString}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -388,7 +388,7 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                     >
                         Restore Purchases
                     </button>
-                    <p className="text-[10px] text-slate-400 mt-2">Prices are displayed in your local currency. Thank you for playing Founder Sim!</p>
+                    <p className="text-[0.625rem] text-slate-400 mt-2">Prices are displayed in your local currency. Thank you for playing Founder Sim!</p>
                 </div>
             </div>
         </div>

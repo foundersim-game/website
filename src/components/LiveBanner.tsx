@@ -86,7 +86,7 @@ export function LiveBanner({ onActiveChange }: { onActiveChange?: (active: boole
                     {/* Icon + label */}
                     <div className="shrink-0 flex items-center gap-1.5">
                         <Megaphone size={12} className="text-yellow-300 shrink-0" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-yellow-300 whitespace-nowrap">
+                        <span className="text-[0.5625rem] font-black uppercase tracking-widest text-yellow-300 whitespace-nowrap">
                             ALERT
                         </span>
                     </div>
@@ -94,7 +94,7 @@ export function LiveBanner({ onActiveChange }: { onActiveChange?: (active: boole
                     {/* Seamless marquee — two copies so it loops without jumping */}
                     <div className="flex-1 overflow-hidden relative">
                         <div
-                            className="whitespace-nowrap text-[11px] font-semibold text-white/95 inline-flex"
+                            className="whitespace-nowrap text-[0.6875rem] font-semibold text-white/95 inline-flex"
                             style={{ animation: "marqueeScroll 18s linear infinite" }}
                         >
                             <span className="pr-16">{banner.text}</span>

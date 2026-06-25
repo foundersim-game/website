@@ -278,8 +278,6 @@ export async function getLeaderboard(category: "bestVentureValuation" | "totalLi
         const q = query(
             collection(db, "players"),
             where(category, ">=", LEADERBOARD_MIN_WEALTH),
-            where("shadowbanned", "!=", true),
-            orderBy("shadowbanned"),   // Firestore requires orderBy for != filters
             orderBy(category, "desc"),
             limit(limitCount)
         );

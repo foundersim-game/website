@@ -173,7 +173,7 @@ export default function Home() {
               <motion.p
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="mt-4 text-[10px] font-bold uppercase tracking-[0.4em] text-indigo-500 dark:text-indigo-400"
+                className="mt-4 text-[0.625rem] font-bold uppercase tracking-[0.4em] text-indigo-500 dark:text-indigo-400"
               >
                 Loading...
               </motion.p>
@@ -226,10 +226,9 @@ export default function Home() {
       </button>
 
       <div
-        className="w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden justify-evenly py-2"
+        className={`w-full max-w-sm mx-auto flex flex-col h-[100dvh] px-6 relative z-10 overflow-hidden justify-evenly py-2 ${isPremium ? 'pb-[calc(env(safe-area-inset-bottom,0px)+8px)]' : 'pb-[calc(env(safe-area-inset-bottom,0px)+76px)] md:pb-[calc(env(safe-area-inset-bottom,0px)+120px)]'}`}
         style={{
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${isPremium ? '8px' : '76px'})`
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)'
         }}
       >
         {/* --- TOP SECTION (Logo & Stats) --- */}
@@ -250,14 +249,14 @@ export default function Home() {
             </motion.div>
           </div>
 
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mb-3">
+          <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mb-3">
             Build · Grow · Exit
           </p>
 
           {/* Version tag - Refined v1.6 */}
           <div className="flex items-center gap-1.5 bg-slate-500/5 dark:bg-white/5 border border-slate-500/10 dark:border-white/10 rounded-full px-4 py-1.5 mb-1">
             <span className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" />
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 2.0.0</span>
+            <span className="text-[0.625rem] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">VERSION 2.0.0</span>
           </div>
 
           {/* Career Stats - Compact Glassmorphic Cards */}
@@ -272,10 +271,10 @@ export default function Home() {
               <div className="size-6 rounded-lg bg-amber-500 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white mb-1 group-hover:scale-110 transition-transform">
                 <Trophy className="size-3" />
               </div>
-              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Exits</p>
+              <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Exits</p>
               <div className="flex items-baseline gap-1 mt-0">
                 <p className="text-lg font-black text-slate-900 dark:text-white leading-tight">{legacyData?.totalExits || 0}</p>
-                <span className="text-[8px] font-bold text-slate-400 uppercase">Wins</span>
+                <span className="text-[0.5rem] font-bold text-slate-400 uppercase">Wins</span>
               </div>
             </div>
 
@@ -284,10 +283,10 @@ export default function Home() {
               <div className="size-6 rounded-lg bg-indigo-600 shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white mb-1 group-hover:scale-110 transition-transform">
                 <Award className="size-3" />
               </div>
-              <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Experience</p>
+              <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Experience</p>
               <div className="flex items-baseline gap-1 mt-0">
                 <p className="text-lg font-black text-slate-900 dark:text-white leading-tight">{legacyData?.unspentPoints || 0}</p>
-                <span className="text-[8px] font-bold text-indigo-500 dark:text-indigo-400 uppercase">XP</span>
+                <span className="text-[0.5rem] font-bold text-indigo-500 dark:text-indigo-400 uppercase">XP</span>
               </div>
             </div>
           </motion.div>
@@ -303,7 +302,7 @@ export default function Home() {
           {/* Hall of Fame - Compact */}
           <div className="w-full flex flex-col relative shrink h-full">
             <div className="absolute inset-0 bg-indigo-500/5 blur-2xl -z-10" />
-            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-1 text-center flex items-center justify-center gap-1.5 shrink-0">
+            <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-1 text-center flex items-center justify-center gap-1.5 shrink-0">
               <Trophy className="size-2.5 text-amber-500" /> The Hall of Fame
             </p>
             <div className="space-y-1.5 overflow-y-auto w-full custom-scrollbar pr-1 shrink min-h-0 h-full">
@@ -320,8 +319,8 @@ export default function Home() {
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="size-6 rounded-lg bg-indigo-500/10 flex items-center justify-center text-sm">{entry.outcome === 'ipo' ? '🏛️' : '💰'}</div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wider mt-0">
+                          <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-100 truncate">{entry.companyName}</p>
+                          <p className="text-[0.5rem] font-bold text-slate-500 uppercase tracking-wider mt-0">
                             <span className={cn(entry.outcome === 'ipo' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>
                               {entry.outcome === 'acquired' || entry.outcome === 'acquisition' ? 'acquired' : entry.outcome}
                             </span> · {formatMoney(entry.valuation)}
@@ -329,13 +328,13 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="text-right ml-2 shrink-0">
-                        <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400">+{entry.pointsEarned} XP</span>
+                        <span className="text-[0.5rem] font-black text-indigo-600 dark:text-indigo-400">+{entry.pointsEarned} XP</span>
                       </div>
                     </motion.div>
                   ))
               ) : (
                 <div className="w-full h-full min-h-[4rem] py-2 bg-white/20 dark:bg-slate-900/20 backdrop-blur-sm border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl px-3 flex flex-col items-center justify-center gap-1 group">
-                  <p className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">No successful exits yet</p>
+                  <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">No successful exits yet</p>
                 </div>
               )}
             </div>
@@ -349,7 +348,7 @@ export default function Home() {
               { label: "Sales Pipeline", icon: "🎯" },
               { label: "Co-Founders", icon: "🤝" }
             ].map(tag => (
-              <span key={tag.label} className="text-[8px] font-black text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm shadow-sm border border-white dark:border-white/5 rounded-full px-2.5 py-1 flex items-center gap-1">
+              <span key={tag.label} className="text-[0.5rem] font-black text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm shadow-sm border border-white dark:border-white/5 rounded-full px-2.5 py-1 flex items-center gap-1">
                 <span className="opacity-80">{tag.icon}</span> {tag.label}
               </span>
             ))}
@@ -370,14 +369,14 @@ export default function Home() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-600" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-              <div className="absolute inset-[1px] bg-gradient-to-r from-indigo-400/20 to-violet-500/20 rounded-[15px] pointer-events-none border border-white/20" />
+              <div className="absolute inset-[1px] bg-gradient-to-r from-indigo-400/20 to-violet-500/20 rounded-[0.9375rem] pointer-events-none border border-white/20" />
               <div className="relative z-10 flex items-center justify-center gap-2">
                 <div className="size-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
                   <Zap className="size-3.5 fill-white text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[7px] font-black text-white/70 uppercase tracking-widest leading-none mb-0.5">Resume Career</p>
-                  <p className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider leading-none">CONTINUE GAME</p>
+                  <p className="text-[0.4375rem] font-black text-white/70 uppercase tracking-widest leading-none mb-0.5">Resume Career</p>
+                  <p className="text-[0.625rem] sm:text-xs font-black text-white uppercase tracking-wider leading-none">CONTINUE GAME</p>
                 </div>
               </div>
             </button>
@@ -396,17 +395,17 @@ export default function Home() {
                 <div className="absolute inset-0 group-hover:bg-slate-50 dark:group-hover:bg-white/5 transition-colors" />
                 <div className="relative z-10 flex items-center justify-center gap-2">
                   <Plus className="size-3 text-slate-400" />
-                  <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">New Game</span>
+                  <span className="text-[0.625rem] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">New Game</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700" />
                 <div className="absolute inset-0 group-hover:bg-black/10 transition-colors" />
-                <div className="absolute inset-[1px] bg-gradient-to-r from-white/10 to-transparent rounded-[15px] border border-white/10" />
+                <div className="absolute inset-[1px] bg-gradient-to-r from-white/10 to-transparent rounded-[0.9375rem] border border-white/10" />
                 <div className="relative z-10 flex items-center justify-center gap-2">
                   <Plus className="size-3.5 text-white" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">START NEW JOURNEY</span>
+                  <span className="text-[0.625rem] font-black text-white uppercase tracking-widest">START NEW JOURNEY</span>
                 </div>
               </>
             )}
@@ -425,13 +424,13 @@ export default function Home() {
                   <BookOpen className="size-3.5 text-white" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="text-[11px] font-black text-amber-900 dark:text-amber-100 uppercase tracking-widest leading-none">Story Mode</span>
-                  <span className="text-[8px] font-bold text-amber-700/70 dark:text-amber-400/70 uppercase tracking-wider mt-0.5">Rewrite History</span>
+                  <span className="text-[0.6875rem] font-black text-amber-900 dark:text-amber-100 uppercase tracking-widest leading-none">Story Mode</span>
+                  <span className="text-[0.5rem] font-bold text-amber-700/70 dark:text-amber-400/70 uppercase tracking-wider mt-0.5">Rewrite History</span>
                 </div>
               </div>
               <div className="flex items-center gap-1 bg-gradient-to-r from-rose-500 to-orange-500 text-white px-2.5 py-1 rounded-full shadow-md animate-pulse">
                 <Sparkles className="size-2.5 fill-white" />
-                <span className="text-[9px] font-black uppercase tracking-widest leading-none mt-0.5">NEW</span>
+                <span className="text-[0.5625rem] font-black uppercase tracking-widest leading-none mt-0.5">NEW</span>
               </div>
             </div>
           </button>
@@ -442,7 +441,7 @@ export default function Home() {
               className="h-[min(6vh,3rem)] rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0 group"
             >
               <FolderOpen className="size-3 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-              <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Load Saves</span>
+              <span className="text-[0.5rem] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Load Saves</span>
             </button>
 
             <button
@@ -450,23 +449,23 @@ export default function Home() {
               className="h-[min(6vh,3rem)] rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-white dark:border-white/5 shadow-sm hover:bg-white/80 dark:hover:bg-white/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-0 group"
             >
               <HelpCircle className="size-3 text-slate-400 group-hover:text-violet-500 transition-colors" />
-              <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Help</span>
+              <span className="text-[0.5rem] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Help</span>
             </button>
           </div>
 
         </motion.div>
 
         <div className="flex flex-col items-center gap-[max(0.5vh,0.25rem)] shrink-0 pt-[max(0.5vh,0.25rem)] text-center">
-          <p className="text-[9px] text-slate-400 font-bold tracking-tight">
+          <p className="text-[0.5625rem] text-slate-400 font-bold tracking-tight">
             FounderSim · Real startup simulation
           </p>
-          <p className="text-[9px] text-slate-400/80 font-bold tracking-tight">
+          <p className="text-[0.5625rem] text-slate-400/80 font-bold tracking-tight">
             © {new Date().getFullYear()} SMISH Ventures. All rights reserved.
           </p>
           <a
             href="https://foundersim.fun/privacy"
             target="_blank"
-            className="text-[9px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold hover:underline transition-colors"
+            className="text-[0.5625rem] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold hover:underline transition-colors"
           >
             Privacy Policy
           </a>
@@ -493,7 +492,7 @@ export default function Home() {
             >
               <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5" />
               <h2 className="text-lg font-black text-slate-900 dark:text-white mb-1">Load Game</h2>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4">{savedGames.length}/{MAX_SLOTS} slots used</p>
+              <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500 mb-4">{savedGames.length}/{MAX_SLOTS} slots used</p>
 
               <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                 {/* Filled Slots */}
@@ -520,12 +519,12 @@ export default function Home() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-black text-slate-900 text-sm truncate">{save.companyName}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
+                            <p className="text-[0.625rem] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
                             <div className="flex items-center gap-2 mt-2">
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${stageColor(save.stage)}`}>
+                              <span className={`text-[0.5625rem] font-bold px-2 py-0.5 rounded-full border ${stageColor(save.stage)}`}>
                                 {save.stage}
                               </span>
-                              <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              <span className="text-[0.5625rem] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                                 {formatMoney(save.valuation)}
                               </span>
                             </div>

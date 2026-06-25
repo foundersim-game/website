@@ -159,20 +159,20 @@ export function ManageSubsidiaryModal({
                     {isListed ? (
                         <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/20 dark:to-violet-950/20 border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-4 space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400">Stock Market Info</span>
-                                <span className="text-[10px] font-black uppercase bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-md">
+                                <span className="text-[0.625rem] font-black uppercase text-indigo-700 dark:text-indigo-400">Stock Market Info</span>
+                                <span className="text-[0.625rem] font-black uppercase bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-md">
                                     {listedStock.symbol}
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <p className="text-[8px] uppercase font-black text-slate-400">Share Price</p>
+                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Share Price</p>
                                     <p className="text-base font-black text-slate-800 dark:text-slate-200 mt-0.5">
                                         ${listedStock.currentPrice.toFixed(2)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] uppercase font-black text-slate-400">Market Capitalization</p>
+                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Market Capitalization</p>
                                     <p className="text-base font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
                                         {formatMoney(valuation)}
                                     </p>
@@ -180,13 +180,13 @@ export function ManageSubsidiaryModal({
                             </div>
                             <div className="border-t border-indigo-100 dark:border-indigo-900/40 pt-3 flex justify-between items-center">
                                 <div>
-                                    <p className="text-[8px] uppercase font-black text-slate-400 font-bold">Parent Ownership Stake</p>
+                                    <p className="text-[0.5rem] uppercase font-black text-slate-400 font-bold">Parent Ownership Stake</p>
                                     <p className="text-xs font-black text-slate-700 dark:text-slate-300 mt-0.5">
                                         {formatNumber(corpShares)} shares ({ownershipPct.toFixed(1)}%)
                                     </p>
                                 </div>
                                 <span className={cn(
-                                    "text-[9px] font-black px-2 py-1 rounded-md border",
+                                    "text-[0.5625rem] font-black px-2 py-1 rounded-md border",
                                     ownershipPct >= 50
                                         ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 border-emerald-200"
                                         : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 border-amber-200"
@@ -198,20 +198,20 @@ export function ManageSubsidiaryModal({
                     ) : (
                         <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-black uppercase text-slate-500">Asset Profile</span>
-                                <span className="text-[8px] font-black uppercase bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md">
+                                <span className="text-[0.625rem] font-black uppercase text-slate-500">Asset Profile</span>
+                                <span className="text-[0.5rem] font-black uppercase bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md">
                                     Private Division
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <p className="text-[8px] uppercase font-black text-slate-400">Estimated Book Value</p>
+                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Estimated Book Value</p>
                                     <p className="text-base font-black text-slate-800 dark:text-slate-200 mt-0.5">
                                         {formatMoney(valuation)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[8px] uppercase font-black text-slate-400">Integration Risk</p>
+                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Integration Risk</p>
                                     <p className={cn(
                                         "text-sm font-black mt-0.5 uppercase tracking-wider",
                                         sub.integrationRisk === "High" ? "text-rose-500" :
@@ -226,25 +226,25 @@ export function ManageSubsidiaryModal({
 
                     {/* Financial Performance Section */}
                     <div className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 bg-white dark:bg-slate-900 shadow-sm space-y-3">
-                        <p className="text-[10px] font-black uppercase text-slate-500 border-b border-slate-50 dark:border-slate-800/80 pb-1.5 flex justify-between">
+                        <p className="text-[0.625rem] font-black uppercase text-slate-500 border-b border-slate-50 dark:border-slate-800/80 pb-1.5 flex justify-between">
                             <span>Financial Metrics</span>
                             <span className="text-slate-400 normal-case font-medium">Monthly rates</span>
                         </p>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="text-center p-2 bg-slate-50 dark:bg-slate-950/40 rounded-xl">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Revenue</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Revenue</p>
                                 <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                                     +{formatMoney(revenue)}
                                 </p>
                             </div>
                             <div className="text-center p-2 bg-slate-50 dark:bg-slate-950/40 rounded-xl">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Expenses</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Expenses</p>
                                 <p className="text-xs font-black text-rose-500 mt-0.5">
                                     -{formatMoney(expenses)}
                                 </p>
                             </div>
                             <div className="text-center p-2 bg-slate-50 dark:bg-slate-950/40 rounded-xl">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Net Income</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Net Income</p>
                                 <p className={cn(
                                     "text-xs font-black mt-0.5",
                                     netIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
@@ -255,15 +255,15 @@ export function ManageSubsidiaryModal({
                         </div>
 
                         {isListed ? (
-                            <div className="p-3 bg-violet-50/50 dark:bg-violet-950/10 rounded-xl text-[10px] font-semibold text-violet-700 dark:text-violet-400 leading-relaxed border border-violet-100 dark:border-violet-900/30">
+                            <div className="p-3 bg-violet-50/50 dark:bg-violet-950/10 rounded-xl text-[0.625rem] font-semibold text-violet-700 dark:text-violet-400 leading-relaxed border border-violet-100 dark:border-violet-900/30">
                                 💼 <strong className="font-black">Consolidated P&L Note:</strong> Listed subsidiaries do not transfer net income directly to your corporate cash. Instead, they pay dividends quarterly:
-                                <div className="mt-1 text-[9px] font-black text-slate-600 dark:text-slate-400">
+                                <div className="mt-1 text-[0.5625rem] font-black text-slate-600 dark:text-slate-400">
                                     • Dividend Ratio: {(dividendRatio * 100).toFixed(0)}% payout of quarterly profits<br />
                                     • Estimated Dividend: ~{formatMoney(Math.max(0, Math.floor(netIncome * 3 * dividendRatio * (ownershipPct / 100)) || 0))} every 3 months
                                 </div>
                             </div>
                         ) : (
-                            <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed border border-emerald-100 dark:border-emerald-900/30">
+                            <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl text-[0.625rem] font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed border border-emerald-100 dark:border-emerald-900/30">
                                 💼 <strong className="font-black">Consolidated P&L Note:</strong> Unlisted subsidiaries are fully consolidated. 100% of their net income (+{formatMoney(netIncome)}/mo) is added directly to parent corporate treasury each month.
                             </div>
                         )}
@@ -272,10 +272,10 @@ export function ManageSubsidiaryModal({
                     {/* Unlisted IPO Readiness / Actions */}
                     {!isListed && (
                         <div className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 bg-white dark:bg-slate-900 shadow-sm space-y-3">
-                            <p className="text-[10px] font-black uppercase text-slate-500 border-b border-slate-50 dark:border-slate-800/80 pb-1.5">
+                            <p className="text-[0.625rem] font-black uppercase text-slate-500 border-b border-slate-50 dark:border-slate-800/80 pb-1.5">
                                 IPO Qualifications
                             </p>
-                            <div className="grid grid-cols-2 gap-2 text-[9px] font-bold">
+                            <div className="grid grid-cols-2 gap-2 text-[0.5625rem] font-bold">
                                 <div className="flex items-center gap-1.5">
                                     <span>{passCFO ? "✅" : "❌"}</span>
                                     <span className={passCFO ? "text-slate-700 dark:text-slate-300" : "text-slate-400"}>
@@ -306,11 +306,11 @@ export function ManageSubsidiaryModal({
 
                     {/* Actions Panel */}
                     <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-500">Corporate Actions</p>
+                        <p className="text-[0.625rem] font-black uppercase text-slate-500">Corporate Actions</p>
 
                         {isListed ? (
                             <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-2">
-                                <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                                <p className="text-[0.625rem] text-slate-500 font-semibold leading-relaxed">
                                     This division is publicly listed on the stock market. Direct corporate actions like rebranding or private PE trade sale are not available. However, you can make a PIPE (Private Investment in Public Equity) cash injection to bolster its valuation and increase your corporate ownership.
                                 </p>
                             </div>
@@ -318,7 +318,7 @@ export function ManageSubsidiaryModal({
 
                         <div className="grid grid-cols-1 gap-2 mb-2">
                             {/* Inject Capital */}
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-2 flex justify-between">
+                            <p className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-400 mt-2 flex justify-between">
                                 <span>Inject Capital</span>
                                 <span className="text-indigo-500">Injecting: {formatMoney(Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000))) * 1000000)}</span>
                             </p>
@@ -333,7 +333,7 @@ export function ManageSubsidiaryModal({
                                     className="w-full accent-indigo-600 cursor-pointer"
                                     disabled={corporateCash < 1000000}
                                 />
-                                <div className="flex justify-between w-full mt-1 px-1 text-[8px] font-black text-slate-400 uppercase">
+                                <div className="flex justify-between w-full mt-1 px-1 text-[0.5rem] font-black text-slate-400 uppercase">
                                     <span>$1M</span>
                                     <span>{formatMoney(Math.max(1, Math.floor(corporateCash / 1000000)) * 1000000)} (Max)</span>
                                 </div>
@@ -344,7 +344,7 @@ export function ManageSubsidiaryModal({
                                         onClose();
                                     }}
                                     disabled={corporateCash < 1000000}
-                                    className="w-full mt-3 p-3 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 rounded-xl text-center transition-all active:scale-[0.98] font-black uppercase tracking-wide text-[11px]"
+                                    className="w-full mt-3 p-3 border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 dark:text-indigo-400 rounded-xl text-center transition-all active:scale-[0.98] font-black uppercase tracking-wide text-[0.6875rem]"
                                 >
                                     Confirm Inject {formatMoney(Math.min(Math.max(1, Math.floor(corporateCash / 1000000)), Math.max(1, Math.floor(injectAmount / 1000000))) * 1000000)}
                                 </button>
@@ -362,11 +362,11 @@ export function ManageSubsidiaryModal({
                                     disabled={corporateCash < 5000000}
                                     className="p-3 border border-violet-200 dark:border-violet-900/50 bg-violet-50/50 dark:bg-violet-950/20 hover:bg-violet-100 disabled:opacity-40 text-violet-700 dark:text-violet-400 rounded-xl text-left transition-all active:scale-[0.98] group flex flex-col gap-0.5"
                                 >
-                                    <span className="text-[10px] font-black uppercase">🎯 Rebrand Division</span>
-                                    <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium">
+                                    <span className="text-[0.625rem] font-black uppercase">🎯 Rebrand Division</span>
+                                    <span className="text-[0.5rem] text-slate-500 dark:text-slate-400 font-medium">
                                         Cost: $5M corporate cash
                                     </span>
-                                    <span className="text-[7.5px] font-bold text-violet-600 dark:text-violet-400 mt-1">
+                                    <span className="text-[0.4688rem] font-bold text-violet-600 dark:text-violet-400 mt-1">
                                         Boosts awareness & resets risk.
                                     </span>
                                 </button>
@@ -380,11 +380,11 @@ export function ManageSubsidiaryModal({
                                     disabled={!canIPO}
                                     className="p-3 border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 rounded-xl text-left transition-all active:scale-[0.98] group flex flex-col gap-0.5"
                                 >
-                                    <span className="text-[10px] font-black uppercase">📈 Underwrite IPO</span>
-                                    <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium">
+                                    <span className="text-[0.625rem] font-black uppercase">📈 Underwrite IPO</span>
+                                    <span className="text-[0.5rem] text-slate-500 dark:text-slate-400 font-medium">
                                         Cost: $2M corporate cash
                                     </span>
-                                    <span className="text-[7.5px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                                    <span className="text-[0.4688rem] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                                         List stock on public market. Keep 80% stake.
                                     </span>
                                 </button>
@@ -397,11 +397,11 @@ export function ManageSubsidiaryModal({
                                     }}
                                     className="p-3 border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 text-rose-700 dark:text-rose-400 rounded-xl text-left transition-all active:scale-[0.98] group flex flex-col gap-0.5"
                                 >
-                                    <span className="text-[10px] font-black uppercase">💰 Divest to PE</span>
-                                    <span className="text-[8px] text-slate-500 dark:text-slate-400 font-medium">
+                                    <span className="text-[0.625rem] font-black uppercase">💰 Divest to PE</span>
+                                    <span className="text-[0.5rem] text-slate-500 dark:text-slate-400 font-medium">
                                         Trade Sale (80% of book value)
                                     </span>
-                                    <span className="text-[7.5px] font-bold text-rose-600 dark:text-rose-400 mt-1">
+                                    <span className="text-[0.4688rem] font-bold text-rose-600 dark:text-rose-400 mt-1">
                                         Receive +{formatMoney(divestPrice)} corporate cash.
                                     </span>
                                 </button>

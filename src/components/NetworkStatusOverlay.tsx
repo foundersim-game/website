@@ -72,8 +72,8 @@ function FeatureItem({ icon, title, desc }: { icon: React.ReactNode, title: stri
                 {icon}
             </div>
             <div>
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-0.5">{title}</p>
-                <p className="text-[11px] text-slate-400 font-medium leading-tight">{desc}</p>
+                <p className="text-[0.625rem] font-black text-indigo-400 uppercase tracking-widest leading-none mb-0.5">{title}</p>
+                <p className="text-[0.6875rem] text-slate-400 font-medium leading-tight">{desc}</p>
             </div>
         </div>
     );

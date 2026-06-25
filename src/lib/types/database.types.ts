@@ -372,6 +372,11 @@ export type Startup = {
     // ── LEGAL & LAWSUITS ─────────────────────────────────────────────────────
     active_lawsuits?: Lawsuit[];
 
+    // ── GAME MODE ─────────────────────────────────────────────────────────────
+    // 'fairytale' = easier multipliers, no leaderboard. 'realistic' = default.
+    // undefined means a legacy save — treated as 'realistic'.
+    game_mode?: 'fairytale' | 'realistic';
+
     // ── STORY MODE ────────────────────────────────────────────────────────────
     // Only set when a player is in Story Mode. ALL sandbox code ignores this.
     // The `?` means it's undefined for every normal sandbox game — zero impact.

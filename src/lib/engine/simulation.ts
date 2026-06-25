@@ -53,7 +53,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 3000, label: "Enterprise Retainer", unit: "/ mo",
             calc: (p) => {
                 return {
-                    conversion: Math.max(0.01, 20 / (p/50 + 10)),
+                    conversion: Math.max(0.01, 20 / (p / 50 + 10)),
                     churn: 0.015 + (p / 3000) * 0.01,
                     loopPower: 1.5
                 };
@@ -83,10 +83,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 10000, label: "Enterprise Solution", unit: " value",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+            calc: (p) => ({
+                conversion: Math.max(0.01, 15 / (p / 100 + 10)),
                 churn: 0.01 + (p / 10000) * 0.04,
-                loopPower: 2 
+                loopPower: 2
             }),
             salesRoleName: "Solutions Architect",
             salesRoleDescription: "Enterprise API Integration · Custom Solutions"
@@ -98,10 +98,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             usersLabel: "Free Viewers",
             paidUsersLabel: "Premium Subs",
             calc: (p) => {
-                return { 
+                return {
                     conversion: p === 0 ? 8.0 : Math.max(0.1, 80 / (p * 2 + 5)),
                     churn: Math.min(0.20, 0.04 + (p / 30) * 0.08),
-                    loopPower: 5 
+                    loopPower: 5
                 };
             },
             salesRoleName: "Acquisition Manager",
@@ -109,10 +109,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 50000, label: "Content License Price", unit: " deal",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 10 / (p/1000 + 5)),
+            calc: (p) => ({
+                conversion: Math.max(0.01, 10 / (p / 1000 + 5)),
                 churn: 0.01 + (p / 50000) * 0.05,
-                loopPower: 0.5 
+                loopPower: 0.5
             }),
             salesRoleName: "Content Partnership",
             salesRoleDescription: "Licensing Deals · Distribution Expansion"
@@ -143,11 +143,11 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         SLG: {
             maxPrice: 5000, label: "Engine License Fee", unit: "/ mo",
             calc: (p) => {
-                const convMult = 10 / (p/100 + 5); 
+                const convMult = 10 / (p / 100 + 5);
                 return {
                     conversion: Math.max(0.01, convMult),
-                    churn: 0.01 + (p / 5000) * 0.04, 
-                    loopPower: 3 
+                    churn: 0.01 + (p / 5000) * 0.04,
+                    loopPower: 3
                 };
             },
             salesRoleName: "Ad Network Sales",
@@ -162,10 +162,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             usersExplanation: "Users with verified KYC and funded accounts.",
             volumeLabel: "Avg Txn Size",
             calc: (p) => {
-                return { 
+                return {
                     conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
-                    churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02, 
-                    loopPower: 4 
+                    churn: p > 2.9 ? 0.08 + (p - 2.9) * 0.1 : 0.02,
+                    loopPower: 4
                 };
             },
             salesRoleName: "Conversion Analyst",
@@ -173,10 +173,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+            calc: (p) => ({
+                conversion: Math.max(0.01, 15 / (p / 100 + 10)),
                 churn: 0.01 + (p / 5000) * 0.04,
-                loopPower: 1 
+                loopPower: 1
             }),
             salesRoleName: "Partnership Manager",
             salesRoleDescription: "Bank Partnerships · Institutional Onboarding"
@@ -189,7 +189,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 5, label: "% Interchange Fee", unit: "%",
             calc: (p) => ({
                 conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
-                churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02,
+                churn: p > 2.9 ? 0.08 + (p - 2.9) * 0.1 : 0.02,
                 loopPower: 4
             }),
             salesRoleName: "Conversion Analyst",
@@ -198,7 +198,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         SLG: {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
             calc: (p) => ({
-                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                conversion: Math.max(0.01, 15 / (p / 100 + 10)),
                 churn: 0.01 + (p / 5000) * 0.04,
                 loopPower: 1
             }),
@@ -212,7 +212,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             maxPrice: 5, label: "% Interchange Fee", unit: "%",
             calc: (p) => ({
                 conversion: p === 0 ? 6.0 : Math.max(0.01, 4.0 / (p + 1)),
-                churn: p > 2.9 ? 0.08 + (p-2.9) * 0.1 : 0.02,
+                churn: p > 2.9 ? 0.08 + (p - 2.9) * 0.1 : 0.02,
                 loopPower: 4
             }),
             salesRoleName: "Conversion Analyst",
@@ -221,7 +221,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         SLG: {
             maxPrice: 5000, label: "Infra Sub", unit: "/ mo",
             calc: (p) => ({
-                conversion: Math.max(0.01, 15 / (p/100 + 10)),
+                conversion: Math.max(0.01, 15 / (p / 100 + 10)),
                 churn: 0.01 + (p / 5000) * 0.04,
                 loopPower: 1
             }),
@@ -233,10 +233,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         PLG: {
             maxPrice: 100, label: "Course Ticket", unit: " avg",
             calc: (p) => {
-                return { 
+                return {
                     conversion: p === 0 ? 4.0 : Math.max(0.1, 30 / (p + 10)),
-                    churn: 0.08 + (p / 100) * 0.05, 
-                    loopPower: 3 
+                    churn: 0.08 + (p / 100) * 0.05,
+                    loopPower: 3
                 };
             },
             salesRoleName: "Learning Consultant",
@@ -244,10 +244,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 200, label: "Per Seat/mo", unit: "/ mo",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 10 / (p/10 + 5)),
+            calc: (p) => ({
+                conversion: Math.max(0.01, 10 / (p / 10 + 5)),
                 churn: 0.01 + (p / 200) * 0.04,
-                loopPower: 2 
+                loopPower: 2
             }),
             salesRoleName: "Institutional Sales",
             salesRoleDescription: "School District Deals · University Partnerships"
@@ -257,7 +257,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         PLG: {
             maxPrice: 60, label: "Paid Tier", unit: "/ mo",
             calc: (p) => {
-                return { 
+                return {
                     conversion: p === 0 ? 5.0 : Math.max(0.1, 30 / (p + 8)),
                     churn: 0.02 + (p / 60) * 0.03,
                     loopPower: 8
@@ -268,10 +268,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 1000, label: "Enterprise SSO Package", unit: "/ mo",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 15 / (p/50 + 5)),
-                churn: 0.01 + (p / 1000) * 0.03, 
-                loopPower: 3 
+            calc: (p) => ({
+                conversion: Math.max(0.01, 15 / (p / 50 + 5)),
+                churn: 0.01 + (p / 1000) * 0.03,
+                loopPower: 3
             }),
             salesRoleName: "Enterprise Sales",
             salesRoleDescription: "Security/Compliance Deals · SSO Upsells"
@@ -286,7 +286,7 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
             paidUsersExplanation: "Listings that successfully converted to a sale this month.",
             volumeLabel: "Avg Order Value",
             calc: (p) => {
-                return { 
+                return {
                     conversion: p === 0 ? 8.0 : Math.max(0.01, 10.0 / (p + 2)),
                     churn: 0.03 + (p / 15) * 0.12,
                     loopPower: 6
@@ -297,10 +297,10 @@ export const INDUSTRY_PRICING_CONFIG: Record<string, IndustryConfig> = {
         },
         SLG: {
             maxPrice: 500, label: "Supplier Retainer", unit: "/ mo",
-            calc: (p) => ({ 
-                conversion: Math.max(0.01, 10 / (p/25 + 5)),
+            calc: (p) => ({
+                conversion: Math.max(0.01, 10 / (p / 25 + 5)),
                 churn: 0.02 + (p / 500) * 0.06,
-                loopPower: 1 
+                loopPower: 1
             }),
             salesRoleName: "Merchant Success",
             salesRoleDescription: "Enterprise Merchant Support · Retainer Deals"
@@ -354,7 +354,7 @@ export function calculateFinancials(
     const scalingOverheadMult = 1 + (Math.floor((startup.employees?.length || 0) / 10) * 0.02);
     const cxoTeam: Record<string, boolean> = (startup as any).cxoTeam || {};
     let opex = ((totalSalaries || 0) + (benefitsBudget || 0) + (founderLivingCost || 0) + (userInfraCost || 0) + (metrics.founder_salary || 0)) * (scalingOverheadMult || 1);
-    
+
     // Legacy Perk: Efficient Operations
     if (startup.unlocked_perks?.includes("efficient_ops")) {
         opex *= 0.85;
@@ -396,14 +396,14 @@ export function calculateFinancials(
         } else {
             // PLG: F2P Model (Ad Revenue + IAP)
             const adsFreq = (metrics as any).ad_intensity || 0;
-            const adARPU = 0.02 * (1 - (adsFreq / 200)); 
+            const adARPU = 0.02 * (1 - (adsFreq / 200));
             const adMonthlyRev = users * (adsFreq / 100) * adARPU * 30;
 
             const iapBaseConversion = 0.03;
             // High ad intensity actively destroys IAP conversion
             const iapPenalty = Math.max(0.005, 1 - (adsFreq / 75));
             const iapConversion = iapBaseConversion * qualityFactor * iapPenalty;
-            
+
             revenue = adMonthlyRev + (users * iapConversion * pricing);
             avgVolume = users > 0 ? revenue / users : 0;
             paidUsers = Math.floor(users * iapConversion);
@@ -421,7 +421,7 @@ export function calculateFinancials(
             // PLG: Usage-based API (Developers)
             paidUsers = Math.floor(users * Math.min(0.60, Math.max(0.10, 0.40 * pmfFactor)));
             // Volume driven by innovation (team power) and quality
-            avgVolume = 2 * Math.max(1, (salesPower * 0.01)) * qualityFactor; 
+            avgVolume = 2 * Math.max(1, (salesPower * 0.01)) * qualityFactor;
             revenue = paidUsers * pricing * avgVolume;
             cogs = revenue * 0.35; // High GPU compute costs
         }
@@ -450,9 +450,9 @@ export function calculateFinancials(
         } else {
             // PLG: Consumer NeoBank / Trading
             avgVolume = (250 + (monthsPassed * 10)) * pmfFactor * qualityFactor;
-            paidUsers = users; 
+            paidUsers = users;
             revenue = users * avgVolume * (pricing / 100);
-            cogs = revenue * 0.20; 
+            cogs = revenue * 0.20;
         }
     } else if (industry === "Marketplace") {
         if (isSLG) {
@@ -468,7 +468,7 @@ export function calculateFinancials(
             // Network Effect multiplier
             const networkEffect = 1 + Math.log10(Math.max(1, users / 1000)) * 0.2;
             avgVolume = (150 + (monthsPassed * 12)) * pmfFactor * networkEffect;
-            paidUsers = users; 
+            paidUsers = users;
             revenue = users * avgVolume * (pricing / 100);
             cogs = revenue * 0.15;
         }
@@ -509,18 +509,18 @@ export function calculateFinancials(
     const finalCogs = isFinite(cogs) ? cogs : 0;
     const finalOpex = isFinite(opex) ? opex : 0;
 
-    return { 
-        monthlyRevenue: finalRevenue, 
-        monthlyCogs: finalCogs, 
-        monthlyOpex: finalOpex, 
-        paidUsers: paidUsers || 0, 
+    return {
+        monthlyRevenue: finalRevenue,
+        monthlyCogs: finalCogs,
+        monthlyOpex: finalOpex,
+        paidUsers: paidUsers || 0,
         avgVolume: avgVolume || 0,
-        opexBreakdown: { 
-            salaries: (totalSalaries + benefitsBudget) * scalingOverheadMult || 0, 
-            founderLiving: founderLivingCost * scalingOverheadMult || 0, 
-            infra: userInfraCost * scalingOverheadMult || 0, 
-            misc: (metrics.founder_salary || 0) * scalingOverheadMult || 0 
-        } 
+        opexBreakdown: {
+            salaries: (totalSalaries + benefitsBudget) * scalingOverheadMult || 0,
+            founderLiving: founderLivingCost * scalingOverheadMult || 0,
+            infra: userInfraCost * scalingOverheadMult || 0,
+            misc: (metrics.founder_salary || 0) * scalingOverheadMult || 0
+        }
     };
 }
 
@@ -534,6 +534,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const attrs = founder.attributes;
     const metrics = newStartup.metrics;
     const industry = startup.industry;
+    const initialCash = metrics.cash || 0;
 
     // Initialize new metrics if they don't exist (for migration)
     if (metrics.reliability === undefined) metrics.reliability = 80;
@@ -548,8 +549,17 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         metrics.investor_pipeline = { leads: 0, meetings: 0, term_sheets: 0 };
     }
     if (metrics.current_season === undefined) metrics.current_season = "Normal";
+    // NaN guard: brand_awareness, technical_debt, and innovation must never be undefined/NaN
+    if (!isFinite(metrics.brand_awareness)) metrics.brand_awareness = 0;
+    if (!isFinite(metrics.technical_debt)) metrics.technical_debt = 0;
+    if (!isFinite(metrics.innovation)) metrics.innovation = 10;
+    if (!isFinite(metrics.product_quality)) metrics.product_quality = 10;
+    if (!isFinite(metrics.pmf_score)) metrics.pmf_score = 10;
 
     if (metrics.burn_rate === undefined) metrics.burn_rate = 0;
+
+    // ── GAME MODE HELPERS ───────────────────────────────────────────────────────
+    const isFairytale = startup.game_mode === 'fairytale';
     if (!founder.xp) {
         (founder as any).xp = { technical: 0, marketing: 0, leadership: 0, fundraising: 0, total: 0 };
     }
@@ -741,17 +751,17 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     employees.forEach(emp => {
         const monthsPassed = startup.history?.length || 0;
         const monthsEmployed = Math.max(0, monthsPassed - (emp.joined_at || 0));
-        
+
         const isGracePeriod = monthsEmployed < 3 && (metrics.team_morale || 50) >= 20;
         const actualRisk = isGracePeriod ? 0 : baseTurnoverRisk;
 
         if (Math.random() < actualRisk) {
-            
+
             let vestedEquity = 0;
             if (monthsEmployed >= 12) { // 1-year cliff
                 vestedEquity = Math.min(emp.equity || 0, (monthsEmployed / 48) * (emp.equity || 0));
             }
-            
+
             const returnedEquity = Math.max(0, (emp.equity || 0) - vestedEquity);
             if (returnedEquity > 0) {
                 metrics.option_pool = (metrics.option_pool || 0) + returnedEquity;
@@ -815,7 +825,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const engMult = 1 + (engineerPower * 0.004 * teamEfficiency);
     const mktMult = 1 + (marketerPower * 0.004 * teamEfficiency);
     const debtPenalty = Math.min(0.5, metrics.technical_debt / 100);
-    
+
     let qualityIncrease = 0;
     if (engCount > 0 || hasCTO) {
         qualityIncrease = ((totalTechPower * 0.4) + (techBoost * 0.5)) / 10;
@@ -867,7 +877,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const pricingConversionMult = configConversion / 2;
     const pmfMultiplier = Math.max(0.05, (metrics.pmf_score / 120));
     const annualBillingMult = metrics.annual_billing ? 0.70 : 1.0;
-    
+
     // Virality gated by product quality and PMF — a bad product doesn't go viral
     // qualityViralMult: 0 quality = 0x viral, 50 quality = 0.5x, 100 quality = 1.0x
     const qualityViralMult = Math.min(1, (metrics.product_quality || 0) / 80);
@@ -881,7 +891,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     const burnoutGrowthPenalty = metrics.founder_burnout > 50 ? (metrics.founder_burnout - 50) / 100 : 0;
     const monthsPassed = startup.history?.length || 0;
-    
+
     // --- CAPACITY STRAIN MECHANIC ---
     // Prevent players from running a massive company with 0 staff
     const totalHeadcount = employees.length + Object.keys(cxoTeam).length + 1; // +1 for founder
@@ -902,17 +912,17 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     if (metrics.users > maxSafeUsers && maxSafeUsers > 0) {
         const overloadRatio = metrics.users / maxSafeUsers;
-        
+
         // Passive Tech Debt from being overloaded
         const debtSpike = Math.min(10, (overloadRatio - 1) * 2);
         metrics.technical_debt = Math.min(100, metrics.technical_debt + debtSpike);
-        
+
         // Morale crash from being overworked
         metrics.team_morale = Math.max(0, metrics.team_morale - (debtSpike / 2));
-        
+
         // Growth penalty
         capacityStrainMult = Math.max(0.1, 1 / Math.sqrt(overloadRatio));
-        
+
         if (debtSpike > 3 && Math.random() > 0.5) {
             notices.push(`🚨 Capacity Overload! Your team of ${totalHeadcount} cannot support ${formatNumber(Math.floor(metrics.users))} users. Tech Debt spiked and morale is dropping. Hire more staff!`);
         }
@@ -926,10 +936,15 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     }
 
     // --- MARKET DYNAMICS ---
-    const marketCycle = Math.sin(monthsPassed / 3); 
-    const marketSentiment = 0.85 + (marketCycle * 0.1); 
-    
+    const marketCycle = Math.sin(monthsPassed / 3);
+    const marketSentiment = 0.85 + (marketCycle * 0.1);
+
     let growthRate = ((metrics.product_quality * 0.2 + (totalMarketingPower) * 0.4 + (metrics.brand_awareness || 0) * 0.2 + metrics.innovation * 0.2) / 400) * (1 - (metrics.reliability < 50 ? (50 - metrics.reliability) / 100 : 0)) * pmfMultiplier * pricingConversionMult * annualBillingMult * viralBonus * qualityGrowthMult * (1 - burnoutGrowthPenalty) * capacityStrainMult * marketSentiment;
+    // NaN guard: if any input was undefined, growthRate could be NaN — default to 0
+    if (!isFinite(growthRate)) growthRate = 0;
+
+    // Fairytale Mode: grow faster, stay alive longer
+    if (isFairytale) growthRate *= 2.0;
 
     if (employees.length === 0 && metrics.users > (industry === "Mobile Game" || industry === "Marketplace" ? 1000 : 500)) {
         // Solo founder growth penalty past initial traction
@@ -938,17 +953,18 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             notices.push("📈 Growth Stalled: You cannot grow your company past traction without hiring team members. Recruit staff (Marketers, Engineers, Sales) to scale the business!");
         }
     }
-    
+
     // --- SOLO FOUNDER DECAY ---
     if (employees.length === 0 && monthsPassed >= 6 && metrics.users > 50) {
         // Without a team, product rots and debt accumulates
-        metrics.product_quality = Math.max(0, metrics.product_quality - 3);
-        metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + 5);
+        const decayMult = isFairytale ? 0.25 : 1.0;
+        metrics.product_quality = Math.max(0, metrics.product_quality - (3 * decayMult));
+        metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + (5 * decayMult));
         if (Math.random() < 0.3) {
             notices.push("⚠️ Solo Founder Decay: Without engineers and marketers to maintain the product, quality is dropping and tech debt is rising. Hire a team!");
         }
     }
-    
+
     if (startup.unlocked_perks?.includes("growth_hacker")) {
         growthRate *= 1.10;
     }
@@ -973,33 +989,33 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         metrics.b2b_pipeline.closed_won = isNaN(metrics.b2b_pipeline.closed_won) ? 0 : metrics.b2b_pipeline.closed_won;
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
-        
-            // SLG baseline leads: Even with 0 growth, a high pipeline power should yield some 'pity leads'
-            const slgBaseline = (pipelinePower / 40);
-            const growthLeads = metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60));
-            newLeads = Math.floor(growthLeads + slgBaseline);
-            
-            // Cold start boost for 0-user SLG companies with a sales team
-            if (metrics.users === 0 && newLeads < 1 && pipelinePower > 20) {
-                newLeads = Math.random() < 0.3 ? 1 : 0;
-            }
-        
+
+        // SLG baseline leads: Even with 0 growth, a high pipeline power should yield some 'pity leads'
+        const slgBaseline = (pipelinePower / 40);
+        const growthLeads = metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60));
+        newLeads = Math.floor(growthLeads + slgBaseline);
+
+        // Cold start boost for 0-user SLG companies with a sales team
+        if (metrics.users === 0 && newLeads < 1 && pipelinePower > 20) {
+            newLeads = Math.random() < 0.3 ? 1 : 0;
+        }
+
         if (newLeads < 1 && pipelinePower > 30) newLeads += 1;
 
         metrics.b2b_pipeline.leads += newLeads;
         const toActive = Math.floor(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
         metrics.b2b_pipeline.leads -= toActive;
         metrics.b2b_pipeline.active_deals += toActive;
-        
+
         // SLG Win rate uses the precise config conversion %, boosted by actual sales power 
         const qualityWinMult = metrics.product_quality / 100;
-        const baseWinRate = configConversion / 100; 
+        const baseWinRate = configConversion / 100;
         const winRate = Math.min(1.0, baseWinRate * (1 + (qualityWinMult * 2)) * (1 + (totalSalesPower / 50)));
 
         const toClosed = Math.floor(metrics.b2b_pipeline.active_deals * winRate);
         metrics.b2b_pipeline.active_deals -= toClosed;
         metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won || 0) + toClosed;
-        
+
         grossNewUsers = toClosed;
         metrics.users += grossNewUsers;
     } else {
@@ -1035,19 +1051,40 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // Annual billing upfront: only meaningful for subscription industries (SaaS, OTT, EdTech, Dev Tools).
     // Mobile Game (F2P), FinTech (interchange %), Marketplace (take rate %), AI (usage-based) are excluded.
     const isRecurringRevenueIndustry = !["Mobile Game", "FinTech", "FinTech App", "FinTech Platform", "Marketplace", "AI Platform"].includes(industry);
-    const actualNetBurn = -metrics.net_profit;
-    metrics.burn_rate = actualNetBurn > 0 ? actualNetBurn : 0;
+
+    // Calculate exact cash change (this includes action costs applied earlier in the switch block)
+    const totalCashChange = metrics.cash - initialCash;
+    let actualNetBurn = 0;
+
+    if (totalCashChange < 0) {
+        actualNetBurn = Math.abs(totalCashChange);
+        // Fairytale Mode: reduce all burn by 50% and refund the cash
+        if (isFairytale) {
+            const subsidy = actualNetBurn * 0.5;
+            metrics.cash += subsidy;
+            actualNetBurn -= subsidy;
+        }
+    }
+
+    metrics.burn_rate = actualNetBurn;
     metrics.runway = actualNetBurn > 0 ? Math.floor(metrics.cash / actualNetBurn) : 99;
+
+    // ── EARLY BANKRUPTCY WARNING (3-4 months runway) ─────────────────────────────
+    // Fire this warning early enough that the player can actually do something about it.
+    if (metrics.runway > 0 && metrics.runway <= 4 && actualNetBurn > 0 && metrics.cash > 0) {
+        const runwayLabel = metrics.runway === 1 ? '1 month' : `${metrics.runway} months`;
+        notices.push(`⚠️ CASH WARNING: At your current burn rate, you have roughly ${runwayLabel} of runway left. Act now — raise a round, cut costs, reduce headcount, or tap your margin line before it's too late.`);
+    }
 
     // --- CHURN & QUALITY GAP ---
     // Inherit the exact calculated churn from the industry config
-    let baseChurn = configChurn;
+    let baseChurn = isFairytale ? configChurn * 0.5 : configChurn; // Fairytale: 50% less churn
 
     let currentChurn = baseChurn;
     if (metrics.users > 0) {
         const monthsActive = startup.history?.length || 0;
         const expectedQuality = Math.min(85, 20 + (monthsActive * 1.5));
-        
+
         // Quality gap penalty — steeper curve: every 10 pts below expected = +2% churn
         if (metrics.product_quality < expectedQuality) {
             currentChurn += ((expectedQuality - metrics.product_quality) / 500);
@@ -1087,7 +1124,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     if (scenarioRules.techDebtGrowthMultiplier && (action === "build_mvp_features")) {
         // Additional debt from aggressive building in AI Rush etc.
         if (scenarioRules.techDebtGrowthMultiplier > 1) {
-            metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + (10 * (scenarioRules.techDebtGrowthMultiplier - 1)));
+            const debtAdd = 10 * (scenarioRules.techDebtGrowthMultiplier - 1);
+            // Fairytale Mode: debt accumulates at a quarter speed
+            metrics.technical_debt = Math.min(100, (metrics.technical_debt || 0) + (isFairytale ? debtAdd * 0.25 : debtAdd));
         }
     }
 
@@ -1168,7 +1207,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const crisisStartupContext = skillEffects.datBreachProbReduction > 0
         ? { ...newStartup, _securitySkillReduction: skillEffects.datBreachProbReduction }
         : newStartup;
-    const newCrisis = checkCrisisSpawn(crisisStartupContext as any, monthsPassed);
+    // Fairytale Mode: crises spawn 75% less frequently
+    const shouldSpawnCrisis = isFairytale ? (Math.random() < 0.25) : true;
+    const newCrisis = shouldSpawnCrisis ? checkCrisisSpawn(crisisStartupContext as any, monthsPassed) : null;
     if (newCrisis) {
         newStartup.active_crisis = newCrisis;
         const stage = getCurrentCrisisStage(newCrisis);
@@ -1176,7 +1217,9 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     }
 
     // Step 2: Passive Lawsuit Spawn (for large companies)
-    const newPassiveSuit = checkLawsuitSpawn(newStartup, monthsPassed);
+    // Fairytale Mode: lawsuits spawn 75% less frequently
+    const shouldSpawnSuit = isFairytale ? (Math.random() < 0.25) : true;
+    const newPassiveSuit = shouldSpawnSuit ? checkLawsuitSpawn(newStartup, monthsPassed) : null;
     if (newPassiveSuit) {
         newStartup.active_lawsuits = [...(newStartup.active_lawsuits || []), newPassiveSuit];
         notices.push(`⚖️ LEGAL ALERT: ${newPassiveSuit.title} filed against the company.`);
@@ -1201,15 +1244,15 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
                     ceoReputationHit: newStartup.active_crisis.ceoReputationHit + 10,
                 };
             }
-            // Apply escalation metric effects
+            // Apply escalation metric effects (Fairytale Mode halves all negative impacts)
             const fx = escalation.effects;
-            if (fx.brand_awareness) metrics.brand_awareness = Math.max(0, (metrics.brand_awareness || 0) + fx.brand_awareness);
-            if (fx.team_morale)    metrics.team_morale = Math.max(0, (metrics.team_morale || 50) + fx.team_morale);
-            if (fx.cash_hit)       metrics.cash = Math.max(-Infinity, (metrics.cash || 0) + fx.cash_hit);
-            if (fx.valuation_mult) newStartup.valuation = Math.floor(newStartup.valuation * fx.valuation_mult);
-            if (fx.ceo_reputation) newStartup.ceo_reputation = Math.max(0, Math.min(100, (newStartup.ceo_reputation ?? 80) + fx.ceo_reputation));
+            if (fx.brand_awareness) metrics.brand_awareness = Math.max(0, (metrics.brand_awareness || 0) + (isFairytale ? fx.brand_awareness * 0.5 : fx.brand_awareness));
+            if (fx.team_morale) metrics.team_morale = Math.max(0, (metrics.team_morale || 50) + (isFairytale ? fx.team_morale * 0.5 : fx.team_morale));
+            if (fx.cash_hit) metrics.cash = Math.max(-Infinity, (metrics.cash || 0) + (isFairytale ? fx.cash_hit * 0.5 : fx.cash_hit));
+            if (fx.valuation_mult) newStartup.valuation = Math.floor(newStartup.valuation * (isFairytale ? 1 - ((1 - fx.valuation_mult) * 0.5) : fx.valuation_mult));
+            if (fx.ceo_reputation) newStartup.ceo_reputation = Math.max(0, Math.min(100, (newStartup.ceo_reputation ?? 80) + (isFairytale ? fx.ceo_reputation * 0.5 : fx.ceo_reputation)));
             if (fx.user_churn_bonus) metrics.users = Math.max(0, Math.floor(metrics.users * (1 - fx.user_churn_bonus)));
-            
+
             // Spawn Lawsuit if crisis causes legal risk
             if (fx.legal_risk) {
                 const type = escalation.notice.includes("FTC") ? "regulatory_fine" : "class_action";
@@ -1237,8 +1280,10 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const companyHeadcount = newStartup.employees?.length || 0;
     const baseScaleStress = Math.floor(companyHeadcount / 10); // +1 burnout per 10 employees
     const revenueStress = monthlyRevenue > 10000000 ? 10 : monthlyRevenue > 1000000 ? 5 : monthlyRevenue > 100000 ? 2 : 0;
-    const scaleStress = Math.min(30, baseScaleStress + revenueStress);
-    
+    const rawScaleStress = Math.min(30, baseScaleStress + revenueStress);
+    // Fairytale Mode: burnout accumulates at quarter speed
+    const scaleStress = isFairytale ? rawScaleStress * 0.25 : rawScaleStress;
+
     metrics.founder_burnout = Math.min(100, (metrics.founder_burnout || 0) + scaleStress);
 
     const burnoutPenalty = metrics.founder_burnout > 60 ? (metrics.founder_burnout - 60) / 40 : 0;
@@ -1247,6 +1292,32 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         metrics.product_quality = Math.max(0, metrics.product_quality - Math.floor(burnoutPenalty * 2));
     }
     metrics.founder_health = Math.max(0, Math.min(100, (metrics.founder_health || 100) - (metrics.founder_burnout > 60 ? 3 : 0) + (action === "none" ? 5 : 0)));
+
+    // ── MASS RESIGNATION EVENT (replaces team_morale game-over) ──────────────────
+    // If morale collapses to 0, the whole team quits. The founder survives to rebuild.
+    if (metrics.team_morale <= 0 && newStartup.employees && newStartup.employees.length > 0) {
+        let returnedEquityTotal = 0;
+        const monthsNow = (startup.history?.length || 0) + 1;
+        for (const emp of newStartup.employees) {
+            const monthsEmployed = Math.max(0, monthsNow - (emp.joined_at || 0));
+            const vestedEquity = monthsEmployed >= 12 ? Math.min(emp.equity || 0, (monthsEmployed / 48) * (emp.equity || 0)) : 0;
+            const returnedEquity = Math.max(0, (emp.equity || 0) - vestedEquity);
+            if (returnedEquity > 0) {
+                metrics.option_pool = (metrics.option_pool || 0) + returnedEquity;
+                returnedEquityTotal += returnedEquity;
+            }
+            if (vestedEquity > 0) {
+                metrics.former_employee_equity = (metrics.former_employee_equity || 0) + vestedEquity;
+            }
+            if (emp.role === "engineer") metrics.engineers = Math.max(0, metrics.engineers - 1);
+            if (emp.role === "marketer") metrics.marketers = Math.max(0, metrics.marketers - 1);
+            if (emp.role === "sales") metrics.sales = Math.max(0, metrics.sales - 1);
+            metrics.employees = Math.max(0, metrics.employees - 1);
+        }
+        newStartup.employees = [];
+        metrics.team_morale = 20; // Reset to minimum — you're alone, but still standing
+        notices.push(`🚨 DISASTER: Team Morale collapsed to 0%. Your entire team of ${companyHeadcount} people has resigned. You are now a solo founder again.${returnedEquityTotal > 0 ? ` ${returnedEquityTotal.toFixed(2)}% unvested equity returned to the option pool.` : ''} Take stock of what went wrong and rebuild before it's too late.`);
+    }
 
     // Update Personal Wealth
     if (metrics.cash > 0) {
@@ -1270,13 +1341,13 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const annualRevenue = monthlyRevenue * 12;
     const baseMultiple = 6 + (Math.min(0.25, metrics.growth_rate) * 20) + (metrics.pmf_score / 25);
     const growthPenalty = metrics.growth_rate < 0 ? 0.5 : metrics.growth_rate < 0.05 ? 0.8 : 1.0;
-    
+
     // Quality reflects technical value/IP
     const qualityPremium = 1 + (metrics.product_quality / 100);
 
     // Baseline: Floor of $500k or ARR * Multiple
     const arrValuation = (annualRevenue * baseMultiple * growthPenalty);
-    
+
     // User-based floor for pre-revenue
     const userValuation = metrics.users * 40 * (1 + metrics.pmf_score / 100);
 
@@ -1306,18 +1377,18 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // --- VALUATION PERSISTENCE (Damping) ---
     // Prevent sudden crashes after a high-valuation round, BUT punish if metrics legitimately decline.
     const previousValuation = startup.valuation || 500000;
-    
+
     let floorDecay = 0.97; // Default: -3% max drop per month
     if (metrics.growth_rate <= 0 || profitMultiplier < 0.8) {
         // If growth is dead or burn is alarming, valuation floor drops sharply (-10% to -20%)
-        floorDecay = metrics.growth_rate < -0.05 ? 0.80 : 0.90; 
+        floorDecay = metrics.growth_rate < -0.05 ? 0.80 : 0.90;
     } else if (finalValuation > previousValuation) {
         // If things are going great, let it ride up naturally; floor isn't needed.
         floorDecay = 1.0;
     }
-    
+
     const supportFloor = previousValuation * floorDecay;
-    
+
     newStartup.valuation = Math.max(Math.floor(finalValuation), Math.floor(supportFloor));
 
 
@@ -1335,7 +1406,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     // Founder Atrophy
     const decayRate = 0.8;
     const background = founder.background;
-    
+
     // Muscle Memory Floors: Reduced for more challenge
     const techFloor = background === "Engineer" ? 30 : 5;
     const mktFloor = background === "MBA" || background === "Hustler" ? 30 : 5;
@@ -1369,7 +1440,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             // Accelerated decay for long-term neglect
             skillDecay += (monthsSinceIncrement - 12) * 0.1;
             moraleDecay += (monthsSinceIncrement - 12) * 0.5; // Morale drops faster when ignored
-            
+
             if (monthsSinceIncrement === 13 || monthsSinceIncrement % 6 === 0) {
                 notices.push(`Retention: ${emp.name} is dissatisfied with their salary (no raise in ${monthsSinceIncrement}mo).`);
             }
@@ -1380,7 +1451,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         if (metrics.team_morale > 85) moraleDecay -= 1.0;
 
         const newMorale = Math.max(0, Math.min(100, (emp.morale ?? 70) - moraleDecay));
-        
+
         // Morale Performance Penalty: Low morale kills performance
         if (newMorale < 40) skillDecay += 0.5;
         if (newMorale < 20) skillDecay += 1.0;
@@ -1404,7 +1475,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     if (newStartup.employees && newStartup.employees.length > 0) {
         let totalMorale = newStartup.employees.reduce((acc, e) => acc + (e.morale ?? 70), 0);
         let headcount = newStartup.employees.length;
-        
+
         const cxoKeys = Object.keys((newStartup as any).cxoTeam || {}).filter(k => (newStartup as any).cxoTeam[k]);
         cxoKeys.forEach(k => {
             totalMorale += 70; // CXOs are represented as booleans, baseline morale is 70
@@ -1413,7 +1484,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
         const avgMorale = totalMorale / headcount;
         const globalMoraleGap = avgMorale - (newStartup.metrics.team_morale || 50);
-        
+
         // If there is a gap (e.g. global morale took a -20 hit from burnout), apply it to employees
         if (Math.abs(globalMoraleGap) > 1) {
             newStartup.employees = newStartup.employees.map(e => ({
@@ -1421,7 +1492,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
                 morale: Math.max(0, Math.min(100, (e.morale ?? 70) - globalMoraleGap))
             }));
         }
-        
+
         // Lock team_morale to the exact average (which is now correctly penalized/buffed)
         newStartup.metrics.team_morale = Math.max(0, Math.min(100, avgMorale - globalMoraleGap));
     }
@@ -1450,7 +1521,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         }
         return emp;
     });
-    
+
     // --- INVESTOR PIPELINE PROGRESSION ---
     const pipeline = metrics.investor_pipeline;
     if (pipeline) {
@@ -1484,31 +1555,36 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     metrics.cash = isFinite(metrics.cash) ? metrics.cash : (isFinite(startup.metrics.cash) ? startup.metrics.cash : 0);
     metrics.users = isFinite(metrics.users) ? metrics.users : (isFinite(startup.metrics.users) ? startup.metrics.users : 0);
     metrics.revenue = isFinite(metrics.revenue) ? metrics.revenue : 0;
+    metrics.cogs = isFinite(metrics.cogs) ? metrics.cogs : 0;
+    metrics.opex = isFinite(metrics.opex) ? metrics.opex : 0;
     metrics.net_profit = isFinite(metrics.net_profit) ? metrics.net_profit : 0;
     metrics.growth_rate = isFinite(metrics.growth_rate) ? metrics.growth_rate : 0;
     metrics.pmf_score = isFinite(metrics.pmf_score) ? metrics.pmf_score : 10;
     metrics.product_quality = isFinite(metrics.product_quality) ? metrics.product_quality : 10;
     metrics.burn_rate = isFinite(metrics.burn_rate) ? metrics.burn_rate : 0;
+    metrics.brand_awareness = isFinite(metrics.brand_awareness) ? metrics.brand_awareness : 0;
+    metrics.technical_debt = isFinite(metrics.technical_debt) ? metrics.technical_debt : 0;
 
     // ---- LEGAL SYSTEM (LAWSUITS) ----
     if (newStartup.active_lawsuits && newStartup.active_lawsuits.length > 0) {
         const legalPower = startup.employees?.filter(e => e.role === "legal").reduce((sum, e) => sum + (e.skills?.legal || 50) * ((e.performance || 100) / 100), 0) || 0;
-        
+
         newStartup.active_lawsuits = newStartup.active_lawsuits.map((suit: Lawsuit) => {
-            // Deduct monthly legal fees
-            const fees = suit.legal_fees_per_month;
+            // Deduct monthly legal fees (Fairytale Mode: 50% cheaper)
+            const fees = isFairytale ? suit.legal_fees_per_month * 0.5 : suit.legal_fees_per_month;
             metrics.cash -= fees;
-            
+
             // Progress trial
             const nextSuit = { ...suit, months_to_trial: suit.months_to_trial - 1 };
-            
+
             if (nextSuit.months_to_trial <= 0) {
                 // Trial Resolution
                 const adjWinProb = Math.min(0.95, suit.win_probability + (legalPower / 500));
                 if (Math.random() < adjWinProb) {
                     notices.push(`⚖️ VICTORY: The court dismissed the ${suit.title} lawsuit!`);
                 } else {
-                    const penalty = suit.demand_amount;
+                    // Fairytale Mode: 50% reduced damages
+                    const penalty = isFairytale ? suit.demand_amount * 0.5 : suit.demand_amount;
                     metrics.cash -= penalty;
                     notices.push(`🚨 DEFEAT: You lost the ${suit.title} lawsuit. Paid ${penalty.toLocaleString()} in damages.`);
                 }
@@ -1520,7 +1596,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
 
     // ── PRIVATE DEBT & CREDIT SCORE ────────────────────────────────────────────
     if (metrics.credit_score === undefined) metrics.credit_score = 700;
-    
+
     // Base credit score adjustment based on runway and cashflow
     if (metrics.runway > 12 && metrics.burn_rate < metrics.revenue) {
         metrics.credit_score = Math.min(850, metrics.credit_score + 2);
@@ -1532,11 +1608,11 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     if (privateDebts.length > 0) {
         const repaidNames: string[] = [];
         let totalMonthlyDebt = 0;
-        
+
         const updatedDebts = privateDebts.map((d: any) => {
             metrics.cash -= d.monthly_payment;
             totalMonthlyDebt += d.monthly_payment;
-            
+
             const remaining = d.months_left - 1;
             if (remaining <= 0) {
                 repaidNames.push(d.name);
@@ -1545,10 +1621,10 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             }
             return { ...d, months_left: remaining };
         }).filter(Boolean);
-        
+
         (newStartup as any).private_debt = updatedDebts;
         repaidNames.forEach(name => notices.push(`✅ Debt Repaid: ${name} has been fully paid off.`));
-        
+
         // Consistent repayment builds credit
         metrics.credit_score = Math.min(850, (metrics.credit_score || 700) + 1);
 
@@ -1570,7 +1646,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
  */
 export function getBoardMembers(startup: Startup): BoardMember[] {
     const members: BoardMember[] = [];
-    
+
     // 1. Main Founder
     members.push({
         id: "founder-main",
@@ -1617,7 +1693,7 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
     const isProfitable = (m.net_profit || 0) > 0;
     const currentSalary = m.founder_salary || 0;
     const increase = amount - currentSalary;
-    
+
     const votes: SalaryProposal["votes"] = [];
 
     members.forEach(member => {
@@ -1662,7 +1738,7 @@ export function evaluateSalaryProposal(startup: Startup, founder: Founder, amoun
     // One-vote-per-director model
     const totalVotes = votes.length;
     const yesVotes = votes.filter(v => v.vote === "yes").length;
-    
+
     const approved = yesVotes > totalVotes / 2;
 
     return {
@@ -1689,7 +1765,7 @@ function getVoteReason(type: string, votedYes: boolean, runway: number, isProfit
 export function evaluateResolution(startup: Startup, founder: Founder, name: string, resolutionCost: number = 0): SalaryProposal {
     const members = getBoardMembers(startup);
     const m = startup.metrics;
-    
+
     const votes: SalaryProposal["votes"] = [];
 
     members.forEach(member => {
@@ -1705,7 +1781,7 @@ export function evaluateResolution(startup: Startup, founder: Founder, name: str
             if (m.runway < 6) yesProb -= 40;
             if (m.growth_rate > 0.15) yesProb += 15;
             if (m.pmf_score > 50) yesProb += 10;
-            
+
             // If the company has massive cash relative to cost, it's a no-brainer "YES"
             if (resolutionCost > 0 && m.cash > resolutionCost * 100) {
                 yesProb += 40;
@@ -1713,14 +1789,14 @@ export function evaluateResolution(startup: Startup, founder: Founder, name: str
 
             // Specific resolution logic
             if (name === "Rebrand Company") {
-                if (m.brand_awareness > 85) yesProb -= 25; 
+                if (m.brand_awareness > 85) yesProb -= 25;
             }
             if (name === "Executive Retreat") {
                 if (m.cash < resolutionCost * 2) yesProb -= 50;
                 if (m.founder_burnout < 20) yesProb -= 30;
             }
             if (name === "Appoint Independent Director") {
-                yesProb += 25; 
+                yesProb += 25;
             }
             if (name === "Adopt Poison Pill") {
                 yesProb += 30;

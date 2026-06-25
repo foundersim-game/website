@@ -94,13 +94,17 @@ export function computeLegacyScore(
 ): LegacyResult {
     const m = startup.metrics;
     const outcome = startup.outcome ?? "wound_down";
-    const peakVal = startup.peak_valuation ?? startup.valuation;
+    // Defensive: if peakVal is NaN/Infinity/0 from corrupted state, use a safe floor
+    let peakVal = startup.peak_valuation ?? startup.valuation;
+    if (!isFinite(peakVal) || peakVal <= 0) peakVal = 500000;
     const peakUsers = startup.peak_users ?? m.users;
 
     // ── Peak Valuation (Piecewise: accelerates after $1B to support Trillions/Quadrillions) ──
     const logV = Math.log10(Math.max(1, peakVal));
     let valScore = 0;
-    if (logV <= 9) {
+    if (!isFinite(logV)) {
+        valScore = 0;
+    } else if (logV <= 9) {
         valScore = Math.floor(logV * 5); // Up to $1B: max 45 pts
     } else {
         valScore = 45 + Math.floor((logV - 9) * 20); // Beyond $1B: +20 pts per 10x

@@ -73,9 +73,5 @@ export function checkEndgame(startup: Startup): string | null {
     if (startup.metrics.cash < 0 && startup.metrics.burn_rate > 0) {
         return "bankruptcy";
     }
-    // Auto-IPO removed for manual S-1 process in UI
-    if (startup.metrics.team_morale <= 0) {
-        return "resigned";
-    }
     return null;
 }

@@ -260,10 +260,9 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                             }} />
                         </div>
 
-                        <div style={{
+                        <div className={isPremium ? 'pb-[2rem]' : 'pb-[calc(env(safe-area-inset-bottom,0px)+70px)] md:pb-[calc(env(safe-area-inset-bottom,0px)+120px)]'} style={{
                             background: isDark ? "#0f172a" : "#ffffff",
-                            paddingTop: 16, paddingLeft: 24, paddingRight: 24,
-                            paddingBottom: isPremium ? 32 : 'calc(env(safe-area-inset-bottom, 0px) + 70px)'
+                            paddingTop: 16, paddingLeft: 24, paddingRight: 24
                         }}>
                             {!resolvedChoice ? (
                                 <>

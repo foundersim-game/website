@@ -118,7 +118,7 @@ const BRAND_COLORS = [
 
 import { SCENARIOS, ScenarioId, SCENARIOS as SCENARIO_DEFS } from "@/lib/engine/legacy";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function CreateFounder() {
     const router = useRouter();
@@ -134,6 +134,7 @@ export default function CreateFounder() {
     }, []);
 
     const [formData, setFormData] = useState({
+        gameMode: "realistic" as "fairytale" | "realistic",
         name: "",
         age: "28",
         background: "Engineer",
@@ -176,7 +177,7 @@ export default function CreateFounder() {
     };
 
     const canAdvance = () => {
-        if (step === 1) return formData.name.trim().length > 0;
+        if (step === 2) return formData.name.trim().length > 0;
         if (step === TOTAL_STEPS) return formData.startupName.trim().length > 0;
         return true;
     };
@@ -188,6 +189,7 @@ export default function CreateFounder() {
         // --- ANALYTICS: Track Industry & Game Start ---
         analyticsService.logEvent("industry_selected", { industry: formData.industry });
         analyticsService.logEvent("game_start", {
+            game_mode: formData.gameMode,
             background: formData.background,
             industry: formData.industry,
             gtm_motion: formData.gtmMotion,
@@ -195,12 +197,16 @@ export default function CreateFounder() {
             startup_name: formData.startupName
         });
 
+        const prevStarts = parseInt(localStorage.getItem("founder_sim_games_started") || "0", 10);
+        localStorage.setItem("founder_sim_games_started", (prevStarts + 1).toString());
+
         localStorage.setItem("founder_data", JSON.stringify({ ...formData, perks: unlockedThisRun }));
+        localStorage.setItem("founder_sim_game_mode", formData.gameMode);
         router.replace("/dashboard");
     };
     const progress = (step / TOTAL_STEPS) * 100;
 
-    const STEP_LABELS = ["Founder", "Background", "Mission", "Strategy", "Challenge", "Vision"];
+    const STEP_LABELS = ["Reality", "Founder", "Background", "Mission", "Strategy", "Challenge", "Vision"];
 
     return (
         <div className="h-[100dvh] bg-white dark:bg-slate-950 flex flex-col overflow-hidden transition-colors duration-300">
@@ -247,28 +253,71 @@ export default function CreateFounder() {
                         {/* Step header */}
                         <div className="mb-6 mt-2">
                             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic drop-shadow-sm">
-                                {step === 1 && "The Founder"}
-                                {step === 2 && "The Path"}
-                                {step === 3 && "The Mission"}
-                                {step === 4 && "The Strategy"}
-                                {step === 5 && "The Challenge"}
-                                {step === 6 && "The Vision"}
+                                {step === 1 && "The Reality"}
+                                {step === 2 && "The Founder"}
+                                {step === 3 && "The Path"}
+                                {step === 4 && "The Mission"}
+                                {step === 5 && "The Strategy"}
+                                {step === 6 && "The Challenge"}
+                                {step === 7 && "The Vision"}
                             </h1>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">
-                                {step === 1 && "Who are you building for?"}
-                                {step === 2 && "Your professional background shapes your starting stats."}
-                                {step === 3 && "Which market will you disrupt?"}
-                                {step === 4 && "How will you acquire your first customers?"}
-                                {step === 5 && "Choose your starting market conditions and difficulty."}
-                                {step === 6 && "Name your startup, pick your brand."}
+                                {step === 1 && "Choose your difficulty."}
+                                {step === 2 && "Who are you building for?"}
+                                {step === 3 && "Your professional background shapes your starting stats."}
+                                {step === 4 && "Which market will you disrupt?"}
+                                {step === 5 && "How will you acquire your first customers?"}
+                                {step === 6 && "Choose your starting market conditions and difficulty."}
+                                {step === 7 && "Name your startup, pick your brand."}
                             </p>
                         </div>
 
-                        {/* STEP 1: Identity */}
+                        {/* STEP 1: Game Mode */}
                         {step === 1 && (
                             <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <button
+                                        onClick={() => { playSound("click"); setFormData({ ...formData, gameMode: "fairytale" }); }}
+                                        className={cn(
+                                            "group relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all active:scale-[0.98] cursor-pointer",
+                                            formData.gameMode === "fairytale" 
+                                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20" 
+                                                : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-purple-300 dark:hover:border-purple-700/50"
+                                        )}
+                                    >
+                                        <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🧚</div>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white mb-1 uppercase tracking-wider">Fairytale Mode</p>
+                                        <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-snug mb-3 px-2">Investors love you, users adore you, and everything works out. Just like the movies.</p>
+                                        <div className={cn("w-full rounded-xl px-3 py-2 border", formData.gameMode === "fairytale" ? "bg-purple-100 border-purple-200 dark:bg-purple-950/60 dark:border-purple-800/60" : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50")}>
+                                            <p className={cn("text-[0.5625rem] font-bold uppercase tracking-widest leading-snug", formData.gameMode === "fairytale" ? "text-purple-600 dark:text-purple-400" : "text-slate-500")}>Casual • Forgiving • No Leaderboard</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { playSound("click"); setFormData({ ...formData, gameMode: "realistic" }); }}
+                                        className={cn(
+                                            "group relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all active:scale-[0.98] cursor-pointer",
+                                            formData.gameMode === "realistic" 
+                                                ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" 
+                                                : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-700/50"
+                                        )}
+                                    >
+                                        <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🔥</div>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white mb-1 uppercase tracking-wider">Realistic Mode</p>
+                                        <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-snug mb-3 px-2">No safety net. No shortcuts. This is what building actually feels like.</p>
+                                        <div className={cn("w-full rounded-xl px-3 py-2 border", formData.gameMode === "realistic" ? "bg-orange-100 border-orange-200 dark:bg-orange-950/60 dark:border-orange-800/60" : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50")}>
+                                            <p className={cn("text-[0.5625rem] font-bold uppercase tracking-widest leading-snug", formData.gameMode === "realistic" ? "text-orange-600 dark:text-orange-400" : "text-slate-500")}>Brutal • Authentic • Leaderboard Eligible</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 2: Identity */}
+                        {step === 2 && (
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Your Name</label>
+                                    <label className="text-[0.625rem] font-black uppercase tracking-widest text-slate-400 mb-2 block">Your Name</label>
                                     <div className="relative">
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 size-4" />
                                         <input
@@ -282,7 +331,7 @@ export default function CreateFounder() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Age</label>
+                                    <label className="text-[0.625rem] font-black uppercase tracking-widest text-slate-400 mb-2 block">Age</label>
                                     <input
                                         type="number"
                                         min="18" max="65"
@@ -293,7 +342,7 @@ export default function CreateFounder() {
                                 </div>
                                 <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 mt-2">
                                     <p className="text-xs font-black italic text-indigo-700">👋 Welcome to FounderSim</p>
-                                    <p className="text-[11px] text-indigo-600/80 mt-1 leading-relaxed">Build a realistic startup from nothing. Every decision has real consequences — hiring, fundraising, personal life, and market forces all affect your journey.</p>
+                                    <p className="text-[0.6875rem] text-indigo-600/80 mt-1 leading-relaxed">Build a realistic startup from nothing. Every decision has real consequences — hiring, fundraising, personal life, and market forces all affect your journey.</p>
                                 </div>
 
                                 {legacyData && (
@@ -308,8 +357,8 @@ export default function CreateFounder() {
                             </div>
                         )}
 
-                        {/* STEP 2: Background */}
-                        {step === 2 && (
+                        {/* STEP 3: Background */}
+                        {step === 3 && (
                             <div className="space-y-2.5">
                                 {BACKGROUNDS.map(bg => (
                                     <button
@@ -327,7 +376,7 @@ export default function CreateFounder() {
                                         </div>
                                         <div className="flex-1">
                                             <p className={cn("font-black text-sm uppercase italic", formData.background === bg.id ? bg.textColor : "text-slate-800 dark:text-slate-200 transition-colors")}>{bg.label}</p>
-                                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{bg.desc}</p>
+                                            <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{bg.desc}</p>
                                         </div>
                                         {formData.background === bg.id && (
                                             <div className={cn("w-5 h-5 rounded-full flex items-center justify-center", bg.iconBg)}>
@@ -339,8 +388,8 @@ export default function CreateFounder() {
                             </div>
                         )}
 
-                        {/* STEP 3: Industry */}
-                        {step === 3 && (
+                        {/* STEP 4: Industry */}
+                        {step === 4 && (
                             <div className="space-y-2.5">
                                 {INDUSTRIES.map(ind => (
                                     <div key={ind.id}>
@@ -359,12 +408,12 @@ export default function CreateFounder() {
                                             <span className="text-2xl w-10 text-center shrink-0 drop-shadow-sm">{ind.emoji}</span>
                                             <div className="flex-1">
                                                 <p className={cn("font-black text-sm uppercase italic transition-colors", formData.industry === ind.id ? "text-indigo-700 dark:text-indigo-400" : "text-slate-800 dark:text-slate-200")}>{ind.label}</p>
-                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
+                                                <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-medium mt-0.5 leading-relaxed">{ind.desc}</p>
                                                 <div className="flex gap-2 mt-1.5">
-                                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase transition-colors", ind.diff === "Hard" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30" : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30")}>
+                                                    <span className={cn("text-[0.5rem] font-black px-2 py-0.5 rounded-full uppercase transition-colors", ind.diff === "Hard" ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30" : "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30")}>
                                                         {ind.diff} Difficulty
                                                     </span>
-                                                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700/50">{ind.capital} Capital</span>
+                                                    <span className="text-[0.5rem] font-bold px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700/50">{ind.capital} Capital</span>
                                                 </div>
                                             </div>
                                             {formData.industry === ind.id && (
@@ -375,17 +424,17 @@ export default function CreateFounder() {
                                         </button>
                                         {formData.industry === ind.id && (ind as any).detail && (
                                             <div className="mx-1 p-3.5 bg-indigo-600 dark:bg-indigo-900 rounded-b-2xl border-x-2 border-b-2 border-indigo-400 dark:border-indigo-800 -mt-2 pt-5 shadow-inner">
-                                                <p className="text-[8px] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-widest mb-2">📋 What You're Building</p>
+                                                <p className="text-[0.5rem] font-black text-indigo-200 dark:text-indigo-400 uppercase tracking-widest mb-2">📋 What You're Building</p>
                                                 <div className="space-y-2">
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏗️</span><p className="text-[10px] text-white dark:text-indigo-50 font-semibold leading-tight">{(ind as any).detail.what}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">👤</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.who}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💵</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.revenue}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">💸</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">COGS:</span> {(ind as any).detail.cogs}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🏢</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">OPEX:</span> {(ind as any).detail.opex}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">🚀</span><p className="text-[10px] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.growth}</p></div>
-                                                    <div className="flex gap-2"><span className="text-[9px] shrink-0">⚠️</span><p className="text-[10px] text-rose-200 dark:text-rose-400 leading-tight">{(ind as any).detail.risk}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">🏗️</span><p className="text-[0.625rem] text-white dark:text-indigo-50 font-semibold leading-tight">{(ind as any).detail.what}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">👤</span><p className="text-[0.625rem] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.who}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">💵</span><p className="text-[0.625rem] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.revenue}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">💸</span><p className="text-[0.625rem] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">COGS:</span> {(ind as any).detail.cogs}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">🏢</span><p className="text-[0.625rem] text-indigo-100 dark:text-indigo-200/80 leading-tight"><span className="text-indigo-300 dark:text-indigo-400 font-black">OPEX:</span> {(ind as any).detail.opex}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">🚀</span><p className="text-[0.625rem] text-indigo-100 dark:text-indigo-200/80 leading-tight">{(ind as any).detail.growth}</p></div>
+                                                    <div className="flex gap-2"><span className="text-[0.5625rem] shrink-0">⚠️</span><p className="text-[0.625rem] text-rose-200 dark:text-rose-400 leading-tight">{(ind as any).detail.risk}</p></div>
                                                 </div>
-                                                <p className="text-[8px] text-indigo-300 dark:text-indigo-500 mt-2.5 text-right font-bold italic">Next → pick your go-to-market strategy</p>
+                                                <p className="text-[0.5rem] text-indigo-300 dark:text-indigo-500 mt-2.5 text-right font-bold italic">Next → pick your go-to-market strategy</p>
                                             </div>
                                         )}
                                     </div>
@@ -393,8 +442,8 @@ export default function CreateFounder() {
                             </div>
                         )}
 
-                        {/* STEP 4: GTM Motion */}
-                        {step === 4 && (
+                        {/* STEP 5: GTM Motion */}
+                        {step === 5 && (
                             <div className="space-y-4">
                                 {(INDUSTRY_STRATEGIES[formData.industry] || INDUSTRY_STRATEGIES["SaaS Platform"]).map(gtm => (
                                     <button
@@ -413,18 +462,18 @@ export default function CreateFounder() {
                                             </div>
                                             <div>
                                                 <p className={cn("font-black text-sm uppercase italic transition-colors", formData.gtmMotion === gtm.id ? "text-indigo-700 dark:text-indigo-400" : "text-slate-800 dark:text-slate-200")}>{gtm.label}</p>
-                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-tight uppercase">{gtm.sub}</p>
+                                                <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-medium tracking-tight uppercase">{gtm.sub}</p>
                                             </div>
                                         </div>
                                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">{gtm.desc}</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <p className="text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mb-1">Advantages</p>
-                                                {gtm.pros.map(p => <p key={p} className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">✓ {p}</p>)}
+                                                <p className="text-[0.5rem] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mb-1">Advantages</p>
+                                                {gtm.pros.map(p => <p key={p} className="text-[0.625rem] text-slate-500 dark:text-slate-400 leading-tight">✓ {p}</p>)}
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase tracking-wider mb-1">Trade-offs</p>
-                                                {gtm.cons.map(c => <p key={c} className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">× {c}</p>)}
+                                                <p className="text-[0.5rem] font-black text-rose-500 dark:text-rose-400 uppercase tracking-wider mb-1">Trade-offs</p>
+                                                {gtm.cons.map(c => <p key={c} className="text-[0.625rem] text-slate-400 dark:text-slate-500 leading-tight">× {c}</p>)}
                                             </div>
                                         </div>
                                     </button>
@@ -432,8 +481,8 @@ export default function CreateFounder() {
                             </div>
                         )}
 
-                        {/* STEP 5: Scenario */}
-                        {step === 5 && (
+                        {/* STEP 6: Scenario */}
+                        {step === 6 && (
                             <div className="space-y-3">
                                 {Object.values(SCENARIOS).map(scen => (
                                     <button
@@ -450,14 +499,14 @@ export default function CreateFounder() {
                                             <div className="flex items-center gap-2 mb-1">
                                                 <p className={cn("font-black text-sm uppercase italic transition-colors", formData.scenario === scen.id ? "text-amber-700 dark:text-amber-400" : "text-slate-800 dark:text-slate-200")}>{scen.label}</p>
                                                 <span className={cn(
-                                                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shadow-sm",
+                                                    "text-[0.5rem] font-black px-1.5 py-0.5 rounded uppercase shadow-sm",
                                                     scen.difficulty === "Extreme" ? "bg-red-500 text-white" :
                                                         scen.difficulty === "Hard" ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"
                                                 )}>
                                                     {scen.difficulty}
                                                 </span>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{scen.description}</p>
+                                            <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{scen.description}</p>
                                         </div>
                                         {formData.scenario === scen.id && (
                                             <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
@@ -469,12 +518,12 @@ export default function CreateFounder() {
                             </div>
                         )}
 
-                        {/* STEP 6: Vision — Name + Logo + Color */}
-                        {step === 6 && (
+                        {/* STEP 7: Vision — Name + Logo + Color */}
+                        {step === 7 && (
                             <div className="space-y-6">
                                 {/* Startup Name */}
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Startup Name</label>
+                                    <label className="text-[0.625rem] font-black uppercase tracking-widest text-slate-400 mb-2 block">Startup Name</label>
                                     <div className="relative">
                                         <Rocket className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 size-4" />
                                         <input
@@ -490,7 +539,7 @@ export default function CreateFounder() {
 
                                 {/* Logo Picker */}
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block">Choose Logo</label>
+                                    <label className="text-[0.625rem] font-black uppercase tracking-widest text-slate-400 mb-3 block">Choose Logo</label>
                                     <div className="grid grid-cols-4 gap-3">
                                         {LOGOS.map(logo => (
                                             <button
@@ -509,7 +558,7 @@ export default function CreateFounder() {
 
                                 {/* Color Picker */}
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block">Brand Color</label>
+                                    <label className="text-[0.625rem] font-black uppercase tracking-widest text-slate-400 mb-3 block">Brand Color</label>
                                     <div className="flex flex-wrap gap-3">
                                         {BRAND_COLORS.map(color => (
                                             <button
@@ -533,7 +582,7 @@ export default function CreateFounder() {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="p-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40"
                                     >
-                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Preview</p>
+                                        <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Preview</p>
                                         <div className="flex items-center gap-3">
                                             <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border"
                                                 style={{
@@ -545,7 +594,7 @@ export default function CreateFounder() {
                                             </div>
                                             <div>
                                                 <p className="font-black text-slate-900 dark:text-white transition-colors">{formData.startupName}</p>
-                                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{formData.industry} · {formData.background} · {formData.scenario}</p>
+                                                <p className="text-[0.625rem] text-slate-400 dark:text-slate-500">{formData.industry} · {formData.background} · {formData.scenario}</p>
                                             </div>
                                         </div>
                                     </motion.div>

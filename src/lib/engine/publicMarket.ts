@@ -436,7 +436,7 @@ export function generateStockNews(stock: MarketStock, roll: number, activeEvent?
     // Only generate news sometimes, more frequently for large cap. Slightly higher chance if held.
     let chanceOfNews = stock.companyTier === "large_cap" ? 0.35 : stock.companyTier === "mid_cap" ? 0.20 : 0.10;
     if (isHeld) chanceOfNews += 0.15;
-    
+
     if (Math.random() > chanceOfNews && !activeEvent) {
         return null;
     }
@@ -670,8 +670,8 @@ export function checkMacroEventSpawn(currentEvent: MacroEvent | null | undefined
 
 // ── MAIN MARKET SIMULATION LOOP ────────────────────────────────────────────────────────
 export function processMarketMonth(
-    stocks: MarketStock[], 
-    currentSeason: SeasonType, 
+    stocks: MarketStock[],
+    currentSeason: SeasonType,
     activeEvent?: MacroEvent | null,
     insiderPicks?: string[],
     heldSymbols?: string[]
@@ -706,8 +706,9 @@ export function processMarketMonth(
             let changePct = randomMove + macroEffect + momentumEffect + eventMomentum;
             const sectorNoise = (Math.random() - 0.5) * 0.01;
             changePct += sectorNoise;
-            changePct = Math.max(-0.3, Math.min(0.4, changePct));
-            if (Math.random() < 0.05) changePct += (Math.random() - 0.5) * 0.2;
+            changePct = Math.max(-0.20, Math.min(0.08, changePct));
+            // Rare volatility spike (5% chance) — capped so combined move doesn't exceed +10% / -22%
+            if (Math.random() < 0.05) changePct = Math.max(-0.22, Math.min(0.10, changePct + (Math.random() - 0.5) * 0.08));
 
             const newPrice = Math.max(0.01, stock.currentPrice * (1 + changePct));
             let newMomentum = stock.momentum * 0.7 + (changePct * 1.5);
@@ -747,12 +748,12 @@ export function processMarketMonth(
             }
 
             const prevHistory = stock.newsHistory || [];
-            
+
             // Only update news string and history if we actually got a news item this month
             let finalRecentNews = stock.recentNews;
             let finalNewsContext = stock.newsContext;
             let finalHistory = prevHistory;
-            
+
             if (newsItem) {
                 finalHistory = stock.recentNews ? [stock.recentNews, ...prevHistory].slice(0, 3) : prevHistory.slice(0, 3);
                 finalRecentNews = newsItem.headline;

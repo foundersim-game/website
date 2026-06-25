@@ -124,11 +124,11 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
                     {/* EPS Results */}
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6 flex justify-between items-center border border-slate-100 dark:border-slate-800">
                         <div>
-                            <p className="text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Reported EPS</p>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500 tracking-wider mb-1">Reported EPS</p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white">${eps.toFixed(3)}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Consensus</p>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500 tracking-wider mb-1">Consensus</p>
                             <p className="text-lg font-black text-slate-600 dark:text-slate-400">${consensus.toFixed(3)}</p>
                         </div>
                     </div>
@@ -154,7 +154,7 @@ export function EarningsCallModal({ open, startup, founder, month, onComplete }:
                                             });
                                         });
                                     }}
-                                    className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/50 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1"
+                                    className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/50 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-lg text-[0.5625rem] font-black uppercase tracking-widest transition-colors flex items-center gap-1"
                                 >
                                     <span>▶</span> Adjust Models
                                 </button>

@@ -462,13 +462,13 @@ export function PostIpoCinematicModal({ isOpen, onComplete }: PostIpoCinematicMo
                         {/* Glowing Mentor Tag */}
                         <div className="absolute -bottom-1 bg-indigo-600 border border-indigo-400/40 rounded-full px-5 py-1.5 flex items-center gap-1.5 shadow-lg">
                             <Sparkles className="size-3 text-amber-300 animate-pulse" />
-                            <span className="text-[10px] font-black text-indigo-100 uppercase tracking-[0.2em] leading-none">SUPER MENTOR SAM</span>
+                            <span className="text-[0.625rem] font-black text-indigo-100 uppercase tracking-[0.2em] leading-none">SUPER MENTOR SAM</span>
                         </div>
                     </div>
 
                     {/* Cinematic Text Card Container (Clean, Glassmorphic, Extremely Readable) */}
                     <div className="bg-slate-900/60 border border-white/5 backdrop-blur-lg p-6 md:p-8 rounded-[2rem] w-full max-w-xl shadow-2xl space-y-4 text-center z-10 relative">
-                        <div className="min-h-[160px] flex flex-col justify-center gap-3">
+                        <div className="min-h-[10rem] flex flex-col justify-center gap-3">
                             {/* Title dialog */}
                             <h2 className="text-xl md:text-3xl font-black tracking-tight text-white leading-tight min-h-[2.2em] flex items-center justify-center">
                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-200">

@@ -21,7 +21,7 @@ export function PublicMarketTicker({
     const sign = isUp ? "+" : "";
 
     return (
-        <div className="w-full bg-slate-900 border-b border-slate-800 text-slate-300 text-[10px] font-black uppercase tracking-widest flex items-center overflow-hidden h-7 shrink-0 relative">
+        <div className="w-full bg-slate-900 border-b border-slate-800 text-slate-300 text-[0.625rem] font-black uppercase tracking-widest flex items-center overflow-hidden h-7 shrink-0 relative">
             <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10" />
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-900 to-transparent z-10" />
                         {/* Slower scrolling marquee */}

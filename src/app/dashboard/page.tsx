@@ -131,7 +131,7 @@ function TraitBadge({ trait }: { trait: EmployeeTrait }) {
     return (
         <span
             title={meta.description}
-            className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[7px] font-black uppercase tracking-widest cursor-help select-none ${meta.color}`}
+            className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[0.4375rem] font-black uppercase tracking-widest cursor-help select-none ${meta.color}`}
         >
             {meta.label}
         </span>
@@ -390,8 +390,8 @@ function StatBar({ label, value, max = 100, color }: { label: string; value: num
     return (
         <div>
             <div className="flex justify-between items-center mb-1">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-                <span className={cn("text-[10px] font-black", color)}>{Math.round(value)}</span>
+                <span className="text-[0.5625rem] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+                <span className={cn("text-[0.625rem] font-black", color)}>{Math.round(value)}</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full transition-all", color.replace("text-", "bg-"))} style={{ width: `${pct}%` }} />
@@ -401,7 +401,7 @@ function StatBar({ label, value, max = 100, color }: { label: string; value: num
 }
 
 function SH({ children }: { children: React.ReactNode }) {
-    return <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-4 first:mt-0">{children}</p>;
+    return <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-4 first:mt-0">{children}</p>;
 }
 
 function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, onToggle, onInfoClick }: { label: string; value: string; sub?: string; color: string; icon: string; explanation?: string; isExpanded?: boolean; onToggle?: () => void; onInfoClick?: (e: React.MouseEvent) => void }) {
@@ -414,7 +414,7 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
                 isExpanded ? "ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]" : "hover:border-slate-300 dark:hover:border-slate-700")}
         >
             <div className="flex justify-between items-start">
-                <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{icon} {label}</p>
+                <p className="text-[0.5rem] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{icon} {label}</p>
                 <div className="flex items-center gap-1.5">
                     {onInfoClick && (
                         <button
@@ -424,11 +424,11 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
                             <Info className="w-3 h-3" />
                         </button>
                     )}
-                    {explanation && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">?</span>}
+                    {explanation && <span className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-bold">?</span>}
                 </div>
             </div>
             <p className="text-xl font-black italic text-slate-900 dark:text-white leading-none mt-0.5">{value}</p>
-            {sub && <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
+            {sub && <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
 
             <AnimatePresence>
                 {isExpanded && explanation && (
@@ -438,7 +438,7 @@ function BigMetric({ label, value, sub, color, icon, explanation, isExpanded, on
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                     >
-                        <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-3 pt-3 border-t border-black/5 dark:border-white/5 leading-relaxed font-medium">
+                        <p className="text-[0.625rem] text-slate-600 dark:text-slate-300 mt-3 pt-3 border-t border-black/5 dark:border-white/5 leading-relaxed font-medium">
                             {explanation}
                         </p>
                     </motion.div>
@@ -457,9 +457,9 @@ function SheetRow({ emoji, label, sub, onPress, active }: { emoji: string; label
             <span className="text-2xl w-8 text-center">{emoji}</span>
             <div className="flex-1">
                 <p className={cn("text-sm font-bold", active ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200")}>{label}</p>
-                {sub && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
+                {sub && <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
             </div>
-            {active && <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center"><span className="text-white text-[8px] font-black">✓</span></div>}
+            {active && <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center"><span className="text-white text-[0.5rem] font-black">✓</span></div>}
         </div>
     );
 }
@@ -473,7 +473,7 @@ function StatRow({ label, value, color, explanation, isExpanded, onToggle }: { l
             >
                 <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-slate-500 dark:text-slate-300">{label}</span>
-                    {explanation && <span className="text-[9px] text-slate-300 dark:text-slate-500">?</span>}
+                    {explanation && <span className="text-[0.5625rem] text-slate-300 dark:text-slate-500">?</span>}
                 </div>
                 <span className={cn("text-xs font-black", color || "text-slate-900 dark:text-slate-100")}>{value}</span>
             </div>
@@ -485,7 +485,7 @@ function StatRow({ label, value, color, explanation, isExpanded, onToggle }: { l
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                     >
-                        <p className="text-[9px] text-slate-500 dark:text-slate-400 pb-2 leading-relaxed italic">
+                        <p className="text-[0.5625rem] text-slate-500 dark:text-slate-400 pb-2 leading-relaxed italic">
                             {explanation}
                         </p>
                     </motion.div>
@@ -498,8 +498,8 @@ function StatRow({ label, value, color, explanation, isExpanded, onToggle }: { l
 function BreakdownRow({ label, value, sign = "", color = "" }: { label: string; value: number | string; sign?: string; color?: string }) {
     return (
         <div className="flex justify-between items-center py-1.5 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">{label}</span>
-            <span className={cn("text-[10px] font-black tabular-nums", color)}>
+            <span className="text-[0.625rem] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider">{label}</span>
+            <span className={cn("text-[0.625rem] font-black tabular-nums", color)}>
                 {sign}{value}h
             </span>
         </div>
@@ -742,15 +742,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <span className="text-xl w-7 text-center shrink-0">{action.emoji}</span>
                 <div className="flex-1 min-w-0 pr-1">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{action.label}</p>
-                    <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight pr-2">{action.description.replace(/\s*\(\$\d+(?:,\d+)?\)/i, "")}</p>
+                    <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500 leading-tight pr-2">{action.description.replace(/\s*\(\$\d+(?:,\d+)?\)/i, "")}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0 ml-1">
-                    <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right leading-tight max-w-[130px] whitespace-normal">{effectsList}</p>
+                    <p className="text-[0.5625rem] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right leading-tight max-w-[8.125rem] whitespace-normal">{effectsList}</p>
                     <div className="flex gap-1 items-center">
                         {scaledEffects.cash && (
-                            <span className="text-[8px] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">(Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
+                            <span className="text-[0.5rem] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">(Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
                         )}
-                        <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>
+                        <span className="text-[0.5rem] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>
                     </div>
                 </div>
             </button>
@@ -763,7 +763,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <span className="text-2xl">{emoji}</span>
                 <div>
                     <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{title}</h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{sub}</p>
+                    <p className="text-[0.625rem] text-slate-500 font-bold uppercase tracking-widest">{sub}</p>
                 </div>
             </div>
         </div>
@@ -890,8 +890,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
         return (
             <div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">{prog.description}</p>
-                <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black">{effectsList}{costLabel}</p>
+                <p className="text-[0.5625rem] text-slate-500 dark:text-slate-400 font-bold mb-0.5">{prog.description}</p>
+                <p className="text-[0.5625rem] text-indigo-600 dark:text-indigo-400 font-black">{effectsList}{costLabel}</p>
             </div>
         );
     };
@@ -920,11 +920,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
                                 <div className="flex justify-between items-end mb-1.5">
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Eng. Capacity</p>
+                                        <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Eng. Capacity</p>
                                         <h3 className={`text-xl font-black italic leading-none ${textClass}`}>{capacityPct}%</h3>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
+                                        <p className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
                                         <p className="text-xs font-black text-slate-700 dark:text-slate-300">{Math.round(power)} / {Math.round(reqPower)} Power</p>
                                     </div>
                                 </div>
@@ -936,19 +936,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             {/* ── Innovation Metric ── */}
                             <div className="p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
                                 <div className="flex justify-between items-end mb-1.5">
-                                    <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest leading-none">🚀 Innovation Level</p>
+                                    <p className="text-[0.625rem] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest leading-none">🚀 Innovation Level</p>
                                     <p className="text-xs font-black text-violet-800 dark:text-violet-300">{Math.round(m.innovation || 0)}/100</p>
                                 </div>
                                 <div className="h-1.5 w-full bg-violet-100 dark:bg-violet-900/50 rounded-full overflow-hidden">
                                     <div className="h-full bg-violet-500 transition-all duration-700" style={{ width: `${m.innovation || 0}%` }} />
                                 </div>
-                                <p className="mt-2 text-[7px] font-bold text-violet-600 dark:text-violet-500 uppercase leading-none tracking-tight">
+                                <p className="mt-2 text-[0.4375rem] font-bold text-violet-600 dark:text-violet-500 uppercase leading-none tracking-tight">
                                     High Innovation increases Valuation & Fundraising Success.
                                 </p>
                             </div>
 
                             {capacityPct < 100 && (
-                                <p className="mt-1 text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter px-1">
+                                <p className="mt-1 text-[0.5rem] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter px-1">
                                     ⚠️ Throttled: Team is too small for {users.toLocaleString()} users. Actions are {100 - capacityPct}% less effective.
                                 </p>
                             )}
@@ -956,19 +956,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     );
                 })()}
 
-                <p className="text-[9px] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-black mb-3">Requires Focus Energy</p>
+                <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-black mb-3">Requires Focus Energy</p>
                 <div className="space-y-1.5">
                     {actions.map(action => renderActionCard(action, "product"))}
                 </div>
 
                 <div className="flex flex-col items-center gap-1 mb-3">
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Pricing Strategy</p>
-                    <div className={cn("px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest",
+                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Pricing Strategy</p>
+                    <div className={cn("px-3 py-1 rounded-full border text-[0.5rem] font-black uppercase tracking-widest",
                         startup.gtm_motion === "PLG" ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400")}>
                         {startup.gtm_motion === "PLG" ? "✨ Product-Led Growth Active" : "🤝 Sales-Led Growth Active"}
                     </div>
                 </div>
-                <div className="w-full max-w-[250px] mx-auto mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center">
+                <div className="w-full max-w-[15.625rem] mx-auto mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center">
                     {(() => {
                         const ind = startup.industry || "SaaS Platform";
                         const isPLG = startup.gtm_motion === "PLG";
@@ -978,7 +978,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         return (
                             <div className="w-full">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{cfg.label}</span>
+                                    <span className="text-[0.625rem] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{cfg.label}</span>
                                     <span className="text-xl font-black text-slate-800 dark:text-white tracking-tighter">
                                         {cfg.unit === "%" ? `${m.pricing}%` : `$${m.pricing}`}
                                         <span className="text-xs text-slate-400 dark:text-slate-500 font-normal tracking-normal lowercase"> {cfg.unit}</span>
@@ -997,7 +997,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     }}
                                     className="w-full mt-2 accent-indigo-600 cursor-pointer"
                                 />
-                                <div className="flex justify-between w-full mt-1 px-1 text-[8px] font-black text-slate-400 uppercase">
+                                <div className="flex justify-between w-full mt-1 px-1 text-[0.5rem] font-black text-slate-400 uppercase">
                                     <span>Free</span>
                                     <span>${Math.round(cfg.maxPrice / 2)}</span>
                                     <span>${cfg.maxPrice}</span>
@@ -1007,7 +1007,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 {cfg.sliders && cfg.sliders.map(sl => (
                                     <div key={sl.key} className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60 w-full">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">{sl.label}</span>
+                                            <span className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase">{sl.label}</span>
                                             <span className="text-xs font-black text-slate-700 dark:text-slate-300">{m[sl.key] || 0}{sl.unit}</span>
                                         </div>
                                         <input
@@ -1032,24 +1032,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     return (
                                         <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 w-full grid grid-cols-3 gap-1 text-center">
                                             <div className="flex flex-col justify-center items-center">
-                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
+                                                <span className="text-[0.4375rem] font-black text-slate-400 uppercase leading-tight mb-[0.125rem]">
                                                     {isPLG ? "Virality" : "Sales Conversion"}
                                                 </span>
-                                                <span className={cn("text-[10px] font-black leading-none", conversion < 0.5 ? "text-rose-600" : conversion > 1.2 ? "text-emerald-500" : "text-amber-600")}>
+                                                <span className={cn("text-[0.625rem] font-black leading-none", conversion < 0.5 ? "text-rose-600" : conversion > 1.2 ? "text-emerald-500" : "text-amber-600")}>
                                                     {conversion.toFixed(1)}x
                                                 </span>
                                             </div>
                                             <div className="flex flex-col justify-center items-center border-l border-slate-200">
-                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">Churn</span>
-                                                <span className={cn("text-[10px] font-black leading-none", churn > 0.06 ? "text-rose-600" : "text-emerald-500")}>
+                                                <span className="text-[0.4375rem] font-black text-slate-400 uppercase leading-tight mb-[0.125rem]">Churn</span>
+                                                <span className={cn("text-[0.625rem] font-black leading-none", churn > 0.06 ? "text-rose-600" : "text-emerald-500")}>
                                                     {(churn * 100).toFixed(0)}%
                                                 </span>
                                             </div>
                                             <div className="flex flex-col justify-center items-center border-l border-slate-200">
-                                                <span className="text-[7px] font-black text-slate-400 uppercase leading-tight mb-[2px]">
+                                                <span className="text-[0.4375rem] font-black text-slate-400 uppercase leading-tight mb-[0.125rem]">
                                                     {isPLG ? "Loop Power" : "Net Score"}
                                                 </span>
-                                                <span className={cn("text-[10px] font-black leading-none", loopPower < 1.0 ? "text-rose-600" : loopPower > 1.4 ? "text-emerald-500" : "text-amber-600")}>
+                                                <span className={cn("text-[0.625rem] font-black leading-none", loopPower < 1.0 ? "text-rose-600" : loopPower > 1.4 ? "text-emerald-500" : "text-amber-600")}>
                                                     {loopPower.toFixed(2)}x
                                                 </span>
                                             </div>
@@ -1085,9 +1085,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                     return (
                         <div className="w-full mt-3 px-2 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/50 rounded-xl">
-                            <p className="text-[8px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">{label}</p>
-                            <p className="text-[8px] text-emerald-600 mt-0.5"><span className="font-bold">Pro:</span> {pros}</p>
-                            <p className="text-[8px] text-rose-500"><span className="font-bold">Con:</span> {cons}</p>
+                            <p className="text-[0.5rem] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">{label}</p>
+                            <p className="text-[0.5rem] text-emerald-600 mt-0.5"><span className="font-bold">Pro:</span> {pros}</p>
+                            <p className="text-[0.5rem] text-rose-500"><span className="font-bold">Con:</span> {cons}</p>
                         </div>
                     );
                 })()}
@@ -1099,36 +1099,36 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     if (!pb) return null;
                     return (
                         <div className="mt-3 bg-slate-800 dark:bg-slate-900 rounded-2xl p-4 border border-slate-700 dark:border-slate-800 shadow-md">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                 <span>📖</span> Strategy Playbook — {pb.model}
                             </p>
                             <div className="space-y-3">
                                 <div className="flex gap-2.5">
                                     <span className="text-base shrink-0 mt-0.5">👤</span>
                                     <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Your Customers</p>
-                                        <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.customers}</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-wider mb-0.5">Your Customers</p>
+                                        <p className="text-[0.625rem] text-slate-200 font-medium leading-snug">{pb.customers}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2.5">
                                     <span className="text-base shrink-0 mt-0.5">💵</span>
                                     <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">MRR Formula</p>
-                                        <p className="text-[10px] text-emerald-400 font-bold leading-snug">{pb.mrrFormula}</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-wider mb-0.5">MRR Formula</p>
+                                        <p className="text-[0.625rem] text-emerald-400 font-bold leading-snug">{pb.mrrFormula}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2.5">
                                     <span className="text-base shrink-0 mt-0.5">🚀</span>
                                     <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Growth Lever</p>
-                                        <p className="text-[10px] text-slate-200 font-medium leading-snug">{pb.growthLever}</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-wider mb-0.5">Growth Lever</p>
+                                        <p className="text-[0.625rem] text-slate-200 font-medium leading-snug">{pb.growthLever}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2.5">
                                     <span className="text-base shrink-0 mt-0.5">⚠️</span>
                                     <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Main Risk</p>
-                                        <p className="text-[10px] text-rose-400 font-medium leading-snug">{pb.mainRisk}</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-wider mb-0.5">Main Risk</p>
+                                        <p className="text-[0.625rem] text-rose-400 font-medium leading-snug">{pb.mainRisk}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1138,16 +1138,16 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {m.pricing > 199 && m.b2b_pipeline && (
                     <div className="mt-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 space-y-1">
-                        <p className="text-[9px] font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest mb-2">🤝 B2B Sales Pipeline</p>
+                        <p className="text-[0.5625rem] font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest mb-2">🤝 B2B Sales Pipeline</p>
                         <StatRow label="Leads" value={m.b2b_pipeline.leads.toLocaleString()} color="text-indigo-600 dark:text-indigo-400" />
                         <StatRow label="Active Deals" value={m.b2b_pipeline.active_deals.toLocaleString()} color="text-amber-600 dark:text-amber-400" />
                         <StatRow label="Deals Won" value={m.b2b_pipeline.closed_won.toLocaleString()} color="text-emerald-600 dark:text-emerald-400" />
-                        <p className="text-[8px] text-indigo-500 dark:text-indigo-500 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/50 leading-tight">Enterprise sales takes 1-3 months. Win rate depends on quality & sales team.</p>
+                        <p className="text-[0.5rem] text-indigo-500 dark:text-indigo-500 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/50 leading-tight">Enterprise sales takes 1-3 months. Win rate depends on quality & sales team.</p>
                     </div>
                 )}
 
                 <div className="mt-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-3 space-y-1">
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Product Stats</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Product Stats</p>
                     <StatRow label="Quality" value={`${Math.round(m.product_quality || 0)}%`} color="text-indigo-600 dark:text-indigo-400" />
                     <StatRow label="Reliability" value={`${Math.round(m.reliability || 0)}%`} color="text-cyan-600 dark:text-cyan-400" />
                     <StatRow label="Tech Debt" value={`${Math.round(m.technical_debt || 0)}%`} color={m.technical_debt > 50 ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"} />
@@ -1173,15 +1173,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-2.5 text-center">
                         <p className="text-lg font-black text-emerald-700 dark:text-emerald-400 leading-none">{Math.round(founder.attributes.marketing_skill || 10)}</p>
-                        <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide mt-0.5">Mkt Skill</p>
+                        <p className="text-[0.5rem] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide mt-0.5">Mkt Skill</p>
                     </div>
                     <div className="bg-pink-50 dark:bg-rose-950/20 border border-pink-100 dark:border-rose-900/50 rounded-2xl p-2.5 text-center">
                         <p className="text-lg font-black text-pink-700 dark:text-rose-400 leading-none">{Math.round(m.brand_awareness || 0)}%</p>
-                        <p className="text-[8px] font-black text-pink-500 dark:text-rose-400 uppercase tracking-wide mt-0.5">Brand</p>
+                        <p className="text-[0.5rem] font-black text-pink-500 dark:text-rose-400 uppercase tracking-wide mt-0.5">Brand</p>
                     </div>
                     <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/50 rounded-2xl p-2.5 text-center">
                         <p className="text-lg font-black text-violet-700 dark:text-violet-400 leading-none">{startup.employees?.filter((e: any) => e.role === "marketer").length || 0}</p>
-                        <p className="text-[8px] font-black text-violet-500 dark:text-violet-500 uppercase tracking-wide mt-0.5">Marketers</p>
+                        <p className="text-[0.5rem] font-black text-violet-500 dark:text-violet-500 uppercase tracking-wide mt-0.5">Marketers</p>
                     </div>
                 </div>
 
@@ -1199,11 +1199,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
                             <div className="flex justify-between items-end mb-1.5">
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Growth Capacity</p>
+                                    <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Growth Capacity</p>
                                     <h3 className={`text-xl font-black italic leading-none ${textClass}`}>{capacityPct}%</h3>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
+                                    <p className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Execution Scale</p>
                                     <p className="text-xs font-black text-slate-700 dark:text-slate-300">{Math.round(power)} / {Math.round(reqPower)} Power</p>
                                 </div>
                             </div>
@@ -1211,7 +1211,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className={`h-full ${colorClass} transition-all duration-700`} style={{ width: `${capacityPct}%` }} />
                             </div>
                             {capacityPct < 100 && (
-                                <p className="mt-2 text-[8px] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter">
+                                <p className="mt-2 text-[0.5rem] font-black text-rose-500 dark:text-rose-400 uppercase leading-none tracking-tighter">
                                     ⚠️ Throttled: Team is too small for {users.toLocaleString()} users. Growth actions are {100 - capacityPct}% less effective.
                                 </p>
                             )}
@@ -1223,20 +1223,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="mb-4 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 border-2 border-pink-100 dark:border-pink-900/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
                         <div>
-                            <p className="text-[10px] font-black text-pink-800 dark:text-pink-300 uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-[0.625rem] font-black text-pink-800 dark:text-pink-300 uppercase tracking-widest flex items-center gap-1.5">
                                 💎 Viral TikTok Moment
                             </p>
-                            <p className="text-[8px] text-pink-600 dark:text-pink-400 leading-tight">
+                            <p className="text-[0.5rem] text-pink-600 dark:text-pink-400 leading-tight">
                                 Instantly gain {startup.gtm_motion === "SLG" ? "250 high-intent leads" : "50,000 active users"} and +50% Brand Awareness.
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={handleIAP_TikTokViral}
-                        className="w-full py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                        className="w-full py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">📱 Trigger Viral Hit</span>
-                        <span className="bg-pink-900/30 px-2 py-0.5 rounded-full text-[8px] border border-pink-400/30">$1.99</span>
+                        <span className="bg-pink-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-pink-400/30">$1.99</span>
                     </button>
                 </div>
 
@@ -1244,17 +1244,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 rounded-2xl px-3 py-2 mb-4 flex justify-between items-center">
                     <div className="text-center">
-                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Growth Rate</p>
+                        <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase">Growth Rate</p>
                         <p className="text-xs font-black text-slate-700 dark:text-slate-200">{(m.growth_rate * 100).toFixed(1)}%/mo</p>
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     <div className="text-center">
-                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">CAC</p>
+                        <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase">CAC</p>
                         <p className="text-xs font-black text-slate-700 dark:text-slate-200">${(m.cac || 0).toLocaleString()}</p>
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     <div className="text-center">
-                        <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide">PMF</p>
+                        <p className="text-[0.5rem] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide">PMF</p>
                         <p className={cn("text-xs font-black", (m.pmf_score || 0) < 30 ? "text-rose-600 dark:text-rose-400" : (m.pmf_score || 0) < 60 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>{Math.round(m.pmf_score || 0)}</p>
                     </div>
                 </div>
@@ -1266,19 +1266,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     if (!pb) return null;
                     return (
                         <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl">
-                            <p className="text-[8px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1.5">🎯 Your Growth Playbook</p>
-                            <p className="text-[10px] text-emerald-800 dark:text-emerald-200 leading-tight font-semibold mb-1">{pb.growthLever}</p>
-                            <p className="text-[9px] text-emerald-600 dark:text-emerald-500 leading-tight">{pb.marketingTip}</p>
+                            <p className="text-[0.5rem] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1.5">🎯 Your Growth Playbook</p>
+                            <p className="text-[0.625rem] text-emerald-800 dark:text-emerald-200 leading-tight font-semibold mb-1">{pb.growthLever}</p>
+                            <p className="text-[0.5625rem] text-emerald-600 dark:text-emerald-500 leading-tight">{pb.marketingTip}</p>
                         </div>
                     );
                 })()}
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4 flex items-center gap-1.5">
-                    Instant Action <span className="text-[7px] text-slate-500">(Costs Energy)</span>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4 flex items-center gap-1.5">
+                    Instant Action <span className="text-[0.4375rem] text-slate-500">(Costs Energy)</span>
                 </p>
                 <div className="space-y-1.5">
                     {actions.map(action => renderActionCard(action, "marketing"))}
                 </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Ongoing Programs</p>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Ongoing Programs</p>
                 {mktPrograms.map(prog => {
                     const active = ongoingPrograms.some(p => p.id === prog.id);
                     const ap = ongoingPrograms.find(p => p.id === prog.id);
@@ -1293,7 +1293,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{prog.label}</p>
                                 {renderOngoingProgramUI(prog, mult)}
                             </div>
-                            {active && streak > 0 && <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">🔥{streak}mo ×{mult.toFixed(0)}</span>}
+                            {active && streak > 0 && <span className="text-[0.625rem] font-black text-emerald-600 dark:text-emerald-400">🔥{streak}mo ×{mult.toFixed(0)}</span>}
                             <div className={cn("w-10 h-5 rounded-full transition-all relative", active ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700")}>
                                 <div className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all", active ? "left-5" : "left-0.5")} />
                             </div>
@@ -1339,8 +1339,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     if (!pb) return null;
                     return (
                         <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-2xl">
-                            <p className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">🎯 Hiring Priority for {pb.model}</p>
-                            <p className="text-[10px] text-blue-800 dark:text-blue-200 font-semibold leading-tight">{pb.hiringPriority}</p>
+                            <p className="text-[0.5rem] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">🎯 Hiring Priority for {pb.model}</p>
+                            <p className="text-[0.625rem] text-blue-800 dark:text-blue-200 font-semibold leading-tight">{pb.hiringPriority}</p>
                         </div>
                     );
                 })()}
@@ -1349,10 +1349,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="mb-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border-2 border-violet-100 dark:border-violet-900/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
                         <div>
-                            <p className="text-[10px] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-[0.625rem] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest flex items-center gap-1.5">
                                 💎 Poach a 10x Rockstar
                             </p>
-                            <p className="text-[8px] text-violet-600 dark:text-violet-400 leading-tight">
+                            <p className="text-[0.5rem] text-violet-600 dark:text-violet-400 leading-tight">
                                 Bypass the RNG. Instantly hire a Level 99 Senior employee.
                             </p>
                         </div>
@@ -1360,24 +1360,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="flex flex-col gap-2">
                         <button
                             onClick={() => handleIAP_Poach10x("engineer")}
-                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">👨‍💻 Poach Software Engineer</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
                         </button>
                         <button
                             onClick={() => handleIAP_Poach10x("marketer")}
-                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">📣 Poach Growth Marketer</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
                         </button>
                         <button
                             onClick={() => handleIAP_Poach10x("sales")}
-                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
+                            className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">🤝 Poach {activeConfig.salesRoleName}</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[8px]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
                         </button>
                     </div>
                 </div>
@@ -1385,24 +1385,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* === OPTION POOL MANAGEMENT === */}
                 <div className="mb-4 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
-                        <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
+                        <p className="text-[0.625rem] font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
                             <Percent className="w-3.5 h-3.5" /> Option Pool
                         </p>
                         <span className={cn("text-xs font-black", (m.option_pool || 0) < 1 ? "text-rose-500 dark:text-rose-400" : "text-indigo-600 dark:text-indigo-400")}>
                             {(m.option_pool || 0).toFixed(1)}% Available
                         </span>
                     </div>
-                    <p className="text-[8px] text-indigo-600 dark:text-indigo-400 leading-tight mb-3">
+                    <p className="text-[0.5rem] text-indigo-600 dark:text-indigo-400 leading-tight mb-3">
                         Required for hiring & compensation. Expand via dilution if pool is too low.
                     </p>
                     <button
                         onClick={handleAllocateESOP}
-                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-black uppercase rounded-xl transition flex items-center justify-center gap-2"
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[0.5625rem] font-black uppercase rounded-xl transition flex items-center justify-center gap-2"
                     >
                         Allocate ESOP (+10% Dilution)
                     </button>
                     {(m.option_pool || 0) < 1 && (
-                        <p className="text-[7px] font-black text-rose-500 uppercase mt-2 animate-pulse text-center">
+                        <p className="text-[0.4375rem] font-black text-rose-500 uppercase mt-2 animate-pulse text-center">
                             ⚠️ Insufficient PooL! You cannot hire without expansion.
                         </p>
                     )}
@@ -1444,11 +1444,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-base">{emoji}</span>
-                                        <p className={`text-[10px] font-black uppercase tracking-wide ${color} ${darkText}`}>{label}</p>
+                                        <p className={`text-[0.625rem] font-black uppercase tracking-wide ${color} ${darkText}`}>{label}</p>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <span className={`text-[9px] font-black ${isScalingBottleneck && capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : color + " " + darkText + " border-slate-100 bg-white dark:bg-slate-900"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{count} people</span>
-                                        <span className={`text-[9px] font-black ${capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : "text-emerald-600 border-emerald-100 bg-emerald-50"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{capacityPct}% Cap</span>
+                                        <span className={`text-[0.5625rem] font-black ${isScalingBottleneck && capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : color + " " + darkText + " border-slate-100 bg-white dark:bg-slate-900"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{count} people</span>
+                                        <span className={`text-[0.5625rem] font-black ${capacityPct < 70 ? "text-rose-600 border-rose-200 bg-rose-50" : "text-emerald-600 border-emerald-100 bg-emerald-50"} px-2 py-0.5 rounded-full border dark:border-slate-800 tracking-tighter`}>{capacityPct}% Cap</span>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -1456,17 +1456,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <p className={`text-sm font-black ${isScalingBottleneck && capacityPct < 50 ? "text-rose-500" : color + " " + darkText}`}>
                                             {power}
                                         </p>
-                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Dept Power</p>
+                                        <p className="text-[0.4375rem] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Dept Power</p>
                                     </div>
                                     <div className="flex-[3] bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase mb-0.5">Scale Requirements</p>
-                                        <p className="text-[8px] font-semibold text-slate-600 dark:text-slate-300 leading-tight">Requires {Math.round(reqPower)} Power for {Number(m.users || 0).toLocaleString()} users.</p>
+                                        <p className="text-[0.4375rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-0.5">Scale Requirements</p>
+                                        <p className="text-[0.5rem] font-semibold text-slate-600 dark:text-slate-300 leading-tight">Requires {Math.round(reqPower)} Power for {Number(m.users || 0).toLocaleString()} users.</p>
                                     </div>
                                 </div>
                                 {isScalingBottleneck && capacityPct < 90 && (
                                     <div className="mt-2 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-lg p-2 flex items-start gap-2 shadow-sm">
-                                        <span className="text-[10px]">⚖️</span>
-                                        <p className="text-[8px] font-black text-rose-600 dark:text-rose-400 uppercase leading-none tracking-tighter">
+                                        <span className="text-[0.625rem]">⚖️</span>
+                                        <p className="text-[0.5rem] font-black text-rose-600 dark:text-rose-400 uppercase leading-none tracking-tighter">
                                             SCALING BOTTLENECK: Team size is too small for current user scale. Execution speed is throttled by {100 - capacityPct}%. HIRE MORE STAFF!
                                         </p>
                                     </div>
@@ -1481,21 +1481,21 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div className="grid grid-cols-3 gap-2 mb-4">
                                 <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-2.5 text-center">
                                     <p className="text-lg font-black text-emerald-700 dark:text-emerald-400 leading-none">{employees.length}</p>
-                                    <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide mt-0.5">Team Size</p>
+                                    <p className="text-[0.5rem] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-wide mt-0.5">Team Size</p>
                                 </div>
                                 <div className="bg-pink-50 dark:bg-rose-950/20 border border-pink-100 dark:border-rose-900/50 rounded-2xl p-2.5 text-center">
                                     <p className="text-lg font-black text-pink-700 dark:text-rose-400 leading-none">{employees.length > 0 ? Math.round(employees.reduce((acc: number, e: any) => acc + (e.morale ?? 70), 0) / employees.length) : Math.round(m.team_morale || 0)}%</p>
-                                    <p className="text-[8px] font-black text-pink-500 dark:text-rose-400 uppercase tracking-wide mt-0.5">Morale</p>
+                                    <p className="text-[0.5rem] font-black text-pink-500 dark:text-rose-400 uppercase tracking-wide mt-0.5">Morale</p>
                                 </div>
                                 <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-2.5 text-center">
                                     <p className="text-lg font-black text-indigo-700 dark:text-indigo-400 leading-none">{Math.round(startup.culture_score || 60)}%</p>
-                                    <p className="text-[8px] font-black text-indigo-500 dark:text-indigo-500 uppercase tracking-wide mt-0.5">Culture</p>
+                                    <p className="text-[0.5rem] font-black text-indigo-500 dark:text-indigo-500 uppercase tracking-wide mt-0.5">Culture</p>
                                 </div>
                             </div>
 
                             {/* === BULK TEAM ACTIONS === */}
                             <div className="mb-4 bg-slate-900 dark:bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <Users className="w-3.5 h-3.5" /> Company Policies (Bulk)
                                 </p>
                                 <div className="grid grid-cols-2 gap-2">
@@ -1503,35 +1503,35 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         onClick={() => handleBulkAction("salary_raise")}
                                         className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
                                     >
-                                        <p className="text-[9px] font-black text-white uppercase leading-none">Raise Salaries</p>
-                                        <p className="text-[7px] text-slate-400 mt-1">+10% Salary · +15 Morale</p>
+                                        <p className="text-[0.5625rem] font-black text-white uppercase leading-none">Raise Salaries</p>
+                                        <p className="text-[0.4375rem] text-slate-400 mt-1">+10% Salary · +15 Morale</p>
                                     </button>
                                     <button
                                         onClick={() => handleBulkAction("bonus")}
                                         className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
                                     >
-                                        <p className="text-[9px] font-black text-white uppercase leading-none">Quarterly Bonus</p>
-                                        <p className="text-[7px] text-slate-400 mt-1">-$2.5k / head · +20 Morale</p>
+                                        <p className="text-[0.5625rem] font-black text-white uppercase leading-none">Quarterly Bonus</p>
+                                        <p className="text-[0.4375rem] text-slate-400 mt-1">-$2.5k / head · +20 Morale</p>
                                     </button>
                                     <button
                                         onClick={() => handleBulkAction("offsite")}
                                         className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
                                     >
-                                        <p className="text-[9px] font-black text-white uppercase leading-none">Company Offsite</p>
-                                        <p className="text-[7px] text-slate-400 mt-1">-$5k / head · +30 Morale</p>
+                                        <p className="text-[0.5625rem] font-black text-white uppercase leading-none">Company Offsite</p>
+                                        <p className="text-[0.4375rem] text-slate-400 mt-1">-$5k / head · +30 Morale</p>
                                     </button>
                                     <button
                                         onClick={() => handleBulkAction("stock_grant")}
                                         className="bg-slate-800 hover:bg-slate-700 p-3 rounded-xl border border-slate-700 text-left transition active:scale-95"
                                     >
-                                        <p className="text-[9px] font-black text-white uppercase leading-none">Stock Refresh</p>
-                                        <p className="text-[7px] text-slate-400 mt-1">-ESOP Pool · Retention</p>
+                                        <p className="text-[0.5625rem] font-black text-white uppercase leading-none">Stock Refresh</p>
+                                        <p className="text-[0.4375rem] text-slate-400 mt-1">-ESOP Pool · Retention</p>
                                     </button>
                                 </div>
                             </div>
 
-                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">🏢 Department Power</p>
-                            <p className="text-[8px] text-slate-400 dark:text-slate-500 mb-3 leading-tight">Each dept's power = avg skill × headcount × performance. Power directly multiplies the attribute it drives every month.</p>
+                            <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">🏢 Department Power</p>
+                            <p className="text-[0.5rem] text-slate-400 dark:text-slate-500 mb-3 leading-tight">Each dept's power = avg skill × headcount × performance. Power directly multiplies the attribute it drives every month.</p>
                             <DeptCard
                                 emoji="👨‍💻" label="Engineering" count={eng.length + cxoEng} avgSk={engAvgFinal} power={engPow}
                                 drives="Product Quality · Tech Debt Reduction · Reliability"
@@ -1551,7 +1551,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 darkText="dark:text-emerald-400" darkBg="dark:bg-emerald-950/20" darkBorder="dark:border-emerald-900/50"
                             />
                             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl px-3 py-2">
-                                <p className="text-[8px] text-amber-700 dark:text-amber-400 leading-tight"><span className="font-black">Tip:</span> Hire Senior talent for faster power gains. CXOs give +20% power to their dept. Avg skill is weighted by performance — unhappy teams underperform.</p>
+                                <p className="text-[0.5rem] text-amber-700 dark:text-amber-400 leading-tight"><span className="font-black">Tip:</span> Hire Senior talent for faster power gains. CXOs give +20% power to their dept. Avg skill is weighted by performance — unhappy teams underperform.</p>
                             </div>
                         </div>
                     );
@@ -1566,7 +1566,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className="text-3xl relative z-10">🤝</span>
                             <div className="relative z-10">
                                 <h3 className="text-xs font-black text-fuchsia-900 dark:text-fuchsia-100 uppercase tracking-widest">Advanced Recruiting Locked</h3>
-                                <p className="text-[10px] text-fuchsia-700/80 dark:text-fuchsia-300 mt-1 leading-relaxed">
+                                <p className="text-[0.625rem] text-fuchsia-700/80 dark:text-fuchsia-300 mt-1 leading-relaxed">
                                     You are currently relying on inbound organic applications. To unlock targeted sourcing, run dedicated hiring campaigns, and guarantee A-Tier talent, hire a <strong>Chief Human Resources Officer (CHRO)</strong> from the Leadership section below.
                                 </p>
                             </div>
@@ -1575,7 +1575,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {/* Basic 3-candidate pipeline per role */}
                         {ROLE_DEFS.map((roleDef, ri) => (
                             <div key={roleDef.role} className="mb-5">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{roleDef.emoji} {roleDef.label} — Choose a Candidate</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">{roleDef.emoji} {roleDef.label} — Choose a Candidate</p>
                                 <div className="space-y-2">
                                     {SKILL_TIERS.map((tier, ti) => {
                                         const candId = `${ri}-${ti}`;
@@ -1632,15 +1632,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-black text-slate-800 dark:text-slate-200">{CANDIDATE_NAMES[nameIdx]} · <span className={roleDef.text}>{tier.label}</span></p>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className="text-[9px] text-slate-500 dark:text-slate-500">💪 {skill}%</span>
-                                                        <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                        <span className="text-[9px] text-slate-500 dark:text-slate-500">❤️ {cultureFit}% fit</span>
-                                                        <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">${salary.toLocaleString()}/mo</span>
+                                                        <span className="text-[0.5625rem] text-slate-500 dark:text-slate-500">💪 {skill}%</span>
+                                                        <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
+                                                        <span className="text-[0.5625rem] text-slate-500 dark:text-slate-500">❤️ {cultureFit}% fit</span>
+                                                        <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
+                                                        <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">${salary.toLocaleString()}/mo</span>
                                                     </div>
-                                                    <p className="text-[8px] text-slate-400 dark:text-slate-600 mt-0.5">4yr vest · 1yr cliff</p>
+                                                    <p className="text-[0.5rem] text-slate-400 dark:text-slate-600 mt-0.5">4yr vest · 1yr cliff</p>
                                                 </div>
-                                                <span className={cn("text-[9px] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
+                                                <span className={cn("text-[0.5625rem] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
                                             </div>
                                         );
                                     })}
@@ -1660,7 +1660,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <button
                                     key={roleDef.role}
                                     onClick={() => setHrSearchRole(roleDef.role)}
-                                    className={cn("flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", hrSearchRole === roleDef.role ? `${roleDef.bg} ${roleDef.text} ${roleDef.border} border-2 shadow-sm scale-100` : "bg-white dark:bg-slate-800 text-slate-400 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700 scale-95 opacity-80")}
+                                    className={cn("flex-1 py-2 rounded-xl text-[0.625rem] font-black uppercase tracking-widest transition-all", hrSearchRole === roleDef.role ? `${roleDef.bg} ${roleDef.text} ${roleDef.border} border-2 shadow-sm scale-100` : "bg-white dark:bg-slate-800 text-slate-400 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700 scale-95 opacity-80")}
                                 >
                                     {roleDef.emoji} {roleDef.label}
                                 </button>
@@ -1723,8 +1723,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 }}
                                 className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 rounded-xl p-3 text-center transition-all active:scale-[0.98]"
                             >
-                                <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-1">Standard Search</p>
-                                <p className="text-[9px] font-bold text-amber-500 uppercase">⚡ 15 Energy</p>
+                                <p className="text-[0.625rem] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-1">Standard Search</p>
+                                <p className="text-[0.5625rem] font-bold text-amber-500 uppercase">⚡ 15 Energy</p>
                             </button>
 
                             <button
@@ -1773,8 +1773,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 }}
                                 className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-700 border-2 border-fuchsia-600 rounded-xl p-3 text-center transition-all active:scale-[0.98] shadow-lg shadow-fuchsia-600/20"
                             >
-                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">⭐</span> Exec Search</p>
-                                <p className="text-[9px] font-bold text-fuchsia-200 uppercase tracking-wider">Watch Ad · 0 Energy</p>
+                                <p className="text-[0.625rem] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">⭐</span> Exec Search</p>
+                                <p className="text-[0.5625rem] font-bold text-fuchsia-200 uppercase tracking-wider">Watch Ad · 0 Energy</p>
                             </button>
                         </div>
 
@@ -1846,14 +1846,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 }}
                                 className="flex-1 bg-amber-500 hover:bg-amber-600 border-2 border-amber-500 rounded-xl p-3 text-center transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
                             >
-                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">🚀</span> Mass Recruit (5x)</p>
-                                <p className="text-[9px] font-bold text-amber-100 uppercase tracking-wider">Mid-Level · 50 Energy</p>
+                                <p className="text-[0.625rem] font-black text-white uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><span className="text-sm">🚀</span> Mass Recruit (5x)</p>
+                                <p className="text-[0.5625rem] font-bold text-amber-100 uppercase tracking-wider">Mid-Level · 50 Energy</p>
                             </button>
                         </div>
 
                         {hrCandidates.length > 0 ? (
                             <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Candidate Pool</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Candidate Pool</p>
                                 {hrCandidates.map((cand: any) => {
                                     const roleDef = ROLE_DEFS.find(r => r.role === cand.role)!;
                                     const isOver = focusHoursUsed + 20 > maxHours;
@@ -1877,14 +1877,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{cand.name} · <span className={roleDef.text}>{cand.level}</span></p>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-500">💪 {cand._skill}%</span>
-                                                    <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                    <span className="text-[9px] text-slate-500 dark:text-slate-500">❤️ {cand._culture}% fit</span>
-                                                    <span className="text-[9px] text-slate-400 dark:text-slate-700">·</span>
-                                                    <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300">${(cand.expectedSalary / 12).toLocaleString()}/mo</span>
+                                                    <span className="text-[0.5625rem] font-bold text-emerald-600 dark:text-emerald-500">💪 {cand._skill}%</span>
+                                                    <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
+                                                    <span className="text-[0.5625rem] text-slate-500 dark:text-slate-500">❤️ {cand._culture}% fit</span>
+                                                    <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
+                                                    <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">${(cand.expectedSalary / 12).toLocaleString()}/mo</span>
                                                 </div>
                                             </div>
-                                            <span className={cn("text-[9px] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
+                                            <span className={cn("text-[0.5625rem] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
                                         </div>
                                     );
                                 })}
@@ -1893,7 +1893,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
                                 <span className="text-2xl mb-2 opacity-50 block">🗂️</span>
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No Active Candidates</p>
-                                <p className="text-[9px] text-slate-400 mt-1">Run a Sourcing Campaign to fill the pipeline.</p>
+                                <p className="text-[0.5625rem] text-slate-400 mt-1">Run a Sourcing Campaign to fill the pipeline.</p>
                             </div>
                         )}
                     </div>
@@ -1912,7 +1912,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 )}
 
                 {/* Culture Programs */}
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Culture Programs</p>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Culture Programs</p>
                 {ONGOING_PROGRAMS.filter(p => p.category_ui === "Culture").map(prog => {
                     const active = ongoingPrograms.some(p => p.id === prog.id);
                     const ap = ongoingPrograms.find(p => p.id === prog.id);
@@ -1931,14 +1931,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex items-center gap-1.5">
                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{prog.label}</p>
                                     {prog.monthlyEnergy > 0 && (
-                                        <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-full">
+                                        <span className="text-[0.5rem] font-black bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-full">
                                             ⚡{prog.monthlyEnergy}h/mo
                                         </span>
                                     )}
                                 </div>
                                 {renderOngoingProgramUI(prog, mult)}
                             </div>
-                            {active && streak > 0 && <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">🔥{streak} ×{mult.toFixed(0)}</span>}
+                            {active && streak > 0 && <span className="text-[0.625rem] font-black text-indigo-600 dark:text-indigo-400">🔥{streak} ×{mult.toFixed(0)}</span>}
                             <div className={cn("w-10 h-5 rounded-full relative", active ? "bg-indigo-500" : "bg-slate-200 dark:bg-slate-700")}>
                                 <div className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all", active ? "left-5" : "left-0.5")} />
                             </div>
@@ -1948,8 +1948,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* ★ CXO HIRING */}
                 <div className="mt-5">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">🏆 Hire CXO Leadership</p>
-                    <p className="text-[9px] text-slate-400 mb-3">CXOs multiply department strength. Each slot can only be filled once.</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">🏆 Hire CXO Leadership</p>
+                    <p className="text-[0.5625rem] text-slate-400 mb-3">CXOs multiply department strength. Each slot can only be filled once.</p>
                     {([
                         { role: "CTO", emoji: "💻", desc: "Cuts tech debt · boosts product quality", salary: 18000, bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
                         { role: "CMO", emoji: "✉️", desc: "Boosts brand · reduces CAC", salary: 15000, bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-700" },
@@ -1992,12 +1992,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-2xl">{cxo.emoji}</span>
                                 <div className="flex-1 min-w-0">
                                     <p className={cn("text-xs font-black", isHired ? "text-slate-400 dark:text-slate-600" : cxo.text + " dark:text-indigo-400")}>{cxo.role}{isHired ? " ✅ Active" : ""}</p>
-                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5">{cxo.desc}</p>
+                                    <p className="text-[0.5625rem] text-slate-500 dark:text-slate-400 mt-0.5">{cxo.desc}</p>
                                 </div>
                                 {!isHired && (
                                     <div className="text-right shrink-0">
-                                        <p className="text-[10px] font-black text-slate-700 dark:text-slate-300">${cxo.salary.toLocaleString()}/mo</p>
-                                        <p className="text-[8px] text-slate-400 dark:text-slate-500">3mo deposit</p>
+                                        <p className="text-[0.625rem] font-black text-slate-700 dark:text-slate-300">${cxo.salary.toLocaleString()}/mo</p>
+                                        <p className="text-[0.5rem] text-slate-400 dark:text-slate-500">3mo deposit</p>
                                     </div>
                                 )}
                             </div>
@@ -2008,8 +2008,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ★ CO-FOUNDER RECRUITMENT */}
                 {!(startup as any).hasCoFounder && (
                     <div className="mt-5">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">🤝 Recruit a Co-Founder</p>
-                        <p className="text-[9px] text-slate-400 mb-3">A co-founder gives up equity but halves your burnout and boosts your weakest skill.</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">🤝 Recruit a Co-Founder</p>
+                        <p className="text-[0.5625rem] text-slate-400 mb-3">A co-founder gives up equity but halves your burnout and boosts your weakest skill.</p>
                         {([
                             { arch: "Tech-First", emoji: "🧑‍💻", equity: 20, desc: "+25 Tech, +50h Focus, halves tech debt" },
                             { arch: "GTM-First", emoji: "🧑‍💼", equity: 20, desc: "+25 Marketing, +50h Focus, 2× growth" },
@@ -2042,11 +2042,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-2xl">{cf.emoji}</span>
                                 <div className="flex-1">
                                     <p className="text-xs font-black text-indigo-800 dark:text-indigo-300">{cf.arch} Co-Founder</p>
-                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5">{cf.desc}</p>
+                                    <p className="text-[0.5625rem] text-slate-500 dark:text-slate-400 mt-0.5">{cf.desc}</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <p className="text-[10px] font-black text-rose-500">-{cf.equity}% equity</p>
-                                    <p className="text-[8px] text-slate-400">½ burnout</p>
+                                    <p className="text-[0.625rem] font-black text-rose-500">-{cf.equity}% equity</p>
+                                    <p className="text-[0.5rem] text-slate-400">½ burnout</p>
                                 </div>
                             </div>
                         ))}
@@ -2055,7 +2055,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {(startup as any).hasCoFounder && (
                     <div className="mt-4 bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-3">
                         <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">🤝 Co-Founder Active</p>
-                        <p className="text-[9px] text-slate-500 dark:text-slate-500 mt-1">Check Financials → Cap Table for equity split.</p>
+                        <p className="text-[0.5625rem] text-slate-500 dark:text-slate-500 mt-1">Check Financials → Cap Table for equity split.</p>
                     </div>
                 )}
             </div>
@@ -2123,10 +2123,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed max-w-sm mx-auto">
                             Your firm is actively in the **IPO registration process (Stage {startup.ipo_stage}/3)**. Federal regulations strictly prohibit raising private capital or making public announcements about pricing or prospects.
                         </p>
-                        <div className="mt-4 px-3 py-2 bg-amber-500/10 rounded-xl text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest border border-amber-500/25 w-fit mx-auto">
+                        <div className="mt-4 px-3 py-2 bg-amber-500/10 rounded-xl text-[0.625rem] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest border border-amber-500/25 w-fit mx-auto">
                             Filing Phase: S-1 Submitted
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-4 leading-normal">
+                        <p className="text-[0.625rem] text-slate-400 mt-4 leading-normal">
                             All fundraising rounds are locked. Advance the month to complete listing.
                         </p>
                     </div>
@@ -2215,15 +2215,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* Public Capital Overview */}
                     <div className="grid grid-cols-3 gap-2">
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
-                            <p className="text-[9px] uppercase font-black text-slate-400">Market Cap</p>
+                            <p className="text-[0.5625rem] uppercase font-black text-slate-400">Market Cap</p>
                             <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatMoney(startup.valuation)}</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
-                            <p className="text-[9px] uppercase font-black text-slate-400">Corporate Cash</p>
+                            <p className="text-[0.5625rem] uppercase font-black text-slate-400">Corporate Cash</p>
                             <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(m.cash)}</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl text-center">
-                            <p className="text-[9px] uppercase font-black text-slate-400">Outstanding Debt</p>
+                            <p className="text-[0.5625rem] uppercase font-black text-slate-400">Outstanding Debt</p>
                             <p className="text-sm font-black text-rose-600 mt-0.5">{formatMoney(outstandingDebt)}</p>
                         </div>
                     </div>
@@ -2231,69 +2231,69 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* FPO */}
                     <div className="bg-violet-50/50 dark:bg-violet-950/15 border-2 border-violet-100 dark:border-violet-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                         <h4 className="text-xs font-black uppercase text-violet-700 dark:text-violet-400 tracking-wider">Follow-on Public Offering (FPO)</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Dilute outstanding share equity to raise massive corporate cash directly from stock market investors.</p>
+                        <p className="text-[0.625rem] text-slate-500 mt-1 mb-3">Dilute outstanding share equity to raise massive corporate cash directly from stock market investors.</p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleFPO(5)}
-                                className="flex-1 bg-violet-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-violet-700 active:scale-95 transition-all shadow-md shadow-violet-600/20"
+                                className="flex-1 bg-violet-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-violet-700 active:scale-95 transition-all shadow-md shadow-violet-600/20"
                             >
                                 Raise 5% Float<br />
-                                <span className="text-[8px] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.05))} cash</span>
+                                <span className="text-[0.5rem] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.05))} cash</span>
                             </button>
                             <button
                                 onClick={() => handleFPO(10)}
-                                className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-600/20"
+                                className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-600/20"
                             >
                                 Raise 10% Float<br />
-                                <span className="text-[8px] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.10))} cash</span>
+                                <span className="text-[0.5rem] opacity-70">+{formatMoney(Math.floor(startup.valuation * 0.10))} cash</span>
                             </button>
                         </div>
-                        <p className="text-[8px] text-slate-400 mt-2 text-center">FPOs trigger dilution and a minor stock price impact (-2% for 5%, -6% for 10% Offering).</p>
+                        <p className="text-[0.5rem] text-slate-400 mt-2 text-center">FPOs trigger dilution and a minor stock price impact (-2% for 5%, -6% for 10% Offering).</p>
                     </div>
 
                     {/* Debt Issuance */}
                     <div className="bg-amber-50/50 dark:bg-amber-950/15 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                         <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Issue Corporate Bonds (Debt)</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Leverage your market cap to borrow institutional capital without dilution. Profitable companies get lower APRs.</p>
+                        <p className="text-[0.625rem] text-slate-500 mt-1 mb-3">Leverage your market cap to borrow institutional capital without dilution. Profitable companies get lower APRs.</p>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleIssueBond(50000000, 24)}
-                                className="flex-1 bg-amber-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20"
+                                className="flex-1 bg-amber-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20"
                             >
                                 Issue $50M Bonds<br />
-                                <span className="text-[8px] opacity-70">24mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
+                                <span className="text-[0.5rem] opacity-70">24mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
                             </button>
                             <button
                                 onClick={() => handleIssueBond(150000000, 36)}
                                 disabled={startup.valuation < 500000000}
-                                className="flex-1 bg-orange-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase tracking-wider hover:bg-orange-700 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md shadow-orange-600/20"
+                                className="flex-1 bg-orange-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-orange-700 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md shadow-orange-600/20"
                             >
                                 Issue $150M Bonds<br />
-                                <span className="text-[8px] opacity-70">36mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
+                                <span className="text-[0.5rem] opacity-70">36mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
                             </button>
                         </div>
                         {startup.valuation < 500000000 && (
-                            <p className="text-[8px] text-rose-500 mt-2 text-center font-bold">⚠️ $150M Bonds require a valuation of at least $500M.</p>
+                            <p className="text-[0.5rem] text-rose-500 mt-2 text-center font-bold">⚠️ $150M Bonds require a valuation of at least $500M.</p>
                         )}
                     </div>
 
                     {/* Active Liabilities */}
                     {debts.length > 0 && (
                         <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Active Liabilities &amp; Repayments</p>
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-3">Active Liabilities &amp; Repayments</p>
                             {debts.map((d: any) => (
                                 <div key={d.id} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-3 mb-2 last:mb-0 shadow-sm">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-black text-slate-800 dark:text-slate-200">{d.label}</p>
-                                        <p className="text-[10px] font-bold text-slate-500">{d.monthsRemaining}mo left</p>
+                                        <p className="text-[0.625rem] font-bold text-slate-500">{d.monthsRemaining}mo left</p>
                                     </div>
-                                    <div className="flex justify-between text-[9px] text-slate-400 font-bold mb-3">
+                                    <div className="flex justify-between text-[0.5625rem] text-slate-400 font-bold mb-3">
                                         <span>Principal: {formatMoney(d.principal)}</span>
                                         <span className="text-rose-500">-{formatMoney(d.monthlyInterestPayment)}/mo interest</span>
                                     </div>
                                     <button
                                         onClick={() => handleRepayBondEarly(d.id, d.principal)}
-                                        className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 text-slate-500 dark:text-slate-300 py-2 rounded-xl text-[9px] font-black uppercase transition-all"
+                                        className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 text-slate-500 dark:text-slate-300 py-2 rounded-xl text-[0.5625rem] font-black uppercase transition-all"
                                     >
                                         Repay Principal Early
                                     </button>
@@ -2312,7 +2312,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 text-center">
                         <p className="text-2xl mb-2">🦄</p>
                         <p className="text-sm font-black text-amber-700 dark:text-amber-400">Maximum Funding Reached</p>
-                        <p className="text-[10px] text-amber-500 dark:text-amber-500 mt-1">Focus on IPO preparation or acquisition</p>
+                        <p className="text-[0.625rem] text-amber-500 dark:text-amber-500 mt-1">Focus on IPO preparation or acquisition</p>
                     </div>
                 ) : (
                     <div className="space-y-1.5 mb-3">
@@ -2320,8 +2320,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div className="flex items-center gap-2.5">
                                 <span className="text-xl">💰</span>
                                 <div>
-                                    <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">Emergency Grant</p>
-                                    <p className="text-[8px] font-bold text-emerald-500 dark:text-emerald-500 uppercase mt-0.5">Watch ad for +$50,000</p>
+                                    <p className="text-[0.625rem] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">Emergency Grant</p>
+                                    <p className="text-[0.5rem] font-bold text-emerald-500 dark:text-emerald-500 uppercase mt-0.5">Watch ad for +$50,000</p>
                                 </div>
                             </div>
                             {(() => {
@@ -2343,7 +2343,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         variant="outline"
                                         size="sm"
                                         disabled={!isOnline}
-                                        className={`h-6 text-[8px] font-black uppercase tracking-widest ${(!isOnline) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
+                                        className={`h-6 text-[0.5rem] font-black uppercase tracking-widest ${(!isOnline) ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 grayscale' : 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'}`}
                                         onClick={() => {
                                             if (isLimited) {
                                                 const nextAvail = Math.min(...validGrants) + 60 * 60 * 1000;
@@ -2373,7 +2373,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             })()}
                         </div>
 
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Instant Action (Costs Energy)</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">Instant Action (Costs Energy)</p>
                         {pitchActions.map((pa, idx) => {
                             const isOver = focusHoursUsed + fundCost > maxHours;
                             return (
@@ -2383,10 +2383,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <span className="text-xl w-7 text-center shrink-0">{pa.emoji}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{pa.label}</p>
-                                        <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{pa.sub}</p>
+                                        <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500 truncate">{pa.sub}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                        <span className="text-[8px] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 px-1.5 py-0.5 rounded-full opacity-90">⚡{fundCost}h</span>
+                                        <span className="text-[0.5rem] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 px-1.5 py-0.5 rounded-full opacity-90">⚡{fundCost}h</span>
                                     </div>
                                 </div>
                             );
@@ -2395,12 +2395,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 )}
                 <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
-                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Cap Table</p>
-                        <p className="text-[9px] font-black text-indigo-500 dark:text-indigo-400">Pool: {m.option_pool || 0}%</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Cap Table</p>
+                        <p className="text-[0.5625rem] font-black text-indigo-500 dark:text-indigo-400">Pool: {m.option_pool || 0}%</p>
                     </div>
                     {capTable.map((e: any, i: number) => (
                         <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-100 dark:border-slate-700/50 last:border-0">
-                            <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full",
+                            <span className={cn("text-[0.5625rem] font-black px-2 py-0.5 rounded-full",
                                 e.type === "Founder" ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300" : e.type === "Co-Founder" ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300" : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300")}>
                                 {e.type === "Founder" ? "👤" : e.type === "Co-Founder" ? "🤝" : "💼"}
                             </span>
@@ -2415,28 +2415,28 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* Investor Pipeline Tracker */}
                 <div className="mt-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-2xl p-3">
-                    <p className="text-[9px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest mb-2">📈 Fundraising Pipeline</p>
+                    <p className="text-[0.5625rem] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest mb-2">📈 Fundraising Pipeline</p>
                     <div className="grid grid-cols-3 gap-2 text-center mb-3">
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-2 border border-amber-100 dark:border-amber-800">
                             <p className="text-lg font-black text-amber-700 dark:text-amber-400">{m.investor_pipeline?.leads || 0}</p>
-                            <p className="text-[8px] font-black text-amber-500 dark:text-amber-600 uppercase">Leads</p>
+                            <p className="text-[0.5rem] font-black text-amber-500 dark:text-amber-600 uppercase">Leads</p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-2 border border-amber-100 dark:border-amber-800">
                             <p className="text-lg font-black text-amber-700 dark:text-amber-400">{m.investor_pipeline?.meetings || 0}</p>
-                            <p className="text-[8px] font-black text-amber-500 dark:text-amber-600 uppercase">Meetings</p>
+                            <p className="text-[0.5rem] font-black text-amber-500 dark:text-amber-600 uppercase">Meetings</p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 rounded-xl p-2 border border-emerald-100 dark:border-emerald-800">
                             <p className="text-lg font-black text-emerald-700 dark:text-emerald-400">{m.investor_pipeline?.term_sheets || 0}</p>
-                            <p className="text-[8px] font-black text-emerald-500 dark:text-emerald-600 uppercase">Term Sheets</p>
+                            <p className="text-[0.5rem] font-black text-emerald-500 dark:text-emerald-600 uppercase">Term Sheets</p>
                         </div>
                     </div>
-                    <p className="text-[8px] text-amber-600 dark:text-amber-500 leading-tight">Pitch investors to grow your pipeline. Term sheets take 2-4 months to generate.</p>
+                    <p className="text-[0.5rem] text-amber-600 dark:text-amber-500 leading-tight">Pitch investors to grow your pipeline. Term sheets take 2-4 months to generate.</p>
 
                     {/* Access point to the negotiation game from the pipeline */}
                     {(m.investor_pipeline?.term_sheets || 0) > 0 && (
                         <button
                             onClick={() => handleActionClick("negotiate_round")}
-                            className="w-full mt-3 py-2 bg-emerald-600 dark:bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-500 transition shadow-lg shadow-emerald-200 dark:shadow-none animate-pulse"
+                            className="w-full mt-3 py-2 bg-emerald-600 dark:bg-emerald-600 text-white text-[0.625rem] font-black uppercase rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-500 transition shadow-lg shadow-emerald-200 dark:shadow-none animate-pulse"
                         >
                             🤝 Negotiate Term Sheet ({m.investor_pipeline.term_sheets})
                         </button>
@@ -2455,12 +2455,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                     return (
                         <div className="mt-4">
-                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                            <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
                                 {hasCFO ? "🏦 CFO-Managed Fundraising" : "💼 Fundraising Delegation"}
                             </p>
                             {!hasCFO && (
                                 <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl">
-                                    <p className="text-[8px] text-amber-700 dark:text-amber-400 leading-tight font-semibold">
+                                    <p className="text-[0.5rem] text-amber-700 dark:text-amber-400 leading-tight font-semibold">
                                         💡 Hire a CFO to waive consultant fees and boost lead generation automatically.
                                     </p>
                                 </div>
@@ -2481,24 +2481,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <span className="text-xl">{prog.emoji}</span>
                                         <div className="flex-1">
                                             <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{prog.label}</p>
-                                            <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight">{prog.description}</p>
-                                            <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                            <p className="text-[0.5625rem] text-slate-500 dark:text-slate-400 leading-tight">{prog.description}</p>
+                                            <p className="text-[0.5625rem] font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                                                 +{Math.round((founder.attributes.networking || 10) / 2) + (hasCFO ? 25 : 5)} investor leads/month
                                             </p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1 shrink-0">
                                             {!hasCFO && (
-                                                <span className="text-[8px] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">
+                                                <span className="text-[0.5rem] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">
                                                     ${consultantFee.toLocaleString()}/mo
                                                 </span>
                                             )}
                                             {hasCFO && (
-                                                <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full">
+                                                <span className="text-[0.5rem] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full">
                                                     Free (CFO handles)
                                                 </span>
                                             )}
                                             {prog.monthlyEnergy > 0 && (
-                                                <span className="text-[8px] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                                                <span className="text-[0.5rem] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
                                                     ⚡{prog.monthlyEnergy}h
                                                 </span>
                                             )}
@@ -2516,7 +2516,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {(startup.acquisition_offers?.length ?? 0) > 0 && (
                     <div className="mt-4">
-                        <p className="text-[9px] font-black text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-2">🔔 Acquisition Offers</p>
+                        <p className="text-[0.5625rem] font-black text-rose-500 dark:text-rose-400 uppercase tracking-widest mb-2">🔔 Acquisition Offers</p>
                         {startup.acquisition_offers!.map((offer: any) => {
                             const typeEmoji = offer.type === "big_tech" ? "🏢" : offer.type === "strategic" ? "🤝" : "💼";
                             const typeBg = offer.type === "big_tech" ? "bg-violet-50 dark:bg-violet-950/20 border-violet-300 dark:border-violet-900/50" : offer.type === "strategic" ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-900/50" : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50";
@@ -2527,22 +2527,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <span className="text-xl">{typeEmoji}</span>
                                         <div className="flex-1">
                                             <p className={`text-xs font-black ${typeText}`}>{offer.acquirer}</p>
-                                            <p className="text-[8px] text-slate-400 dark:text-slate-500 capitalize">{offer.type.replace("_", " ")} Acquisition · expires in {offer.expires_in}mo</p>
+                                            <p className="text-[0.5rem] text-slate-400 dark:text-slate-500 capitalize">{offer.type.replace("_", " ")} Acquisition · expires in {offer.expires_in}mo</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 mb-3">
                                         <div className="bg-white dark:bg-slate-900 rounded-xl p-2 text-center border border-slate-100 dark:border-slate-800">
                                             <p className="text-sm font-black text-slate-800 dark:text-slate-100">{formatMoney(offer.offer_amount)}</p>
-                                            <p className="text-[7px] text-slate-400 dark:text-slate-500 uppercase font-black">Total Offer</p>
+                                            <p className="text-[0.4375rem] text-slate-400 dark:text-slate-500 uppercase font-black">Total Offer</p>
                                         </div>
                                         <div className="bg-white dark:bg-slate-900 rounded-xl p-2 text-center border border-slate-100 dark:border-slate-800">
                                             <p className="text-sm font-black text-emerald-700 dark:text-emerald-400">{formatMoney(offer.founder_take)}</p>
-                                            <p className="text-[7px] text-slate-400 dark:text-slate-500 uppercase font-black">Your Take</p>
+                                            <p className="text-[0.4375rem] text-slate-400 dark:text-slate-500 uppercase font-black">Your Take</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <button
-                                            className="flex-1 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase rounded-xl"
+                                            className="flex-1 py-2 bg-emerald-600 text-white text-[0.625rem] font-black uppercase rounded-xl"
                                             onClick={() => {
                                                 if ((startup.ipo_stage || 0) > 0 && (startup.ipo_stage || 0) < 4) {
                                                     toast.error("Cannot accept acquisition while IPO is in progress!");
@@ -2565,7 +2565,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         </button>
                                         {!offer.negotiated && (
                                             <button
-                                                className="flex-1 py-2 bg-amber-500 text-white text-[10px] font-black uppercase rounded-xl"
+                                                className="flex-1 py-2 bg-amber-500 text-white text-[0.625rem] font-black uppercase rounded-xl"
                                                 onClick={() => {
                                                     // Link success to Founder Stats
                                                     const baseChance = 0.5; // Increased base chance
@@ -2605,7 +2605,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             </button>
                                         )}
                                         <button
-                                            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase rounded-xl"
+                                            className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[0.625rem] font-black uppercase rounded-xl"
                                             onClick={() => {
                                                 setStartup((s: any) => ({
                                                     ...s,
@@ -2650,20 +2650,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     return (
                         <div className="mt-4 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 rounded-2xl p-3">
                             <div className="flex justify-between items-center mb-2">
-                                <p className="text-[9px] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest">🏛️ IPO Readiness</p>
-                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${passed >= 6 ? "bg-violet-600 text-white" : "bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-400"}`}>{passed}/6</span>
+                                <p className="text-[0.5625rem] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest">🏛️ IPO Readiness</p>
+                                <span className={`text-[0.5625rem] font-black px-2 py-0.5 rounded-full ${passed >= 6 ? "bg-violet-600 text-white" : "bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-400"}`}>{passed}/6</span>
                             </div>
                             {ipoStage > 0 && (
                                 <div className="mb-2 bg-violet-100 dark:bg-violet-900/40 rounded-xl px-3 py-1.5">
-                                    <p className="text-[9px] font-black text-violet-700 dark:text-violet-300">Stage {ipoStage}/4: {IPO_STAGE_LABELS[ipoStage]}</p>
+                                    <p className="text-[0.5625rem] font-black text-violet-700 dark:text-violet-300">Stage {ipoStage}/4: {IPO_STAGE_LABELS[ipoStage]}</p>
                                 </div>
                             )}
 
                             {/* Pricing selection at Stage 3 */}
                             {ipoStage === 3 && (
                                 <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl">
-                                    <p className="text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">💰 Set Your IPO Price</p>
-                                    <p className="text-[8px] text-amber-600 dark:text-amber-500 mb-2">Based on your private valuation of {formatMoney(currentVal)}. Market demand depends on your PMF & growth.</p>
+                                    <p className="text-[0.5625rem] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">💰 Set Your IPO Price</p>
+                                    <p className="text-[0.5rem] text-amber-600 dark:text-amber-500 mb-2">Based on your private valuation of {formatMoney(currentVal)}. Market demand depends on your PMF & growth.</p>
                                     <div className="space-y-1.5">
                                         {pricingTargets.map(pt => {
                                             const targetVal = currentVal * pt.mult;
@@ -2678,16 +2678,16 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         }`}
                                                 >
                                                     <div>
-                                                        <p className="text-[9px] font-black text-slate-700 dark:text-slate-200">{pt.label}</p>
-                                                        <p className="text-[8px] text-slate-400">{formatMoney(targetVal)} target · Risk: {pt.risk}</p>
+                                                        <p className="text-[0.5625rem] font-black text-slate-700 dark:text-slate-200">{pt.label}</p>
+                                                        <p className="text-[0.5rem] text-slate-400">{formatMoney(targetVal)} target · Risk: {pt.risk}</p>
                                                     </div>
-                                                    <p className="text-[8px] font-bold text-right">{demandLabel}</p>
+                                                    <p className="text-[0.5rem] font-bold text-right">{demandLabel}</p>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                     {!(startup as any).ipo_price_mult && (
-                                        <p className="text-[8px] text-amber-500 mt-2 text-center">Select a pricing tier to lock in before IPO Day</p>
+                                        <p className="text-[0.5rem] text-amber-500 mt-2 text-center">Select a pricing tier to lock in before IPO Day</p>
                                     )}
                                 </div>
                             )}
@@ -2704,25 +2704,25 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             }));
                                             addTimelineEvent(`🏛️ IPO Process Started! CFO filed intent with underwriters. 4-month journey begins.`);
                                         }}
-                                        className="w-full py-2 bg-violet-600 dark:bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl hover:bg-violet-700 dark:hover:bg-violet-500 transition mb-2"
+                                        className="w-full py-2 bg-violet-600 dark:bg-violet-600 text-white text-[0.625rem] font-black uppercase rounded-xl hover:bg-violet-700 dark:hover:bg-violet-500 transition mb-2"
                                     >
                                         File S-1 & Begin IPO Process →
                                     </button>
                                 )}
                                 {passed === 5 && !hasCFO && ipoStage === 0 && (
                                     <div className="mb-2 p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl">
-                                        <p className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">⛔ CFO Required for IPO</p>
-                                        <p className="text-[8px] text-rose-500 leading-tight">Hire a CFO from the Hiring tab. They handle SEC compliance, financial audits & the investor roadshow.</p>
+                                        <p className="text-[0.5625rem] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">⛔ CFO Required for IPO</p>
+                                        <p className="text-[0.5rem] text-rose-500 leading-tight">Hire a CFO from the Hiring tab. They handle SEC compliance, financial audits & the investor roadshow.</p>
                                     </div>
                                 )}
                                 {ipoChecks.map((c, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         <span className="text-sm">{c.pass ? "✅" : "⬜"}</span>
-                                        <p className={`text-[9px] font-semibold ${c.pass ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600"}`}>{c.label}</p>
+                                        <p className={`text-[0.5625rem] font-semibold ${c.pass ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600"}`}>{c.label}</p>
                                     </div>
                                 ))}
                             </div>
-                            {passed < 6 && <p className="text-[8px] text-violet-500 leading-tight">Meet {6 - passed} more criteria to unlock the IPO process.</p>}
+                            {passed < 6 && <p className="text-[0.5rem] text-violet-500 leading-tight">Meet {6 - passed} more criteria to unlock the IPO process.</p>}
                         </div>
                     );
                 })()}
@@ -2744,14 +2744,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 }
                             });
                         }}
-                        className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-900/50 transition"
+                        className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[0.5625rem] font-black uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-900/50 transition"
                     >
                         🔒 Wind Down Company
                     </button>
                 </div>
 
                 {/* Investor Relations Programs */}
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Investor Relations</p>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">🔄 Investor Relations</p>
 
                 {ONGOING_PROGRAMS.filter(p => p.category_ui === "Funding" && p.id !== "fundraising_consultant" && p.id !== "cfo_fundraising_roadshow").map(prog => {
                     const active = ongoingPrograms.some(p => p.id === prog.id);
@@ -2765,10 +2765,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{prog.label}</p>
                                 {renderOngoingProgramUI(prog, getStreakMultiplier(prog, ap?.streakMonths || 0))}
                                 <div className="flex flex-wrap gap-1.5">
-                                    {prog.monthlyCost > 0 && <span className="bg-rose-50 border border-rose-100 text-rose-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">-{formatMoney(prog.monthlyCost * Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000))))}/mo</span>}
-                                    <span className="bg-amber-50 border border-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">⚡ {prog.monthlyEnergy}h/mo</span>
+                                    {prog.monthlyCost > 0 && <span className="bg-rose-50 border border-rose-100 text-rose-600 text-[0.5rem] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">-{formatMoney(prog.monthlyCost * Math.max(1, Math.floor(Math.sqrt(startup.valuation / 250_000))))}/mo</span>}
+                                    <span className="bg-amber-50 border border-amber-100 text-amber-600 text-[0.5rem] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">⚡ {prog.monthlyEnergy}h/mo</span>
                                     {Object.entries(prog.baseMonthlyEffect).map(([k, v]) => (
-                                        <span key={k} className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">+{v} {k.replace(/_/g, " ")}</span>
+                                        <span key={k} className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[0.5rem] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">+{v} {k.replace(/_/g, " ")}</span>
                                     ))}
                                 </div>
                             </div>
@@ -2801,18 +2801,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <span className="text-2xl">📊</span>
                     <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase italic tracking-tight">Stats</h2>
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                <p className="text-[0.625rem] font-bold text-slate-400 uppercase tracking-widest mb-4">
                     Tap any card or label for a plain-english explanation
                 </p>
                 {pbConfig && (
                     <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 rounded-2xl">
-                        <p className="text-[8px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">💵 Your Revenue Model — {pbConfig.model}</p>
-                        <p className="text-[10px] font-bold text-violet-800 dark:text-violet-200 mb-1">{pbConfig.mrrFormula}</p>
-                        <p className="text-[9px] text-violet-600 dark:text-violet-400 leading-tight">{pbConfig.statFocus}</p>
+                        <p className="text-[0.5rem] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">💵 Your Revenue Model — {pbConfig.model}</p>
+                        <p className="text-[0.625rem] font-bold text-violet-800 dark:text-violet-200 mb-1">{pbConfig.mrrFormula}</p>
+                        <p className="text-[0.5625rem] text-violet-600 dark:text-violet-400 leading-tight">{pbConfig.statFocus}</p>
                     </div>
                 )}
 
-                <div className="flex items-center gap-4 mb-4 text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-4 mb-4 text-[0.5rem] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     <span>Legend:</span>
                     <div className="flex items-center gap-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -2940,14 +2940,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             const basePct = total > 0 ? (safeV / total) * 100 : 0;
             return (
                 <div className="flex items-center gap-2 py-1.5 border-b border-slate-200 dark:border-slate-800 last:border-0 grow">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
+                    <span className="text-[0.625rem] font-bold text-slate-500 dark:text-slate-400 w-24 uppercase shrink-0">{label}</span>
                     <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
                         <div className={cn("h-full", color)} style={{ width: `${Math.round((safeV / 100) * 100)}%` }} />
                         {safeBonus > 0 && (
                             <div className="h-full bg-white/40 animate-pulse" style={{ width: `${Math.round((safeBonus / 100) * 100)}%` }} />
                         )}
                     </div>
-                    <span className={cn("text-[10px] font-black w-6 text-right shrink-0", color.replace("bg-", "text-"))}>{Math.round(total)}</span>
+                    <span className={cn("text-[0.625rem] font-black w-6 text-right shrink-0", color.replace("bg-", "text-"))}>{Math.round(total)}</span>
                 </div>
             );
         };
@@ -2981,8 +2981,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="mb-3 bg-rose-50 dark:bg-rose-950/20 rounded-2xl p-3 border border-rose-100 dark:border-rose-900/50">
                     <div className="flex justify-between items-center mb-1.5">
                         <div>
-                            <p className="text-[9px] font-black text-rose-400 dark:text-rose-500 uppercase tracking-widest">⚡ Monthly Focus Energy</p>
-                            <span className={cn("text-[10px] font-black", energyPct > 80 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-300")}>{focusHoursUsed}h / {maxHours}h</span>
+                            <p className="text-[0.5625rem] font-black text-rose-400 dark:text-rose-500 uppercase tracking-widest">⚡ Monthly Focus Energy</p>
+                            <span className={cn("text-[0.625rem] font-black", energyPct > 80 ? "text-rose-600 dark:text-rose-400" : "text-slate-600 dark:text-slate-300")}>{focusHoursUsed}h / {maxHours}h</span>
                         </div>
                         {focusHoursUsed > 0 && (() => {
                             const hourAgo = Date.now() - 3600_000;
@@ -2992,7 +2992,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className={cn("h-6 text-[8px] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline) && "grayscale opacity-50")}
+                                    className={cn("h-6 text-[0.5rem] font-black uppercase tracking-widest bg-rose-100 dark:bg-rose-900/50 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-900/70", (!isOnline) && "grayscale opacity-50")}
                                     disabled={isRefillLimited || (!isOnline)}
                                     onClick={() => {
                                         if (isRefillLimited) {
@@ -3017,12 +3017,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="h-2 bg-rose-100 dark:bg-rose-900 rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full transition-all", energyPct > 80 ? "bg-rose-500" : "bg-rose-400")} style={{ width: `${energyPct}%` }} />
                     </div>
-                    {burnout > 60 && <p className="text-[9px] text-rose-500 dark:text-rose-400 mt-1.5 font-bold animate-pulse">⚠️ High burnout — take a month off to restore health!</p>}
+                    {burnout > 60 && <p className="text-[0.5625rem] text-rose-500 dark:text-rose-400 mt-1.5 font-bold animate-pulse">⚠️ High burnout — take a month off to restore health!</p>}
                 </div>
 
                 {/* Rest & Recharge - Month Goal */}
                 <div className="mb-4">
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Monthly Strategy</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Monthly Strategy</p>
                     <div onClick={() => setSelectedAction(selectedAction === "rest_and_recharge" ? "none" : "rest_and_recharge")}
                         className={cn("p-3 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between",
                             selectedAction === "rest_and_recharge" ? "bg-indigo-600 dark:bg-indigo-600 border-indigo-700 dark:border-indigo-500 text-white shadow-lg scale-[1.02]" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-indigo-500/50 text-slate-800 dark:text-slate-200")}>
@@ -3030,20 +3030,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <span className="text-2xl">😴</span>
                             <div>
                                 <p className={cn("text-xs font-black uppercase tracking-tight", selectedAction === "rest_and_recharge" ? "text-white" : "text-slate-900 dark:text-slate-100")}>Rest & Recharge</p>
-                                <p className={cn("text-[8px] font-bold uppercase tracking-widest", selectedAction === "rest_and_recharge" ? "text-indigo-100" : "text-slate-400 dark:text-slate-500")}>Dedicate this whole month to recovery</p>
+                                <p className={cn("text-[0.5rem] font-bold uppercase tracking-widest", selectedAction === "rest_and_recharge" ? "text-indigo-100" : "text-slate-400 dark:text-slate-500")}>Dedicate this whole month to recovery</p>
                             </div>
                         </div>
-                        <div className={cn("text-[9px] font-black px-2 py-1 rounded-full border",
+                        <div className={cn("text-[0.5625rem] font-black px-2 py-1 rounded-full border",
                             selectedAction === "rest_and_recharge" ? "bg-white/20 border-white/40 text-white" : "bg-indigo-50 border-indigo-100 text-indigo-600")}>
                             {selectedAction === "rest_and_recharge" ? "SELECTED" : "CHOOSE"}
                         </div>
                     </div>
-                    <p className="text-[7px] text-slate-400 mt-1.5 px-1 leading-tight">Resting restores massive Health, Sleep, and Burnout, but halts all company progress for the month.</p>
+                    <p className="text-[0.4375rem] text-slate-400 mt-1.5 px-1 leading-tight">Resting restores massive Health, Sleep, and Burnout, but halts all company progress for the month.</p>
                 </div>
 
                 {/* Salary Input & Board Approval */}
                 <div className="w-full mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Monthly Salary Draw</p>
+                    <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Monthly Salary Draw</p>
 
                     <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 mb-3 shadow-inner">
                         <span className="text-xl font-black text-indigo-600 shrink-0">$</span>
@@ -3054,7 +3054,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             placeholder="0"
                             className="flex-1 min-w-0 text-2xl font-black text-slate-800 dark:text-white focus:outline-none bg-transparent tracking-tighter"
                         />
-                        <span className="text-[10px] text-slate-400 font-bold uppercase italic shrink-0">/ mo</span>
+                        <span className="text-[0.625rem] text-slate-400 font-bold uppercase italic shrink-0">/ mo</span>
                     </div>
 
                     <Button
@@ -3082,7 +3082,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {parseInt(salaryInput || "0") === startup.metrics.founder_salary ? "Current Salary" : "Propose to Board"}
                     </Button>
 
-                    <p className="text-[8px] text-slate-400 mt-3 text-center leading-relaxed">
+                    <p className="text-[0.5rem] text-slate-400 mt-3 text-center leading-relaxed">
                         Changes must be approved by the **Board of Directors** (Founders, CXOs, and Investors).
                     </p>
                 </div>
@@ -3090,8 +3090,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ── RETIRE AS CEO (EXIT GAME) ── */}
                 {startup.public_company && (
                     <div className="w-full mb-4 bg-rose-50 dark:bg-rose-950/20 p-4 rounded-3xl border border-rose-100 dark:border-rose-900/50">
-                        <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2">The Endgame</p>
-                        <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 mb-3 leading-tight font-semibold">
+                        <p className="text-[0.625rem] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-2">The Endgame</p>
+                        <p className="text-[0.625rem] text-rose-700/80 dark:text-rose-300/80 mb-3 leading-tight font-semibold">
                             You took the company public. You've made it. At any time, you can step down as CEO, cash out, and record your legacy.
                         </p>
                         <Button
@@ -3109,7 +3109,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     }
                                 });
                             }}
-                            className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none transition-all active:scale-95"
+                            className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[0.625rem] uppercase tracking-widest shadow-lg shadow-rose-200 dark:shadow-none transition-all active:scale-95"
                         >
                             Step Down / Retire
                         </Button>
@@ -3118,7 +3118,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* Attributes */}
                 <div className="mb-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Attributes</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">Attributes</p>
                     <HBar label="Intelligence" v={attrs.intelligence} color="bg-indigo-500" />
                     <HBar label="Technical" v={attrs.technical_skill} bonus={m.technical_skill || 0} color="bg-blue-500" />
                     <HBar label="Leadership" v={attrs.leadership} bonus={m.leadership || 0} color="bg-violet-500" />
@@ -3149,10 +3149,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             {/* Header */}
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
+                                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Founder Skill Web</p>
                                     <Info className="w-2.5 h-2.5 text-slate-300" />
                                 </div>
-                                <div className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${availableSP > 0
+                                <div className={`px-2 py-1 rounded-full text-[0.5rem] font-black uppercase tracking-widest ${availableSP > 0
                                     ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                                     : 'bg-slate-100 text-slate-400 border border-slate-200'
                                     }`}>
@@ -3161,8 +3161,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             </div>
 
                             {/* SP Earning Guide (DETAILED) */}
-                            <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl max-h-[190px] overflow-y-auto custom-scrollbar">
-                                <p className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 sticky top-0 bg-indigo-50 dark:bg-slate-900 z-10 py-0.5">
+                            <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl max-h-[11.875rem] overflow-y-auto custom-scrollbar">
+                                <p className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 sticky top-0 bg-indigo-50 dark:bg-slate-900 z-10 py-0.5">
                                     <Sparkles className="w-3.5 h-3.5" /> How to earn Skill Points (SP)
                                 </p>
                                 <div className="space-y-2.5">
@@ -3170,10 +3170,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">💰</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">FUNDING ROUNDS</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per round</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">FUNDING ROUNDS</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per round</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Closing your Seed, Series A, and Series B rounds each grant a permanent Skill Point.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">Closing your Seed, Series A, and Series B rounds each grant a permanent Skill Point.</p>
                                         </div>
                                     </div>
 
@@ -3181,10 +3181,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">📈</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">USER MILESTONES</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 3 SP</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">USER MILESTONES</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 3 SP</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Gain +1 SP when your total user count crosses 1,000, 10,000, and 100,000 users.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">Gain +1 SP when your total user count crosses 1,000, 10,000, and 100,000 users.</p>
                                         </div>
                                     </div>
 
@@ -3192,10 +3192,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">⏳</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">GAME TENURE</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per Year</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">GAME TENURE</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per Year</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">For every 12 months you survive as CEO, you earn an automatic Skill Point.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">For every 12 months you survive as CEO, you earn an automatic Skill Point.</p>
                                         </div>
                                     </div>
 
@@ -3203,10 +3203,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">🏢</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">M&A / ACQUISITIONS</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per 2 Acq</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">M&A / ACQUISITIONS</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+1 SP per 2 Acq</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Earn +1 SP for every 2 companies acquired under your corporate group.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">Earn +1 SP for every 2 companies acquired under your corporate group.</p>
                                         </div>
                                     </div>
 
@@ -3214,10 +3214,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">📊</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">REVENUE (ARR) TIER</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 6 SP</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">REVENUE (ARR) TIER</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">Max 6 SP</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Get +1 SP when crossing ARR tiers of $10M, $100M, $1B, $10B, $100B, and $1T.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">Get +1 SP when crossing ARR tiers of $10M, $100M, $1B, $10B, $100B, and $1T.</p>
                                         </div>
                                     </div>
 
@@ -3225,10 +3225,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-xs shadow-sm border border-indigo-100 dark:border-indigo-900/50">🏛️</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-center mb-0.5">
-                                                <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">IPO DAY</p>
-                                                <span className="text-[9px] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+2 SP</span>
+                                                <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">IPO DAY</p>
+                                                <span className="text-[0.5625rem] font-black text-indigo-600 bg-white dark:bg-indigo-950 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">+2 SP</span>
                                             </div>
-                                            <p className="text-[8px] text-slate-500 dark:text-slate-400 leading-tight">Transitioning to a public company by underwriting your IPO grants +2 SP.</p>
+                                            <p className="text-[0.5rem] text-slate-500 dark:text-slate-400 leading-tight">Transitioning to a public company by underwriting your IPO grants +2 SP.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -3243,7 +3243,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                                     return (
                                         <div key={branch} className={`rounded-xl border p-2 ${branchMeta.bgColor} ${branchMeta.borderColor}`}>
-                                            <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${branchMeta.color}`}>
+                                            <p className={`text-[0.5rem] font-black uppercase tracking-widest mb-1.5 ${branchMeta.color}`}>
                                                 {branchMeta.emoji} {branch}
                                             </p>
                                             {[...tier1Nodes, ...tier2Nodes].map(node => {
@@ -3268,22 +3268,22 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         )}
                                                     >
                                                         <div className="flex items-start gap-1">
-                                                            <span className="text-[11px] shrink-0 mt-0.5">
+                                                            <span className="text-[0.6875rem] shrink-0 mt-0.5">
                                                                 {isUnlocked ? '✅' : node.tier === 2 ? '↳' : node.emoji}
                                                             </span>
                                                             <div className="min-w-0">
                                                                 <p className={cn(
-                                                                    "text-[8px] font-black leading-tight truncate",
+                                                                    "text-[0.5rem] font-black leading-tight truncate",
                                                                     isUnlocked ? branchMeta.color : isBlocked ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200'
                                                                 )}>
                                                                     {node.label}
                                                                 </p>
-                                                                <p className="text-[7px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5 line-clamp-2">
+                                                                <p className="text-[0.4375rem] text-slate-400 dark:text-slate-500 leading-snug mt-0.5 line-clamp-2">
                                                                     {node.tagline}
                                                                 </p>
                                                                 {!isUnlocked && (
                                                                     <p className={cn(
-                                                                        "text-[7px] font-black mt-0.5",
+                                                                        "text-[0.4375rem] font-black mt-0.5",
                                                                         canUnlock ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'
                                                                     )}>
                                                                         {canUnlock ? `🔓 ${node.cost} SP — Tap to unlock` : reason}
@@ -3306,27 +3306,27 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="mt-3 flex flex-col gap-2">
                     <div className="flex gap-2">
                         <div className="flex-1 bg-indigo-600 rounded-2xl p-3 shadow-sm shadow-indigo-100">
-                            <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest leading-none">Founder Wealth</p>
+                            <p className="text-[0.5rem] font-black text-indigo-200 uppercase tracking-widest leading-none">Founder Wealth</p>
                             <p className="text-lg font-black text-white mt-1">
                                 {formatMoney((founder.personal_wealth || 0) + (founder.assets || []).reduce((acc: number, a: any) => acc + a.currentValue, 0))}
                             </p>
-                            <p className="text-[8px] text-indigo-200 mt-0.5 font-bold">Total Net Worth</p>
+                            <p className="text-[0.5rem] text-indigo-200 mt-0.5 font-bold">Total Net Worth</p>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-2xl p-3">
-                            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">Liquid Cash</p>
+                            <p className="text-[0.5rem] font-black text-indigo-400 uppercase tracking-widest">Liquid Cash</p>
                             <p className="text-sm font-black text-indigo-800 tracking-tighter mt-0.5">
                                 {formatMoney(founder.personal_wealth || 0)}
                             </p>
-                            <p className="text-[8px] text-indigo-400 mt-0.5">cash on hand</p>
+                            <p className="text-[0.5rem] text-indigo-400 mt-0.5">cash on hand</p>
                         </div>
                         <div className="flex-1 bg-violet-50 border border-violet-100 rounded-2xl p-3">
-                            <p className="text-[8px] font-black text-violet-400 uppercase tracking-widest">Paper Value</p>
+                            <p className="text-[0.5rem] font-black text-violet-400 uppercase tracking-widest">Paper Value</p>
                             <p className="text-sm font-black text-violet-800 tracking-tighter mt-0.5">
                                 {formatMoney((startup.capTable?.find((e: any) => e.type === "Founder")?.equity ?? 100) / 100 * startup.valuation)}
                             </p>
-                            <p className="text-[8px] text-violet-400 mt-0.5">equity stake</p>
+                            <p className="text-[0.5rem] text-violet-400 mt-0.5">equity stake</p>
                         </div>
                     </div>
                 </div>
@@ -3334,9 +3334,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* ★ ONGOING PROGRAMS FIRST — active ones highlighted */}
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-[9px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest">🔄 Active Programs</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest">🔄 Active Programs</p>
                         {activeFounderPrograms.length > 0 && (
-                            <span className="text-[8px] font-black bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{activeFounderPrograms.length} running</span>
+                            <span className="text-[0.5rem] font-black bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{activeFounderPrograms.length} running</span>
                         )}
                     </div>
 
@@ -3353,7 +3353,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{prog.label}</p>
                                     {renderOngoingProgramUI(prog, mult)}
                                 </div>
-                                {streak > 0 && <span className="text-[10px] font-black text-violet-600">🔥{streak}m ×{mult.toFixed(0)}</span>}
+                                {streak > 0 && <span className="text-[0.625rem] font-black text-violet-600">🔥{streak}m ×{mult.toFixed(0)}</span>}
                                 <div className="w-10 h-5 rounded-full relative bg-violet-500">
                                     <div className="absolute top-0.5 left-5 w-4 h-4 rounded-full bg-white shadow" />
                                 </div>
@@ -3362,7 +3362,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     })}
 
                     {activeFounderPrograms.length === 0 && (
-                        <div className="text-center py-3 rounded-2xl border-2 border-dashed border-slate-100 text-[10px] text-slate-300 font-bold">
+                        <div className="text-center py-3 rounded-2xl border-2 border-dashed border-slate-100 text-[0.625rem] text-slate-300 font-bold">
                             No active programs — start one below
                         </div>
                     )}
@@ -3370,7 +3370,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 {/* ★ COLLAPSIBLE ACTION GROUPS */}
                 <div className="mb-3">
-                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest mb-2">⚡ One-Time Actions</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest mb-2">⚡ One-Time Actions</p>
                     {ACTION_GROUPS.map(group => {
                         const groupActions = IMMEDIATE_ACTIONS.filter(a => a.category === group.category);
                         if (groupActions.length === 0) return null;
@@ -3386,7 +3386,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 >
                                     <span className="text-base">{groupEmojis[group.category] || "📌"}</span>
                                     <span className={cn("flex-1 text-xs font-black uppercase tracking-wide text-left", !isCollapsed ? "text-indigo-700 dark:text-indigo-300" : "text-slate-600 dark:text-slate-400")}>{group.label}</span>
-                                    <span className="text-[9px] font-bold text-slate-400">{groupActions.length} actions</span>
+                                    <span className="text-[0.5625rem] font-bold text-slate-400">{groupActions.length} actions</span>
                                     <span className={cn("text-slate-400 text-xs transition-transform", !isCollapsed ? "rotate-90" : "")}>›</span>
                                 </button>
 
@@ -3404,7 +3404,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Inactive ongoing programs at bottom */}
                 {inactiveFounderPrograms.length > 0 && (
                     <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">➕ Start a Program</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">➕ Start a Program</p>
                         {inactiveFounderPrograms.map(prog => (
                             <div key={prog.id} onClick={() => handleToggleOngoingProgram(prog.id)}
                                 className="flex items-center gap-3 p-3 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer mb-2 hover:border-indigo-100 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30">
@@ -3450,7 +3450,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {competitors.length === 0 && (
                         <div className="text-center py-10 opacity-40">
                             <span className="text-4xl">🌫️</span>
-                            <p className="text-[10px] font-black uppercase tracking-widest mt-2 dark:text-slate-300">The market is quiet... for now.</p>
+                            <p className="text-[0.625rem] font-black uppercase tracking-widest mt-2 dark:text-slate-300">The market is quiet... for now.</p>
                         </div>
                     )}
                     {competitors.map(comp => {
@@ -3479,34 +3479,34 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight">{comp.name}</p>
 
                                                 </div>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{comp.industry}</p>
+                                                <p className="text-[0.625rem] font-bold text-slate-500 uppercase tracking-wider">{comp.industry}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight">
+                                            <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[0.5625rem] font-black uppercase tracking-tight">
                                                 {comp.status}
                                             </div>
-                                            <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase">Sentiment: <span className={cn("font-black", comp.sentiment === 'panicking' ? "text-rose-600 dark:text-rose-400 animate-pulse" : "text-slate-600 dark:text-slate-400 uppercase")}>{comp.sentiment || 'merciless'}</span></p>
+                                            <p className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase">Sentiment: <span className={cn("font-black", comp.sentiment === 'panicking' ? "text-rose-600 dark:text-rose-400 animate-pulse" : "text-slate-600 dark:text-slate-400 uppercase")}>{comp.sentiment || 'merciless'}</span></p>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-3 mb-4 relative z-10">
                                         <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 dark:border-indigo-900 shadow-sm">
-                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Valuation</p>
+                                            <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Valuation</p>
                                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatMoney(comp.valuation)}</p>
                                         </div>
                                         <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 dark:border-indigo-900 shadow-sm">
-                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Users</p>
+                                            <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Users</p>
                                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{formatNumber(comp.users)}</p>
                                         </div>
                                         <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-2xl p-2.5 border border-indigo-100 dark:border-indigo-900 shadow-sm">
-                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Velocity</p>
-                                            <p className={cn("text-[10px] font-black uppercase tracking-tight", comp.velocity === 'hyper-growth' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>{comp.velocity || 'Hyper-Growth'}</p>
+                                            <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter mb-0.5 leading-none">Velocity</p>
+                                            <p className={cn("text-[0.625rem] font-black uppercase tracking-tight", comp.velocity === 'hyper-growth' ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400")}>{comp.velocity || 'Hyper-Growth'}</p>
                                         </div>
                                     </div>
 
                                     <div className="pt-3 border-t border-indigo-100 relative z-10">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                             <Shield className="w-3 h-3" /> Battle Actions
                                         </p>
                                         <div className="grid grid-cols-2 gap-2">
@@ -3523,13 +3523,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     >
                                                         <span className="text-lg grayscale group-hover:grayscale-0 transition-all">{action.emoji}</span>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 uppercase leading-none truncate mb-1">{action.label}</p>
+                                                            <p className="text-[0.5625rem] font-black text-slate-800 dark:text-slate-200 uppercase leading-none truncate mb-1">{action.label}</p>
                                                             <div className="flex items-center gap-1.5 leading-none">
-                                                                <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-0.5">
+                                                                <span className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-0.5">
                                                                     <Zap className="w-2 h-2 fill-slate-400 dark:fill-slate-500" /> {action.energyCost}h
                                                                 </span>
                                                                 {action.cashCost > 0 && (
-                                                                    <span className="text-[8px] font-bold text-indigo-400 dark:text-indigo-400 flex items-center gap-0.5">
+                                                                    <span className="text-[0.5rem] font-bold text-indigo-400 dark:text-indigo-400 flex items-center gap-0.5">
                                                                         <DollarSign className="w-2 h-2" /> {formatMoney(action.cashCost)}
                                                                     </span>
                                                                 )}
@@ -3546,7 +3546,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <button
                                                 onClick={() => handleAcquireRival(comp)}
                                                 disabled={startup.metrics.cash < Math.floor(comp.valuation * 1.25)}
-                                                className="w-full py-2 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[9px] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 z-10 relative"
+                                                className="w-full py-2 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[0.5625rem] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 z-10 relative"
                                             >
                                                 <span>👑 Hostile Takeover Chadly for {formatMoney(Math.floor(comp.valuation * 1.25))}</span>
                                             </button>
@@ -3555,8 +3555,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                                     {comp.last_action && (
                                         <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200/50 dark:border-slate-700/50">
-                                            <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase">Last Intel:</span>
-                                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 italic">{(comp.last_action as string).replace(/_/g, " ")} success</span>
+                                            <span className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase">Last Intel:</span>
+                                            <span className="text-[0.5625rem] font-bold text-indigo-600 dark:text-indigo-400 italic">{(comp.last_action as string).replace(/_/g, " ")} success</span>
                                         </div>
                                     )}
                                 </div>
@@ -3575,11 +3575,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <span className="text-lg">{isFailed ? "💀" : isIPO ? "🚀" : "🏢"}</span>
                                         <div>
                                             <p className="text-xs font-black text-slate-800 dark:text-slate-200">{comp.name}</p>
-                                            <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase">{comp.industry}</p>
+                                            <p className="text-[0.5rem] font-bold text-slate-400 dark:text-slate-500 uppercase">{comp.industry}</p>
                                         </div>
                                     </div>
                                     <div className={cn(
-                                        "px-2 py-0.5 rounded-full text-[8px] font-black uppercase",
+                                        "px-2 py-0.5 rounded-full text-[0.5rem] font-black uppercase",
                                         isActive ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400" :
                                             isIPO ? "bg-indigo-600 dark:bg-indigo-600 text-white" :
                                                 "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400"
@@ -3589,17 +3589,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase">Valuation</p>
+                                        <p className="text-[0.4375rem] font-black text-slate-400 dark:text-slate-500 uppercase">Valuation</p>
                                         <p className="text-xs font-black text-slate-700 dark:text-slate-200">{formatMoney(comp.valuation)}</p>
                                     </div>
                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase">Users</p>
+                                        <p className="text-[0.4375rem] font-black text-slate-400 dark:text-slate-500 uppercase">Users</p>
                                         <p className="text-xs font-black text-slate-700 dark:text-slate-200">{comp.users.toLocaleString()}</p>
                                     </div>
                                 </div>
                                 {comp.last_action && (
                                     <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                                        <p className="text-[8px] font-bold text-slate-500 dark:text-slate-400 italic">
+                                        <p className="text-[0.5rem] font-bold text-slate-500 dark:text-slate-400 italic">
                                             Last Move: <span className="text-indigo-600 dark:text-indigo-400">{(comp.last_action as string).replace(/_/g, " ")}</span>
                                         </p>
                                     </div>
@@ -3607,20 +3607,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                                 {comp.is_diligent ? (
                                     <div className="mt-3 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                                        <p className="text-[8px] font-black text-slate-500 uppercase">Due Diligence Intel</p>
-                                        <div className="flex justify-between text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                        <p className="text-[0.5rem] font-black text-slate-500 uppercase">Due Diligence Intel</p>
+                                        <div className="flex justify-between text-[0.5625rem] font-medium text-slate-600 dark:text-slate-400">
                                             <span>Integration Risk:</span>
                                             <span className={cn("font-black", comp.integration_risk === "High" ? "text-rose-600 animate-pulse" : comp.integration_risk === "Medium" ? "text-amber-500" : "text-emerald-600")}>
                                                 {comp.integration_risk}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                        <div className="flex justify-between text-[0.5625rem] font-medium text-slate-600 dark:text-slate-400">
                                             <span>Financial Health:</span>
                                             <span className={cn("font-black", comp.financial_health === "Burning Cash" ? "text-rose-600" : "text-emerald-600")}>
                                                 {comp.financial_health}
                                             </span>
                                         </div>
-                                        <p className="text-[7.5px] font-medium text-slate-400 italic leading-snug mt-1 border-t border-dashed border-slate-200 dark:border-slate-800 pt-1">
+                                        <p className="text-[0.4688rem] font-medium text-slate-400 italic leading-snug mt-1 border-t border-dashed border-slate-200 dark:border-slate-800 pt-1">
                                             {comp.integration_risk === "High" ? "⚠️ Flight risk and tech fragmentation. Est. -20 Team Morale." :
                                                 comp.integration_risk === "Medium" ? "⚠️ Redundancies, moderate friction. Est. -10 Team Morale." :
                                                     "✅ Culture fit, clean stack. Est. +5 Team Morale boost."}
@@ -3638,7 +3638,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 setCompetitors(prev => prev.map(c => c.id === comp.id ? { ...c, is_diligent: true } : c));
                                                 toast.success("Due Diligence Complete", { description: `Unlocked intelligence report for ${comp.name}` });
                                             }}
-                                            className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[8px] rounded-lg transition-all active:scale-95 shadow-sm"
+                                            className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[0.5rem] rounded-lg transition-all active:scale-95 shadow-sm"
                                         >
                                             🔬 Run Due Diligence ({formatMoney(Math.min(250000, Math.max(5000, Math.floor(comp.valuation * 0.005))))})
                                         </button>
@@ -3649,14 +3649,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <div className="flex flex-col gap-2 mt-2">
                                         <button
                                             onClick={() => handleGatherIntelAd(comp.id)}
-                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-1.5"
+                                            className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-[0.5625rem] font-black uppercase tracking-widest hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center justify-center gap-1.5"
                                         >
                                             <span className="text-xs">🕵️</span> Gather Intel (Ad)
                                         </button>
                                         <button
                                             onClick={() => handleAcquireRival(comp)}
                                             disabled={startup.metrics.cash < (isIPO ? Math.floor(comp.valuation * 1.15) : comp.valuation)}
-                                            className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[9px] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1"
+                                            className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-100 disabled:to-slate-100 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:text-slate-400 text-white font-black uppercase text-[0.5625rem] rounded-xl transition-all active:scale-95 shadow-md flex items-center justify-center gap-1"
                                         >
                                             <span>🦈 {isIPO ? `Takeover Public Rival for ${formatMoney(Math.floor(comp.valuation * 1.15))}` : `Buyout Rival for ${formatMoney(comp.valuation)}`}</span>
                                         </button>
@@ -3677,7 +3677,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {sheetHeader("💎", "Personal Lifestyle", "Spend your personal wealth")}
 
                 <div className="bg-indigo-600 dark:bg-indigo-700/80 rounded-3xl p-4 mb-6 shadow-lg shadow-indigo-100 dark:shadow-none">
-                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none">Liquid Cash</p>
+                    <p className="text-[0.625rem] font-black text-indigo-200 uppercase tracking-widest leading-none">Liquid Cash</p>
                     <p className="text-2xl font-black text-white mt-1">{formatMoney(founder.personal_wealth)}</p>
                 </div>
 
@@ -3698,13 +3698,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <div>
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{tg.name}</p>
                                                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">
+                                                    <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-bold tracking-tight">
                                                         {formatMoney(tg.monthlyCost)}/mo
                                                     </p>
                                                     {Object.entries(tg.impact).map(([key, val]) => {
                                                         const isPositive = key === 'burnout' ? val < 0 : val > 0;
                                                         return (
-                                                            <span key={key} className={cn("text-[9px] font-black uppercase tracking-tighter", isPositive ? "text-emerald-500" : "text-rose-500")}>
+                                                            <span key={key} className={cn("text-[0.5625rem] font-black uppercase tracking-tighter", isPositive ? "text-emerald-500" : "text-rose-500")}>
                                                                 {val > 0 ? "+" : ""}{val} {key === 'reputation' ? 'REP' : key === 'burnout' ? 'BURN' : key.toUpperCase()}
                                                             </span>
                                                         );
@@ -3732,20 +3732,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="flex justify-between items-start mb-2">
                                             <span className="text-2xl">{asset.emoji}</span>
                                             <div className={cn(
-                                                "px-1.5 py-0.5 rounded-lg text-[8px] font-black",
+                                                "px-1.5 py-0.5 rounded-lg text-[0.5rem] font-black",
                                                 isUp ? "bg-emerald-50 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400" : "bg-rose-50 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400"
                                             )}>
                                                 {isUp ? "+" : ""}{change.toFixed(1)}%
                                             </div>
                                         </div>
-                                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{asset.name}</p>
-                                        <p className="text-[12px] font-black text-slate-900 dark:text-slate-100 mt-1">{formatMoney(asset.currentValue)}</p>
+                                        <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200 truncate">{asset.name}</p>
+                                        <p className="text-[0.75rem] font-black text-slate-900 dark:text-slate-100 mt-1">{formatMoney(asset.currentValue)}</p>
                                     </div>
                                 );
                             })}
                             {(founder.assets || []).length === 0 && (
                                 <div className="col-span-2 py-4 border-2 border-dashed border-slate-100 rounded-2xl text-center opacity-40">
-                                    <p className="text-[10px] font-black uppercase tracking-widest">No assets yet</p>
+                                    <p className="text-[0.625rem] font-black uppercase tracking-widest">No assets yet</p>
                                 </div>
                             )}
                         </div>
@@ -3771,9 +3771,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <div>
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{asset.name}</p>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                                    <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{formatMoney(price)}</p>
+                                                    <p className="text-[0.625rem] font-bold text-indigo-600 dark:text-indigo-400">{formatMoney(price)}</p>
                                                     {asset.impact && Object.entries(asset.impact).map(([key, val]) => (
-                                                        <span key={key} className="text-[9px] font-black text-amber-500 uppercase tracking-tighter">
+                                                        <span key={key} className="text-[0.5625rem] font-black text-amber-500 uppercase tracking-tighter">
                                                             +{val} {key === 'reputation' ? 'REP' : key === 'networking' ? 'NET' : 'LDR'}
                                                         </span>
                                                     ))}
@@ -3783,7 +3783,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <button
                                             onClick={() => handlePurchaseAsset(asset, price)}
                                             disabled={(founder.personal_wealth || 0) < price}
-                                            className="px-3 py-1.5 bg-indigo-600 disabled:bg-slate-200 text-white rounded-xl text-[10px] font-black uppercase"
+                                            className="px-3 py-1.5 bg-indigo-600 disabled:bg-slate-200 text-white rounded-xl text-[0.625rem] font-black uppercase"
                                         >
                                             Buy
                                         </button>
@@ -3896,7 +3896,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             return (
                 <div className="flex flex-col gap-3">
                     {/* Back */}
-                    <button onClick={() => setTradeSelectedSymbol(null)} className="flex items-center gap-1.5 text-[11px] font-black text-indigo-500 uppercase tracking-widest">
+                    <button onClick={() => setTradeSelectedSymbol(null)} className="flex items-center gap-1.5 text-[0.6875rem] font-black text-indigo-500 uppercase tracking-widest">
                         ← All Stocks
                     </button>
 
@@ -3905,8 +3905,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="flex justify-between items-start mb-3">
                             <div>
                                 <p className="text-xl font-black text-slate-900 dark:text-white">{selectedStock.symbol}</p>
-                                <p className="text-[11px] text-slate-500">{selectedStock.companyName}</p>
-                                <p className="text-[10px] text-slate-400">
+                                <p className="text-[0.6875rem] text-slate-500">{selectedStock.companyName}</p>
+                                <p className="text-[0.625rem] text-slate-400">
                                     {selectedStock.sector} · <span className="font-bold">Cap: {formatMoney(selectedStock.currentPrice * selectedStock.sharesOutstanding)}</span>
                                 </p>
                             </div>
@@ -3933,37 +3933,37 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 />
                                 <polyline points={points} fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <div className="absolute top-0 left-0 text-[8px] text-slate-400">{formatMoney(maxP)}</div>
-                            <div className="absolute bottom-0 left-0 text-[8px] text-slate-400">{formatMoney(minP)}</div>
+                            <div className="absolute top-0 left-0 text-[0.5rem] text-slate-400">{formatMoney(maxP)}</div>
+                            <div className="absolute bottom-0 left-0 text-[0.5rem] text-slate-400">{formatMoney(minP)}</div>
                         </div>
 
                         {/* Indicators */}
                         <div className="grid grid-cols-4 gap-2">
                             <div className={`rounded-xl p-2 text-center ${rsiColor}`}>
-                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">RSI</p>
+                                <p className="text-[0.5rem] font-black uppercase tracking-widest opacity-70">RSI</p>
                                 <p className="text-sm font-black">{rsiVal}</p>
-                                <p className="text-[8px] font-bold">{rsiLabel}</p>
+                                <p className="text-[0.5rem] font-bold">{rsiLabel}</p>
                             </div>
                             <div className={`rounded-xl p-2 text-center ${volColor}`}>
-                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">Volatility</p>
+                                <p className="text-[0.5rem] font-black uppercase tracking-widest opacity-70">Volatility</p>
                                 <p className="text-sm font-black">{(selectedStock.volatility * 100).toFixed(1)}%</p>
-                                <p className="text-[8px] font-bold">{volLabel}</p>
+                                <p className="text-[0.5rem] font-bold">{volLabel}</p>
                             </div>
                             <div className="rounded-xl p-2 text-center bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">P/E</p>
+                                <p className="text-[0.5rem] font-black uppercase tracking-widest opacity-70">P/E</p>
                                 <p className="text-sm font-black">{selectedStock.peRatio > 0 ? `${selectedStock.peRatio}x` : "N/A"}</p>
-                                <p className="text-[8px] font-bold">{selectedStock.peRatio > 40 ? "Growth" : selectedStock.peRatio > 0 ? "Value" : "Unprofitable"}</p>
+                                <p className="text-[0.5rem] font-bold">{selectedStock.peRatio > 40 ? "Growth" : selectedStock.peRatio > 0 ? "Value" : "Unprofitable"}</p>
                             </div>
                             <div className="rounded-xl p-2 text-center bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                <p className="text-[8px] font-black uppercase tracking-widest opacity-70">Shares</p>
+                                <p className="text-[0.5rem] font-black uppercase tracking-widest opacity-70">Shares</p>
                                 <p className="text-sm font-black">{formatNumber(selectedStock.sharesOutstanding)}</p>
-                                <p className="text-[8px] font-bold">Outstanding</p>
+                                <p className="text-[0.5rem] font-bold">Outstanding</p>
                             </div>
                         </div>
                         {/* News */}
                         <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">🗞️ Latest News</p>
-                            <p className={`text-[11px] font-medium ${selectedStock.recentNews ? "text-amber-600 dark:text-amber-400" : "text-slate-500"}`}>
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">🗞️ Latest News</p>
+                            <p className={`text-[0.6875rem] font-medium ${selectedStock.recentNews ? "text-amber-600 dark:text-amber-400" : "text-slate-500"}`}>
                                 {selectedStock.recentNews || "No significant events reported recently."}
                             </p>
                         </div>
@@ -3972,18 +3972,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* Position */}
                     {pos && pos.shares > 0 && (
                         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-3">
-                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Your Position</p>
+                            <p className="text-[0.5625rem] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Your Position</p>
                             <div className="grid grid-cols-3 gap-2">
                                 <div>
-                                    <p className="text-[9px] text-indigo-400">Shares</p>
+                                    <p className="text-[0.5625rem] text-indigo-400">Shares</p>
                                     <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">{formatNumber(pos.shares)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] text-indigo-400">Avg Cost</p>
+                                    <p className="text-[0.5625rem] text-indigo-400">Avg Cost</p>
                                     <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">{formatMoney(pos.averageCost)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] text-indigo-400">Unrealized P&L</p>
+                                    <p className="text-[0.5625rem] text-indigo-400">Unrealized P&L</p>
                                     {(() => {
                                         const pnl = (selectedStock.currentPrice - pos.averageCost) * pos.shares;
                                         return <p className={`text-xs font-black ${pnl >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{pnl >= 0 ? "+" : ""}{formatMoney(pnl)}</p>;
@@ -3995,26 +3995,26 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                     {/* Trade Controls */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Place Order</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-3">Place Order</p>
                         <div className="flex justify-between items-center mb-1">
-                            <p className="text-[10px] text-slate-500">Deploy <span className="font-black text-slate-800 dark:text-white">{tradeQtyPct}%</span> of cash</p>
-                            <p className="text-[10px] font-black text-indigo-500">{formatNumber(deployShares)} shares · {formatMoney(deployCost)}</p>
+                            <p className="text-[0.625rem] text-slate-500">Deploy <span className="font-black text-slate-800 dark:text-white">{tradeQtyPct}%</span> of cash</p>
+                            <p className="text-[0.625rem] font-black text-indigo-500">{formatNumber(deployShares)} shares · {formatMoney(deployCost)}</p>
                         </div>
                         <input type="range" min={1} max={100} value={tradeQtyPct} onChange={e => setTradeQtyPct(Number(e.target.value))}
                             className="w-full h-2 rounded-full accent-indigo-600 mb-3" />
-                        <div className="text-[9px] text-slate-400 mb-3">Cash Available: <span className="font-black text-slate-700 dark:text-slate-200">{formatMoney(availableCash)}</span> · Max shares: <span className="font-black">{formatNumber(maxAffordableShares)}</span></div>
+                        <div className="text-[0.5625rem] text-slate-400 mb-3">Cash Available: <span className="font-black text-slate-700 dark:text-slate-200">{formatMoney(availableCash)}</span> · Max shares: <span className="font-black">{formatNumber(maxAffordableShares)}</span></div>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => handleTrade(selectedStock.symbol, deployShares, selectedStock.currentPrice)}
                                 disabled={!canBuy}
-                                className="py-3 rounded-xl bg-emerald-500 text-white font-black text-[11px] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
+                                className="py-3 rounded-xl bg-emerald-500 text-white font-black text-[0.6875rem] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
                             >
                                 Buy {formatNumber(deployShares)}
                             </button>
                             <button
                                 onClick={() => pos && handleTrade(selectedStock.symbol, -Math.min(deployShares, pos.shares), selectedStock.currentPrice)}
                                 disabled={!canSell}
-                                className="py-3 rounded-xl bg-rose-500 text-white font-black text-[11px] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
+                                className="py-3 rounded-xl bg-rose-500 text-white font-black text-[0.6875rem] uppercase tracking-wider disabled:opacity-30 active:scale-95 transition-all"
                             >
                                 Sell {canSell ? formatNumber(Math.min(deployShares, pos.shares)) : "—"}
                             </button>
@@ -4030,12 +4030,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cash Available</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Cash Available</p>
                         <p className="text-lg font-black text-emerald-500">{formatMoney(availableCash)}</p>
                     </div>
                     {currentPortfolio.length > 0 && (
                         <div className="text-right">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Portfolio P&L</p>
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Portfolio P&L</p>
                             <p className={`text-sm font-black ${portfolioPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                                 {portfolioPnl >= 0 ? "+" : ""}{formatMoney(portfolioPnl)}
                             </p>
@@ -4047,7 +4047,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="flex gap-1.5 flex-wrap">
                     {SECTORS.map(s => (
                         <button key={s} onClick={() => setTradeSectorFilter(s)}
-                            className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${tradeSectorFilter === s ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}>
+                            className={`px-2.5 py-1 rounded-full text-[0.5625rem] font-black uppercase tracking-widest transition-all ${tradeSectorFilter === s ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}>
                             {s}
                         </button>
                     ))}
@@ -4079,11 +4079,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm font-black text-slate-900 dark:text-white">{stock.symbol}</p>
-                                        {pos && pos.shares > 0 && <span className="text-[8px] font-black bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">HELD</span>}
-                                        {stock.recentNews && <span title="Breaking News!" className="text-[10px]">🗞️</span>}
+                                        {pos && pos.shares > 0 && <span className="text-[0.5rem] font-black bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">HELD</span>}
+                                        {stock.recentNews && <span title="Breaking News!" className="text-[0.625rem]">🗞️</span>}
                                     </div>
-                                    <p className="text-[9px] text-slate-400 truncate">{stock.companyName} · <span className="font-bold">Cap: {formatMoney(stock.currentPrice * stock.sharesOutstanding)}</span></p>
-                                    <p className="text-[9px] text-slate-400">RSI <span className={`font-black ${rsiCol}`}>{rsiVal}</span> · Vol <span className="font-bold text-slate-500">{(stock.volatility * 100).toFixed(0)}%</span></p>
+                                    <p className="text-[0.5625rem] text-slate-400 truncate">{stock.companyName} · <span className="font-bold">Cap: {formatMoney(stock.currentPrice * stock.sharesOutstanding)}</span></p>
+                                    <p className="text-[0.5625rem] text-slate-400">RSI <span className={`font-black ${rsiCol}`}>{rsiVal}</span> · Vol <span className="font-bold text-slate-500">{(stock.volatility * 100).toFixed(0)}%</span></p>
                                 </div>
 
                                 {/* Sparkline */}
@@ -4096,7 +4096,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 {/* Price */}
                                 <div className="text-right">
                                     <p className="text-sm font-black text-slate-900 dark:text-white">{formatMoney(stock.currentPrice)}</p>
-                                    <p className={`text-[10px] font-black ${pctChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                    <p className={`text-[0.625rem] font-black ${pctChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                                         {pctChange >= 0 ? "▲" : "▼"} {Math.abs(pctChange).toFixed(2)}%
                                     </p>
                                 </div>
@@ -4174,19 +4174,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Collateral Stats */}
                 <div className="grid grid-cols-2 gap-2">
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Collateral Value</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Collateral Value</p>
                         <p className="text-xs font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatMoney(totalCollateral)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Personal Cash</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Personal Cash</p>
                         <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(founder.personal_wealth || 0)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Loan Balance</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Loan Balance</p>
                         <p className="text-xs font-black text-rose-600 mt-0.5">{formatMoney(currentLoan)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-2.5 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Available to Borrow</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Available to Borrow</p>
                         <p className="text-xs font-black text-emerald-600 mt-0.5">{formatMoney(availableLoan)}</p>
                     </div>
                 </div>
@@ -4194,8 +4194,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Margin Call Risk Indicator */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
                     <div className="flex justify-between items-center mb-2">
-                        <p className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Margin Credit Meter</p>
-                        <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{ltvRatio.toFixed(1)}% LTV</p>
+                        <p className="text-[0.625rem] font-black uppercase text-slate-600 dark:text-slate-400">Margin Credit Meter</p>
+                        <p className="text-[0.625rem] font-black text-indigo-600 dark:text-indigo-400">{ltvRatio.toFixed(1)}% LTV</p>
                     </div>
 
                     {/* Risk progress bar */}
@@ -4203,20 +4203,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className={`h-full ${riskColor}`} style={{ width: `${Math.min(100, (ltvRatio / 50) * 100)}%` }} />
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-[9px] text-slate-400 font-bold">LTV Risk Meter:</span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">{riskLabel}</span>
+                        <span className="text-[0.5625rem] text-slate-400 font-bold">LTV Risk Meter:</span>
+                        <span className="text-[0.5625rem] font-black uppercase tracking-wider text-slate-500">{riskLabel}</span>
                     </div>
-                    <p className="text-[8px] text-slate-400/80 mt-3 leading-normal">
+                    <p className="text-[0.5rem] text-slate-400/80 mt-3 leading-normal">
                         Your margin line is secured by your equity. If stock price declines push LTV past **55%**, the SEC will issue a Margin Call, **forcibly liquidating** your shares to clear the debt!
                     </p>
                 </div>
 
                 {/* Draw Slider */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Draw Cash (Costs 6% APR Interest)</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">Draw Cash (Costs 6% APR Interest)</p>
                     <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-black text-indigo-600">{formatMoney(borrowSlideVal)}</span>
-                        <span className="text-[9px] text-slate-400 font-bold">Max: {formatMoney(availableLoan)}</span>
+                        <span className="text-[0.5625rem] text-slate-400 font-bold">Max: {formatMoney(availableLoan)}</span>
                     </div>
                     <input
                         type="range"
@@ -4230,7 +4230,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <button
                         onClick={() => { handleBorrow(borrowSlideVal); setBorrowSlideVal(0); }}
                         disabled={borrowSlideVal <= 0 || borrowSlideVal > availableLoan}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-[0.5625rem] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                     >
                         Borrow {formatMoney(borrowSlideVal)}
                     </button>
@@ -4239,10 +4239,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Settle Debt Slider */}
                 {currentLoan > 0 && (
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Repay Balance (Settle Debt)</p>
+                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">Repay Balance (Settle Debt)</p>
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-xs font-black text-emerald-600">{formatMoney(repaySlideVal)}</span>
-                            <span className="text-[9px] text-slate-400 font-bold">Max: {formatMoney(Math.min(currentLoan, founder.personal_wealth || 0))}</span>
+                            <span className="text-[0.5625rem] text-slate-400 font-bold">Max: {formatMoney(Math.min(currentLoan, founder.personal_wealth || 0))}</span>
                         </div>
                         <input
                             type="range"
@@ -4256,7 +4256,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <button
                             onClick={() => { handleRepay(repaySlideVal); setRepaySlideVal(0); }}
                             disabled={repaySlideVal <= 0 || repaySlideVal > Math.min(currentLoan, founder.personal_wealth || 0)}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[9px] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-[0.5625rem] py-2.5 rounded-xl disabled:opacity-30 transition active:scale-95"
                         >
                             Repay {formatMoney(repaySlideVal)}
                         </button>
@@ -4302,20 +4302,20 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-3 mb-2">
                     <div className="flex justify-between items-center mb-2">
                         <div>
-                            <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-[0.625rem] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
                                 💎 Bribe a Senator
                             </p>
-                            <p className="text-[8px] text-emerald-600 dark:text-emerald-400 leading-tight">
+                            <p className="text-[0.5rem] text-emerald-600 dark:text-emerald-400 leading-tight">
                                 Call in a massive favor. Forces a global Bull Market for 12 months.
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={handleIAP_BribeSenator}
-                        className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                        className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">📈 Force Bull Market</span>
-                        <span className="bg-emerald-900/30 px-2 py-0.5 rounded-full text-[8px] border border-emerald-400/30">$4.99</span>
+                        <span className="bg-emerald-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-emerald-400/30">$4.99</span>
                     </button>
                 </div>
 
@@ -4324,7 +4324,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="flex justify-between items-end mb-2">
                         <div>
                             <h3 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Influence Score</h3>
-                            <p className="text-[9px] text-slate-400 mt-0.5">Your regulatory capture percentage</p>
+                            <p className="text-[0.5625rem] text-slate-400 mt-0.5">Your regulatory capture percentage</p>
                         </div>
                         <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{score} <span className="text-xs font-normal text-slate-400">/ 100</span></p>
                     </div>
@@ -4334,36 +4334,36 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                     {/* Tier Unlocks Panel */}
                     <div className="space-y-2 border-t border-slate-200/50 dark:border-slate-700/50 pt-3">
-                        <div className="flex justify-between items-center text-[10px]">
+                        <div className="flex justify-between items-center text-[0.625rem]">
                             <span className={cn("font-bold", score >= 30 ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")}>
                                 {score >= 30 ? "✅" : "🔒"} Tier 1 (30+): Audit & Investigation Protection
                             </span>
-                            <span className="text-[8px] uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold">-50% Crisis Chance</span>
+                            <span className="text-[0.5rem] uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold">-50% Crisis Chance</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px]">
+                        <div className="flex justify-between items-center text-[0.625rem]">
                             <span className={cn("font-bold", score >= 70 ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")}>
                                 {score >= 70 ? "✅" : "🔒"} Tier 2 (70+): Complete Regulatory Capture
                             </span>
-                            <span className="text-[8px] uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold">+15% Monthly Tax Credit</span>
+                            <span className="text-[0.5rem] uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold">+15% Monthly Tax Credit</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Advanced Influence Campaigns */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Lobbying Initiatives &amp; Campaigns</p>
+                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-3">Lobbying Initiatives &amp; Campaigns</p>
 
                     <div className="space-y-3">
                         {/* K-Street retainer */}
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
                             <div className="flex-1">
                                 <p className="text-xs font-black text-slate-800 dark:text-slate-100">K-Street Law Retainer</p>
-                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$2M Corporate Cash</p>
+                                <p className="text-[0.5625rem] text-slate-400 font-bold mt-0.5">-$2M Corporate Cash</p>
                             </div>
                             <button
                                 onClick={() => handleLobby(2000000, 4, "retainer")}
                                 disabled={m.cash < 2000000}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[0.5rem] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
                             >
                                 +4 Influence
                             </button>
@@ -4373,12 +4373,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
                             <div className="flex-1">
                                 <p className="text-xs font-black text-slate-800 dark:text-slate-100">Targeted PAC Contribution</p>
-                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$10M Corporate Cash</p>
+                                <p className="text-[0.5625rem] text-slate-400 font-bold mt-0.5">-$10M Corporate Cash</p>
                             </div>
                             <button
                                 onClick={() => handleLobby(10000000, 15, "pac")}
                                 disabled={m.cash < 10000000}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[0.5rem] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
                             >
                                 +15 Influence
                             </button>
@@ -4388,12 +4388,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-slate-700/50 rounded-2xl">
                             <div className="flex-1">
                                 <p className="text-xs font-black text-slate-800 dark:text-slate-100">Federal Regulatory Liaison</p>
-                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">-$20M Corporate Cash · Boost Reputation</p>
+                                <p className="text-[0.5625rem] text-slate-400 font-bold mt-0.5">-$20M Corporate Cash · Boost Reputation</p>
                             </div>
                             <button
                                 onClick={() => handleLobby(20000000, 30, "liaison")}
                                 disabled={m.cash < 20000000}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[0.5rem] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
                             >
                                 +30 Influence
                             </button>
@@ -4403,12 +4403,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="flex items-center justify-between p-3 bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl">
                             <div className="flex-1">
                                 <p className="text-xs font-black text-indigo-900 dark:text-indigo-300">Bipartisan Coalition Sponsorship</p>
-                                <p className="text-[9px] text-indigo-700/50 dark:text-indigo-400/50 font-bold mt-0.5">-$50M Corporate Cash · Secures $15M Federal Grant</p>
+                                <p className="text-[0.5625rem] text-indigo-700/50 dark:text-indigo-400/50 font-bold mt-0.5">-$50M Corporate Cash · Secures $15M Federal Grant</p>
                             </div>
                             <button
                                 onClick={() => handleLobby(50000000, 60, "coalition")}
                                 disabled={m.cash < 50000000}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[8px] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase tracking-widest text-[0.5rem] px-4 py-2 rounded-xl transition active:scale-95 disabled:opacity-45"
                             >
                                 +60 Influence
                             </button>
@@ -4511,19 +4511,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-2 animate-in fade-in-50 duration-300">
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Shares Outstanding</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Shares Outstanding</p>
                         <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">{formatNumber(sharesOut)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Public Float Shares</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Public Float Shares</p>
                         <p className="text-sm font-black text-indigo-600 mt-0.5">{formatNumber(floatShares)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">EPS (Earnings / Sh)</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">EPS (Earnings / Sh)</p>
                         <p className="text-sm font-black text-emerald-600 mt-0.5">{formatMoney(eps)}</p>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                        <p className="text-[9px] uppercase font-black text-slate-400">Authorized Program</p>
+                        <p className="text-[0.5625rem] uppercase font-black text-slate-400">Authorized Program</p>
                         <p className="text-sm font-black text-amber-600 mt-0.5">{formatMoney(auth)}</p>
                     </div>
                 </div>
@@ -4532,45 +4532,45 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {auth <= 0 ? (
                     <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                         <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">Authorize Buyback Program</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Instruct the Board of Directors to approve capital allocation for share repurchases.</p>
+                        <p className="text-[0.625rem] text-slate-500 mt-1 mb-3">Instruct the Board of Directors to approve capital allocation for share repurchases.</p>
                         <div className="flex gap-2">
-                            <button onClick={() => handleAuthorize(authSmall)} className="flex-1 bg-slate-800 dark:bg-slate-700 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:opacity-90 active:scale-95 transition-all">
+                            <button onClick={() => handleAuthorize(authSmall)} className="flex-1 bg-slate-800 dark:bg-slate-700 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase hover:opacity-90 active:scale-95 transition-all">
                                 Authorize 1% Program<br />
-                                <span className="text-[8px] opacity-70">({formatMoney(authSmall)})</span>
+                                <span className="text-[0.5rem] opacity-70">({formatMoney(authSmall)})</span>
                             </button>
-                            <button onClick={() => handleAuthorize(authLarge)} className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">
+                            <button onClick={() => handleAuthorize(authLarge)} className="flex-1 bg-indigo-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase hover:bg-indigo-700 active:scale-95 transition-all">
                                 Authorize 5% Program<br />
-                                <span className="text-[8px] opacity-70">({formatMoney(authLarge)})</span>
+                                <span className="text-[0.5rem] opacity-70">({formatMoney(authLarge)})</span>
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="bg-amber-50/50 dark:bg-amber-950/15 border-2 border-amber-100 dark:border-amber-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                         <h4 className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">Open Market Buyback Program</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 mb-3">Execute repurchases against your active {formatMoney(auth)} authorization. Retires public float shares to boost EPS.</p>
+                        <p className="text-[0.625rem] text-slate-500 mt-1 mb-3">Execute repurchases against your active {formatMoney(auth)} authorization. Retires public float shares to boost EPS.</p>
                         <div className="flex flex-col gap-2">
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => handleExecuteBuyback(costSmall)}
                                     disabled={m.cash < costSmall || auth < costSmall}
-                                    className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                    className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl text-[0.625rem] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                                 >
                                     Repurchase 0.5% Float<br />
-                                    <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costSmall)} (+{popSmall}% pop)</span>
+                                    <span className="text-[0.5rem] opacity-90 font-semibold">{formatMoney(costSmall)} (+{popSmall}% pop)</span>
                                 </button>
                                 <button
                                     onClick={() => handleExecuteBuyback(costMedium)}
                                     disabled={m.cash < costMedium || auth < costMedium}
-                                    className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                    className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-[0.625rem] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                                 >
                                     Repurchase 2.0% Float<br />
-                                    <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costMedium)} (+{popMedium}% pop)</span>
+                                    <span className="text-[0.5rem] opacity-90 font-semibold">{formatMoney(costMedium)} (+{popMedium}% pop)</span>
                                 </button>
                             </div>
                             <button
                                 onClick={() => handleExecuteBuyback(Math.min(auth, m.cash))}
                                 disabled={m.cash < Math.min(auth, m.cash) || Math.min(auth, m.cash) <= 0}
-                                className="w-full bg-emerald-600 text-white py-3 rounded-xl text-[10px] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
+                                className="w-full bg-emerald-600 text-white py-3 rounded-xl text-[0.625rem] font-black uppercase disabled:opacity-30 transition-all active:scale-95"
                             >
                                 Repurchase Max Available ({formatMoney(Math.min(auth, m.cash))})
                             </button>
@@ -4581,14 +4581,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {/* Tender Offer dutch auction */}
                 <div className="bg-rose-50/50 dark:bg-rose-950/15 border-2 border-rose-100 dark:border-rose-900/30 rounded-3xl p-4 animate-in fade-in-50 duration-300">
                     <h4 className="text-xs font-black uppercase text-rose-700 dark:text-rose-400 tracking-wider">Dutch Auction Tender Offer</h4>
-                    <p className="text-[10px] text-slate-500 mt-1 mb-3">Make a direct public offer to bypass open markets and buy back a massive block of shares at a **10% Premium** to defend against short sellers.</p>
+                    <p className="text-[0.625rem] text-slate-500 mt-1 mb-3">Make a direct public offer to bypass open markets and buy back a massive block of shares at a **10% Premium** to defend against short sellers.</p>
                     <button
                         onClick={() => handleExecuteBuyback(costTender, true)}
                         disabled={m.cash < costTender}
-                        className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white py-3 rounded-xl text-[10px] font-black uppercase transition-all active:scale-95 shadow-md shadow-rose-600/20"
+                        className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white py-3 rounded-xl text-[0.625rem] font-black uppercase transition-all active:scale-95 shadow-md shadow-rose-600/20"
                     >
                         Launch 5% Float Tender Offer (10% Premium)<br />
-                        <span className="text-[8px] opacity-90 font-semibold">{formatMoney(costTender)} (Triggers +6.0% immediate price jump)</span>
+                        <span className="text-[0.5rem] opacity-90 font-semibold">{formatMoney(costTender)} (Triggers +6.0% immediate price jump)</span>
                     </button>
                 </div>
             </div>
@@ -4681,24 +4681,24 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                                 <span>📄</span> SEC Rule 10b5-1 Trading Portal
                             </h3>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Pre-schedule founder equity liquidations to eliminate insider trading liability.</p>
+                            <p className="text-[0.625rem] text-slate-500 mt-0.5">Pre-schedule founder equity liquidations to eliminate insider trading liability.</p>
                         </div>
                         {plans.length > 0 ? (
                             plans.some((p: any) => p.isAggressive) ? (
-                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 animate-pulse">
+                                <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 animate-pulse">
                                     ⚠️ Aggressive Liquidation
                                 </span>
                             ) : (
-                                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                                <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
                                     🛡️ SEC Safe-Harbor
                                 </span>
                             )
                         ) : startup.metrics.legal_risk ? (
-                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 animate-pulse">
+                            <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 animate-pulse">
                                 🚨 Regulatory Warning
                             </span>
                         ) : (
-                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                                 💤 Plan Inactive
                             </span>
                         )}
@@ -4707,13 +4707,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
-                            <p className="text-[9px] uppercase font-black text-slate-400">Founder Shareholding</p>
+                            <p className="text-[0.5625rem] uppercase font-black text-slate-400">Founder Shareholding</p>
                             <p className="text-sm font-black text-slate-800 dark:text-slate-100 mt-1">
-                                {formatNumber(myShareCount)} <span className="text-[10px] font-semibold text-slate-500">({myShares.toFixed(2)}%)</span>
+                                {formatNumber(myShareCount)} <span className="text-[0.625rem] font-semibold text-slate-500">({myShares.toFixed(2)}%)</span>
                             </p>
                         </div>
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3">
-                            <p className="text-[9px] uppercase font-black text-slate-400">Liquid Equity Value</p>
+                            <p className="text-[0.5625rem] uppercase font-black text-slate-400">Liquid Equity Value</p>
                             <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1">
                                 {formatMoney(myEquityValue)}
                             </p>
@@ -4723,8 +4723,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {plans.length > 0 ? (
                         <div className="flex flex-col gap-3">
                             <div className="flex justify-between items-center">
-                                <p className="text-[10px] uppercase font-black text-slate-500">Active Trading Plan</p>
-                                <span className="text-[9px] font-bold text-slate-400">SEC Form 4 Filed</span>
+                                <p className="text-[0.625rem] uppercase font-black text-slate-500">Active Trading Plan</p>
+                                <span className="text-[0.5625rem] font-bold text-slate-400">SEC Form 4 Filed</span>
                             </div>
                             {plans.map((p: any) => {
                                 const soldPercent = (p.sharesSoldSoFar / Math.max(1, p.sharesToSellTotal)) * 100;
@@ -4733,17 +4733,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{p.planName || "SEC Rule 10b5-1 Plan"}</p>
-                                                <p className="text-[9px] font-semibold text-slate-500 mt-0.5">
+                                                <p className="text-[0.5625rem] font-semibold text-slate-500 mt-0.5">
                                                     Rate: <span className="font-bold text-slate-700 dark:text-slate-300">{formatNumber(p.monthlySellAmount)} shrs/mo</span> (Estimated {formatMoney(p.monthlySellAmount * sharePrice)} / mo)
                                                 </p>
                                             </div>
-                                            <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">
+                                            <p className="text-[0.625rem] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">
                                                 {p.monthsRemaining} mos remaining
                                             </p>
                                         </div>
 
                                         <div className="space-y-1.5 my-3">
-                                            <div className="flex justify-between text-[9px] font-bold text-slate-500">
+                                            <div className="flex justify-between text-[0.5625rem] font-bold text-slate-500">
                                                 <span>Progress: {formatNumber(p.sharesSoldSoFar)} / {formatNumber(p.sharesToSellTotal)} sold</span>
                                                 <span>{soldPercent.toFixed(0)}%</span>
                                             </div>
@@ -4757,11 +4757,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                                         <button
                                             onClick={() => handleCancelPlan(p.id)}
-                                            className="w-full py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-[10px] font-black uppercase transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-1"
+                                            className="w-full py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-[0.625rem] font-black uppercase transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-1"
                                         >
                                             <span>🚨</span> Terminate Schedule Prematurely
                                         </button>
-                                        <p className="text-[8px] text-center text-slate-400 dark:text-slate-500 font-medium mt-1.5 leading-relaxed">
+                                        <p className="text-[0.5rem] text-center text-slate-400 dark:text-slate-500 font-medium mt-1.5 leading-relaxed">
                                             ⚠️ Warning: Prematurely cancelling an SEC schedule raises immediate insider trading red flags. Triggers permanent <strong>Regulatory Warning</strong> status and drops Board Happiness by <strong>-15%</strong>.
                                         </p>
                                     </div>
@@ -4771,8 +4771,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     ) : (
                         <div className="space-y-3">
                             <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
-                                <p className="text-[10px] uppercase font-black text-slate-500">Select SEC-Approved Schedule Template</p>
-                                <p className="text-[9px] font-bold text-slate-400">1 Plan Max</p>
+                                <p className="text-[0.625rem] uppercase font-black text-slate-500">Select SEC-Approved Schedule Template</p>
+                                <p className="text-[0.5625rem] font-bold text-slate-400">1 Plan Max</p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-3">
@@ -4781,32 +4781,32 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div>
                                             <div className="flex justify-between items-start mb-1.5">
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{t.name}</p>
-                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase ${t.badgeColor}`}>
+                                                <span className={`text-[0.5rem] font-black px-1.5 py-0.5 rounded border uppercase ${t.badgeColor}`}>
                                                     {t.badge}
                                                 </span>
                                             </div>
-                                            <p className="text-[9px] text-slate-500 mt-1 leading-normal font-medium">{t.desc}</p>
+                                            <p className="text-[0.5625rem] text-slate-500 mt-1 leading-normal font-medium">{t.desc}</p>
                                         </div>
 
                                         <div className="border-t border-slate-100 dark:border-slate-800 mt-3 pt-3 flex items-center justify-between gap-4">
                                             <div className="flex gap-4">
                                                 <div>
-                                                    <p className="text-[8px] uppercase font-black text-slate-400">Total Shares</p>
-                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.sharesTotal)}</p>
+                                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Total Shares</p>
+                                                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.sharesTotal)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[8px] uppercase font-black text-slate-400">Monthly Rate</p>
-                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.monthly)} / mo</p>
+                                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Monthly Rate</p>
+                                                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200">{formatNumber(t.monthly)} / mo</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[8px] uppercase font-black text-slate-400">Duration</p>
-                                                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">{t.months} mos</p>
+                                                    <p className="text-[0.5rem] uppercase font-black text-slate-400">Duration</p>
+                                                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200">{t.months} mos</p>
                                                 </div>
                                             </div>
 
                                             <button
                                                 onClick={() => handleCreatePlan(t)}
-                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] px-3 py-2 rounded-lg transition-all active:scale-95 shadow-md shadow-indigo-600/10 flex items-center gap-1"
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[0.625rem] px-3 py-2 rounded-lg transition-all active:scale-95 shadow-md shadow-indigo-600/10 flex items-center gap-1"
                                             >
                                                 Deploy <span>🚀</span>
                                             </button>
@@ -4927,7 +4927,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             <div className="flex flex-col gap-4">
                 <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                     <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">Board of Directors</h3>
-                    <p className="text-[10px] text-slate-500 mb-4">Execute high-level corporate governance actions.</p>
+                    <p className="text-[0.625rem] text-slate-500 mb-4">Execute high-level corporate governance actions.</p>
 
                     <div className="space-y-3">
                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
@@ -4936,13 +4936,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <div className="text-2xl">✂️</div>
                                     <div>
                                         <p className="text-xs font-black text-slate-800 dark:text-slate-200">2-for-1 Stock Split</p>
-                                        <p className="text-[9px] text-slate-500 mt-0.5">Halves share price, doubles share count. Boosts retail sentiment.</p>
+                                        <p className="text-[0.5625rem] text-slate-500 mt-0.5">Halves share price, doubles share count. Boosts retail sentiment.</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleStockSplit}
                                     disabled={!pub || pub.share_price < 50}
-                                    className="shrink-0 ml-2 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded text-[10px] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
+                                    className="shrink-0 ml-2 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded text-[0.625rem] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
                                 >
                                     {(!pub || pub.share_price < 50) ? "Req $50+" : "Execute"}
                                 </button>
@@ -4963,13 +4963,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <div className="text-2xl">{opt.emoji}</div>
                                             <div>
                                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
-                                                <p className="text-[9px] text-slate-500 mt-0.5">Costs {formatMoney(cost)}. {opt.desc}</p>
+                                                <p className="text-[0.5625rem] text-slate-500 mt-0.5">Costs {formatMoney(cost)}. {opt.desc}</p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => handleBoardAction(opt.label)}
                                             disabled={m.cash < cost || opt.locked}
-                                            className="shrink-0 ml-2 px-3 py-1.5 bg-amber-600 text-white rounded text-[10px] font-black uppercase hover:bg-amber-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                            className="shrink-0 ml-2 px-3 py-1.5 bg-amber-600 text-white rounded text-[0.625rem] font-black uppercase hover:bg-amber-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
                                         >
                                             {opt.locked ? "Post-IPO" : opt.btn}
                                         </button>
@@ -5014,10 +5014,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="flex justify-between items-center mb-4">
                         <div>
                             <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Philanthropy</h3>
-                            <p className="text-[10px] text-slate-500">Donate personal wealth to boost your reputation.</p>
+                            <p className="text-[0.625rem] text-slate-500">Donate personal wealth to boost your reputation.</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lifetime Impact</p>
+                            <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Lifetime Impact</p>
                             <p className="text-sm font-bold text-purple-600">{formatNumber(founderWealth.philanthropy_score)}</p>
                         </div>
                     </div>
@@ -5038,13 +5038,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="text-2xl">{opt.emoji}</div>
                                         <div>
                                             <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
-                                            <p className="text-[9px] text-slate-500 mt-0.5">{opt.desc}</p>
+                                            <p className="text-[0.5625rem] text-slate-500 mt-0.5">{opt.desc}</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => handleDonate(opt.cost, opt.rep, opt.score, opt.name)}
                                         disabled={liquidCash < opt.cost}
-                                        className="shrink-0 ml-2 px-3 py-1.5 bg-purple-600 text-white rounded text-[10px] font-black uppercase hover:bg-purple-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                                        className="shrink-0 ml-2 px-3 py-1.5 bg-purple-600 text-white rounded text-[0.625rem] font-black uppercase hover:bg-purple-700 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-700"
                                     >
                                         {opt.btn}
                                     </button>
@@ -5096,10 +5096,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-1">PR & Communications</h3>
-                            <p className="text-[10px] text-slate-500">Spend focus hours to boost Brand Awareness.</p>
+                            <p className="text-[0.625rem] text-slate-500">Spend focus hours to boost Brand Awareness.</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Brand Awareness</p>
+                            <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Brand Awareness</p>
                             <p className="text-sm font-bold text-indigo-600">{Math.round(m.brand_awareness || 0)}/100</p>
                         </div>
                     </div>
@@ -5108,10 +5108,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200">Current Market Season</p>
-                                <p className="text-[10px] font-bold text-indigo-500">{m.current_season || "Neutral Market"}</p>
+                                <p className="text-[0.625rem] font-bold text-indigo-500">{m.current_season || "Neutral Market"}</p>
                             </div>
                         </div>
-                        <p className="text-[9px] text-slate-500 mt-1">Sector conditions dynamically affect investor sentiment and marketing yield.</p>
+                        <p className="text-[0.5625rem] text-slate-500 mt-1">Sector conditions dynamically affect investor sentiment and marketing yield.</p>
                     </div>
 
                     <div className="space-y-3">
@@ -5129,13 +5129,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div className="text-2xl">{opt.emoji}</div>
                                         <div>
                                             <p className="text-xs font-black text-slate-800 dark:text-slate-200">{opt.label}</p>
-                                            <p className="text-[9px] text-slate-500 mt-0.5">Costs {opt.cost} Focus. Gives +{opt.gain} Brand Awareness.</p>
+                                            <p className="text-[0.5625rem] text-slate-500 mt-0.5">Costs {opt.cost} Focus. Gives +{opt.gain} Brand Awareness.</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => opt.isAd ? handleViralStuntAd() : handleAction(opt.cost, opt.gain, opt.label)}
                                         disabled={!opt.isAd && ((m.founder_burnout || 0) > 85 || (focusHoursUsed + opt.cost > maxHours))}
-                                        className={cn("shrink-0 ml-2 px-3 py-1.5 rounded text-[10px] font-black uppercase disabled:opacity-50 transition-all",
+                                        className={cn("shrink-0 ml-2 px-3 py-1.5 rounded text-[0.625rem] font-black uppercase disabled:opacity-50 transition-all",
                                             opt.isAd ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700"
                                         )}
                                     >
@@ -5203,27 +5203,27 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1">
                     <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest">Legal & Compliance</h3>
-                    <p className="text-[10px] text-slate-500">Manage ongoing litigation and regulatory risk.</p>
+                    <p className="text-[0.625rem] text-slate-500">Manage ongoing litigation and regulatory risk.</p>
                 </div>
 
                 {/* === THE PR FIXER (IAP) === */}
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-100 dark:border-amber-900/50 rounded-2xl p-3">
                     <div className="flex justify-between items-center mb-2">
                         <div>
-                            <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-[0.625rem] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
                                 💎 The PR Fixer
                             </p>
-                            <p className="text-[8px] text-amber-600 dark:text-amber-400 leading-tight">
+                            <p className="text-[0.5rem] text-amber-600 dark:text-amber-400 leading-tight">
                                 Instantly settle all lawsuits, reset Board Anger, and restore Reputation.
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={handleIAP_PRFixer}
-                        className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
+                        className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">🛑 Make Problems Disappear</span>
-                        <span className="bg-amber-900/30 px-2 py-0.5 rounded-full text-[8px] border border-amber-400/30">$0.99</span>
+                        <span className="bg-amber-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-amber-400/30">$0.99</span>
                     </button>
                 </div>
 
@@ -5231,7 +5231,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="p-8 rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 flex flex-col items-center justify-center text-center">
                         <span className="text-3xl mb-2">🛡️</span>
                         <h3 className="text-xs font-black text-rose-900 dark:text-rose-200 uppercase tracking-widest">No Active Lawsuits</h3>
-                        <p className="text-[10px] text-rose-700 dark:text-rose-400 mt-1 max-w-xs">Your company currently has no pending regulatory fines or class-action lawsuits.</p>
+                        <p className="text-[0.625rem] text-rose-700 dark:text-rose-400 mt-1 max-w-xs">Your company currently has no pending regulatory fines or class-action lawsuits.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -5243,17 +5243,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <h4 className="text-sm font-black text-slate-800 dark:text-slate-200">{suit.title}</h4>
-                                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{suit.description}</p>
+                                        <p className="text-[0.625rem] text-slate-500 mt-0.5 leading-relaxed">{suit.description}</p>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Demand</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-widest">Demand</p>
                                         <p className="text-xs font-bold text-rose-600">{formatMoney(suit.demand_amount)}</p>
                                     </div>
                                     <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Trial In</p>
+                                        <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-widest">Trial In</p>
                                         <p className="text-xs font-bold text-indigo-600">{suit.months_to_trial} Months</p>
                                     </div>
                                 </div>
@@ -5262,19 +5262,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => handleSettle(suit.id, suit.settlement_offer || suit.demand_amount)}
-                                            className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-sm"
+                                            className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[0.625rem] font-black uppercase transition-all shadow-sm"
                                         >
                                             Settle for {formatMoney(suit.settlement_offer || suit.demand_amount)}
                                         </button>
-                                        <div className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase text-center border border-slate-200 dark:border-slate-600">
+                                        <div className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-[0.625rem] font-black uppercase text-center border border-slate-200 dark:border-slate-600">
                                             Fighting in Court
-                                            <p className="text-[7px] lowercase font-medium opacity-70">-{formatMoney(suit.legal_fees_per_month)}/mo fees</p>
+                                            <p className="text-[0.4375rem] lowercase font-medium opacity-70">-{formatMoney(suit.legal_fees_per_month)}/mo fees</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => handleProBonoCounsel(suit.id)}
                                         disabled={(suit.proBonoUses || 0) >= 3}
-                                        className={`w-full py-2 border rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${(suit.proBonoUses || 0) >= 3 ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed" : "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"}`}
+                                        className={`w-full py-2 border rounded-xl text-[0.5625rem] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${(suit.proBonoUses || 0) >= 3 ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed" : "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"}`}
                                     >
                                         <span className="text-xs">💼</span> {(suit.proBonoUses || 0) >= 3 ? "Pro Bono Exhausted" : `Pro Bono Counsel (${3 - (suit.proBonoUses || 0)} Left)`}
                                     </button>
@@ -5294,17 +5294,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-blue-950 border border-blue-800 flex flex-col gap-1">
                     <h3 className="text-xs font-black text-blue-200 uppercase tracking-widest">🦈 M&A Strategy</h3>
-                    <p className="text-[10px] text-blue-400">Acquire active market assets to scale your corporate treasury and operations.</p>
+                    <p className="text-[0.625rem] text-blue-400">Acquire active market assets to scale your corporate treasury and operations.</p>
                 </div>
                 <div className="space-y-3">
                     {(!mnaTargets || mnaTargets.length === 0) ? (
                         <div className="p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
                             <span className="text-3xl mb-2 block">📡</span>
                             <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase">Scan Market</h3>
-                            <p className="text-[10px] text-slate-500 mb-4 mt-2">Find potential acquisition targets scaled to your current valuation.</p>
+                            <p className="text-[0.625rem] text-slate-500 mb-4 mt-2">Find potential acquisition targets scaled to your current valuation.</p>
                             <button
                                 onClick={() => setMnaTargets?.(generateMnATargets(startup.valuation))}
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[0.625rem] font-black uppercase transition-all"
                             >
                                 Scan Market for Targets
                             </button>
@@ -5314,7 +5314,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div className="flex justify-end mb-2">
                                 <button
                                     onClick={() => setMnaTargets?.(generateMnATargets(startup.valuation))}
-                                    className="text-[10px] font-black uppercase text-blue-600 hover:text-blue-800 transition-colors"
+                                    className="text-[0.625rem] font-black uppercase text-blue-600 hover:text-blue-800 transition-colors"
                                 >
                                     ⟳ Rescan Market
                                 </button>
@@ -5328,34 +5328,34 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xl">{t.emoji}</div>
                                                 <div>
                                                     <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t.name}</p>
-                                                    <p className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t.sector} · {t.rationale}</p>
+                                                    <p className="text-[0.5rem] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t.sector} · {t.rationale}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                {startup.iap_titan && <p className="text-[9px] font-black text-amber-500 uppercase">Titan -50% Off</p>}
+                                                {startup.iap_titan && <p className="text-[0.5625rem] font-black text-amber-500 uppercase">Titan -50% Off</p>}
                                                 <p className="text-xs font-black text-emerald-600">{formatMoney(startup.iap_titan ? t.ask * 0.5 : t.ask)}</p>
                                             </div>
                                         </div>
-                                        <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">{t.desc}</p>
+                                        <p className="text-[0.625rem] text-slate-500 mb-3 leading-relaxed">{t.desc}</p>
 
                                         {t.is_diligent && (
                                             <div className="mb-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-2">
-                                                <p className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">Due Diligence Report</p>
-                                                <div className="flex justify-between text-[10px]">
+                                                <p className="text-[0.5625rem] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-1 border-b border-slate-200 dark:border-slate-700 pb-1">Due Diligence Report</p>
+                                                <div className="flex justify-between text-[0.625rem]">
                                                     <span className="text-slate-500">True Value:</span>
                                                     <span className={`font-bold ${t.true_value > t.ask ? 'text-emerald-500' : 'text-rose-500'}`}>{formatMoney(t.true_value)}</span>
                                                 </div>
-                                                <div className="flex justify-between text-[10px]">
+                                                <div className="flex justify-between text-[0.625rem]">
                                                     <span className="text-slate-500">Financial Health:</span>
                                                     <span className={`font-bold ${t.financial_health === 'Burning Cash' ? 'text-rose-500' : 'text-emerald-500'}`}>
                                                         {t.financial_health} {t.inherited_burn > 0 && `(-${formatMoney(t.inherited_burn)}/mo)`}
                                                     </span>
                                                 </div>
-                                                <div className="flex justify-between text-[10px]">
+                                                <div className="flex justify-between text-[0.625rem]">
                                                     <span className="text-slate-500">Integration Risk:</span>
                                                     <span className={`font-bold ${t.integration_risk === 'High' ? 'text-rose-500' : t.integration_risk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>{t.integration_risk}</span>
                                                 </div>
-                                                <p className="text-[8px] font-medium text-slate-400 italic mt-1 leading-normal">
+                                                <p className="text-[0.5rem] font-medium text-slate-400 italic mt-1 leading-normal">
                                                     {t.integration_risk === "High" ? "⚠️ Fragmented tech stack, flight risk of core team. Est. -20 Team Morale impact on merge." :
                                                         t.integration_risk === "Medium" ? "⚠️ Moderate culture clash, redundant roles to consolidate. Est. -10 Team Morale." :
                                                             "✅ Clean codebase, shared tech stack. Est. +5 Team Morale boost."}
@@ -5376,7 +5376,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         toast.success(`Due Diligence Completed`, { description: `Revealed hidden metrics for ${t.name}.` });
                                                     }}
                                                     disabled={m.cash < ddCost}
-                                                    className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all"
+                                                    className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-xl text-[0.625rem] font-black uppercase transition-all"
                                                 >
                                                     Due Diligence ({formatMoney(ddCost)})
                                                 </button>
@@ -5417,7 +5417,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     toast.success(`Acquisition Complete`, { description: `${t.name} is now a subsidiary.` });
                                                 }}
                                                 disabled={m.cash < t.ask}
-                                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-[0.625rem] font-black uppercase transition-all"
                                             >
                                                 Acquire · {formatMoney(t.ask)}
                                             </button>
@@ -5450,8 +5450,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 <div className="p-4 rounded-2xl bg-rose-950 border border-rose-800 flex flex-col gap-1">
                     <h3 className="text-xs font-black text-rose-200 uppercase tracking-widest">🏦 Corporate Debt</h3>
                     <div className="flex justify-between items-center mt-1">
-                        <p className="text-[10px] text-rose-400">{canTakeDebt ? `Active Debt Obligations: ${formatMoney(totalDebtMonthly)}/mo` : "Reach Series A to access corporate debt instruments."}</p>
-                        <div className="flex items-center gap-1.5 bg-rose-900/50 px-2 py-0.5 rounded text-[10px] border border-rose-800/50">
+                        <p className="text-[0.625rem] text-rose-400">{canTakeDebt ? `Active Debt Obligations: ${formatMoney(totalDebtMonthly)}/mo` : "Reach Series A to access corporate debt instruments."}</p>
+                        <div className="flex items-center gap-1.5 bg-rose-900/50 px-2 py-0.5 rounded text-[0.625rem] border border-rose-800/50">
                             <span className="text-rose-300 font-medium">Credit Score</span>
                             <span className="font-black text-white">{startup.metrics.credit_score || 700}</span>
                         </div>
@@ -5461,17 +5461,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center">
                         <span className="text-3xl mb-2">🔒</span>
                         <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">Requires Series A</h3>
-                        <p className="text-[10px] text-slate-500 mt-1 max-w-xs">Close your Series A round to access venture debt and non-dilutive financing instruments.</p>
+                        <p className="text-[0.625rem] text-slate-500 mt-1 max-w-xs">Close your Series A round to access venture debt and non-dilutive financing instruments.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {activeDebts.length > 0 && (
                             <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl p-4">
-                                <p className="text-[9px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest mb-2">Active Obligations</p>
+                                <p className="text-[0.5625rem] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest mb-2">Active Obligations</p>
                                 {activeDebts.map((d: any, i: number) => (
                                     <div key={i} className="flex justify-between items-center py-1.5 border-t border-rose-100 dark:border-rose-900 first:border-0">
-                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{d.name}</span>
-                                        <span className="text-[10px] font-black text-rose-600">{formatMoney(d.monthly_payment)}/mo · {d.months_left}mo left</span>
+                                        <span className="text-[0.625rem] font-bold text-slate-700 dark:text-slate-300">{d.name}</span>
+                                        <span className="text-[0.625rem] font-black text-rose-600">{formatMoney(d.monthly_payment)}/mo · {d.months_left}mo left</span>
                                     </div>
                                 ))}
                             </div>
@@ -5488,15 +5488,15 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             <span className="text-xl">{dp.emoji}</span>
                                             <div>
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">{dp.name}</p>
-                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{dp.provider} · {dp.rate}% APR · {dp.term}mo</p>
+                                                <p className="text-[0.5rem] font-black text-slate-400 uppercase tracking-widest">{dp.provider} · {dp.rate}% APR · {dp.term}mo</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xs font-black text-emerald-600">{formatMoney(dp.amount)}</p>
-                                            {isScoreLocked && <p className="text-[8px] font-black text-rose-500 uppercase">Requires {minScoreRequired} Score</p>}
+                                            {isScoreLocked && <p className="text-[0.5rem] font-black text-rose-500 uppercase">Requires {minScoreRequired} Score</p>}
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">{dp.desc}</p>
+                                    <p className="text-[0.625rem] text-slate-500 mb-3 leading-relaxed">{dp.desc}</p>
                                     <button
                                         onClick={() => {
                                             if (isScoreLocked) { toast.error("Credit Score Too Low", { description: `You need a score of ${minScoreRequired} to access this.` }); return; }
@@ -5510,7 +5510,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                             toast.success(`Debt Approved`, { description: `${formatMoney(dp.amount)} deposited. ${formatMoney(monthly)}/mo repayment.` });
                                         }}
                                         disabled={isScoreLocked}
-                                        className="w-full py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300 text-white rounded-xl text-[10px] font-black uppercase transition-all"
+                                        className="w-full py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:hover:bg-slate-300 text-white rounded-xl text-[0.625rem] font-black uppercase transition-all"
                                     >
                                         {isScoreLocked ? "Locked" : `Draw ${formatMoney(dp.amount)} @ ${dp.rate}% APR`}
                                     </button>
@@ -5696,9 +5696,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                                     <span>🎲</span> Stock Options & Compensation
                                 </h3>
-                                <p className="text-[10px] text-slate-500 mt-0.5">Manage executive incentive packages and employee option pools.</p>
+                                <p className="text-[0.625rem] text-slate-500 mt-0.5">Manage executive incentive packages and employee option pools.</p>
                             </div>
-                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 animate-pulse">
+                            <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 animate-pulse">
                                 ESOP Pool: {optionPool.toFixed(1)}% Available
                             </span>
                         </div>
@@ -5706,33 +5706,33 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {/* Stats */}
                         <div className="grid grid-cols-3 gap-2 mb-4">
                             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Board Approval</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Board Approval</p>
                                 <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{boardHappiness}%</p>
                             </div>
                             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Current Strike</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Current Strike</p>
                                 <p className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5">{formatMoney(sharePrice)}</p>
                             </div>
                             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-center shadow-xs">
-                                <p className="text-[8px] uppercase font-black text-slate-400">Personal Cash</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Personal Cash</p>
                                 <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{formatMoney(personalCash)}</p>
                             </div>
                         </div>
 
                         {/* ESOP Expand */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 shadow-sm">
-                            <p className="text-[10px] uppercase font-black text-slate-500 mb-1">Refill Employee Option Pool</p>
-                            <p className="text-[8px] text-slate-400 mb-3 leading-normal font-medium">Refilling the pool increases talent acquisition quality but dilutes all current shareholders equally.</p>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500 mb-1">Refill Employee Option Pool</p>
+                            <p className="text-[0.5rem] text-slate-400 mb-3 leading-normal font-medium">Refilling the pool increases talent acquisition quality but dilutes all current shareholders equally.</p>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => handleRefillESOP(5)}
-                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[9px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[0.5625rem] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
                                 >
                                     Refill +5%
                                 </button>
                                 <button
                                     onClick={() => handleRefillESOP(10)}
-                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[9px] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase text-[0.5625rem] py-2 rounded-lg transition-all active:scale-95 shadow-sm"
                                 >
                                     Refill +10%
                                 </button>
@@ -5741,10 +5741,10 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         {/* Vesting Executive Grants */}
                         <div className="space-y-3">
-                            <p className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2">Your Executive Option Grants</p>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2">Your Executive Option Grants</p>
                             {vestingOptions.length === 0 ? (
                                 <div className="py-6 flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-4">
-                                    <p className="text-[9px] text-slate-400 italic text-center font-medium">No active executive option grants. Request a compensatory plan from the Board below.</p>
+                                    <p className="text-[0.5625rem] text-slate-400 italic text-center font-medium">No active executive option grants. Request a compensatory plan from the Board below.</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2">
@@ -5759,9 +5759,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                 <div className="flex justify-between items-start mb-1.5">
                                                     <div>
                                                         <p className="text-xs font-black text-slate-800 dark:text-slate-200">{o.grantName}</p>
-                                                        <p className="text-[8px] font-bold text-slate-400">Strike Price: {formatMoney(o.strikePrice)} · Vested: {formatNumber(o.vestedOptions)} shares</p>
+                                                        <p className="text-[0.5rem] font-bold text-slate-400">Strike Price: {formatMoney(o.strikePrice)} · Vested: {formatNumber(o.vestedOptions)} shares</p>
                                                     </div>
-                                                    <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
+                                                    <span className="text-[0.5625rem] font-black text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
                                                         {o.monthsRemaining > 0 ? `${o.monthsRemaining} mos vest` : "Fully Vested"}
                                                     </span>
                                                 </div>
@@ -5770,18 +5770,18 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     <button
                                                         onClick={() => handleExerciseOptions(o.id, o.vestedOptions, o.strikePrice)}
                                                         disabled={!canExercise || personalCash < cashCost}
-                                                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[9px] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
+                                                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[0.5625rem] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
                                                     >
                                                         <span>Exercise with Cash</span>
-                                                        <span className="text-[7px] font-semibold opacity-85">Cost: {formatMoney(cashCost)}</span>
+                                                        <span className="text-[0.4375rem] font-semibold opacity-85">Cost: {formatMoney(cashCost)}</span>
                                                     </button>
                                                     <button
                                                         onClick={() => handleCashlessExercise(o.id, o.vestedOptions, o.strikePrice)}
                                                         disabled={!canExercise || sharePrice <= o.strikePrice}
-                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[9px] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
+                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[0.5625rem] py-1.5 rounded-md transition-all flex flex-col items-center justify-center animate-all"
                                                     >
                                                         <span>Cashless Exercise</span>
-                                                        <span className="text-[7px] font-semibold opacity-85">Net Value: +{formatMoney(totalProfit)}</span>
+                                                        <span className="text-[0.4375rem] font-semibold opacity-85">Net Value: +{formatMoney(totalProfit)}</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -5792,8 +5792,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                             {/* Request Grants */}
                             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                                <p className="text-[10px] uppercase font-black text-slate-500 mb-2">Request Board Compensatory Packages</p>
-                                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                                <p className="text-[0.625rem] uppercase font-black text-slate-500 mb-2">Request Board Compensatory Packages</p>
+                                <div className="grid grid-cols-1 gap-2 max-h-[13.75rem] overflow-y-auto pr-1">
                                     {[
                                         { name: "Annual Performance Package", pct: 0.5, strike: sharePrice, duration: 12, req: 60, desc: "0.5% option grant vesting over 12 months." },
                                         { name: "Executive Retention Plan", pct: 1.5, strike: sharePrice, duration: 12, req: 75, desc: "1.5% option grant vesting over 12 months." },
@@ -5803,17 +5803,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 shadow-xs flex justify-between items-center gap-4">
                                             <div className="flex-1">
                                                 <div className="flex flex-wrap items-center gap-1.5">
-                                                    <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{g.name}</p>
-                                                    <span className="text-[7px] font-black px-1.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
+                                                    <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200">{g.name}</p>
+                                                    <span className="text-[0.4375rem] font-black px-1.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
                                                         Req: {g.req}% Board {g.reqBeats ? `& ${g.reqBeats} Beats` : ""}
                                                     </span>
                                                 </div>
-                                                <p className="text-[8px] text-slate-400 font-medium leading-normal mt-0.5">{g.desc}</p>
+                                                <p className="text-[0.5rem] text-slate-400 font-medium leading-normal mt-0.5">{g.desc}</p>
                                             </div>
                                             <button
                                                 onClick={() => handleRequestOptionGrant(g.name, g.pct, g.strike, g.duration, g.req, g.reqBeats)}
                                                 disabled={optionPool < g.pct || boardHappiness < g.req || (g.reqBeats ? (startup.public_company?.quarterly_beats || 0) < g.reqBeats : false)}
-                                                className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[8px] px-2.5 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm"
+                                                className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[0.5rem] px-2.5 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm"
                                             >
                                                 Request
                                             </button>
@@ -5827,12 +5827,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* SEC Options Activity Ledger */}
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                         <div className="flex justify-between items-center">
-                            <p className="text-[10px] uppercase font-black text-slate-500">SEC Options Activity Ledger</p>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Form 4 Compliant</span>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500">SEC Options Activity Ledger</p>
+                            <span className="text-[0.4375rem] font-bold text-slate-400 uppercase tracking-widest">Form 4 Compliant</span>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[110px] overflow-y-auto shadow-inner">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[6.875rem] overflow-y-auto shadow-inner">
                             {vestingOptions.map((o: any, idx: number) => (
-                                <div key={idx} className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                <div key={idx} className="flex justify-between items-center text-[0.5rem] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
                                     <div>
                                         <span className="font-bold text-slate-700 dark:text-slate-300">Grant Approved: {o.grantName}</span>
                                         <p className="text-slate-400 font-medium">{formatNumber(o.totalOptions)} options @ {formatMoney(o.strikePrice)} strike</p>
@@ -5840,17 +5840,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     <span className="text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50">Vesting</span>
                                 </div>
                             ))}
-                            <div className="text-[7px] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
+                            <div className="text-[0.4375rem] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
                                 Baseline ESOP Setup
                             </div>
-                            <div className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                            <div className="flex justify-between items-center text-[0.5rem] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
                                 <div>
                                     <span className="font-bold text-slate-700 dark:text-slate-300">ESOP Refill Authorization</span>
                                     <p className="text-slate-400 font-medium">Board of Directors approved ESOP pool adjustments</p>
                                 </div>
                                 <span className="text-slate-500 font-bold bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">Authorized</span>
                             </div>
-                            <div className="flex justify-between items-center text-[8px]">
+                            <div className="flex justify-between items-center text-[0.5rem]">
                                 <div>
                                     <span className="font-bold text-slate-700 dark:text-slate-300">Form 4 Compensation Filing</span>
                                     <p className="text-slate-400 font-medium">Automatic SEC registration for executive derivatives</p>
@@ -6058,9 +6058,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                                     <span>🏢</span> Subsidiary Oversight &amp; Divestiture
                                 </h3>
-                                <p className="text-[10px] text-slate-500 mt-0.5">Nurture and manage corporate subdivisions or execute lucrative trade sales.</p>
+                                <p className="text-[0.625rem] text-slate-500 mt-0.5">Nurture and manage corporate subdivisions or execute lucrative trade sales.</p>
                             </div>
-                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                            <span className="text-[0.5rem] font-black uppercase px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
                                 Treasury: {formatMoney(corporateCash)}
                             </span>
                         </div>
@@ -6068,13 +6068,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         {/* Subsidiary Performance Metrics Card */}
                         <div className="grid grid-cols-2 gap-2 mb-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 shadow-xs">
                             <div>
-                                <p className="text-[8px] uppercase font-black text-slate-400">Subsidiary Asset Value</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Subsidiary Asset Value</p>
                                 <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
                                     {subs.length === 0 ? "$0.00" : formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).valuation, 0))}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[8px] uppercase font-black text-slate-400">Total Monthly Net Income</p>
+                                <p className="text-[0.5rem] uppercase font-black text-slate-400">Total Monthly Net Income</p>
                                 <p className={cn("text-xs font-black mt-0.5", subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                                     {subs.length === 0 ? "$0 / mo" : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0))} / mo`}
                                 </p>
@@ -6083,12 +6083,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         {subs.length === 0 ? (
                             <div className="py-6 flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-4">
-                                <p className="text-[10px] text-slate-400 italic text-center font-medium">No active corporate subsidiaries under management. Spin off internal divisions below.</p>
+                                <p className="text-[0.625rem] text-slate-400 italic text-center font-medium">No active corporate subsidiaries under management. Spin off internal divisions below.</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <p className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1">Under Management ({subs.length})</p>
-                                <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
+                                <p className="text-[0.625rem] uppercase font-black text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1">Under Management ({subs.length})</p>
+                                <div className="flex flex-col gap-3 max-h-[17.5rem] overflow-y-auto pr-1">
                                     {subs.map((subRaw: string, idx: number) => {
                                         const sub = parseSubsidiary(subRaw);
                                         const listedStock = marketStocks?.find(s => (s.companyName === sub.name || s.symbol === sub.name || s.symbol === subRaw) && !s.isDelisted);
@@ -6137,11 +6137,11 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                                 {sub.name}
                                                             </p>
                                                             {isListed ? (
-                                                                <span className="text-[7px] font-black uppercase px-1 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-900/30">
+                                                                <span className="text-[0.4375rem] font-black uppercase px-1 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-900/30">
                                                                     Listed: {listedStock.symbol}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[7px] font-black uppercase px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                                                <span className="text-[0.4375rem] font-black uppercase px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                                                     Private
                                                                 </span>
                                                             )}
@@ -6149,19 +6149,19 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                                                         {/* Per-entity P&L Grid */}
                                                         <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                            <div className="flex justify-between text-[0.5rem] font-semibold text-slate-500">
                                                                 <span>Revenue/yr:</span>
                                                                 <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatMoney(subAnnualRevenue)}</span>
                                                             </div>
-                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                            <div className="flex justify-between text-[0.5rem] font-semibold text-slate-500">
                                                                 <span>{isListed ? "Market Cap:" : "Asset Val:"}</span>
                                                                 <span className="font-bold text-slate-700 dark:text-slate-300">{formatMoney(valuation)}</span>
                                                             </div>
-                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                            <div className="flex justify-between text-[0.5rem] font-semibold text-slate-500">
                                                                 <span>Expenses/yr:</span>
                                                                 <span className="font-bold text-rose-600 dark:text-rose-400">{formatMoney(subAnnualExpenses)}</span>
                                                             </div>
-                                                            <div className="flex justify-between text-[8px] font-semibold text-slate-500">
+                                                            <div className="flex justify-between text-[0.5rem] font-semibold text-slate-500">
                                                                 <span>Net Income/yr:</span>
                                                                 <span className={cn("font-bold", subNetIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                                                                     {subNetIncome >= 0 ? "+" : ""}{formatMoney(subNetIncome)}
@@ -6174,9 +6174,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                                 {!isListed && (
                                                                     <>
-                                                                        <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider">IPO:</span>
+                                                                        <span className="text-[0.4375rem] text-slate-400 font-bold uppercase tracking-wider">IPO:</span>
                                                                         <span className={cn(
-                                                                            "text-[7px] font-black uppercase px-1 py-0.5 rounded border",
+                                                                            "text-[0.4375rem] font-black uppercase px-1 py-0.5 rounded border",
                                                                             canIPO
                                                                                 ? "bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200"
                                                                                 : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-200"
@@ -6186,7 +6186,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                                     </>
                                                                 )}
                                                                 <span className={cn(
-                                                                    "text-[7px] font-black uppercase px-1 py-0.5 rounded border",
+                                                                    "text-[0.4375rem] font-black uppercase px-1 py-0.5 rounded border",
                                                                     sub.integrationRisk === "High" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200" :
                                                                         sub.integrationRisk === "Medium" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-200" :
                                                                             "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200"
@@ -6194,7 +6194,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                                     Risk: {sub.integrationRisk}
                                                                 </span>
                                                             </div>
-                                                            <span className="text-[7.5px] text-indigo-500 font-black uppercase tracking-wider group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                                                            <span className="text-[0.4688rem] text-indigo-500 font-black uppercase tracking-wider group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                                                                 Manage ➔
                                                             </span>
                                                         </div>
@@ -6209,8 +6209,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                         {/* Always show spin-off options so players can keep growing their portfolio */}
                         <div className="space-y-3 mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
-                            <p className="text-[10px] uppercase font-black text-slate-500 pb-1">Spin-off Internal Divisions</p>
-                            <div className="grid grid-cols-1 gap-2.5 max-h-[240px] overflow-y-auto pr-1">
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500 pb-1">Spin-off Internal Divisions</p>
+                            <div className="grid grid-cols-1 gap-2.5 max-h-[15rem] overflow-y-auto pr-1">
                                 {[
                                     { name: "Axiom AI Infrastructure", cost: 20000000, emoji: "🤖", desc: "Spin off AI hosting infrastructure. Grants +5% profit margins and +5% Brand.", benefits: { margin: 0.05, brand: 5 } },
                                     { name: "Nova Logistics Systems", cost: 12000000, emoji: "🚁", desc: "Spin off drone ops. Reduces monthly burn by 10% and adds +8% Brand.", benefits: { burnRate: 0.10, brand: 8 } },
@@ -6219,14 +6219,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 ].filter(proj => !subs.some((s: string) => s.startsWith(proj.name))).map((proj, idx) => (
                                     <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 flex justify-between items-center gap-3">
                                         <div className="flex-1">
-                                            <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">{proj.emoji} {proj.name}</p>
-                                            <p className="text-[8.5px] text-slate-500 font-medium leading-normal mt-0.5">{proj.desc}</p>
-                                            <p className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 mt-1">Cost: {formatMoney(proj.cost)}</p>
+                                            <p className="text-[0.625rem] font-black text-slate-800 dark:text-slate-200 flex items-center gap-1">{proj.emoji} {proj.name}</p>
+                                            <p className="text-[0.5313rem] text-slate-500 font-medium leading-normal mt-0.5">{proj.desc}</p>
+                                            <p className="text-[0.5rem] font-black text-indigo-600 dark:text-indigo-400 mt-1">Cost: {formatMoney(proj.cost)}</p>
                                         </div>
                                         <button
                                             onClick={() => handleSpinOffInternal(proj.name, proj.cost, proj.desc, proj.benefits)}
                                             disabled={corporateCash < proj.cost}
-                                            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[8px] px-3 py-2 rounded-lg transition-all shadow-sm active:scale-95"
+                                            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 font-black uppercase text-[0.5rem] px-3 py-2 rounded-lg transition-all shadow-sm active:scale-95"
                                         >
                                             Spin Off
                                         </button>
@@ -6238,7 +6238,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     { name: "Sovereign Defense Cloud (Aegis AI)" },
                                     { name: "Quantum Research Lab (Q-Labs)" }
                                 ].every(proj => subs.some((s: string) => s.startsWith(proj.name))) && (
-                                        <p className="text-[9px] text-slate-400 italic text-center py-3">All internal divisions have been spun off. Acquire rivals to add more subsidiaries.</p>
+                                        <p className="text-[0.5625rem] text-slate-400 italic text-center py-3">All internal divisions have been spun off. Acquire rivals to add more subsidiaries.</p>
                                     )}
                             </div>
                         </div>
@@ -6247,14 +6247,14 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     {/* M&A Divestiture & Transaction Ledger */}
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                         <div className="flex justify-between items-center">
-                            <p className="text-[10px] uppercase font-black text-slate-500">Corporate M&A & Spin-off Ledger</p>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">SEC Form 8-K Definitive</span>
+                            <p className="text-[0.625rem] uppercase font-black text-slate-500">Corporate M&A & Spin-off Ledger</p>
+                            <span className="text-[0.4375rem] font-bold text-slate-400 uppercase tracking-widest">SEC Form 8-K Definitive</span>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[110px] overflow-y-auto shadow-inner">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-2 max-h-[6.875rem] overflow-y-auto shadow-inner">
                             {subs.map((sRaw: string, idx: number) => {
                                 const sInfo = parseSubsidiary(sRaw);
                                 return (
-                                    <div key={idx} className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                                    <div key={idx} className="flex justify-between items-center text-[0.5rem] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
                                         <div>
                                             <span className="font-bold text-slate-700 dark:text-slate-300">{sInfo.name}</span>
                                             <p className="text-slate-400 font-medium">Rev {formatMoney(sInfo.revenue)}/mo · Exp {formatMoney(sInfo.expenses)}/mo · Risk: {sInfo.integrationRisk}</p>
@@ -6263,17 +6263,17 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     </div>
                                 );
                             })}
-                            <div className="text-[7px] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
+                            <div className="text-[0.4375rem] uppercase font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-dashed border-slate-100 dark:border-slate-800/60 pb-1">
                                 Baseline Corporate Setup
                             </div>
-                            <div className="flex justify-between items-center text-[8px] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
+                            <div className="flex justify-between items-center text-[0.5rem] border-b border-slate-100 dark:border-slate-800/50 pb-1.5 last:border-b-0 last:pb-0">
                                 <div>
                                     <span className="font-bold text-slate-700 dark:text-slate-300">Corporate Charter Update</span>
                                     <p className="text-slate-400 font-medium">Bylaws amended for holding company restructurings</p>
                                 </div>
                                 <span className="text-slate-500 font-bold bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">Approved</span>
                             </div>
-                            <div className="flex justify-between items-center text-[8px]">
+                            <div className="flex justify-between items-center text-[0.5rem]">
                                 <div>
                                     <span className="font-bold text-slate-700 dark:text-slate-300">SEC Form 8-K M&A Filing</span>
                                     <p className="text-slate-400 font-medium">Material definitive agreement disclosed publicly</p>
@@ -6475,7 +6475,11 @@ export default function Dashboard() {
             chadMustRespondNext: false,
             lastChadMonth: -1,
             act: 1,
-            tutorialStep: typeof window !== "undefined" && localStorage.getItem("founder_sim_tutorial_completed") === "true" ? -1 : 0,
+            tutorialStep: typeof window !== "undefined" && (
+                localStorage.getItem("founder_sim_tutorial_completed") === "true" ||
+                (JSON.parse(localStorage.getItem("founder_sim_legacy") || "{}").totalExits || 0) > 0 ||
+                parseInt(localStorage.getItem("founder_sim_games_started") || "0", 10) > 1
+            ) ? -1 : 0,
             samGoneToIsland: false,
             hasConsultedSam: false,
         };
@@ -6849,7 +6853,7 @@ export default function Dashboard() {
     const [isNative, setIsNative] = useState(false);
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [availableSaves, setAvailableSaves] = useState<SaveSlot[]>([]);
-
+    const isIPad = isNative && typeof window !== 'undefined' && window.screen.width >= 768;
     useEffect(() => {
         // iOS: make statusbar transparent overlay instead of hiding.
         // Hiding zeroes out env(safe-area-inset-top), breaking safe area layout.
@@ -7090,6 +7094,12 @@ export default function Dashboard() {
 
                     setFounderMeta({ logo: d.logo || "⚡", brandColor: d.brandColor || "#a855f7" });
                     setEventsTimeline([{ month: 1, text: `Founded ${d.startupName || d.name} as a ${d.background} in ${d.industry}. Scenario: ${scenario.label}. GTM: ${d.gtmMotion === 'PLG' ? 'Product-Led Growth' : 'Sales-Led Growth'}.` }]);
+                    // If game_mode was already set via mode selection screen, persist it to the startup
+                    // (mode selection sets it separately; here we just ensure it survives the initialization)
+                    const savedMode = localStorage.getItem('founder_sim_game_mode') as 'fairytale' | 'realistic' | null;
+                    if (savedMode) {
+                        setStartup(prev => ({ ...prev, game_mode: savedMode }));
+                    }
                 } catch (e) { }
             } else {
                 setEventsTimeline([{ month: 1, text: "Startup founded! Focus on building an MVP." }]);
@@ -7159,6 +7169,8 @@ export default function Dashboard() {
             localStorage.removeItem("founder_sim_ad_owed");
             localStorage.removeItem("founder_sim_story_state");
             localStorage.removeItem("founder_sim_achievements");
+            // Clear game mode so the picker is forced on every new run
+            localStorage.removeItem("founder_sim_game_mode");
 
             // Force a full location reload to clear any in-memory module-level states (like AI keys)
             window.location.href = "/";
@@ -9056,10 +9068,11 @@ export default function Dashboard() {
                 const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: Founder burned out completely. +${pts} XP earned.` }];
                 setEventsTimeline(finalTimeline);
                 toast("Game Over — Burnout", { description: `You worked yourself to the ground. Earned ${pts} XP.` });
-                // Leaderboard: finalize this venture
+                // Leaderboard: finalize this venture (only for Realistic mode)
                 (() => {
                     const lbUser = getLbUsername();
                     if (!lbUser) return;
+                    if (newStartup.game_mode === 'fairytale') return; // No leaderboard for Fairytale
                     const { computeLegacyScore } = require("../../lib/engine/legacyScore");
                     const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
                     const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
@@ -9080,10 +9093,11 @@ export default function Dashboard() {
                 const finalTimeline = [...eventsTimeline, { month: nextMonth, text: `Game Over: ${endgame.toUpperCase()}! +${pts} XP earned.` }];
                 setEventsTimeline(finalTimeline);
                 toast("Game Over - " + endgame.toUpperCase(), { description: `Generating your founder story... Earned ${pts} XP.` });
-                // Leaderboard: finalize this venture
+                // Leaderboard: finalize this venture (only for Realistic mode)
                 (() => {
                     const lbUser = getLbUsername();
                     if (!lbUser) return;
+                    if (newStartup.game_mode === 'fairytale') return; // No leaderboard for Fairytale
                     const { computeLegacyScore } = require("../../lib/engine/legacyScore");
                     const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
                     const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
@@ -9533,22 +9547,27 @@ export default function Dashboard() {
                         </div>
                         <div className="flex flex-col gap-0.5">
                             <p className="text-sm font-black text-slate-900 dark:text-white leading-none flex items-center gap-1">{startup.name}</p>
-                            <p className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {month}</p>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">{startup.industry}</p>
+                            <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {month}</p>
+                            <div className="flex items-center gap-1.5">
+                                <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest leading-none">{startup.industry}</p>
+                                {startup.game_mode === 'fairytale' && (
+                                    <span className="text-sm" title="Fairytale Mode">🧚</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
 
 
 
-                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-black px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1"><span className="text-[10px]">💰</span> {formatMoney(m.cash)}</div>
+                        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.6875rem] font-black px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1"><span className="text-[0.625rem]">💰</span> {formatMoney(m.cash)}</div>
                         <button
                             onClick={() => setIsStoreOpen(true)}
                             className="h-9 px-3 rounded-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 transition-colors shadow-sm shrink-0"
                             title="Premium Store"
                         >
                             <Sparkles className="h-4 w-4 shrink-0" />
-                            <span className="text-[10px] font-black uppercase tracking-widest mt-[1px]">Store</span>
+                            <span className="text-[0.625rem] font-black uppercase tracking-widest mt-[0.0625rem]">Store</span>
                         </button>
                         <DropdownMenu>
                             <DropdownMenuTrigger className="h-9 w-9 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
@@ -9624,7 +9643,7 @@ export default function Dashboard() {
 
                 {/* MACRO SEASON BANNER */}
                 {m.current_season && m.current_season !== "Normal" && (
-                    <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
+                    <div className={`relative z-[60] shadow-sm shadow-black/5 w-full h-6 flex shrink-0 items-center justify-center text-[0.5625rem] font-black uppercase tracking-[0.2em] animate-in slide-in-from-top duration-500 ${m.current_season === "Bull Market" ? "bg-emerald-500 text-white" :
                         m.current_season === "Bear Market" ? "bg-rose-500 text-white" :
                             m.current_season === "AI Boom" ? "bg-indigo-600 text-white" :
                                 m.current_season === "Privacy Scare" ? "bg-amber-500 text-white" :
@@ -9646,11 +9665,11 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3">
                             <span className="text-2xl">{currentStage.icon}</span>
                             <div>
-                                <p className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
+                                <p className="text-[0.5625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Current Milestone</p>
                                 <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
                                     {currentStage.label}
                                     {currentStage.next && (
-                                        <span className="text-slate-300 font-medium text-[9px] ml-1">
+                                        <span className="text-slate-300 font-medium text-[0.5625rem] ml-1">
                                             → Next: {currentStage.next}
                                         </span>
                                     )}
@@ -9669,7 +9688,7 @@ export default function Dashboard() {
                     </div>
                     {isMilestoneExpanded && (
                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 mt-1">
-                            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
+                            <p className="text-[0.625rem] text-slate-600 dark:text-slate-400 font-medium leading-normal">
                                 {currentStage.desc}
                             </p>
                         </div>
@@ -9693,7 +9712,7 @@ export default function Dashboard() {
                                     <p className="text-sm font-black text-indigo-900 leading-none">Focus Energy</p>
                                     <Info className="w-2.5 h-2.5 text-indigo-400" />
                                 </div>
-                                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-1">Available to spend</p>
+                                <p className="text-[0.625rem] font-bold text-indigo-500 uppercase tracking-widest leading-none mt-1">Available to spend</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -9711,7 +9730,7 @@ export default function Dashboard() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 text-[9px] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
+                                        className="h-7 text-[0.5625rem] font-black uppercase tracking-widest bg-indigo-100 border-indigo-200 text-indigo-700 hover:bg-indigo-200 ml-2"
                                         disabled={isRefillLimited}
                                         onClick={() => {
                                             if (isRefillLimited) {
@@ -9752,13 +9771,13 @@ export default function Dashboard() {
                             <div
                                 key={i}
                                 className={cn(
-                                    "flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[90px]"
+                                    "flex-1 shrink-0 bg-white dark:bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm min-w-[5.625rem]"
                                 )}
                             >
                                 <span className="text-lg">{stat.icon}</span>
                                 <div className="flex flex-col">
                                     <span className={cn("text-sm font-black leading-none", stat.color)}>{stat.label}</span>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{stat.sub}</span>
+                                    <span className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{stat.sub}</span>
                                 </div>
                             </div>
                         ))}
@@ -9770,7 +9789,7 @@ export default function Dashboard() {
             {/* IMMEDIATE ACTION FEEDBACK BANNER */}
             {immediateActionFeedback && (
                 <div className="shrink-0 px-3 py-1.5 border-b border-slate-100" style={{ backgroundColor: immediateActionFeedback.color + '15' }}>
-                    <p className="text-[10px] font-bold text-center" style={{ color: immediateActionFeedback.color }}>{immediateActionFeedback.text}</p>
+                    <p className="text-[0.625rem] font-bold text-center" style={{ color: immediateActionFeedback.color }}>{immediateActionFeedback.text}</p>
                 </div>
             )}
 
@@ -9780,7 +9799,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-center justify-center h-full text-center py-8">
                         <div className="text-4xl mb-3">⚡</div>
                         <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Your journey begins</p>
-                        <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1">Take actions below or advance to the next month</p>
+                        <p className="text-[0.625rem] text-slate-300 dark:text-slate-600 mt-1">Take actions below or advance to the next month</p>
                     </div>
                 ) : (() => {
                     // Group events by month, show most recent month first
@@ -9810,7 +9829,7 @@ export default function Dashboard() {
                             <div key={monthNum} className="mb-4">
                                 {/* Month Header — BitLife style */}
                                 <div className={`flex items-center gap-2 mb-2 py-1 ${isCurrentMonth ? "" : ""}`}>
-                                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isCurrentMonth ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-indigo-900/40" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
+                                    <div className={`px-3 py-1 rounded-full text-[0.625rem] font-black uppercase tracking-widest ${isCurrentMonth ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-indigo-900/40" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
                                         Month {monthNum}{isCurrentMonth ? " · Now" : ""}
                                     </div>
                                     <div className="flex-1 h-px bg-slate-100" />
@@ -9826,7 +9845,7 @@ export default function Dashboard() {
                                                 <div className="w-1 shrink-0 rounded-l-lg" style={{ backgroundColor: style.strip }} />
                                                 <div className="flex-1 px-3 py-2.5" style={{ backgroundColor: style.bg }}>
                                                     <div className="flex items-center gap-1.5 mb-0.5">
-                                                        <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
+                                                        <span className="text-[0.5rem] font-black uppercase tracking-widest" style={{ color: style.strip }}>{style.label}</span>
                                                     </div>
                                                     <p className="text-xs text-slate-800 font-semibold leading-snug">{ev.text}</p>
                                                 </div>
@@ -9895,7 +9914,7 @@ export default function Dashboard() {
                                 <div className="w-full h-full rounded-full overflow-hidden relative">
                                     <img src="/sam.png" alt="Sam" className="w-full h-full object-cover scale-125" />
                                     {isLimited && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[0.5625rem] font-bold">
                                             {formatCooldown(validConsults[0] + 60 * 60 * 1000, currentTime)}
                                         </div>
                                     )}
@@ -9908,10 +9927,9 @@ export default function Dashboard() {
 
 
             {/* MAIN DASHBOARD CONTROLS */}
-            <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 p-4 pb-8" style={{
+            <div className={`shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 p-4 ${isNative ? (isPremium ? 'pb-[20px]' : 'pb-[calc(env(safe-area-inset-bottom,0px)+65px)] md:pb-[calc(env(safe-area-inset-bottom,0px)+110px)]') : 'pb-4'}`} style={{
                 position: "relative",
-                zIndex: storyState.tutorialStep >= 2 ? 50 : 1,
-                paddingBottom: isNative ? (isPremium ? '20px' : 'calc(env(safe-area-inset-bottom, 0px) + 65px)') : '1rem'
+                zIndex: storyState.tutorialStep >= 2 ? 50 : 1
             }}>
                 <div className="max-w-md mx-auto flex flex-col gap-4">
 
@@ -9959,27 +9977,27 @@ export default function Dashboard() {
                         {/* Operations */}
                         <button onClick={() => { setTerminalTab("operations"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-blue-100 dark:border-blue-800/50"><span className="drop-shadow-sm">🏢</span></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Operations</span>
+                            <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Operations</span>
                         </button>
                         {/* Strategy */}
                         <button onClick={() => { setTerminalTab("market"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-rose-100 dark:border-rose-800/50"><span className="drop-shadow-sm">📈</span></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Strategy</span>
+                            <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Strategy</span>
                         </button>
                         {/* Founder */}
                         <button onClick={() => { setTerminalTab("personal"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-purple-100 dark:border-purple-800/50"><span className="drop-shadow-sm">👤</span></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Founder</span>
+                            <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Founder</span>
                         </button>
                         {/* Corporate */}
                         <button onClick={() => { setTerminalTab("corporate"); setViewState("submenu"); }} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-amber-100 dark:border-amber-800/50"><span className="drop-shadow-sm">🏛️</span></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Corporate</span>
+                            <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Corporate</span>
                         </button>
                         {/* Markets */}
                         <button onClick={() => setIsStockMarketOpen(true)} className="flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-95 transition-all">
                             <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-2xl shadow-sm border border-indigo-100 dark:border-indigo-800/50"><span className="drop-shadow-sm">📊</span></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Markets</span>
+                            <span className="text-[0.5625rem] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Markets</span>
                         </button>
                     </div>
 
@@ -10001,8 +10019,8 @@ export default function Dashboard() {
                             <div className="flex-1 flex items-end mb-1">
                                 <button onClick={() => setViewState("dashboard")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
                                     <span className="text-xl leading-none">←</span>
-                                    <span className="font-black text-[11px] md:text-sm uppercase tracking-widest hidden md:inline">Dashboard</span>
-                                    <span className="font-black text-[11px] uppercase tracking-widest md:hidden">Back</span>
+                                    <span className="font-black text-[0.6875rem] md:text-sm uppercase tracking-widest hidden md:inline">Dashboard</span>
+                                    <span className="font-black text-[0.6875rem] uppercase tracking-widest md:hidden">Back</span>
                                 </button>
                             </div>
                             <h2 className="absolute left-1/2 -translate-x-1/2 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-auto mb-1.5">
@@ -10073,9 +10091,9 @@ export default function Dashboard() {
                                                 <span className="text-4xl drop-shadow-sm">{cat.emoji}</span>
                                                 <div className="text-left flex-1">
                                                     <span className="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider leading-tight flex items-center gap-1.5">
-                                                        {cat.label} {locked && <span className="text-[10px]">🔒</span>}
+                                                        {cat.label} {locked && <span className="text-[0.625rem]">🔒</span>}
                                                     </span>
-                                                    <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{locked ? "Unlocks Post-IPO" : cat.desc}</span>
+                                                    <span className="block text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{locked ? "Unlocks Post-IPO" : cat.desc}</span>
                                                 </div>
                                                 {!locked && <span className="text-slate-400 dark:text-slate-600 text-xl font-bold">›</span>}
                                             </button>
@@ -10102,7 +10120,7 @@ export default function Dashboard() {
                             <div className="flex-1 flex items-end mb-1">
                                 <button onClick={() => setViewState("submenu")} className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 active:scale-95 transition-transform">
                                     <span className="text-xl leading-none">←</span>
-                                    <span className="font-black text-[11px] sm:text-sm uppercase tracking-widest">Back</span>
+                                    <span className="font-black text-[0.6875rem] sm:text-sm uppercase tracking-widest">Back</span>
                                 </button>
                             </div>
                             <h2 className="shrink-0 font-black text-slate-800 dark:text-white uppercase tracking-widest text-sm text-center mt-auto mb-1.5 mx-2">
@@ -10282,12 +10300,12 @@ export default function Dashboard() {
 
             {/* FOCUS BREAKDOWN MODAL */}
             <Dialog open={isFocusBreakdownOpen} onOpenChange={setIsFocusBreakdownOpen}>
-                <DialogContent className="sm:max-w-[400px] rounded-3xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
+                <DialogContent className="sm:max-w-[25rem] rounded-3xl p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">
                             ⚡ Focus Breakdown
                         </DialogTitle>
-                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <DialogDescription className="text-[0.625rem] font-bold text-slate-400 uppercase tracking-widest">
                             Monthly Capacity vs. Commitments
                         </DialogDescription>
                     </DialogHeader>
@@ -10295,7 +10313,7 @@ export default function Dashboard() {
                     <ScrollArea className="mt-4 max-h-[50vh] pr-4">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Capacity (Max: {maxHours}h)</h3>
+                                <h3 className="text-[0.625rem] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Capacity (Max: {maxHours}h)</h3>
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-2">
                                     <BreakdownRow label="Base Focus" value={100} sign="+" color="text-emerald-600 dark:text-emerald-400" />
                                     {m.founder_burnout > 0 && (
@@ -10315,7 +10333,7 @@ export default function Dashboard() {
 
                             {ongoingPrograms.length > 0 && (
                                 <div className="space-y-2">
-                                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Ongoing Programs (-{focusHoursUsed}h)</h3>
+                                    <h3 className="text-[0.625rem] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">Ongoing Programs (-{focusHoursUsed}h)</h3>
                                     <div className="bg-indigo-50/50 dark:bg-indigo-950/30 rounded-2xl p-3 space-y-2">
                                         {ongoingPrograms.map((p, i) => {
                                             const def = getOngoingProgramDef(p.id);
@@ -10410,11 +10428,11 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-3 mb-1">
                                     <span className="text-3xl">{emoji}</span>
                                     <div>
-                                        <p className="text-[9px] font-black uppercase tracking-widest opacity-75">Crisis — Stage {stageNum} of {totalStages}</p>
+                                        <p className="text-[0.5625rem] font-black uppercase tracking-widest opacity-75">Crisis — Stage {stageNum} of {totalStages}</p>
                                         <p className="text-lg font-black leading-tight">{CRISIS_LABELS[crisis.type]}</p>
                                     </div>
                                 </div>
-                                <p className="text-[11px] font-black uppercase tracking-widest opacity-70 mt-2">{stage.title}</p>
+                                <p className="text-[0.6875rem] font-black uppercase tracking-widest opacity-70 mt-2">{stage.title}</p>
                             </div>
                             {/* Body */}
                             <div className="p-5 space-y-4">
@@ -10422,12 +10440,12 @@ export default function Dashboard() {
                                     {stage.description.replace("{{company}}", startup.name)}
                                 </p>
                                 <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl px-3 py-2 border border-amber-200 dark:border-amber-800">
-                                    <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">
+                                    <p className="text-[0.625rem] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">
                                         ⚠️ If ignored: auto-escalates in {stage.autoEscalatesAfterMonths} month{stage.autoEscalatesAfterMonths > 1 ? 's' : ''}
                                     </p>
                                 </div>
                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Choose Your Response</p>
+                                    <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Choose Your Response</p>
                                     {stage.choices.map(choice => (
                                         <button
                                             key={choice.id}
@@ -10437,18 +10455,18 @@ export default function Dashboard() {
                                             <div className="flex items-start justify-between gap-2">
                                                 <p className="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{choice.label}</p>
                                                 <div className="shrink-0 flex flex-col items-end gap-0.5">
-                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
+                                                    <span className={`text-[0.5rem] font-black px-2 py-0.5 rounded-full ${choice.successRate >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
                                                         choice.successRate >= 0.55 ? 'bg-amber-100 text-amber-700' :
                                                             'bg-rose-100 text-rose-700'
                                                         }`}>
                                                         {Math.round(choice.successRate * 100)}% success
                                                     </span>
                                                     {(choice.cost ?? 0) > 0 && (
-                                                        <span className="text-[8px] font-black text-slate-400">{formatMoney(choice.cost!)}</span>
+                                                        <span className="text-[0.5rem] font-black text-slate-400">{formatMoney(choice.cost!)}</span>
                                                     )}
                                                 </div>
                                             </div>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">{choice.description}</p>
+                                            <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-1 leading-snug">{choice.description}</p>
                                         </button>
                                     ))}
                                 </div>
@@ -10472,15 +10490,15 @@ export default function Dashboard() {
                             <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic">
                                 Negotiate: {pendingCandidate?.name}
                             </DialogTitle>
-                            <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/50">
+                            <div className="text-[0.625rem] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/50">
                                 Pool: {(startup.metrics.option_pool || 0).toFixed(1)}%
                             </div>
                         </div>
                         {/* Legendary Candidate Banner */}
                         {pendingCandidate?.isLegendary && (
                             <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-white shadow-lg">
-                                <p className="text-[9px] font-black uppercase tracking-widest opacity-80">⭐ Legendary Candidate</p>
-                                <p className="text-[11px] font-semibold mt-0.5 italic leading-snug opacity-95">"{pendingCandidate.storyQuote}"</p>
+                                <p className="text-[0.5625rem] font-black uppercase tracking-widest opacity-80">⭐ Legendary Candidate</p>
+                                <p className="text-[0.6875rem] font-semibold mt-0.5 italic leading-snug opacity-95">"{pendingCandidate.storyQuote}"</p>
                             </div>
                         )}
                         <DialogDescription className="text-xs font-bold text-slate-500 uppercase">
@@ -10573,7 +10591,7 @@ export default function Dashboard() {
                         return (
                             <>
                                 <div className={cn("mt-4 p-2.5 rounded-xl border flex items-center justify-between", sentimentColor)}>
-                                    <span className="text-[10px] font-black uppercase tracking-wider">Candidate Sentiment</span>
+                                    <span className="text-[0.625rem] font-black uppercase tracking-wider">Candidate Sentiment</span>
                                     <span className={"text-xs font-black"}>{sentimentText}</span>
                                 </div>
 
@@ -10584,15 +10602,15 @@ export default function Dashboard() {
                                     if (required > 0.001 && available < required) {
                                         return (
                                             <div className="mt-4 p-3 bg-rose-50 border-2 border-rose-200 rounded-2xl animate-in zoom-in-95 duration-200">
-                                                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                                <p className="text-[0.625rem] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                                     <AlertCircle className="w-3.5 h-3.5" /> Insufficient Option Pool
                                                 </p>
-                                                <p className="text-[9px] text-rose-500 leading-tight mb-3 font-medium">
+                                                <p className="text-[0.5625rem] text-rose-500 leading-tight mb-3 font-medium">
                                                     You need {required}% but only have {available.toFixed(1)}% available.
                                                 </p>
                                                 <Button
                                                     onClick={handleAllocateESOP}
-                                                    className="w-full h-9 bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase rounded-xl border-b-4 border-rose-800 active:border-b-0 transition-all"
+                                                    className="w-full h-9 bg-rose-600 hover:bg-rose-700 text-white font-black text-[0.625rem] uppercase rounded-xl border-b-4 border-rose-800 active:border-b-0 transition-all"
                                                 >
                                                     Expand Pool (+10% Dilution)
                                                 </Button>
@@ -10605,7 +10623,7 @@ export default function Dashboard() {
                                 {/* ── Vesting Disclaimer Note ── */}
                                 <div className="mt-4 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl px-3 py-2 flex items-start gap-1.5">
                                     <span className="text-sm">💡</span>
-                                    <p className="text-[8px] font-medium text-slate-600 dark:text-slate-400 leading-tight">
+                                    <p className="text-[0.5rem] font-medium text-slate-600 dark:text-slate-400 leading-tight">
                                         <span className="font-bold text-indigo-700 dark:text-indigo-400">Vesting Terms:</span> Offers follow standard 1-year cliff & 4-year linear timelines. Should employees leave pre-cliff, 100% of unvested equity restores to the option pool automatically safely.
                                     </p>
                                 </div>
@@ -10630,7 +10648,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className="text-white font-black text-lg leading-tight">{pendingInvestor?.name}</p>
-                                <p className="text-purple-200 text-[11px] font-bold">{pendingInvestor?.firm} · {pendingInvestor?.type}</p>
+                                <p className="text-purple-200 text-[0.6875rem] font-bold">{pendingInvestor?.firm} · {pendingInvestor?.type}</p>
                             </div>
                         </div>
                         {investorMessage && (
@@ -10646,22 +10664,22 @@ export default function Dashboard() {
                         {/* Counter-Offer Alert Section */}
                         {pendingCounterOffer && (
                             <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center">
+                                <p className="text-[0.625rem] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center">
                                     <Zap className="w-3.5 h-3.5 fill-amber-500" /> Investor Counter-Offer
                                 </p>
                                 <div className="flex justify-between items-center bg-white/70 backdrop-blur-sm px-4 py-3 rounded-2xl border border-amber-100 mb-4 shadow-sm">
                                     <div className="text-center flex-1">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Valuation</p>
+                                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-tighter">Valuation</p>
                                         <p className="text-base font-black text-amber-700">{formatMoney(pendingCounterOffer.valuation)}</p>
                                     </div>
                                     <div className="w-px h-8 bg-amber-200/50 mx-2" />
                                     <div className="text-center flex-1">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Equity</p>
+                                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-tighter">Equity</p>
                                         <p className="text-base font-black text-amber-700">{pendingCounterOffer.equity}%</p>
                                     </div>
                                 </div>
                                 <Button
-                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black h-12 rounded-2xl uppercase text-[11px] tracking-wider shadow-lg shadow-amber-200/50 active:scale-95 transition-all"
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black h-12 rounded-2xl uppercase text-[0.6875rem] tracking-wider shadow-lg shadow-amber-200/50 active:scale-95 transition-all"
                                     onClick={handleAcceptCounter}
                                 >
                                     Accept Counter-Offer
@@ -10672,14 +10690,14 @@ export default function Dashboard() {
                         {/* Equity bar visual */}
                         <div className={cn(pendingCounterOffer ? "opacity-50 pointer-events-none grayscale-[0.3]" : "")}>
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ownership After Deal</span>
+                                <span className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Ownership After Deal</span>
                             </div>
                             <div className="h-6 rounded-full overflow-hidden flex shadow-inner bg-slate-100">
                                 <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center transition-all duration-500" style={{ width: `${Math.max(0, 100 - fundingOffer.equity)}%` }}>
-                                    <span className="text-[9px] font-black text-white">{Math.max(0, 100 - fundingOffer.equity)}% You</span>
+                                    <span className="text-[0.5625rem] font-black text-white">{Math.max(0, 100 - fundingOffer.equity)}% You</span>
                                 </div>
                                 <div className="h-full bg-gradient-to-r from-purple-400 to-purple-500 flex items-center justify-center transition-all duration-500" style={{ width: `${fundingOffer.equity}%` }}>
-                                    {fundingOffer.equity > 5 && <span className="text-[9px] font-black text-white">{fundingOffer.equity}% Inv</span>}
+                                    {fundingOffer.equity > 5 && <span className="text-[0.5625rem] font-black text-white">{fundingOffer.equity}% Inv</span>}
                                 </div>
                             </div>
                         </div>
@@ -10732,8 +10750,8 @@ export default function Dashboard() {
 
                     <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                         <div className="flex items-center justify-between px-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Board Member</span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vote</span>
+                            <span className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Board Member</span>
+                            <span className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest">Vote</span>
                         </div>
 
                         {votingMembers.map((member, idx) => {
@@ -10747,19 +10765,19 @@ export default function Dashboard() {
                                         <div className="flex items-center justify-between mb-0.5">
                                             <p className="font-black text-sm text-slate-800 truncate">{member.name}</p>
                                             {voteData?.vote === "yes" ? (
-                                                <div className="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase">
+                                                <div className="flex items-center gap-1 text-emerald-600 font-black text-[0.625rem] uppercase">
                                                     <Check className="w-3 h-3" /> Yes
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-1 text-rose-500 font-black text-[10px] uppercase">
+                                                <div className="flex items-center gap-1 text-rose-500 font-black text-[0.625rem] uppercase">
                                                     <X className="w-3 h-3" /> No
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mb-2">
+                                        <p className="text-[0.5625rem] font-bold text-slate-400 uppercase tracking-tight mb-2">
                                             {member.type} · Stake: {member.equityWeight.toFixed(1)}%
                                         </p>
-                                        <div className="bg-white/60 p-2 rounded-lg border border-slate-100 italic text-[10px] text-slate-600 leading-relaxed font-medium">
+                                        <div className="bg-white/60 p-2 rounded-lg border border-slate-100 italic text-[0.625rem] text-slate-600 leading-relaxed font-medium">
                                             “{voteData?.reason || "No comment."}”
                                         </div>
                                     </div>
@@ -10786,14 +10804,14 @@ export default function Dashboard() {
                         <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase italic flex items-center justify-between">
                             <span className="flex items-center gap-2"><Users className="size-5 text-emerald-600" />Company Roster</span>
                             <div className="flex gap-2">
-                                <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
+                                <span className="text-[0.625rem] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1">
                                     😊 Morale: {allEmployees.length > 0 ? Math.round(allEmployees.reduce((acc, e) => acc + (e.morale ?? 70), 0) / allEmployees.length) : Math.round(startup.metrics.team_morale)}%
                                 </span>
-                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                                <span className="text-[0.625rem] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                     ESOP: {(startup.metrics.option_pool || 0).toFixed(1)}%
                                 </span>
                                 {((startup.metrics as any).former_employee_equity || 0) > 0 && (
-                                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                                    <span className="text-[0.625rem] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
                                         Alumni: {((startup.metrics as any).former_employee_equity as number).toFixed(1)}%
                                     </span>
                                 )}
@@ -10823,7 +10841,7 @@ export default function Dashboard() {
                                         key={dept}
                                         onClick={() => setTeamDeptFilter(dept)}
                                         className={cn(
-                                            "px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border",
+                                            "px-2.5 py-1.5 rounded-lg text-[0.5625rem] font-black uppercase transition-all border",
                                             teamDeptFilter === dept
                                                 ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
                                                 : "bg-white text-slate-400 border-slate-100 hover:border-slate-200"
@@ -10839,12 +10857,12 @@ export default function Dashboard() {
                     <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900/50 flex flex-col gap-2 shrink-0">
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Training Agency (IAP)</p>
-                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Massive boost for {startup.employees.length} employees</p>
+                                <p className="text-[0.625rem] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Training Agency (IAP)</p>
+                                <p className="text-[0.5625rem] font-medium text-indigo-600/70 dark:text-indigo-400/70">Massive boost for {startup.employees.length} employees</p>
                             </div>
                             <button
                                 onClick={handleIAP_TrainingAgency}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[0.625rem] font-black uppercase tracking-wider shrink-0"
                             >
                                 <span>💎</span> {startup.employees.length <= 20 ? "$0.99" : startup.employees.length <= 100 ? "$2.99" : "$4.99"}
                             </button>
@@ -10852,12 +10870,12 @@ export default function Dashboard() {
 
                         <div className="flex justify-between items-center pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30">
                             <div>
-                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Corporate Retreat</p>
-                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Maxes out Morale to 100%</p>
+                                <p className="text-[0.625rem] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Corporate Retreat</p>
+                                <p className="text-[0.5625rem] font-medium text-indigo-600/70 dark:text-indigo-400/70">Maxes out Morale to 100%</p>
                             </div>
                             <button
                                 onClick={handleIAP_BaliRetreat}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[0.625rem] font-black uppercase tracking-wider shrink-0"
                             >
                                 <span>💎</span> $1.99
                             </button>
@@ -10865,12 +10883,12 @@ export default function Dashboard() {
 
                         <div className="flex justify-between items-center pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30">
                             <div>
-                                <p className="text-[10px] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Mass Training Session</p>
-                                <p className="text-[9px] font-medium text-indigo-600/70 dark:text-indigo-400/70">Boost Morale & Skills slightly</p>
+                                <p className="text-[0.625rem] font-black text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Mass Training Session</p>
+                                <p className="text-[0.5625rem] font-medium text-indigo-600/70 dark:text-indigo-400/70">Boost Morale & Skills slightly</p>
                             </div>
                             <button
                                 onClick={handleMassTrainAd}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[0.625rem] font-black uppercase tracking-wider shrink-0"
                             >
                                 <span>📺</span> Free (Ad)
                             </button>
@@ -10921,13 +10939,13 @@ export default function Dashboard() {
                                                         {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
                                                     </span>
                                                 </div>
-                                                <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                                                <p className="text-[0.5625rem] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1 mt-0.5">
                                                     👑 {getDisplayRoleName(emp.role, false).replace(" Specialist", " (EXEC)")}
                                                 </p>
-                                                <p className="text-[8px] font-bold text-slate-400 mt-0.5">{formatMoney(Math.floor(emp.salary / 12))}/mo</p>
+                                                <p className="text-[0.5rem] font-bold text-slate-400 mt-0.5">{formatMoney(Math.floor(emp.salary / 12))}/mo</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Perf</p>
+                                                <p className="text-[0.5rem] font-black text-slate-300 uppercase leading-none">Perf</p>
                                                 <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
                                                     {emp.performance}%
                                                 </p>
@@ -10937,22 +10955,22 @@ export default function Dashboard() {
                                         {/* Metrics Grid */}
                                         <div className="grid grid-cols-4 gap-1.5 mt-1 border-t border-dashed border-slate-100 pt-2">
                                             <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                <p className="text-[7px] font-black text-slate-400 uppercase">Skill</p>
-                                                <p className="text-[11px] font-black text-indigo-600">{skillVal}%</p>
+                                                <p className="text-[0.4375rem] font-black text-slate-400 uppercase">Skill</p>
+                                                <p className="text-[0.6875rem] font-black text-indigo-600">{skillVal}%</p>
                                             </div>
                                             <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                <p className="text-[7px] font-black text-slate-400 uppercase">Morale</p>
-                                                <p className={cn("text-[11px] font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
+                                                <p className="text-[0.4375rem] font-black text-slate-400 uppercase">Morale</p>
+                                                <p className={cn("text-[0.6875rem] font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
                                                     {Math.round(emp.morale || 70)}%
                                                 </p>
                                             </div>
                                             <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                <p className="text-[7px] font-black text-slate-400 uppercase">Equity</p>
-                                                <p className="text-[11px] font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
+                                                <p className="text-[0.4375rem] font-black text-slate-400 uppercase">Equity</p>
+                                                <p className="text-[0.6875rem] font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
                                             </div>
                                             <div className="bg-slate-50/50 rounded-lg p-1.5 border border-slate-100 text-center">
-                                                <p className="text-[7px] font-black text-slate-400 uppercase">Tenure</p>
-                                                <p className="text-[11px] font-black text-slate-600">{tenure}mo</p>
+                                                <p className="text-[0.4375rem] font-black text-slate-400 uppercase">Tenure</p>
+                                                <p className="text-[0.6875rem] font-black text-slate-600">{tenure}mo</p>
                                             </div>
                                         </div>
 
@@ -10964,32 +10982,32 @@ export default function Dashboard() {
                                         )}
                                         {!emp.traitRevealedMonth && emp.hiddenTrait && (
                                             <div className="mt-1.5 pt-1.5 border-t border-dashed border-slate-100">
-                                                <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
+                                                <span className="text-[0.4375rem] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
                                             </div>
                                         )}
 
                                         {/* Actions */}
                                         <div className="grid grid-cols-2 gap-1 mt-1 border-t border-dashed border-slate-100 pt-2">
-                                            <button onClick={() => handleTrainEmployee(emp.id)} className="py-1 rounded-lg bg-white text-indigo-600 text-[8px] font-black uppercase border border-indigo-100 hover:bg-indigo-50 transition-all">Train</button>
-                                            <button onClick={() => handlePromoteEmployee(emp.id)} className="py-1 rounded-lg bg-white text-amber-600 text-[8px] font-black uppercase border border-amber-100 hover:bg-amber-50 transition-all">Promote</button>
+                                            <button onClick={() => handleTrainEmployee(emp.id)} className="py-1 rounded-lg bg-white text-indigo-600 text-[0.5rem] font-black uppercase border border-indigo-100 hover:bg-indigo-50 transition-all">Train</button>
+                                            <button onClick={() => handlePromoteEmployee(emp.id)} className="py-1 rounded-lg bg-white text-amber-600 text-[0.5rem] font-black uppercase border border-amber-100 hover:bg-amber-50 transition-all">Promote</button>
                                             <button
                                                 onClick={() => handleIncrementSalary(emp.id)}
                                                 className={cn(
-                                                    "py-1 rounded-lg text-[8px] font-black uppercase border transition-all",
+                                                    "py-1 rounded-lg text-[0.5rem] font-black uppercase border transition-all",
                                                     isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-100 hover:bg-emerald-50"
                                                 )}
                                             >
                                                 +15% Pay
                                             </button>
                                             <DropdownMenu>
-                                                <DropdownMenuTrigger className="py-1 px-2 rounded-lg bg-white text-slate-500 text-[8px] font-black uppercase border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                <DropdownMenuTrigger className="py-1 px-2 rounded-lg bg-white text-slate-500 text-[0.5rem] font-black uppercase border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
                                                     Manage <Plus className="size-3" />
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
-                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[0.625rem] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[0.625rem] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[0.625rem] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
@@ -11025,14 +11043,14 @@ export default function Dashboard() {
                                                     <span className="text-xs" title={`Morale: ${Math.round(emp.morale || 70)}%`}>
                                                         {(emp.morale ?? 70) >= 80 ? "😊" : (emp.morale ?? 70) >= 60 ? "😐" : (emp.morale ?? 70) >= 40 ? "😟" : "😤"}
                                                     </span>
-                                                    {isDissatisfied && <span className="text-[8px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE</span>}
+                                                    {isDissatisfied && <span className="text-[0.5rem] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-black border border-rose-100 animate-pulse">RAISE</span>}
                                                 </div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                <p className="text-[0.625rem] font-bold text-slate-400 uppercase tracking-tight">
                                                     {emp.level} {getDisplayRoleName(emp.role, false)} · {formatMoney(Math.floor(emp.salary / 12))}/mo
                                                 </p>
                                             </div>
                                             <div className="text-right shrink-0">
-                                                <p className="text-[9px] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
+                                                <p className="text-[0.5625rem] font-black text-slate-300 uppercase leading-none mb-1">Perf</p>
                                                 <p className={cn("text-xs font-black", emp.performance > 80 ? "text-emerald-500" : emp.performance > 50 ? "text-amber-500" : "text-rose-500")}>
                                                     {emp.performance}%
                                                 </p>
@@ -11047,21 +11065,21 @@ export default function Dashboard() {
                                                 >
                                                     <div className="grid grid-cols-4 gap-2 mb-3 mt-2">
                                                         <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Skill</p>
+                                                            <p className="text-[0.5rem] font-black text-slate-400 uppercase">Skill</p>
                                                             <p className="text-sm font-black text-indigo-600">{skillVal}%</p>
                                                         </div>
                                                         <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Morale</p>
+                                                            <p className="text-[0.5rem] font-black text-slate-400 uppercase">Morale</p>
                                                             <p className={cn("text-sm font-black", (emp.morale ?? 70) >= 80 ? "text-emerald-500" : (emp.morale ?? 70) >= 50 ? "text-amber-500" : "text-rose-500")}>
                                                                 {Math.round(emp.morale || 70)}%
                                                             </p>
                                                         </div>
                                                         <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Equity</p>
+                                                            <p className="text-[0.5rem] font-black text-slate-400 uppercase">Equity</p>
                                                             <p className="text-sm font-black text-violet-600">{(emp.equity || 0).toFixed(1)}%</p>
                                                         </div>
                                                         <div className="bg-white rounded-xl p-2 border border-slate-100 text-center">
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase">Tenure</p>
+                                                            <p className="text-[0.5rem] font-black text-slate-400 uppercase">Tenure</p>
                                                             <p className="text-sm font-black text-slate-600">{tenure}mo</p>
                                                         </div>
                                                     </div>
@@ -11073,31 +11091,31 @@ export default function Dashboard() {
                                                     )}
                                                     {!emp.traitRevealedMonth && emp.hiddenTrait && (
                                                         <div className="pt-2 border-t border-dashed border-slate-100">
-                                                            <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
+                                                            <span className="text-[0.4375rem] font-black text-slate-300 uppercase tracking-widest animate-pulse">Getting to know them...</span>
                                                         </div>
                                                     )}
 
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[9px] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
-                                                        <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[9px] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
+                                                        <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[0.5625rem] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
+                                                        <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[0.5625rem] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
                                                         <button
                                                             onClick={() => handleIncrementSalary(emp.id)}
                                                             className={cn(
-                                                                "py-2.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all",
+                                                                "py-2.5 rounded-xl text-[0.5625rem] font-black uppercase border-2 transition-all",
                                                                 isDissatisfied ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-white text-emerald-600 border-emerald-50 hover:bg-emerald-50"
                                                             )}
                                                         >
                                                             +15% Salary
                                                         </button>
                                                         <DropdownMenu>
-                                                            <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[9px] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
+                                                            <DropdownMenuTrigger className="py-2.5 px-4 rounded-xl bg-white text-slate-500 text-[0.5625rem] font-black uppercase border-2 border-slate-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-1">
                                                                 Manage <Plus className="size-3" />
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end" className="w-40 rounded-xl p-1 shadow-xl border-slate-200">
-                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[10px] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 0.5)} className="text-[0.625rem] font-bold p-2 cursor-pointer">🎁 Grant 0.5% Equity</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleGrantEquity(emp.id, 1.0)} className="text-[0.625rem] font-bold p-2 cursor-pointer">🎁 Grant 1.0% Equity</DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[10px] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleFireEmployee(emp.id)} className="text-[0.625rem] font-bold p-2 text-rose-600 cursor-pointer">👋 Fire Employee</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>
@@ -11112,7 +11130,7 @@ export default function Dashboard() {
                                 <div className="space-y-4 pb-6">
                                     {cxos.length > 0 && (
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 flex items-center gap-1">
+                                            <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 flex items-center gap-1">
                                                 👑 Core Team (CXOs)
                                             </p>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -11122,7 +11140,7 @@ export default function Dashboard() {
                                     )}
                                     {staff.length > 0 && (
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 mt-4 flex items-center gap-1">
+                                            <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest px-1 mb-2 mt-4 flex items-center gap-1">
                                                 👥 General Staff
                                             </p>
                                             <div className="space-y-2">
@@ -11145,7 +11163,7 @@ export default function Dashboard() {
                         <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-2xl">🔥</div>
                         <div>
                             <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Monthly Burn</h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Financial Breakdown</p>
+                            <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest leading-none">Financial Breakdown</p>
                         </div>
                     </div>
 
@@ -11190,7 +11208,7 @@ export default function Dashboard() {
                         <div className="bg-indigo-50 dark:bg-indigo-950/30 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-xl">📅</span>
-                                <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Est. Runway</span>
+                                <span className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Est. Runway</span>
                             </div>
                             <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">
                                 {profitable ? "∞ Profitable" : `${liveRunway} Months`}
@@ -11213,20 +11231,20 @@ export default function Dashboard() {
                             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl">📊</div>
                             <div>
                                 <p className="text-white font-black text-base">{startup.name} Financials</p>
-                                <p className="text-blue-200 text-[11px] font-bold">Month {month} · {startup.funding_stage}</p>
+                                <p className="text-blue-200 text-[0.6875rem] font-bold">Month {month} · {startup.funding_stage}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Tab bar */}
                     <div className="-mt-4 mx-4 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 flex p-1 shrink-0">
-                        <button onClick={() => setFinancialTab("summary")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "summary" ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                        <button onClick={() => setFinancialTab("summary")} className={cn("flex-1 py-2 text-[0.625rem] font-black uppercase rounded-xl transition-all", financialTab === "summary" ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
                             Overview
                         </button>
-                        <button onClick={() => setFinancialTab("pnl")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "pnl" ? "bg-emerald-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                        <button onClick={() => setFinancialTab("pnl")} className={cn("flex-1 py-2 text-[0.625rem] font-black uppercase rounded-xl transition-all", financialTab === "pnl" ? "bg-emerald-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
                             P&amp;L
                         </button>
-                        <button onClick={() => setFinancialTab("captable")} className={cn("flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all", financialTab === "captable" ? "bg-violet-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
+                        <button onClick={() => setFinancialTab("captable")} className={cn("flex-1 py-2 text-[0.625rem] font-black uppercase rounded-xl transition-all", financialTab === "captable" ? "bg-violet-500 text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>
                             Cap Table
                         </button>
                     </div>
@@ -11252,14 +11270,14 @@ export default function Dashboard() {
                                                     className={cn("p-3 rounded-2xl border transition-all cursor-pointer", r.bg, expandedMetric === r.label ? "ring-2 ring-blue-500 scale-[1.02]" : "hover:shadow-sm")}
                                                 >
                                                     <div className="flex justify-between items-center mb-1">
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{r.label}</p>
-                                                        <span className="text-[9px] text-slate-300">?</span>
+                                                        <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">{r.label}</p>
+                                                        <span className="text-[0.5625rem] text-slate-300">?</span>
                                                     </div>
                                                     <p className={`text-base font-black ${r.color}`}>{r.val}</p>
                                                     <AnimatePresence>
                                                         {expandedMetric === r.label && (
                                                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                                                <p className="text-[9px] text-slate-600 mt-2 pt-2 border-t border-black/5 leading-tight">{r.explanation}</p>
+                                                                <p className="text-[0.5625rem] text-slate-600 mt-2 pt-2 border-t border-black/5 leading-tight">{r.explanation}</p>
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
@@ -11270,7 +11288,7 @@ export default function Dashboard() {
                                 })()}
                                 {/* Detail rows */}
                                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-3">
-                                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">Unit Economics</p>
+                                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-2">Unit Economics</p>
                                     {(() => {
                                         const toggle = (m: string) => setExpandedMetric(expandedMetric === m ? null : m);
                                         return (
@@ -11297,7 +11315,7 @@ export default function Dashboard() {
                         )}
                         {financialTab === "captable" && (
                             <>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Ownership Distribution</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">Ownership Distribution</p>
                                 {/* Visual bar */}
                                 <div className="h-6 rounded-full overflow-hidden flex mb-3">
                                     {(startup.capTable || []).map((e: any, i: number) => {
@@ -11319,13 +11337,13 @@ export default function Dashboard() {
                         )}
                         {financialTab === "pnl" && (
                             <>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Monthly P&amp;L (Last 6 Months)</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-2">Monthly P&amp;L (Last 6 Months)</p>
                                 <div className="space-y-3">
                                     {(startup.history || []).slice(-6).reverse().map((entry: any, i: number) => (
                                         <div key={i} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                                             <div className={`h-1 w-full ${entry.netIncome >= 0 ? "bg-emerald-400" : "bg-rose-400"}`} />
                                             <div className="p-3">
-                                                <p className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 mb-2">Month {entry.month}</p>
+                                                <p className="text-[0.625rem] font-black uppercase text-slate-500 dark:text-slate-400 mb-2">Month {entry.month}</p>
                                                 <StatRow label="Revenue" value={formatMoney(entry.revenue)} color="text-green-600 dark:text-green-400" />
                                                 <StatRow label="COGS" value={formatMoney(-entry.cogs)} color="text-rose-400 dark:text-rose-300" />
                                                 <StatRow label="Gross Profit" value={formatMoney((entry.revenue || 0) - (entry.cogs || 0))} color="text-slate-700 dark:text-slate-300" />
@@ -11380,11 +11398,11 @@ export default function Dashboard() {
                                 {/* Founder Take */}
                                 {founderTake > 0 && (
                                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
-                                        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Your Personal Payout</p>
+                                        <p className="text-[0.5625rem] font-black text-emerald-500 uppercase tracking-widest">Your Personal Payout</p>
                                         <p className="text-3xl font-black text-emerald-700 mt-1">
                                             {formatMoney(founderTake)}
                                         </p>
-                                        <p className="text-[9px] text-emerald-500 mt-0.5">
+                                        <p className="text-[0.5625rem] text-emerald-500 mt-0.5">
                                             {outcome === "ipo" ? "Secondary Liquidity (10% of IPO float)" : "after dilution"}
                                         </p>
                                     </div>
@@ -11394,15 +11412,15 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="bg-slate-50 rounded-2xl p-3 text-center">
                                         <p className="text-sm font-black text-slate-800">{formatMoney(startup.peak_valuation ?? startup.valuation)}</p>
-                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Value</p>
+                                        <p className="text-[0.5rem] text-slate-400 uppercase font-black mt-0.5">Peak Value</p>
                                     </div>
                                     <div className="bg-slate-50 rounded-2xl p-3 text-center">
                                         <p className="text-sm font-black text-slate-800">{formatNumber(startup.peak_users ?? startup.metrics.users)}</p>
-                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Peak Users</p>
+                                        <p className="text-[0.5rem] text-slate-400 uppercase font-black mt-0.5">Peak Users</p>
                                     </div>
                                     <div className="bg-slate-50 rounded-2xl p-3 text-center">
                                         <p className="text-sm font-black text-slate-800">{allEmployees.length}</p>
-                                        <p className="text-[8px] text-slate-400 uppercase font-black mt-0.5">Team Size</p>
+                                        <p className="text-[0.5rem] text-slate-400 uppercase font-black mt-0.5">Team Size</p>
                                     </div>
                                 </div>
 
@@ -11410,7 +11428,7 @@ export default function Dashboard() {
                                 <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
-                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Legacy Score</p>
+                                            <p className="text-[0.5625rem] font-black text-indigo-400 uppercase tracking-widest">Legacy Score</p>
                                             <p className="text-3xl font-black text-indigo-800">{legacy.score}<span className="text-sm font-normal text-indigo-400">/100</span></p>
                                         </div>
                                         <div className="text-right">
@@ -11426,8 +11444,8 @@ export default function Dashboard() {
                                     <div className="space-y-1">
                                         {Object.entries(legacy.breakdown).map(([k, v]) => (
                                             <div key={k} className="flex justify-between items-center">
-                                                <p className="text-[9px] text-indigo-500">{k}</p>
-                                                <p className="text-[9px] font-black text-indigo-700">{v as number} pts</p>
+                                                <p className="text-[0.5625rem] text-indigo-500">{k}</p>
+                                                <p className="text-[0.5625rem] font-black text-indigo-700">{v as number} pts</p>
                                             </div>
                                         ))}
                                     </div>
@@ -11437,14 +11455,14 @@ export default function Dashboard() {
                                 <div className="bg-slate-50 rounded-2xl p-4">
                                     <p className="text-xs text-slate-600 leading-relaxed italic">{legacy.tier.flavourText}</p>
                                     <div className="mt-3 bg-white border border-amber-200 rounded-xl px-3 py-2">
-                                        <p className="text-[8px] font-black text-amber-600 uppercase">Next Run Perk 🎁</p>
-                                        <p className="text-[9px] text-slate-600 mt-0.5">{legacy.tier.perk}</p>
+                                        <p className="text-[0.5rem] font-black text-amber-600 uppercase">Next Run Perk 🎁</p>
+                                        <p className="text-[0.5625rem] text-slate-600 mt-0.5">{legacy.tier.perk}</p>
                                     </div>
                                 </div>
 
                                 {/* Founder Story */}
                                 <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl p-4">
-                                    <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <p className="text-[0.5625rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                         📖 Your Story
                                         {!endgameStory && <Loader2 className="h-3 w-3 animate-spin text-indigo-400" />}
                                     </p>
@@ -11461,7 +11479,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Footer buttons - fixed bottom with safe area */}
-                            <div className="p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
+                            <div className={`p-5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 ${isPremium ? 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+70px)] md:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+120px)]'}`}>
                                 <button
                                     onClick={() => setIsLeaderboardOpen(true)}
                                     className="w-full py-3 rounded-2xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-black uppercase tracking-widest text-xs hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
@@ -11484,7 +11502,7 @@ export default function Dashboard() {
                                         </button>
                                         <button
                                             onClick={() => handleResetGame(true)}
-                                            className="w-full py-2 text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-rose-500 transition-colors"
+                                            className="w-full py-2 text-slate-400 font-bold uppercase tracking-widest text-[0.625rem] hover:text-rose-500 transition-colors"
                                         >
                                             Or Retire & Start New Legacy
                                         </button>
@@ -11513,9 +11531,11 @@ export default function Dashboard() {
                         <p className="text-indigo-200 text-sm font-medium">Your guide to building a unicorn.</p>
                     </div>
 
-                    <HowToPlayContent />
+                    <div style={isIPad ? { paddingBottom: '90px', fontSize: '1.05rem' } : {}} className="flex-1 overflow-y-auto">
+                        <HowToPlayContent />
+                    </div>
 
-                    <div className="px-6 py-4 bg-white dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                    <div className="px-6 py-4 bg-white dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]" style={isIPad ? { marginBottom: '60px' } : {}}>
                         <Button className="rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 h-12 w-full sm:w-auto px-10 shadow-lg shadow-indigo-600/20" onClick={() => setIsHowToPlayOpen(false)}>GOT IT, LET'S BUILD</Button>
                     </div>
                 </DialogContent>
@@ -11533,7 +11553,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="relative z-10">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-black uppercase tracking-widest mb-4">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[0.625rem] font-black uppercase tracking-widest mb-4">
                                 <Rocket className="size-3" /> The V2 Era
                             </div>
                             <h2 className="text-4xl font-black tracking-tight text-white mb-2 leading-tight">The Addiction Update</h2>
@@ -11547,8 +11567,8 @@ export default function Dashboard() {
                             <div className="absolute -top-6 -right-6 text-[8rem] font-black text-white/10 select-none pointer-events-none leading-none">V2</div>
                             <div className="relative z-10">
                                 <div className="flex gap-2 mb-3">
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest">New Chapter</span>
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 text-amber-100 text-[8px] font-black uppercase tracking-widest">Continues Your Story</span>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-[0.5rem] font-black uppercase tracking-widest">New Chapter</span>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 text-amber-100 text-[0.5rem] font-black uppercase tracking-widest">Continues Your Story</span>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="size-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏛️</div>
@@ -11560,14 +11580,14 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-2 mt-3">
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30">
                                         <span className="text-xs">✅</span>
-                                        <p className="text-emerald-400 text-[9px] font-black uppercase tracking-wide">LIVE NOW</p>
+                                        <p className="text-emerald-400 text-[0.5625rem] font-black uppercase tracking-wide">LIVE NOW</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[0.5625rem] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
                                 <div>
@@ -11578,7 +11598,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[0.5625rem] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
                                 <div>
@@ -11589,7 +11609,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[0.5625rem] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">⚡</div>
                                 <div>
@@ -11600,7 +11620,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="group bg-white dark:bg-slate-800 p-5 rounded-3xl border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-300 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
+                            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[0.5625rem] font-black px-4 py-1.5 uppercase tracking-widest rounded-bl-2xl shadow-lg">LIVE</div>
                             <div className="flex gap-4">
                                 <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
                                 <div>
@@ -11611,8 +11631,8 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px) + ${isPremium ? '0px' : '70px'})` }}>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Founder Sim V2.0.0 Launched</p>
+                    <div className={`px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0 ${isPremium ? 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+70px)] md:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+120px)]'}`}>
+                        <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Founder Sim V2.0.0 Launched</p>
                         <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
                             LET'S SCALE →
                         </Button>
@@ -11640,7 +11660,7 @@ export default function Dashboard() {
                         >
                             <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
                             <h2 className="text-lg font-black text-slate-900 mb-1">Save Game</h2>
-                            <p className="text-[11px] text-slate-400 mb-4">{availableSaves.length}/{MAX_SLOTS} slots used</p>
+                            <p className="text-[0.6875rem] text-slate-400 mb-4">{availableSaves.length}/{MAX_SLOTS} slots used</p>
 
                             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                                 {/* Filled Slots */}
@@ -11665,12 +11685,12 @@ export default function Dashboard() {
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="font-black text-slate-900 text-sm truncate">{save.companyName}</p>
-                                                        <p className="text-[10px] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
+                                                        <p className="text-[0.625rem] text-slate-400 mt-0.5">{formatSaveDate(save.date)}</p>
                                                         <div className="flex items-center gap-2 mt-2">
-                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${STAGE_COLORS[save.stage] || "bg-slate-100 text-slate-600"}`}>
+                                                            <span className={`text-[0.5625rem] font-bold px-2 py-0.5 rounded-full border ${STAGE_COLORS[save.stage] || "bg-slate-100 text-slate-600"}`}>
                                                                 {save.stage}
                                                             </span>
-                                                            <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                                            <span className="text-[0.5625rem] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                                                                 {formatMoney(save.valuation)}
                                                             </span>
                                                         </div>
@@ -11699,7 +11719,7 @@ export default function Dashboard() {
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Empty Slot</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">Click to save game</p>
+                                            <p className="text-[0.625rem] text-slate-400 mt-0.5">Click to save game</p>
                                         </div>
                                     </div>
                                 ))}
@@ -11878,7 +11898,7 @@ export default function Dashboard() {
                                 playSound("click");
                                 setIsInstagramModalOpen(false);
                             }}
-                            className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-500 transition-colors mt-2"
+                            className="text-[0.625rem] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-500 transition-colors mt-2"
                         >
                             No thanks, I don't want free cash
                         </button>

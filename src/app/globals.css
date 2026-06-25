@@ -139,6 +139,15 @@
     height: 100%;
     overflow: hidden; /* Prevent bouncing white backgrounds on iOS */
     overscroll-behavior: none;
+    font-size: 16px; /* Base size for mobile */
+  }
+
+  /* Dynamic scaling for tablets and larger screens */
+  @media (min-width: 768px) {
+    html {
+      /* Smoothly scales the entire UI (now fully rem-based) from 18px up to 28px */
+      font-size: clamp(18px, 2.5vw, 28px);
+    }
   }
   body {
     @apply text-foreground antialiased;

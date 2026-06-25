@@ -141,7 +141,7 @@ function UsernameSetup({ onDone }: { onDone: (username: string) => void }) {
                 {statusMsg ? (
                     <p className={`text-xs font-bold text-center ${msgCls}`}>{statusMsg}</p>
                 ) : (
-                    <p className="text-[11px] text-slate-400 text-center">3–20 chars · letters, numbers, underscores only</p>
+                    <p className="text-[0.6875rem] text-slate-400 text-center">3–20 chars · letters, numbers, underscores only</p>
                 )}
             </div>
 
@@ -154,7 +154,7 @@ function UsernameSetup({ onDone }: { onDone: (username: string) => void }) {
                 {claiming ? "Claiming..." : "Claim & Enter Leaderboard →"}
             </button>
 
-            <p className="text-[10px] text-slate-400 text-center max-w-xs">
+            <p className="text-[0.625rem] text-slate-400 text-center max-w-xs">
                 Your username is permanent and visible to all players. Choose wisely.
             </p>
         </div>
@@ -208,39 +208,39 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
                         @{entry.displayTag ?? entry.username}
                     </span>
                     {isMe && (
-                        <span className="text-[8px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                        <span className="text-[0.5rem] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                             YOU
                         </span>
                     )}
                     {hasTitan && (
-                        <span className="text-[8px] font-black bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="Titan of Industry">
+                        <span className="text-[0.5rem] font-black bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="Titan of Industry">
                             👑 TITAN
                         </span>
                     )}
                     {hasGodMode && !hasTitan && (
-                        <span className="text-[8px] font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="God Mode Owner">
+                        <span className="text-[0.5rem] font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="God Mode Owner">
                             ⚡ GOD MODE
                         </span>
                     )}
                     {hasPremium && !hasTitan && !hasGodMode && (
-                        <span className="text-[8px] font-black bg-slate-800 dark:bg-slate-200 text-slate-100 dark:text-slate-900 px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="Premium Supporter">
+                        <span className="text-[0.5rem] font-black bg-slate-800 dark:bg-slate-200 text-slate-100 dark:text-slate-900 px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm" title="Premium Supporter">
                             ✨ PATRON
                         </span>
                     )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {entry.bestVentureName && (
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[90px]">
+                        <span className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[5.625rem]">
                             {entry.bestVentureName}
                         </span>
                     )}
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
+                    <span className={`text-[0.5625rem] font-black px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
                         {badge.label}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[9px] font-black ${tierCls}`}>{tier}</span>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                    <span className={`text-[0.5625rem] font-black ${tierCls}`}>{tier}</span>
+                    <span className="text-[0.5625rem] text-slate-400 dark:text-slate-500">
                         · {displayVentures} venture{displayVentures !== 1 ? "s" : ""}
                         · {displayMonths}mo played
                     </span>
@@ -252,7 +252,7 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
                 <p className={`text-sm font-black ${isMe ? "text-indigo-600 dark:text-indigo-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                     {category === "bestVentureValuation" ? formatMoney(entry.bestVentureValuation) : formatMoney(entry.totalLifetimeCash)}
                 </p>
-                <p className="text-[9px] text-slate-400 dark:text-slate-500">
+                <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500">
                     {category === "bestVentureValuation" ? `Lifetime Cash: ${formatMoney(entry.totalLifetimeCash)}` : `Peak Valuation: ${formatMoney(entry.bestVentureValuation)}`}
                 </p>
             </div>
@@ -271,19 +271,19 @@ function StatsHeader({ entries, username, globalRank, totalPlayers, category }: 
                 <p className="text-base font-black text-amber-600 dark:text-amber-400">
                     {topEntry ? (category === "bestVentureValuation" ? formatMoney(topEntry.bestVentureValuation) : formatMoney(topEntry.totalLifetimeCash)) : "—"}
                 </p>
-                <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mt-0.5">{category === "bestVentureValuation" ? "Top Valuation" : "Top Lifetime Cash"}</p>
+                <p className="text-[0.5625rem] font-black text-amber-500 uppercase tracking-widest mt-0.5">{category === "bestVentureValuation" ? "Top Valuation" : "Top Lifetime Cash"}</p>
             </div>
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 text-center border border-indigo-100 dark:border-indigo-800/40">
                 <p className="text-base font-black text-indigo-600 dark:text-indigo-400">
                     {globalRank && globalRank > 0 ? `#${globalRank}` : "—"}
                 </p>
-                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Your Rank</p>
+                <p className="text-[0.5625rem] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Your Rank</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 text-center border border-slate-100 dark:border-slate-700/50">
                 <p className="text-base font-black text-slate-700 dark:text-slate-300">
                     {totalPlayers > 0 ? Math.max(totalPlayers, globalRank || 0).toLocaleString() : "—"}
                 </p>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Founders</p>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mt-0.5">Founders</p>
             </div>
         </div>
     );
@@ -367,20 +367,20 @@ export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 mt-1.5 w-max">
                         <button 
                             onClick={() => setCategory("bestVentureValuation")}
-                            className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${category === "bestVentureValuation" ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"}`}
+                            className={`px-3 py-1 rounded-md text-[0.5625rem] font-black uppercase tracking-widest transition-all ${category === "bestVentureValuation" ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"}`}
                         >
                             Peak Valuation
                         </button>
                         <button 
                             onClick={() => setCategory("totalLifetimeCash")}
-                            className={`px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${category === "totalLifetimeCash" ? "bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}
+                            className={`px-3 py-1 rounded-md text-[0.5625rem] font-black uppercase tracking-widest transition-all ${category === "totalLifetimeCash" ? "bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}
                         >
                             Lifetime Cash
                         </button>
                     </div>
                 </div>
                 {username && (
-                    <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-full uppercase tracking-wider shrink-0">
+                    <span className="text-[0.625rem] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 px-2 py-1 rounded-full uppercase tracking-wider shrink-0">
                         @{username}
                     </span>
                 )}
@@ -400,9 +400,9 @@ export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
                     {/* Column Headers */}
                     {!loading && entries.length > 0 && (
                         <div className="flex items-center px-4 mb-2">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest w-8 text-center shrink-0">Rank</span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex-1 ml-3">Founder</span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">
+                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest w-8 text-center shrink-0">Rank</span>
+                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest flex-1 ml-3">Founder</span>
+                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest text-right">
                                 {category === "bestVentureValuation" ? "Peak Valuation" : "Lifetime Cash"}
                             </span>
                         </div>
