@@ -46,6 +46,7 @@ const PRODUCT_METADATA: Record<string, { price: number; type: "consumable" | "no
 export class IAPService {
     private static instance: IAPService;
     private initialized = false;
+    private productsFetched = false;
 
     private constructor() { }
 
@@ -67,6 +68,8 @@ export class IAPService {
             }
             this.initialized = true;
             console.log("[IAP] Initialized successfully");
+            // Prefetch products so Android BillingClient has them cached
+            this.getProducts().catch(console.error);
         } catch (error) {
             console.error("[IAP] Initialization failed", error);
         }
@@ -77,6 +80,7 @@ export class IAPService {
             const { products } = await NativePurchases.getProducts({
                 productIdentifiers: Object.values(IAP_PRODUCT_IDS)
             });
+            this.productsFetched = true;
             return products;
         } catch (error) {
             console.error("[IAP] Failed to fetch products", error);
@@ -164,6 +168,11 @@ export class IAPService {
             return true;
         }
 
+        if (!this.productsFetched) {
+            console.log("[IAP] Products not fetched yet, fetching now before purchase...");
+            await this.getProducts();
+        }
+
         try {
             const consumableIds = [
                 IAP_PRODUCT_IDS.STARTER_PACK,
@@ -181,7 +190,8 @@ export class IAPService {
             const isConsumable = consumableIds.includes(productId);
             const transaction = await NativePurchases.purchaseProduct({
                 productIdentifier: productId,
-                productType: isConsumable ? ("consumable" as any) : ("inapp" as any),
+                productType: "inapp" as any,
+                isConsumable: isConsumable,
                 autoAcknowledgePurchases: false
             });
 
@@ -203,16 +213,18 @@ export class IAPService {
                             })
                         });
                         const data = await res.json();
-                        if (!data.valid) {
+                        if (!data.valid && !data.error) {
                             toast.dismiss("verify-iap");
                             toast.error("Purchase verification failed. Device flagged.");
-                            return false; // EXIT EARLY: Do not grant the item
+                            return false; // EXIT EARLY: Only block if explicitly flagged as pirate
+                        } else if (data.error) {
+                            console.warn("[IAP] Server error during verification, granting item gracefully: ", data.error);
                         }
                         toast.dismiss("verify-iap");
                     } catch (e) {
                         toast.dismiss("verify-iap");
-                        toast.error("Network error during verification.");
-                        return false;
+                        console.warn("[IAP] Network error during verification, granting item gracefully: ", e);
+                        // Do NOT return false here. Let them have the item if they are offline or our server is down.
                     }
                 }
 
@@ -253,6 +265,7 @@ export class IAPService {
                     product_price: meta?.price ?? 0,
                     product_type: meta?.type ?? "unknown",
                     revenue: meta?.price ?? 0,
+                    currency: "USD",
                 });
                 toast.success("Purchase Successful!", { description: "Thank you for supporting Founder Sim!" });
                 return true;

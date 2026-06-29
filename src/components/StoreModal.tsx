@@ -356,11 +356,18 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <ItemCard id={IAP_PRODUCT_IDS.BALI_RETREAT} icon="🏝️" descriptionOverride="(Instantly sets team morale to 100%)" />
                                 
-                                <ItemCard 
-                                    id={trainingProductId} 
-                                    icon="🎓" 
-                                    descriptionOverride={`(Dynamic pricing based on your team size: ${empCount} employees)`} 
-                                />
+                                {empCount === 0 ? (
+                                    <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shadow-sm flex flex-col gap-2">
+                                        <h3 className="font-black text-slate-400 dark:text-slate-600 flex items-center gap-2">🎓 Training Agency</h3>
+                                        <p className="text-xs text-slate-400 dark:text-slate-600">Hire at least one employee before using the Training Agency.</p>
+                                    </div>
+                                ) : (
+                                    <ItemCard 
+                                        id={trainingProductId} 
+                                        icon="🎓" 
+                                        descriptionOverride={`(Dynamic pricing based on your team size: ${empCount} employees)`} 
+                                    />
+                                )}
                             </div>
                         </div>
                     </section>

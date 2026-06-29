@@ -1139,9 +1139,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 {m.pricing > 199 && m.b2b_pipeline && (
                     <div className="mt-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-3 space-y-1">
                         <p className="text-[0.5625rem] font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest mb-2">🤝 B2B Sales Pipeline</p>
-                        <StatRow label="Leads" value={m.b2b_pipeline.leads.toLocaleString()} color="text-indigo-600 dark:text-indigo-400" />
-                        <StatRow label="Active Deals" value={m.b2b_pipeline.active_deals.toLocaleString()} color="text-amber-600 dark:text-amber-400" />
-                        <StatRow label="Deals Won" value={m.b2b_pipeline.closed_won.toLocaleString()} color="text-emerald-600 dark:text-emerald-400" />
+                        <StatRow label="Leads" value={(m.b2b_pipeline?.leads || 0).toLocaleString()} color="text-indigo-600 dark:text-indigo-400" />
+                        <StatRow label="Active Deals" value={(m.b2b_pipeline?.active_deals || 0).toLocaleString()} color="text-amber-600 dark:text-amber-400" />
+                        <StatRow label="Deals Won" value={(m.b2b_pipeline?.closed_won || 0).toLocaleString()} color="text-emerald-600 dark:text-emerald-400" />
                         <p className="text-[0.5rem] text-indigo-500 dark:text-indigo-500 mt-2 pt-2 border-t border-indigo-100 dark:border-indigo-900/50 leading-tight">Enterprise sales takes 1-3 months. Win rate depends on quality & sales team.</p>
                     </div>
                 )}
@@ -2631,7 +2631,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         { label: "10K+ Users", pass: m.users >= 10_000 },
                         { label: "PMF Score ≥ 60", pass: (m.pmf_score ?? 0) >= 60 },
                         { label: "Tech Debt < 40%", pass: (m.technical_debt ?? 0) < 40 },
-                        { label: "Series A+ Raised", pass: ["Series A", "Series B", "Series C", "IPO Ready"].includes(startup.funding_stage) },
+                        { label: "Series A+ Raised", pass: (startup.funding_stage || "").toLowerCase().includes("series") || startup.funding_stage === "IPO Ready" || startup.funding_stage === "Late Stage Round" },
                         { label: "CFO Hired", pass: hasCFO },
                     ];
                     const passed = ipoChecks.filter(c => c.pass).length;
@@ -6486,9 +6486,32 @@ export default function Dashboard() {
     });
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [hasSeenIntro, setHasSeenIntro] = useState(false);
-    const [samConsults, setSamConsults] = useState<number[]>([]);
-    const [cashGrants, setCashGrants] = useState<number[]>([]);
-    const [energyRefills, setEnergyRefills] = useState<number[]>([]);
+    const [samConsults, setSamConsults] = useState<number[]>(() => {
+        if (typeof window !== 'undefined') {
+            try { return JSON.parse(localStorage.getItem('founder_sim_sam_consults') || '[]'); } catch { return []; }
+        }
+        return [];
+    });
+    const [cashGrants, setCashGrants] = useState<number[]>(() => {
+        if (typeof window !== 'undefined') {
+            try { return JSON.parse(localStorage.getItem('founder_sim_cash_grants') || '[]'); } catch { return []; }
+        }
+        return [];
+    });
+    const [energyRefills, setEnergyRefills] = useState<number[]>(() => {
+        if (typeof window !== 'undefined') {
+            try { return JSON.parse(localStorage.getItem('founder_sim_energy_refills') || '[]'); } catch { return []; }
+        }
+        return [];
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('founder_sim_sam_consults', JSON.stringify(samConsults));
+            localStorage.setItem('founder_sim_cash_grants', JSON.stringify(cashGrants));
+            localStorage.setItem('founder_sim_energy_refills', JSON.stringify(energyRefills));
+        }
+    }, [samConsults, cashGrants, energyRefills]);
     const [isChadModalOpen, setIsChadModalOpen] = useState(false);
     const [chadAdvice, setChadAdvice] = useState<{ title: string; message: string; buttonText: string } | null>(null);
     const [selectedAction, setSelectedAction] = useState<StartupAction>("none");
@@ -7775,8 +7798,9 @@ export default function Dashboard() {
             const role = action.split("_")[1];
             const candidate = forcedCandidate || generateCandidate(role, startup.funding_stage);
             setPendingCandidate(candidate);
-            // Initialize with expectation, but clamp to pool if needed (or just start at 0 if no pool)
-            const initialEquity = Math.min(startup.metrics.option_pool || 0, candidate.expectedEquity);
+            // Initialize with candidate's expected equity. Don't clamp to 0 if pool is empty
+            // (the UI still shows the pool warning, but at least the offer is meaningful)
+            const initialEquity = candidate.expectedEquity;
             setHiringOffer({ salary: candidate.expectedSalary, equity: initialEquity });
         } else if (action === "pitch_investors") {
             const nextStage = getNextFundingStage(startup.funding_stage);
@@ -7913,6 +7937,9 @@ export default function Dashboard() {
                     sales: pendingCandidate.role === "sales" ? 60 : 20,
                 },
                 joined_at: month,
+                // FIX: Set last_increment_at to the hire month so the mercenary resignation
+                // check counts from hire date rather than from month 0.
+                last_increment_at: month,
                 // ── Talent Roster: carry over hidden trait + legendary status ──
                 traits: [] as import("@/lib/types/database.types").EmployeeTrait[],
                 hiddenTrait: pendingCandidate.hiddenTrait,
@@ -7933,6 +7960,9 @@ export default function Dashboard() {
                 if (pendingCandidate.role === "engineer") ns.metrics.engineers += cohortSize;
                 else if (pendingCandidate.role === "marketer") ns.metrics.marketers += cohortSize;
                 else if (pendingCandidate.role === "sales") ns.metrics.sales += cohortSize;
+                // FIX: Hiring a legal counsel activates the legal department flag used by
+                // the crisis engine to reduce regulatory probe frequency and improve defense odds.
+                else if (pendingCandidate.role === "legal") ns.metrics.has_legal_dept = true;
                 return ns;
             });
             const displayRole = getDisplayRoleName(pendingCandidate.role, cohortSize > 1);
@@ -8129,6 +8159,10 @@ export default function Dashboard() {
 
 
     const handleIAP_TrainingAgency = async () => {
+        if (!startup.employees || startup.employees.length === 0) {
+            toast.error("No Employees to Train", { description: "Hire at least one employee before using the Training Agency." });
+            return;
+        }
         const product_id = startup.employees.length <= 20
             ? IAP_PRODUCT_IDS.TRAIN_BOUTIQUE
             : startup.employees.length <= 100
@@ -9313,6 +9347,12 @@ export default function Dashboard() {
                 toast.success(`New Phase: ${newPhase}!`, { description: "Your startup just leveled up." });
             }
             newStartup.phase = newPhase as typeof newStartup.phase;
+
+            // --- PERSIST PEAK STATS (for Legacy Score & Leaderboard) ---
+            // Without this, peak_valuation is always undefined and the legacy score
+            // falls back to the final (often post-crash) valuation at exit.
+            newStartup.peak_valuation = Math.max(newStartup.peak_valuation ?? 0, newStartup.valuation);
+            newStartup.peak_users = Math.max(newStartup.peak_users ?? 0, newStartup.metrics.users);
 
             setStartup(newStartup);
             // Do NOT call setFounder({...foAfter}) here — nextFounder already has all lifestyle/margin/asset changes applied above.

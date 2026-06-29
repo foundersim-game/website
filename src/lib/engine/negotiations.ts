@@ -115,7 +115,8 @@ export function generateCandidate(role: string, startupStage: string, forcedDeta
 
 export function calculateHiringSuccess(candidate: Candidate, offer: { salary: number, equity: number }, startup: Startup, founder: Founder): { success: boolean, reason: string } {
     let score = 50;
-    const EQUITY_VALUE_OF_ONE_PERCENT = startup.valuation * 0.01;
+    const val = (typeof startup.valuation === 'number' && isFinite(startup.valuation) && startup.valuation > 0) ? startup.valuation : 500000;
+    const EQUITY_VALUE_OF_ONE_PERCENT = val * 0.01;
 
     let salaryWeight = 1.0;
     let equityWeight = 1.0;

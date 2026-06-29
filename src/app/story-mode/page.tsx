@@ -1,308 +1,201 @@
 "use client";
-// src/app/story-mode/page.tsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Story Mode Campaign Selection Screen.
-// Replaces the previous teaser/waitlist page entirely.
-// Sandbox code at /dashboard is completely unaffected.
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
-import { CAMPAIGNS } from "@/lib/story/engine";
-import { StoryCampaign, CampaignId } from "@/lib/story/types";
-import { getStorySaveKey } from "@/lib/story/engine";
-import type { StorySaveFile } from "@/lib/story/types";
+import { ChevronLeft, Sparkles, BookOpen, Clock, Users, Globe, Lock, Crown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast, Toaster } from "sonner";
+import { adService } from "@/lib/services/adService";
+import { playSound } from "@/lib/audio";
+import { useTheme } from "@/components/ThemeProvider";
+import { analyticsService } from "@/lib/services/analyticsService";
 
-const CAMPAIGN_IDS: CampaignId[] = ["pineapple", "bookface", "searchgo"];
-
-function formatValuation(v: number): string {
-  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
-  if (v >= 1e9)  return `$${(v / 1e9).toFixed(1)}B`;
-  if (v >= 1e6)  return `$${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3)  return `$${(v / 1e3).toFixed(0)}K`;
-  return `$${v}`;
-}
-
-export default function StoryModeSelectionPage() {
-  const router = useRouter();
-  const [saves, setSaves] = useState<Record<string, StorySaveFile | null>>({});
-  const [visible, setVisible] = useState(false);
-
-  // Load existing saves from localStorage
-  useEffect(() => {
-    const loaded: Record<string, StorySaveFile | null> = {};
-    CAMPAIGN_IDS.forEach((id) => {
-      try {
-        const raw = localStorage.getItem(getStorySaveKey(id));
-        loaded[id] = raw ? (JSON.parse(raw) as StorySaveFile) : null;
-      } catch {
-        loaded[id] = null;
-      }
-    });
-    setSaves(loaded);
-    setTimeout(() => setVisible(true), 50);
-  }, []);
-
-  function handleStart(campaignId: CampaignId) {
-    router.push(`/story-mode/${campaignId}/play`);
-  }
-
-  function handleDelete(campaignId: CampaignId) {
-    localStorage.removeItem(getStorySaveKey(campaignId));
-    setSaves((prev) => ({ ...prev, [campaignId]: null }));
-  }
-
-  return (
-    <main
-      className="min-h-screen flex flex-col"
-      style={{ background: "linear-gradient(180deg, #08080f 0%, #0d0d18 100%)" }}
-    >
-      {/* Header */}
-      <div
-        className="sticky top-0 z-20 flex items-center justify-between px-5"
-        style={{
-          background: "rgba(8,8,15,0.9)",
-          backdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          paddingTop: "calc(env(safe-area-inset-top, 20px) + 12px)",
-          paddingBottom: "12px",
-        }}
-      >
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
-        >
-          <ChevronLeft size={18} />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-
-        <div
-          className="px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase"
-          style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}
-        >
-          ✦ Story Mode
-        </div>
-      </div>
-
-      {/* Hero */}
-      <div
-        className="px-5 pt-8 pb-6 text-center"
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}
-      >
-        <div className="text-5xl mb-4">📖</div>
-        <h1 className="text-3xl font-black text-white mb-3 leading-tight">
-          Choose Your<br />Founder Story
-        </h1>
-        <p className="text-slate-400 text-sm max-w-sm mx-auto leading-relaxed">
-          Step into the shoes of history's most iconic founders.
-          Every decision is yours. Every consequence is real.
-        </p>
-      </div>
-
-      {/* Campaign Cards */}
-      <div
-        className="px-4 pb-12 space-y-4 max-w-2xl mx-auto w-full"
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.5s ease 0.1s" }}
-      >
-        {CAMPAIGN_IDS.map((id, idx) => {
-          const campaign = CAMPAIGNS[id] as StoryCampaign;
-          if (!campaign) return null;
-          const save = saves[id];
-          const hasSave = !!save;
-
-          return (
-            <CampaignCard
-              key={id}
-              campaign={campaign}
-              save={save ?? null}
-              hasSave={hasSave}
-              index={idx}
-              onStart={() => handleStart(id)}
-              onDelete={() => handleDelete(id)}
-            />
-          );
-        })}
-
-        {/* Coming Soon — AeroSpaceX */}
-        <div
-          className="rounded-2xl p-5 opacity-40"
-          style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)" }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🚀</span>
-            <div>
-              <div className="text-sm font-bold text-slate-400">AeroSpaceX</div>
-              <div className="text-xs text-slate-600">Legendary Difficulty — Coming Soon</div>
-            </div>
-            <div className="ml-auto text-xs text-slate-600 font-bold uppercase tracking-wider">🔒</div>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-// ── Campaign Card ──────────────────────────────────────────────────────────────
-
-function CampaignCard({
-  campaign,
-  save,
-  hasSave,
-  index,
-  onStart,
-  onDelete,
-}: {
-  campaign: StoryCampaign;
-  save: StorySaveFile | null;
-  hasSave: boolean;
-  index: number;
-  onStart: () => void;
-  onDelete: () => void;
-}) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const accent = campaign.themeColors.accent;
-
-  const difficultyColor: Record<string, string> = {
-    Normal: "#22c55e",
-    Hard: "#f97316",
-    Legendary: "#ef4444",
-  };
-
-  return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: `1px solid ${accent}44`,
-        boxShadow: `0 0 40px ${accent}11`,
-        animation: `fadeSlideUp 0.4s ease ${index * 0.08}s both`,
-      }}
-    >
-      {/* Campaign Header Banner */}
-      <div
-        className="px-5 py-5 flex items-center gap-4"
-        style={{
-          background: `linear-gradient(135deg, ${accent}22, transparent)`,
-          borderBottom: `1px solid ${accent}22`,
-        }}
-      >
-        <span className="text-4xl">{campaign.founderEmoji}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-xl font-black text-white">{campaign.companyName}</span>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-bold"
-              style={{
-                background: `${difficultyColor[campaign.difficulty] ?? "#fff"}22`,
-                color: difficultyColor[campaign.difficulty] ?? "#fff",
-              }}
-            >
-              {campaign.difficulty}
-            </span>
-          </div>
-          <div className="text-xs text-slate-400">{campaign.tagline}</div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-5 py-4">
-        <p className="text-sm text-slate-400 leading-relaxed mb-4">{campaign.description}</p>
-
-        {/* Win Condition */}
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4 text-xs"
-          style={{ background: `${accent}11`, border: `1px solid ${accent}33` }}
-        >
-          <span>🏆</span>
-          <span className="text-slate-300 font-medium">{campaign.winCondition.description}</span>
-        </div>
-
-        {/* Save Info */}
-        {hasSave && save && (
-          <div
-            className="flex items-center justify-between px-3 py-2 rounded-lg mb-4 text-xs"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-          >
-            <div>
-              <span className="text-slate-500">Month </span>
-              <span className="text-white font-bold">{save.storyState.currentMonth}</span>
-              <span className="text-slate-500 mx-2">·</span>
-              <span className="text-slate-500">Val: </span>
-              <span className="font-bold" style={{ color: accent }}>
-                {formatValuation(save.startupSnapshot.valuation)}
-              </span>
-            </div>
-            <div className="text-slate-600">
-              {new Date(save.savedAt).toLocaleDateString()}
-            </div>
-          </div>
-        )}
-
-        {/* Acts preview */}
-        <div className="flex gap-1 mb-4">
-          {campaign.acts.map((act) => (
-            <div
-              key={act.act}
-              className="flex-1 text-center py-1.5 rounded-lg"
-              style={{ background: `${accent}11` }}
-            >
-              <div className="text-xs font-black" style={{ color: `${accent}cc` }}>
-                {act.act}
-              </div>
-              <div className="text-[0.55rem] text-slate-600 leading-tight truncate px-1">
-                {act.title.split(" ").slice(0, 2).join(" ")}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            onClick={onStart}
-            className="flex-1 py-3.5 rounded-xl font-black text-sm text-white transition-all duration-200"
-            style={{
-              background: `linear-gradient(135deg, ${accent}ee, ${accent}88)`,
-              boxShadow: `0 6px 20px ${accent}44`,
-            }}
-          >
-            {hasSave ? "▶ Continue Story" : "▶ Start Campaign"}
-          </button>
-
-          {hasSave && !confirmDelete && (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="px-4 py-3.5 rounded-xl text-slate-500 hover:text-red-400 transition-colors"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              🗑
-            </button>
-          )}
-
-          {confirmDelete && (
-            <button
-              onClick={() => { onDelete(); setConfirmDelete(false); }}
-              className="px-4 py-3.5 rounded-xl text-red-400 font-bold text-xs transition-all"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}
-            >
-              Confirm Delete
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Keyframe animation injected via style tag
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes fadeSlideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+const CLONE_CAMPAIGNS = [
+    {
+        id: "pineapple",
+        name: "Pineapple",
+        subtitle: "The Hardware Monopoly",
+        icon: "🍎",
+        color: "from-slate-700 to-slate-900",
+        description: "Start in a garage with Woz. Invent the personal computer, get ousted from your own company, return to save it from bankruptcy, and build the most valuable hardware ecosystem in history.",
+        features: ["Steve Jobs narrative", "Hardware R&D system", "Supply chain scandals", "The Keynote minigame"]
+    },
+    {
+        id: "bookface",
+        name: "BookFace",
+        subtitle: "The Social Empire",
+        icon: "👥",
+        color: "from-blue-600 to-blue-800",
+        description: "Launch a college hot-or-not site and ruthlessly scale it to 3 billion users. Betray your co-founders, fight privacy hearings, buy out competitors like PhotoGram, and pivot to the MetaVerse.",
+        features: ["Mark Zuckerberg narrative", "Viral loops & algorithms", "Congressional hearings", "Massive acquisitions"]
+    },
+    {
+        id: "searchgo",
+        name: "SearchGo",
+        subtitle: "The Infinite Money Glitch",
+        icon: "🔍",
+        color: "from-emerald-500 to-teal-700",
+        description: "Invent the ultimate search algorithm. Print billions with AdWords, try not to be evil, build a mobile OS monopoly, and fight a desperate Code Red war against new Chat AI startups.",
+        features: ["Larry Page narrative", "AdWords money printer", "Moonshot projects", "The AI arms race"]
+    },
+    {
+        id: "space-x",
+        name: "AeroSpaceX",
+        subtitle: "To Mars and Beyond",
+        icon: "🚀",
+        color: "from-rose-600 to-orange-700",
+        description: "Use your payout from a payments startup to build electric cars and reusable rockets. Sleep on the factory floor, smoke weed on podcasts, and try not to go bankrupt before orbit.",
+        features: ["Elon Musk narrative", "Manufacturing hell", "Exploding rockets", "Hostile Twitter takeovers"]
     }
-  `;
-  document.head.appendChild(style);
+];
+
+export default function StoryModeTeaser() {
+    const router = useRouter();
+    const { isDark } = useTheme();
+
+    const [votedCampaigns, setVotedCampaigns] = useState<Set<string>>(new Set());
+    const [joinedWaitlist, setJoinedWaitlist] = useState(false);
+
+    const handleVote = (campaignName: string) => {
+        if (votedCampaigns.has(campaignName)) return;
+
+        playSound("click");
+        analyticsService.logEvent("story_mode_vote", { campaign: campaignName });
+        
+        setVotedCampaigns(prev => new Set(prev).add(campaignName));
+        
+        toast.success(`Vote recorded for ${campaignName}!`, {
+            description: "Thanks for voting. We are prioritizing the most requested campaigns for the upcoming Story Mode."
+        });
+    };
+
+    return (
+        <main className="min-h-[100dvh] h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col relative overflow-hidden select-none">
+            {/* Background elements */}
+            <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 pointer-events-none overflow-hidden z-0">
+                <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-indigo-100/40 dark:from-indigo-950/40 to-transparent" />
+                <div className="absolute top-[10%] left-[-10%] w-[50%] aspect-square rounded-full bg-violet-400/20 dark:bg-violet-600/10 blur-[120px] animate-pulse" />
+                <div className="absolute bottom-[20%] right-[-10%] w-[50%] aspect-square rounded-full bg-amber-400/20 dark:bg-amber-600/10 blur-[120px]" />
+            </div>
+
+            {/* Header */}
+            <div className="sticky top-0 z-50 pt-[calc(env(safe-area-inset-top,40px)+1rem)] px-6 pb-4 flex items-center justify-between bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { playSound("click"); router.back(); }}
+                    className="gap-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full pl-2 pr-4 bg-white/50 dark:bg-black/20"
+                >
+                    <ChevronLeft className="size-4" />
+                    <span className="font-bold text-xs">Back</span>
+                </Button>
+                
+                <div className="flex items-center gap-2 bg-indigo-100/80 dark:bg-indigo-950/80 backdrop-blur-sm border border-indigo-200 dark:border-indigo-900 text-indigo-700 dark:text-indigo-400 px-3 py-1 rounded-full">
+                    <Sparkles className="size-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">In Development</span>
+                </div>
+            </div>
+
+            {/* Hero Content */}
+            <div className="relative z-10 px-6 pt-4 pb-8 flex-1 overflow-y-auto custom-scrollbar">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-xl mx-auto flex flex-col items-center text-center mb-10"
+                >
+                    <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-xl shadow-indigo-500/30 flex items-center justify-center mb-5 border border-white/20">
+                        <BookOpen className="size-8 text-white" />
+                    </div>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-3 leading-none">
+                        Story Mode
+                    </h1>
+                    <p className="text-slate-600 dark:text-slate-400 font-medium max-w-md text-sm md:text-base leading-relaxed">
+                        Step into the shoes of iconic founders. Rewrite history or follow the real timeline in highly curated, branching narrative campaigns where your sandbox stats dictate your success.
+                    </p>
+                </motion.div>
+
+                {/* Campaigns Grid */}
+                <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    {CLONE_CAMPAIGNS.map((campaign, idx) => (
+                        <motion.div
+                            key={campaign.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-3xl border border-white dark:border-white/5 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col"
+                        >
+                            <div className={`h-24 bg-gradient-to-br ${campaign.color} relative overflow-hidden flex items-center justify-center`}>
+                                <div className="absolute inset-0 bg-black/20" />
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-x-10 -translate-y-10" />
+                                <span className="text-5xl relative z-10 drop-shadow-xl group-hover:scale-110 transition-transform">{campaign.icon}</span>
+                            </div>
+                            
+                            <div className="p-6 flex-1 flex flex-col">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">{campaign.name}</h3>
+                                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-4">{campaign.subtitle}</p>
+                                
+                                <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mb-6 flex-1">
+                                    {campaign.description}
+                                </p>
+                                
+                                <div className="space-y-2 mb-6">
+                                    {campaign.features.map(feat => (
+                                        <div key={feat} className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                            <div className="size-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                            {feat}
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <Button 
+                                    onClick={() => handleVote(campaign.name)}
+                                    disabled={votedCampaigns.has(campaign.name)}
+                                    className={`w-full font-bold h-12 rounded-xl transition-all shadow-none ${
+                                        votedCampaigns.has(campaign.name) 
+                                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" 
+                                            : "bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 dark:bg-slate-800 dark:hover:bg-indigo-950/50 dark:text-slate-300 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700"
+                                    }`}
+                                >
+                                    {votedCampaigns.has(campaign.name) ? "Voted ✓" : "Vote for this Campaign"}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* General Waitlist */}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="max-w-xl mx-auto bg-gradient-to-r from-indigo-500 to-violet-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-indigo-500/20 mb-8"
+                >
+                    <Crown className="size-8 mx-auto mb-4 text-white/80" />
+                    <h3 className="text-2xl font-black mb-2">Want to play this next?</h3>
+                    <p className="text-indigo-100 text-sm font-medium mb-6">
+                        We are designing Story Mode right now. Cast your votes above, or join the general waitlist to get notified the second it drops.
+                    </p>
+                    <Button 
+                        onClick={() => { 
+                            if (joinedWaitlist) return;
+                            playSound("click"); 
+                            analyticsService.logEvent("story_mode_waitlist");
+                            setJoinedWaitlist(true);
+                            toast.success("You're on the waitlist!"); 
+                        }}
+                        disabled={joinedWaitlist}
+                        className={`rounded-xl h-12 px-8 font-black shadow-lg transition-all ${
+                            joinedWaitlist 
+                                ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                                : "bg-white text-indigo-600 hover:bg-indigo-50"
+                        }`}
+                    >
+                        {joinedWaitlist ? "Waitlist Joined ✓" : "Join Waitlist"}
+                    </Button>
+                </motion.div>
+            </div>
+
+            <Toaster position="top-center" toastOptions={{ style: { marginTop: 'calc(env(safe-area-inset-top, 40px) + 10px)' } }} />
+        </main>
+    );
 }

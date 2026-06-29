@@ -59,8 +59,14 @@ export default async function handler(
       const valid = data.purchaseState === 0;
       return response.status(200).json({ valid });
     } else {
-      console.warn(`[Verify] Google Play API returned ${res.status} for token. Likely pirated.`);
-      return response.status(200).json({ valid: false });
+      if (res.status === 400 || res.status === 404) {
+        console.warn(`[Verify] Google Play API returned ${res.status} for token. Likely pirated.`);
+        return response.status(200).json({ valid: false });
+      } else {
+        console.error(`[Verify] Google Play API returned ${res.status}. Server/Auth issue.`);
+        // Return an error string so the client grants gracefully instead of flagging as pirate
+        return response.status(200).json({ valid: false, error: `Google API Error: ${res.status}` });
+      }
     }
   } catch (error) {
     console.error('[Verify] Exception during verification:', error);

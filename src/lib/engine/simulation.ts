@@ -982,18 +982,25 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
     const baselineOrganicRaw = Math.max(0, (metrics.product_quality * 0.08) + (totalMarketingPower * 0.04));
     const baselineOrganic = baselineOrganicRaw * skillEffects.organicUserMultiplier;
 
+    const resolveFraction = (val: number) => {
+        if (isNaN(val) || !isFinite(val)) return 0;
+        const base = Math.floor(val);
+        return base + (Math.random() < (val - base) ? 1 : 0);
+    };
+
     if (isSLG) {
         if (!metrics.b2b_pipeline) metrics.b2b_pipeline = { leads: 0, active_deals: 0, closed_won: 0 };
-        metrics.b2b_pipeline.leads = isNaN(metrics.b2b_pipeline.leads) ? 0 : metrics.b2b_pipeline.leads;
-        metrics.b2b_pipeline.active_deals = isNaN(metrics.b2b_pipeline.active_deals) ? 0 : metrics.b2b_pipeline.active_deals;
-        metrics.b2b_pipeline.closed_won = isNaN(metrics.b2b_pipeline.closed_won) ? 0 : metrics.b2b_pipeline.closed_won;
+        metrics.b2b_pipeline.leads = (metrics.b2b_pipeline.leads == null || isNaN(metrics.b2b_pipeline.leads)) ? 0 : metrics.b2b_pipeline.leads;
+        metrics.b2b_pipeline.active_deals = (metrics.b2b_pipeline.active_deals == null || isNaN(metrics.b2b_pipeline.active_deals)) ? 0 : metrics.b2b_pipeline.active_deals;
+        metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won == null || isNaN(metrics.b2b_pipeline.closed_won)) ? 0 : metrics.b2b_pipeline.closed_won;
+        
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
 
         // SLG baseline leads: Even with 0 growth, a high pipeline power should yield some 'pity leads'
         const slgBaseline = (pipelinePower / 40);
         const growthLeads = metrics.users === 0 ? (pipelinePower / 25) * growthRate * 120 : metrics.users * (growthRate * 0.45 * (pipelinePower / 60));
-        newLeads = Math.floor(growthLeads + slgBaseline);
+        newLeads = resolveFraction(growthLeads + slgBaseline);
 
         // Cold start boost for 0-user SLG companies with a sales team
         if (metrics.users === 0 && newLeads < 1 && pipelinePower > 20) {
@@ -1003,7 +1010,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         if (newLeads < 1 && pipelinePower > 30) newLeads += 1;
 
         metrics.b2b_pipeline.leads += newLeads;
-        const toActive = Math.floor(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
+        const toActive = resolveFraction(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
         metrics.b2b_pipeline.leads -= toActive;
         metrics.b2b_pipeline.active_deals += toActive;
 
@@ -1012,7 +1019,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         const baseWinRate = configConversion / 100;
         const winRate = Math.min(1.0, baseWinRate * (1 + (qualityWinMult * 2)) * (1 + (totalSalesPower / 50)));
 
-        const toClosed = Math.floor(metrics.b2b_pipeline.active_deals * winRate);
+        const toClosed = resolveFraction(metrics.b2b_pipeline.active_deals * winRate);
         metrics.b2b_pipeline.active_deals -= toClosed;
         metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won || 0) + toClosed;
 
