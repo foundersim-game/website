@@ -914,7 +914,8 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         const overloadRatio = metrics.users / maxSafeUsers;
 
         // Passive Tech Debt from being overloaded
-        const debtSpike = Math.min(10, (overloadRatio - 1) * 2);
+        // BUFFED: Cap raised from 10 to 50 so players cannot out-heal severe overloads
+        const debtSpike = Math.min(50, (overloadRatio - 1) * 4);
         metrics.technical_debt = Math.min(100, metrics.technical_debt + debtSpike);
 
         // Morale crash from being overworked
@@ -993,7 +994,7 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         metrics.b2b_pipeline.leads = (metrics.b2b_pipeline.leads == null || isNaN(metrics.b2b_pipeline.leads)) ? 0 : metrics.b2b_pipeline.leads;
         metrics.b2b_pipeline.active_deals = (metrics.b2b_pipeline.active_deals == null || isNaN(metrics.b2b_pipeline.active_deals)) ? 0 : metrics.b2b_pipeline.active_deals;
         metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won == null || isNaN(metrics.b2b_pipeline.closed_won)) ? 0 : metrics.b2b_pipeline.closed_won;
-        
+
         const pipelinePower = (totalSalesPower * 0.7) + (totalMarketingPower * 0.3);
         let newLeads = 0;
 
@@ -1010,7 +1011,8 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         if (newLeads < 1 && pipelinePower > 30) newLeads += 1;
 
         metrics.b2b_pipeline.leads += newLeads;
-        const toActive = resolveFraction(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
+        const rawToActive = resolveFraction(metrics.b2b_pipeline.leads * 0.1 * (totalSalesPower / 60));
+        const toActive = Math.min(metrics.b2b_pipeline.leads, rawToActive);
         metrics.b2b_pipeline.leads -= toActive;
         metrics.b2b_pipeline.active_deals += toActive;
 
@@ -1019,7 +1021,8 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         const baseWinRate = configConversion / 100;
         const winRate = Math.min(1.0, baseWinRate * (1 + (qualityWinMult * 2)) * (1 + (totalSalesPower / 50)));
 
-        const toClosed = resolveFraction(metrics.b2b_pipeline.active_deals * winRate);
+        const rawToClosed = resolveFraction(metrics.b2b_pipeline.active_deals * winRate);
+        const toClosed = Math.min(metrics.b2b_pipeline.active_deals, rawToClosed);
         metrics.b2b_pipeline.active_deals -= toClosed;
         metrics.b2b_pipeline.closed_won = (metrics.b2b_pipeline.closed_won || 0) + toClosed;
 
@@ -1039,6 +1042,30 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
             grossNewUsers = Math.floor(baselineOrganic / 2);
             metrics.users = (metrics.users || 0) + grossNewUsers;
         }
+    }
+
+    // --- ENFORCE TOTAL ADDRESSABLE MARKET (TAM) ---
+    // Clamps user numbers to stop integer overflow & infinite scaling exploits
+    let maxTAM = 1_000_000_000;
+    if (startup.gtm_motion === "SLG") {
+        if (industry === "SaaS Platform" || industry === "Dev Tools") maxTAM = 250_000;
+        else if (industry === "AI Platform") maxTAM = 100_000;
+        else maxTAM = 500_000;
+    } else {
+        if (industry === "Mobile Game") maxTAM = 3_000_000_000;
+        else if (industry === "Marketplace") maxTAM = 1_500_000_000;
+        else if (industry === "OTT / Streaming") maxTAM = 2_000_000_000;
+        else if (industry === "FinTech App") maxTAM = 1_000_000_000;
+        else if (industry === "SaaS Platform" || industry === "Dev Tools" || industry === "AI Platform") maxTAM = 100_000_000;
+        else maxTAM = 500_000_000;
+    }
+
+    if (metrics.users > maxTAM) metrics.users = maxTAM;
+    
+    if (metrics.b2b_pipeline) {
+        if (metrics.b2b_pipeline.leads > maxTAM * 10) metrics.b2b_pipeline.leads = maxTAM * 10;
+        if (metrics.b2b_pipeline.active_deals > maxTAM * 5) metrics.b2b_pipeline.active_deals = maxTAM * 5;
+        if (metrics.b2b_pipeline.closed_won && metrics.b2b_pipeline.closed_won > maxTAM) metrics.b2b_pipeline.closed_won = maxTAM;
     }
 
     const { monthlyRevenue, monthlyCogs, monthlyOpex, paidUsers } = calculateFinancials(newStartup, founder, { users: metrics.users, pricing: metrics.pricing });
@@ -1108,15 +1135,15 @@ export function processMonth(founder: Founder, startup: Startup, action: Startup
         // Capacity overload churn: if users exceed capacity, customers get terrible support and buggy software, increasing churn
         if (metrics.users > maxSafeUsers && maxSafeUsers > 0) {
             const overloadRatio = metrics.users / maxSafeUsers;
-            // Up to +25% churn penalty if severely overloaded
-            const overloadChurn = Math.min(0.25, (overloadRatio - 1) * 0.05);
+            // Up to +50% churn penalty if severely overloaded (previously 25%)
+            const overloadChurn = Math.min(0.50, (overloadRatio - 1) * 0.05);
             currentChurn += overloadChurn;
         }
 
         if (scenarioRules.churnMultiplier) currentChurn *= scenarioRules.churnMultiplier;
 
-        // Hard cap: never exceed 40% monthly churn even in disasters
-        currentChurn = Math.min(0.40, currentChurn);
+        // Hard cap: never exceed 80% monthly churn even in disasters
+        currentChurn = Math.min(0.80, currentChurn);
 
         metrics.users = Math.max(0, metrics.users - Math.floor(metrics.users * currentChurn));
     }

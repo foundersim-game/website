@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Script from "next/script";
 import { analyticsService, GA_MEASUREMENT_ID } from "@/lib/services/analyticsService";
+import "@/lib/i18n";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

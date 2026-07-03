@@ -1,6 +1,7 @@
 import React from "react";
 import { PublicCompanyState, MarketStock, MacroEvent } from "@/lib/types/database.types";
 import { formatMoney } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export function PublicMarketTicker({
     publicState,
@@ -13,6 +14,7 @@ export function PublicMarketTicker({
     marketStocks: MarketStock[];
     activeMacroEvent?: MacroEvent | null;
 }) {
+    const { t } = useTranslation();
     if (!marketStocks || marketStocks.length === 0) return null;
 
     // Simulate intra-day variance for visual flavor
@@ -55,7 +57,7 @@ export function PublicMarketTicker({
                                     {sUp ? "+" : ""}{diff.toFixed(2)}%
                                 </span>
                                 {stock.recentNews && (
-                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {stock.recentNews.toUpperCase()}</span>
+                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews }).toUpperCase()}</span>
                                 )}
                             </span>
                             <span className="text-slate-600">|</span>
@@ -108,7 +110,7 @@ export function PublicMarketTicker({
                                     {sUp ? "+" : ""}{diff.toFixed(2)}%
                                 </span>
                                 {stock.recentNews && (
-                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {stock.recentNews.toUpperCase()}</span>
+                                    <span className="text-amber-400 font-bold ml-1 tracking-normal">🗞️ {t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews }).toUpperCase()}</span>
                                 )}
                             </span>
                             <span className="text-slate-600">|</span>

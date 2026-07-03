@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     TrendingUp, TrendingDown, X, BarChart2, Newspaper, Briefcase,
@@ -70,9 +71,10 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
 
 // ── PORTFOLIO EQUITY CURVE ────────────────────────────────────────────────────
 function EquityCurve({ history }: { history: { month: number; value: number }[] }) {
+    const { t } = useTranslation();
     if (history.length < 2) return (
         <div className="h-32 flex items-center justify-center text-slate-400 text-xs">
-            Not enough data yet — advance more months
+            {t("dashboard.markets.not_enough_data", { defaultValue: "Not enough data yet — advance more months" })}
         </div>
     );
     const vals = history.map(h => h.value);
@@ -114,6 +116,7 @@ function EquityCurve({ history }: { history: { month: number; value: number }[] 
 
 // ── SHAREHOLDERS PANEL ────────────────────────────────────────────────────────
 function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct, startup }: { stock: MarketStock; personalOwnershipPct: number; corporateOwnershipPct: number; startup: any }) {
+    const { t } = useTranslation();
     let holders = [...(stock.shareholders || [])];
     
     // Filter out previous dynamic artifacts if they exist
@@ -143,6 +146,22 @@ function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct,
         holders.push({ name: "You (Founder)", type: "founder" as const, ownershipPct: 100 });
     }
 
+    const tName = (name: string) => {
+        const keyMap: Record<string, string> = {
+            "You (Personal)": "sh_name_you_personal",
+            "Corporate Treasury": "sh_name_corp_treasury",
+            "Parent": "sh_name_parent",
+            "You (Founder)": "sh_name_you_founder",
+            "Early Investors": "sh_name_early_investors",
+            "Public Float": "sh_name_public_float",
+            "Insider / Management": "sh_name_management",
+            "MGMT": "sh_name_management",
+            "Management": "sh_name_management"
+        };
+        if (keyMap[name]) return t(`dashboard.markets.${keyMap[name]}`, { defaultValue: name });
+        return name;
+    };
+
     const displayHolders = holders.sort((a, b) => b.ownershipPct - a.ownershipPct).slice(0, 6);
 
     const typeColor: Record<string, string> = {
@@ -154,23 +173,23 @@ function ShareholdersPanel({ stock, personalOwnershipPct, corporateOwnershipPct,
         parent_company: "bg-indigo-100 text-indigo-700",
     };
     const typeLabel: Record<string, string> = {
-        institution: "Fund",
-        founder: "MGMT",
-        vc: "VC",
-        public_float: "Float",
-        player: "You",
-        parent_company: "Parent",
+        institution: t("dashboard.markets.sh_type_fund", { defaultValue: "Fund" }),
+        founder: t("dashboard.markets.sh_type_mgmt", { defaultValue: "MGMT" }),
+        vc: t("dashboard.markets.sh_type_vc", { defaultValue: "VC" }),
+        public_float: t("dashboard.markets.sh_type_float", { defaultValue: "Float" }),
+        player: t("dashboard.markets.sh_type_you", { defaultValue: "You" }),
+        parent_company: t("dashboard.markets.sh_type_parent", { defaultValue: "Parent" }),
     };
 
     return (
         <div className="space-y-1.5">
             {displayHolders.map((sh, i) => (
                 <div key={i} className="flex items-center gap-2">
-                    <span className={`text-[0.5rem] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider w-[3rem] text-center shrink-0 ${typeColor[sh.type] || "bg-slate-100 text-slate-600"}`}>
+                    <span className={`text-[0.5rem] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider w-[4.5rem] text-center shrink-0 ${typeColor[sh.type] || "bg-slate-100 text-slate-600"}`}>
                         {typeLabel[sh.type] || sh.type}
                     </span>
                     <div className="grid grid-cols-[100px_1fr_40px] items-center gap-3 flex-1 min-w-0">
-                        <span className="text-[0.625rem] font-semibold text-slate-700 dark:text-slate-300 truncate">{sh.name === "Insider / Management" || sh.name === "MGMT" ? "Management" : sh.name}</span>
+                        <span className="text-[0.625rem] font-semibold text-slate-700 dark:text-slate-300 truncate">{tName(sh.name)}</span>
                         <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden w-full">
                             <div className={`h-full rounded-full transition-all ${sh.type === "player" ? "bg-emerald-500" : sh.type === "parent_company" ? "bg-indigo-500" : sh.type === "founder" ? "bg-amber-400" : sh.type === "vc" ? "bg-purple-400" : "bg-blue-400"}`}
                                 style={{ width: `${Math.min(100, sh.ownershipPct)}%` }} />
@@ -204,6 +223,7 @@ function StockDetail({
     const [tab, setTab] = useState<"trade" | "info" | "shareholders">("trade");
     const [toPremium, setToPremium] = useState(25);
     const [tradeMode, setTradeMode] = useState<"buy" | "sell">("buy");
+    const { t } = useTranslation();
 
     const portfolio = account === "personal" ? personalPortfolio : corporatePortfolio;
     const cash = account === "personal" ? personalCash : corporateCash;
@@ -245,14 +265,14 @@ function StockDetail({
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-white/70 text-xs font-bold uppercase tracking-widest">{stock.symbol}</span>
                             {stock.isRival && <span className="text-[0.5rem] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">RIVAL</span>}
-                            {stock.isSubsidiary && <span className="text-[0.5rem] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">SUBSIDIARY</span>}
+                            {stock.isSubsidiary && <span className="text-[0.5rem] font-black bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">{t("dashboard.markets.subsidiary", { defaultValue: "SUBSIDIARY" })}</span>}
                             {stock.poisonPillActive && <span className="text-[0.5rem] font-black bg-red-400/80 text-white px-2 py-0.5 rounded-full uppercase">☠️ Poison Pill</span>}
                         </div>
                         <h2 className="text-xl font-black text-white leading-tight">{stock.companyName}</h2>
                         <p className="text-white/70 text-[0.625rem] font-semibold mt-0.5">{stock.sector}</p>
                     </div>
                     <button onClick={onClose} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/20 text-white hover:bg-white/35 active:scale-95 transition-all text-[0.625rem] font-black uppercase tracking-widest">
-                        <ChevronRight className="size-3.5 rotate-180" /> Back
+                        <ChevronRight className="size-3.5 rotate-180" /> {t("dashboard.markets.back", { defaultValue: "Back" })}
                     </button>
                 </div>
                 <div className="flex items-end justify-between">
@@ -269,10 +289,10 @@ function StockDetail({
                 {playerOwnershipPct > 0 && (
                     <div className="mt-3 bg-white/10 rounded-xl px-3 py-2">
                         <div className="flex justify-between text-white/80 text-[0.5625rem] font-bold mb-1">
-                            <span>YOUR STAKE</span>
+                            <span>{t("dashboard.markets.your_stake", { defaultValue: "YOUR STAKE" })}</span>
                             <span>
                                 {playerOwnershipPct === Infinity ? "100" : playerOwnershipPct.toFixed(2)}%
-                                {(!stock.isSubsidiary && stock.symbol !== startup.symbol) && ` / ${threshold}% needed for takeover`}
+                                {(!stock.isSubsidiary && stock.symbol !== startup.symbol) && ` / ${threshold}% ${t("dashboard.markets.needed_for_takeover", { defaultValue: "needed for takeover" })}`}
                             </span>
                         </div>
                         <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
@@ -290,15 +310,15 @@ function StockDetail({
                 <div className={`text-[0.5625rem] font-black px-2 py-1 rounded-lg ${stock.momentum > 0.2 ? "bg-emerald-50 text-emerald-600" : stock.momentum < -0.2 ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-600"}`}>
                     MOM {stock.momentum > 0 ? "+" : ""}{(stock.momentum * 100).toFixed(0)}
                 </div>
-                <div className="flex-1 text-[0.5625rem] text-slate-500 font-medium truncate">{stock.recentNews || "No recent news"}</div>
+                <div className="flex-1 text-[0.5625rem] text-slate-500 font-medium truncate">{stock.recentNews ? t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews }) : t("dashboard.trading.no_news")}</div>
             </div>
 
             {/* Sub-tabs */}
             <div className="shrink-0 flex border-b border-slate-100 dark:border-slate-800 px-4">
-                {(["trade", "info", "shareholders"] as const).map(t => (
-                    <button key={t} onClick={() => setTab(t)}
-                        className={`flex-1 py-2.5 text-[0.625rem] font-black uppercase tracking-widest transition-colors ${tab === t ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
-                        {t === "trade" ? "Trade" : t === "info" ? "Stock Info" : "Holders"}
+                {(["trade", "info", "shareholders"] as const).map(tabKey => (
+                    <button key={tabKey} onClick={() => setTab(tabKey)}
+                        className={`flex-1 py-2.5 text-[0.625rem] font-black uppercase tracking-widest transition-colors ${tab === tabKey ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
+                        {tabKey === "trade" ? t("dashboard.trading.tabs.trade") : tabKey === "info" ? t("dashboard.trading.tabs.info") : t("dashboard.trading.tabs.holders")}
                     </button>
                 ))}
             </div>
@@ -312,9 +332,9 @@ function StockDetail({
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 flex items-center gap-3">
                                 <Briefcase className="size-4 text-indigo-500 shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Your Position</p>
-                                    <p className="text-sm font-black text-indigo-900 dark:text-indigo-100">{pos.shares.toLocaleString()} shares</p>
-                                    <p className="text-[0.625rem] text-indigo-500">Avg cost ${pos.averageCost.toFixed(2)} · P&L {pct(stock.currentPrice, pos.averageCost)}</p>
+                                    <p className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">{t("dashboard.trading.position", { defaultValue: "Your Position" })}</p>
+                                    <p className="text-sm font-black text-indigo-900 dark:text-indigo-100">{pos.shares.toLocaleString()} {t("dashboard.markets.shares_lowercase", { defaultValue: "shares" })}</p>
+                                    <p className="text-[0.625rem] text-indigo-500">{t("dashboard.markets.avg", { defaultValue: "Avg cost" })} ${pos.averageCost.toFixed(2)} &middot; {t("dashboard.trading.pnl", { defaultValue: "P&L" })} {pct(stock.currentPrice, pos.averageCost)}</p>
                                 </div>
                                 <p className={`text-sm font-black ${stock.currentPrice >= pos.averageCost ? "text-emerald-600" : "text-red-500"}`}>
                                     {stock.currentPrice >= pos.averageCost ? "+" : ""}{fmt((stock.currentPrice - pos.averageCost) * pos.shares)}
@@ -327,7 +347,7 @@ function StockDetail({
                             {(["buy", "sell"] as const).map(mode => (
                                 <button key={mode} onClick={() => { setTradeMode(mode); setShareInput("0"); }}
                                     className={`flex-1 py-1.5 rounded-lg text-[0.625rem] font-black uppercase tracking-widest transition-all ${tradeMode === mode ? (mode === "buy" ? "bg-emerald-500 text-white shadow-sm" : "bg-rose-500 text-white shadow-sm") : "text-slate-500"}`}>
-                                    {mode === "buy" ? "Buy Shares" : "Sell Shares"}
+                                    {mode === "buy" ? t("dashboard.trading.actions.buy_shares") : t("dashboard.trading.actions.sell_shares")}
                                 </button>
                             ))}
                         </div>
@@ -335,9 +355,9 @@ function StockDetail({
                         {/* Trade input */}
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <label className="text-[0.625rem] font-black text-slate-500 uppercase tracking-widest">Shares</label>
+                                <label className="text-[0.625rem] font-black text-slate-500 uppercase tracking-widest">{t("dashboard.trading.shares", { defaultValue: "Shares" })}</label>
                                 <span className="text-[0.625rem] font-bold text-slate-400">
-                                    {tradeMode === "buy" ? `Max buyable: ${Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares).toLocaleString()}` : `Owned: ${pos ? pos.shares.toLocaleString() : 0}`}
+                                    {tradeMode === "buy" ? `${t("dashboard.trading.max_buyable", { defaultValue: "Max buyable:" })} ${Math.min(Math.floor(cash / stock.currentPrice), availableFloatShares).toLocaleString()}` : `${t("dashboard.trading.owned", { defaultValue: "Owned:" })} ${pos ? pos.shares.toLocaleString() : 0}`}
                                 </span>
                             </div>
                             <input
@@ -379,7 +399,7 @@ function StockDetail({
 
                         {shares > 0 && (
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-[0.6875rem] text-slate-600 dark:text-slate-400 flex justify-between">
-                                <span>{tradeMode === "buy" ? "Total cost" : "Est. proceeds"}</span>
+                                <span>{tradeMode === "buy" ? t("dashboard.trading.total_cost", { defaultValue: "Total cost" }) : t("dashboard.trading.est_proceeds", { defaultValue: "Est. proceeds" })}</span>
                                 <span className="font-black text-slate-800 dark:text-slate-200">{fmt(cost)}</span>
                             </div>
                         )}
@@ -390,8 +410,8 @@ function StockDetail({
                                 disabled={tradeMode === "buy" ? !canBuy : !canSell}
                                 className={`w-full h-12 rounded-xl text-white font-black text-sm uppercase tracking-widest disabled:opacity-40 active:scale-95 transition-all shadow-lg ${tradeMode === "buy" ? "bg-emerald-500 shadow-emerald-500/30" : "bg-rose-500 shadow-rose-500/30"}`}>
                                 {tradeMode === "buy" 
-                                    ? `Buy ${shares > 0 ? shares.toLocaleString() : ""} Shares` 
-                                    : `Sell ${shares > 0 ? shares.toLocaleString() : ""} Shares`}
+                                    ? `${t("dashboard.trading.buy", { defaultValue: "Buy" })} ${shares > 0 ? shares.toLocaleString() : ""} ${t("dashboard.trading.shares", { defaultValue: "Shares" })}` 
+                                    : `${t("dashboard.trading.sell", { defaultValue: "Sell" })} ${shares > 0 ? shares.toLocaleString() : ""} ${t("dashboard.trading.shares", { defaultValue: "Shares" })}`}
                             </button>
                         </div>
 
@@ -400,21 +420,21 @@ function StockDetail({
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 space-y-3">
                                 <div className="flex items-center gap-2">
                                     <ShieldAlert className="size-4 text-amber-600" />
-                                    <p className="text-sm font-black text-amber-800">Hostile Takeover Eligible!</p>
+                                    <p className="text-sm font-black text-amber-800">{t("dashboard.markets.takeover_eligible", { defaultValue: "Hostile Takeover Eligible!" })}</p>
                                 </div>
-                                <p className="text-[0.625rem] text-amber-600">You hold {playerOwnershipPct.toFixed(1)}% — enough to initiate a {takeoverCheck.method}.</p>
+                                <p className="text-[0.625rem] text-amber-600">{t("dashboard.markets.takeover_desc", { defaultValue: `You hold ${playerOwnershipPct.toFixed(1)}% — enough to initiate a ${takeoverCheck.method}.`, pct: playerOwnershipPct.toFixed(1), method: takeoverCheck.method })}</p>
                                 <div className="space-y-2">
-                                    <label className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest">Tender Offer Premium: {toPremium}%</label>
+                                    <label className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest">{t("dashboard.markets.tender_offer_premium", { defaultValue: "Tender Offer Premium:" })} {toPremium}%</label>
                                     <input type="range" min={15} max={60} value={toPremium} onChange={e => setToPremium(+e.target.value)}
                                         className="w-full accent-amber-500" />
-                                    <p className="text-[0.5625rem] text-amber-600">Est. acceptance: {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% of float · Offered price: ${(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/share</p>
+                                    <p className="text-[0.5625rem] text-amber-600">{t("dashboard.markets.est_acceptance", { defaultValue: "Est. acceptance:" })} {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% {t("dashboard.markets.of_float", { defaultValue: "of float" })} &middot; {t("dashboard.markets.offered_price", { defaultValue: "Offered price:" })} ${(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/{t("dashboard.markets.share", { defaultValue: "share" })}</p>
                                     {stock.poisonPillActive && (
                                         <p className="text-[0.5625rem] text-red-600 font-bold">☠️ Poison pill active — add 40% to your budget</p>
                                     )}
                                 </div>
                                 <button onClick={() => onTenderOffer(stock, toPremium, account)}
                                     className="w-full h-10 rounded-xl bg-amber-500 text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-amber-500/30">
-                                    Launch Tender Offer
+                                    {t("dashboard.markets.launch_tender_offer", { defaultValue: "Launch Tender Offer" })}
                                 </button>
                             </div>
                         )}
@@ -436,21 +456,21 @@ function StockDetail({
                         {/* Latest news */}
                         {stock.recentNews && (
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">This Month</p>
-                                <p className="text-sm font-black text-slate-800 dark:text-slate-100">{stock.recentNews}</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mb-1">{t("dashboard.markets.this_month", { defaultValue: "This Month" })}</p>
+                                <p className="text-sm font-black text-slate-800 dark:text-slate-100">{t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews })}</p>
                                 {stock.newsContext && (
-                                    <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{stock.newsContext}</p>
+                                    <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{t(`dashboard.markets.news_context.${stock.newsContext.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.newsContext })}</p>
                                 )}
                             </div>
                         )}
                         {/* News history */}
                         {(stock.newsHistory || []).length > 0 && (
                             <div className="space-y-2">
-                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Previous Months</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.markets.prev_months", { defaultValue: "Previous Months" })}</p>
                                 {(stock.newsHistory || []).map((news, i) => (
                                     <div key={i} className="flex gap-2 items-start">
-                                        <span className="text-[0.5rem] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded shrink-0">{i + 1}mo ago</span>
-                                        <p className="text-[0.625rem] text-slate-600 dark:text-slate-400 font-medium">{news}</p>
+                                        <span className="text-[0.5rem] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded shrink-0">{i + 1}{t("dashboard.markets.mo_ago", { defaultValue: "mo ago" })}</span>
+                                        <p className="text-[0.625rem] text-slate-600 dark:text-slate-400 font-medium">{t(`dashboard.markets.news_headlines.${news.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: news })}</p>
                                     </div>
                                 ))}
                             </div>
@@ -458,12 +478,12 @@ function StockDetail({
                         {/* Fundamentals */}
                         <div className="grid grid-cols-2 gap-2">
                             {[
-                                { label: "Market Cap", value: fmt(stock.currentPrice * stock.sharesOutstanding) },
-                                { label: "P/E Ratio", value: stock.peRatio > 0 ? stock.peRatio.toFixed(1) : "N/A" },
-                                { label: "Shares Out.", value: `${(stock.sharesOutstanding / 1e6).toFixed(0)}M` },
-                                { label: "Volatility", value: `${(stock.volatility * 100).toFixed(1)}%` },
-                                { label: "52W High", value: `$${Math.max(...stock.priceHistory).toFixed(2)}` },
-                                { label: "52W Low", value: `$${Math.min(...stock.priceHistory).toFixed(2)}` },
+                                { label: t("dashboard.markets.market_cap", { defaultValue: "Market Cap" }), value: fmt(stock.currentPrice * stock.sharesOutstanding) },
+                                { label: t("dashboard.markets.pe_ratio", { defaultValue: "P/E Ratio" }), value: stock.peRatio > 0 ? stock.peRatio.toFixed(1) : "N/A" },
+                                { label: t("dashboard.markets.shares_out", { defaultValue: "Shares Out." }), value: `${(stock.sharesOutstanding / 1e6).toFixed(0)}M` },
+                                { label: t("dashboard.markets.volatility", { defaultValue: "Volatility" }), value: `${(stock.volatility * 100).toFixed(1)}%` },
+                                { label: t("dashboard.markets.52w_high", { defaultValue: "52W High" }), value: `$${Math.max(...stock.priceHistory).toFixed(2)}` },
+                                { label: t("dashboard.markets.52w_low", { defaultValue: "52W Low" }), value: `$${Math.min(...stock.priceHistory).toFixed(2)}` },
                             ].map(({ label, value }) => (
                                 <div key={label} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
                                     <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
@@ -478,18 +498,18 @@ function StockDetail({
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-1">
                             <Users className="size-3.5 text-slate-400" />
-                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Top Shareholders</p>
+                            <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.markets.top_shareholders", { defaultValue: "Top Shareholders" })}</p>
                         </div>
                         <ShareholdersPanel stock={stock} personalOwnershipPct={personalOwnershipPct} corporateOwnershipPct={corporateOwnershipPct} startup={startup} />
                         {playerOwnershipPct >= 5 && !stock.isSubsidiary && stock.symbol !== startup.symbol && (
                             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[0.5625rem] text-amber-700 font-medium">
-                                📋 SEC 13D Filing — Your {playerOwnershipPct.toFixed(1)}% stake is now public. Other shareholders are watching.
+                                {t("dashboard.markets.sec_13d", { defaultValue: `📋 SEC 13D Filing — Your ${playerOwnershipPct.toFixed(1)}% stake is now public. Other shareholders are watching.`, pct: playerOwnershipPct.toFixed(1) })}
                             </div>
                         )}
                         <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2">
-                            <p className="text-[0.5625rem] text-slate-500">Control threshold for this company:</p>
+                            <p className="text-[0.5625rem] text-slate-500">{t("dashboard.markets.control_threshold", { defaultValue: "Control threshold for this company:" })}</p>
                             <p className="text-sm font-black text-slate-800 dark:text-slate-200">{threshold}%
-                                <span className="text-[0.625rem] font-semibold text-slate-400 ml-1">({(stock.companyTier || "").replace("_", " ")})</span>
+                                <span className="text-[0.625rem] font-semibold text-slate-400 ml-1">({t(`dashboard.markets.tier_${stock.companyTier}`, { defaultValue: (stock.companyTier || "").replace("_", " ") })})</span>
                             </p>
                         </div>
                     </div>
@@ -530,6 +550,7 @@ export default function StockMarketView({
     personalPortfolioHistory = [], corporatePortfolioHistory = [],
     geniusUsesThisHour, lastGeniusResetTime, onInsiderTipUsed, activeTips
 }: StockMarketViewProps) {
+    const { t } = useTranslation();
     const [mainTab, setMainTab] = useState<"market" | "portfolio" | "news">("market");
     
     // Timer for Insider Tip cooldown
@@ -597,8 +618,8 @@ export default function StockMarketView({
             <div className="shrink-0 bg-gradient-to-br from-indigo-700 to-violet-800 px-4 pt-12 pb-4">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h1 className="text-xl font-black text-white">Markets</h1>
-                        <p className="text-indigo-200 text-xs font-medium">{stocks.filter(s => !s.isDelisted).length} stocks listed</p>
+                        <h1 className="text-xl font-black text-white">{t("dashboard.markets.markets_title", { defaultValue: "Markets" })}</h1>
+                        <p className="text-indigo-200 text-xs font-medium">{stocks.filter(s => !s.isDelisted).length} {t("dashboard.markets.stocks_listed", { defaultValue: "stocks listed" })}</p>
                     </div>
                     <button onClick={onClose} className="p-2 bg-white/20 rounded-full text-white"><X className="size-4" /></button>
                 </div>
@@ -609,7 +630,7 @@ export default function StockMarketView({
                         <button key={acc} onClick={() => setAccount(acc)}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.625rem] font-black uppercase tracking-widest transition-all ${account === acc ? "bg-white text-indigo-700" : "bg-white/15 text-white/70"}`}>
                             {acc === "personal" ? <User className="size-3" /> : <Building2 className="size-3" />}
-                            <span className="font-bold">{acc === "personal" ? "Personal" : "Corporate"}</span>
+                            <span className="font-bold">{acc === "personal" ? t("dashboard.markets.personal", { defaultValue: "Personal" }) : t("dashboard.markets.corporate", { defaultValue: "Corporate" })}</span>
                         </button>
                     ))}
                 </div>
@@ -617,15 +638,15 @@ export default function StockMarketView({
                 {/* Wealth summary */}
                 <div className="bg-white/10 rounded-2xl px-4 py-3 grid grid-cols-3 gap-3 text-center">
                     <div>
-                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Cash</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">{t("dashboard.markets.cash", { defaultValue: "Cash" })}</p>
                         <p className="text-white font-black text-sm mt-0.5">{fmt(cash)}</p>
                     </div>
                     <div>
-                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Portfolio</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">{t("dashboard.markets.portfolio", { defaultValue: "Portfolio" })}</p>
                         <p className="text-white font-black text-sm mt-0.5">{fmt(portValue)}</p>
                     </div>
                     <div>
-                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">Total</p>
+                        <p className="text-indigo-200 text-[0.5rem] font-bold uppercase tracking-widest">{t("dashboard.markets.total", { defaultValue: "Total" })}</p>
                         <p className="text-emerald-300 font-black text-sm mt-0.5">{fmt(totalWealth)}</p>
                     </div>
                 </div>
@@ -637,7 +658,7 @@ export default function StockMarketView({
                         <div className="flex items-center gap-2">
                             <Zap className={`size-3 ${cfoAutoTrade ? "text-emerald-300" : "text-white/50"}`} />
                             <span className={`text-[0.625rem] font-black uppercase tracking-widest ${cfoAutoTrade ? "text-emerald-300" : "text-white/60"}`}>
-                                CFO Auto-Trading {cfoAutoTrade ? "ON" : "OFF"}
+                                {t("dashboard.markets.cfo_auto_trading", { defaultValue: "CFO Auto-Trading" })} {cfoAutoTrade ? t("dashboard.markets.on", { defaultValue: "ON" }) : t("dashboard.markets.off", { defaultValue: "OFF" })}
                             </span>
                         </div>
                         <div className={`w-8 h-4 rounded-full transition-all ${cfoAutoTrade ? "bg-emerald-400" : "bg-white/20"}`}>
@@ -651,15 +672,15 @@ export default function StockMarketView({
             <div className="bg-slate-900 px-4 py-2 flex justify-between items-center text-xs border-b border-slate-800 shrink-0 shadow-sm">
                 {geniusUsesThisHour >= 2 ? (
                     <div className="flex items-center gap-2 text-rose-500 font-semibold tracking-wide uppercase">
-                        <Shield className="w-3.5 h-3.5" /> SEC Surveillance Active ({formatTime(timeLeft)})
+                        <Shield className="w-3.5 h-3.5" /> {t("dashboard.markets.sec_surveillance", { defaultValue: "SEC Surveillance Active" })} ({formatTime(timeLeft)})
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 text-purple-400 font-semibold tracking-wide uppercase">
-                        <Zap className="w-3.5 h-3.5" /> Market Genius
+                        <Zap className="w-3.5 h-3.5" /> {t("dashboard.markets.market_genius", { defaultValue: "Insider Insight" })}
                     </div>
                 )}
                 <div className="flex items-center gap-3">
-                    <span className="text-slate-400">Tips: {2 - geniusUsesThisHour}/2 left</span>
+                    <span className="text-slate-400">{t("dashboard.markets.tips", { defaultValue: "Tips:" })} {2 - geniusUsesThisHour}/2 {t("dashboard.markets.left", { defaultValue: "left" })}</span>
                     <button 
                         onClick={() => {
                             if (geniusUsesThisHour >= 2) return;
@@ -670,7 +691,7 @@ export default function StockMarketView({
                         disabled={geniusUsesThisHour >= 2}
                         className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors"
                     >
-                        {geniusUsesThisHour >= 2 ? <Lock className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />} Insider Tip
+                        {geniusUsesThisHour >= 2 ? <Lock className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />} {t("dashboard.markets.insider_tip", { defaultValue: "Insider Tip" })}
                     </button>
                 </div>
             </div>
@@ -678,9 +699,9 @@ export default function StockMarketView({
             {/* Main tabs */}
             <div className="shrink-0 flex border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950">
                 {([
-                    { key: "market", icon: BarChart2, label: "Market" },
-                    { key: "portfolio", icon: Briefcase, label: "Portfolio" },
-                    { key: "news", icon: Newspaper, label: "News Feed" },
+                    { key: "market", icon: BarChart2, label: t("dashboard.markets.tab_market", { defaultValue: "Market" }) },
+                    { key: "portfolio", icon: Briefcase, label: t("dashboard.markets.tab_portfolio", { defaultValue: "Portfolio" }) },
+                    { key: "news", icon: Newspaper, label: t("dashboard.markets.tab_news", { defaultValue: "News Feed" }) },
                 ] as const).map(({ key, icon: Icon, label }) => (
                     <button key={key} onClick={() => setMainTab(key as any)}
                         className={`flex-1 flex flex-col items-center py-3 gap-0.5 transition-colors ${mainTab === key ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400"}`}>
@@ -697,13 +718,13 @@ export default function StockMarketView({
                         {/* Search + filter */}
                         <div className="px-4 pt-3 pb-2 space-y-2 sticky top-0 bg-white dark:bg-slate-950 z-10 border-b border-slate-50 dark:border-slate-900 shadow-sm">
                             <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                                placeholder="Search stocks..."
+                                placeholder={t("dashboard.markets.search_stocks", { defaultValue: "Search stocks..." })}
                                 className="w-full h-9 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none border-2 border-transparent focus:border-indigo-300" />
                             <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                                 {sectors.map(s => (
                                     <button key={s} onClick={() => setSectorFilter(s)}
                                         className={`shrink-0 px-2.5 py-1 rounded-full text-[0.5625rem] font-black uppercase tracking-widest transition-all border ${sectorFilter === s ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"}`}>
-                                        {s}
+                                        {t(`dashboard.markets.sector_${s.toLowerCase()}`, { defaultValue: s })}
                                     </button>
                                 ))}
                             </div>
@@ -712,11 +733,11 @@ export default function StockMarketView({
                         {/* Active Tips */}
                         {activeTips && activeTips.length > 0 && (
                             <div className="px-4 py-2 bg-purple-50 dark:bg-slate-800/80 border-b border-purple-100 dark:border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-inner">
-                                <span className="text-[0.625rem] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider whitespace-nowrap">Active Tips:</span>
-                                {activeTips.map(t => (
-                                    <div key={t.symbol} className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-200 dark:border-purple-900 text-[0.625rem] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap shadow-sm">
+                                <span className="text-[0.625rem] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider whitespace-nowrap">{t("dashboard.markets.active_tips", { defaultValue: "Active Tips:" })}</span>
+                                {activeTips.map(tip => (
+                                    <div key={tip.symbol} className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-purple-200 dark:border-purple-900 text-[0.625rem] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap shadow-sm">
                                         <Zap className="w-3 h-3 text-purple-500" />
-                                        {t.symbol} <span className="text-slate-400 font-normal">({t.monthsLeft}mo)</span>
+                                        {tip.symbol} <span className="text-slate-400 font-normal">({tip.monthsLeft}{t("dashboard.markets.mo", { defaultValue: "mo" })})</span>
                                     </div>
                                 ))}
                             </div>
@@ -740,10 +761,10 @@ export default function StockMarketView({
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100 truncate">{stock.companyName}</p>
-                                                {owned > 0 && <span className="text-[0.4375rem] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">HELD</span>}
-                                                {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full shrink-0">RIVAL</span>}
+                                                {owned > 0 && <span className="text-[0.4375rem] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">{t("dashboard.markets.held", { defaultValue: "HELD" })}</span>}
+                                                {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full shrink-0">{t("dashboard.markets.rival", { defaultValue: "RIVAL" })}</span>}
                                             </div>
-                                            <p className="text-[0.625rem] text-slate-400 font-medium truncate">{stock.recentNews || "No news"}</p>
+                                            <p className="text-[0.625rem] text-slate-400 font-medium truncate">{stock.recentNews ? t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews }) : t("dashboard.markets.no_news", { defaultValue: "No news" })}</p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <Sparkline data={stock.priceHistory} positive={change >= 0} />
@@ -768,7 +789,7 @@ export default function StockMarketView({
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
                             <div className="flex justify-between items-center mb-3">
                                 <div>
-                                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Portfolio Value</p>
+                                    <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.markets.portfolio_value", { defaultValue: "Portfolio Value" })}</p>
                                     <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{fmt(portValue)}</p>
                                 </div>
                                 {portHistory.length >= 2 && (
@@ -777,7 +798,7 @@ export default function StockMarketView({
                                             {portHistory[portHistory.length - 1].value >= portHistory[0].value ? "+" : ""}
                                             {fmt(portHistory[portHistory.length - 1].value - portHistory[0].value)}
                                         </p>
-                                        <p className="text-[0.5625rem] text-slate-400">all time</p>
+                                        <p className="text-[0.5625rem] text-slate-400">{t("dashboard.markets.all_time", { defaultValue: "all time" })}</p>
                                     </div>
                                 )}
                             </div>
@@ -788,12 +809,12 @@ export default function StockMarketView({
                         {portfolio.length === 0 ? (
                             <div className="text-center py-10">
                                 <Briefcase className="size-10 text-slate-200 mx-auto mb-3" />
-                                <p className="text-slate-400 font-semibold text-sm">No holdings yet</p>
-                                <p className="text-slate-300 text-xs mt-1">Go to Market tab to start investing</p>
+                                <p className="text-slate-400 font-semibold text-sm">{t("dashboard.markets.no_holdings", { defaultValue: "No holdings yet" })}</p>
+                                <p className="text-slate-300 text-xs mt-1">{t("dashboard.markets.go_to_market_tab", { defaultValue: "Go to Market tab to start investing" })}</p>
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">Holdings</p>
+                                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.markets.holdings", { defaultValue: "Holdings" })}</p>
                                 {portfolio.map(pos => {
                                     const foundStock = stocks.find(s => s.symbol === pos.symbol);
                                     // Fallback for private/pre-IPO shares (like founder equity) not yet listed
@@ -822,7 +843,7 @@ export default function StockMarketView({
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100">{displayStock.symbol}</p>
-                                                <p className="text-[0.625rem] text-slate-400">{pos.shares.toLocaleString()} shares · avg ${pos.averageCost.toFixed(2)}</p>
+                                                <p className="text-[0.625rem] text-slate-400">{pos.shares.toLocaleString()} {t("dashboard.markets.shares_lowercase", { defaultValue: "shares" })} &middot; {t("dashboard.markets.avg", { defaultValue: "avg" })} ${pos.averageCost.toFixed(2)}</p>
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">{fmt(currentVal)}</p>
@@ -844,7 +865,7 @@ export default function StockMarketView({
                     <div className="px-4 py-4 space-y-3">
                         <div className="flex items-center gap-2 mb-1">
                             <Info className="size-3 text-slate-400" />
-                            <p className="text-[0.5625rem] text-slate-400 font-medium">News for stocks you hold, your company, rivals & subsidiaries</p>
+                            <p className="text-[0.5625rem] text-slate-400 font-medium">{t("dashboard.markets.news_desc", { defaultValue: "News for stocks you hold, your company, rivals & subsidiaries" })}</p>
                         </div>
                         {newsStocks.length === 0 ? (
                             <div className="text-center py-10">
@@ -864,15 +885,15 @@ export default function StockMarketView({
                                             <span className={`text-[0.5rem] font-black px-2 py-0.5 rounded-full border ${SECTOR_BADGE[stock.sector] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
                                                 {stock.symbol}
                                             </span>
-                                            {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full">RIVAL</span>}
-                                            {stock.isSubsidiary && <span className="text-[0.4375rem] font-black bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full">SUBSIDIARY</span>}
+                                            {stock.isRival && <span className="text-[0.4375rem] font-black bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full">{t("dashboard.markets.rival", { defaultValue: "RIVAL" })}</span>}
+                                            {stock.isSubsidiary && <span className="text-[0.4375rem] font-black bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full">{t("dashboard.markets.subsidiary", { defaultValue: "SUBSIDIARY" })}</span>}
                                             <span className={`ml-auto text-[0.625rem] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                                                 {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                                             </span>
                                         </div>
-                                        <p className="text-sm font-black text-slate-800 dark:text-slate-100">{stock.recentNews}</p>
+                                        <p className="text-sm font-black text-slate-800 dark:text-slate-100">{t(`dashboard.markets.news_headlines.${stock.recentNews.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.recentNews })}</p>
                                         {stock.newsContext && (
-                                            <p className="text-[0.625rem] text-slate-500 mt-1 leading-relaxed">{stock.newsContext}</p>
+                                            <p className="text-[0.625rem] text-slate-500 mt-1 leading-relaxed">{t(`dashboard.markets.news_context.${stock.newsContext.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: stock.newsContext })}</p>
                                         )}
                                     </button>
                                 );

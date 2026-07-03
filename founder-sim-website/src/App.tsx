@@ -87,18 +87,18 @@ const LandingPage = () => {
   ];
 
   const v2Features = [
+    { icon: '🏆', label: 'Global Leaderboards', desc: 'Compete against founders worldwide to claim the top spot' },
+    { icon: '🎬', label: 'Story Mode', desc: 'Vote on upcoming cinematic campaigns of iconic founders' },
+    { icon: '🧠', label: 'Founder Burnout', desc: 'Balance your mental health or face severe attribute penalties' },
+    { icon: '🤝', label: 'True Team Morale', desc: 'Morale is a real-time reflection of your active team' },
+    { icon: '🧙‍♂️', label: 'On-Demand Mentor', desc: 'Sam is always a tap away on your dashboard' },
+    { icon: '✨', label: 'Strategic Actions', desc: 'Bribe senators, run viral TikTok campaigns, and poach 10x talent' },
     { icon: '🦈', label: 'M&A Acquisitions', desc: 'Acquire rival companies and integrate them as subsidiaries' },
     { icon: '📉', label: 'Executive Stock Options', desc: 'Grant yourself options and use margin loans against your equity' },
     { icon: '💳', label: 'Margin Loans', desc: 'Borrow against your founder equity for personal leverage' },
-    { icon: '📄', label: '10b5-1 Plans', desc: 'Automated insider selling schedule for compliance' },
-    { icon: '🏛️', label: 'Congressional Lobbying', desc: 'Influence regulations to protect your market position' },
     { icon: '💸', label: 'Share Buybacks', desc: 'Deploy treasury cash to boost your stock price' },
-    { icon: '🏢', label: 'Subsidiary Management', desc: 'Oversee and integrate acquired companies' },
-    { icon: '🎲', label: 'Skill Web System', desc: 'Unlock 50+ founder skills across 6 branches' },
     { icon: '🎙️', label: 'Earnings Calls', desc: 'Present quarterly results to Wall Street analysts' },
     { icon: '⚖️', label: 'Crisis Engine', desc: 'Navigate lawsuits, scandals, and regulatory crackdowns' },
-    { icon: '👤', label: 'Founder Lifestyle', desc: 'Luxury assets, philanthropy, and personal brand' },
-    { icon: '🌐', label: 'Public Market Ticker', desc: 'Watch your stock price move with real-time sentiment' },
   ];
 
   const steps = [
@@ -121,8 +121,8 @@ const LandingPage = () => {
       {/* ── V2 ANNOUNCEMENT BANNER ── */}
       <div className="v2-banner">
         <Sparkles size={13} style={{ color: 'var(--amber)' }} />
-        <span className="v2-banner-text">🎉 VERSION 2.0.0 — THE EMPIRE ERA — IS NOW LIVE</span>
-        <span className="v2-banner-sub">12 major new features including M&A, Corporate Debt & the Earnings Call system</span>
+        <span className="v2-banner-text">🎉 VERSION 2.1.0 — LEADERBOARDS & STORY MODE — IS NOW LIVE</span>
+        <span className="v2-banner-sub">Compete globally, manage burnout, and vote on upcoming cinematic campaigns</span>
         <a href="#v2" className="v2-banner-cta">See What's New <ArrowRight size={11} /></a>
       </div>
 
@@ -221,14 +221,18 @@ const LandingPage = () => {
             <motion.div className="store-row" style={{ marginBottom: 56 }}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
               <a href="https://apps.apple.com/app/founder-sim/id6738854346" target="_blank" rel="noreferrer" className="store-badge">
-                <span style={{ fontSize: 24 }}>🍎</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43Zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-1.089-.058-2.254.969-2.741.969-.487 0-1.432-.979-2.261-.979-1.254 0-2.584.87-3.411 2.155-1.674 2.582-1.272 5.617.387 8.01 1.01 1.464 2.285 3.12 3.86 3.064 1.575-.058 2.059-.971 3.86-.971 1.8 0 2.285.971 3.86.971 1.575 0 2.85-1.59 3.86-3.053.847-1.226 1.14-2.428 1.14-2.428s-1.89-1.745-1.89-3.84c0-2.095 1.705-2.99 1.705-2.99Z" />
+                </svg>
                 <div>
                   <span className="store-badge-sub">Download on the</span>
                   <span className="store-badge-main">App Store</span>
                 </div>
               </a>
               <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer" className="store-badge">
-                <span style={{ fontSize: 24 }}>🤖</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M14.316 7.332 2.628 1.139C2.086.85 1.401 1.252 1.401 1.87v12.261c0 .618.685 1.02 1.227.73l11.688-6.192c.563-.298.563-1.135 0-1.433v-.004Z" />
+                </svg>
                 <div>
                   <span className="store-badge-sub">Get it on</span>
                   <span className="store-badge-main">Google Play</span>
@@ -303,20 +307,20 @@ const LandingPage = () => {
 
 
 
-      {/* ── V2.0 ANNOUNCEMENT SECTION ── */}
+      {/* ── V2.1 ANNOUNCEMENT SECTION ── */}
       <Reveal id="v2">
         <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 72 }}>
           <div className="v2-release-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
             <Zap size={16} style={{ color: 'var(--amber)' }} />
-            <span>VERSION 2.0.0 — THE EMPIRE ERA</span>
+            <span>VERSION 2.1.0 — LEADERBOARDS & STORY MODE</span>
             <Zap size={16} style={{ color: 'var(--amber)' }} />
           </div>
           <h2 className="section-title" style={{ fontSize: 'clamp(34px,4.5vw,64px)', marginBottom: 20 }}>
             THE BIGGEST UPDATE<br /><span className="glow-amber">IN FOUNDER SIM HISTORY</span>
           </h2>
           <p style={{ fontSize: 17, color: 'var(--text-muted)', maxWidth: 620, margin: '0 auto', lineHeight: 1.8 }}>
-            V2.0 transforms Founder Sim from a funding simulator into a full-blown empire-building game.
-            Go public, acquire competitors, trade options on your own stock, and lobby Congress.
+            V2.1 transforms Founder Sim from a funding simulator into a massive global competition.
+            Compete on the leaderboards, vote for upcoming cinematic stories, and manage your stress.
             The empire era has begun.
           </p>
         </motion.div>
@@ -334,7 +338,7 @@ const LandingPage = () => {
         <motion.div variants={fadeUp} style={{ textAlign: 'center', marginTop: 56 }}>
           <a href="https://apps.apple.com/app/founder-sim/id6738854346" target="_blank" rel="noreferrer"
             className="btn btn-brand" style={{ fontSize: 13 }}>
-            Play V2.0.0 Free <ArrowRight size={14} />
+            Play V2.1.0 Free <ArrowRight size={14} />
           </a>
         </motion.div>
       </Reveal>

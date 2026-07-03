@@ -13,6 +13,7 @@ import {
     type LeaderboardEntry,
 } from "@/lib/services/leaderboardService";
 import { formatMoney } from "@/lib/utils";
+import { useTranslation, Trans } from "react-i18next";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const OUTCOME_BADGE: Record<string, { label: string; cls: string }> = {
@@ -64,6 +65,7 @@ function getTierFromValuation(valuation: number): string {
 // ── Username Claim Flow ───────────────────────────────────────────────────────
 
 function UsernameSetup({ onDone }: { onDone: (username: string) => void }) {
+    const { t } = useTranslation();
     const [tag, setTag]             = useState("");
     const [status, setStatus]       = useState<"idle"|"checking"|"available"|"taken"|"invalid">("idle");
     const [statusMsg, setStatusMsg] = useState("");
@@ -113,10 +115,12 @@ function UsernameSetup({ onDone }: { onDone: (username: string) => void }) {
                 </div>
                 <div className="text-center">
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                        Join the Leaderboard
+                        {t('leaderboard.join_leaderboard')}
                     </h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-xs leading-relaxed">
-                        Pick a permanent username. Your stats across <strong className="text-slate-700 dark:text-slate-300">all your ventures</strong> will accumulate under this name — forever.
+                        <Trans i18nKey="leaderboard.join_desc">
+                            Pick a permanent username. Your stats across <strong className="text-slate-700 dark:text-slate-300">all your ventures</strong> will accumulate under this name — forever.
+                        </Trans>
                     </p>
                 </div>
             </div>
@@ -151,11 +155,11 @@ function UsernameSetup({ onDone }: { onDone: (username: string) => void }) {
                 disabled={status !== "available" || claiming}
                 className="w-full max-w-xs py-5 rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest text-sm shadow-xl shadow-amber-500/30 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-                {claiming ? "Claiming..." : "Claim & Enter Leaderboard →"}
+                {claiming ? t('leaderboard.claiming') : t('leaderboard.claim_button')}
             </button>
 
             <p className="text-[0.625rem] text-slate-400 text-center max-w-xs">
-                Your username is permanent and visible to all players. Choose wisely.
+                {t('leaderboard.permanent_warning')}
             </p>
         </div>
     );
@@ -169,6 +173,7 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
     isMe: boolean;
     category: "bestVentureValuation" | "totalLifetimeCash";
 }) {
+    const { t } = useTranslation();
     const venture = entry.currentVenture;
     const outcome = venture?.outcome ?? "active";
     const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE["active"];
@@ -235,14 +240,16 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
                         </span>
                     )}
                     <span className={`text-[0.5625rem] font-black px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
-                        {badge.label}
+                        {t(`leaderboard.badge_${outcome}`, { defaultValue: badge.label })}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[0.5625rem] font-black ${tierCls}`}>{tier}</span>
+                    <span className={`text-[0.5625rem] font-black ${tierCls}`}>
+                        {t(`leaderboard.tier_${tier.replace(/ /g, "_").toLowerCase()}`, { defaultValue: tier })}
+                    </span>
                     <span className="text-[0.5625rem] text-slate-400 dark:text-slate-500">
-                        · {displayVentures} venture{displayVentures !== 1 ? "s" : ""}
-                        · {displayMonths}mo played
+                        · {displayVentures} {displayVentures !== 1 ? t("leaderboard.ventures", { defaultValue: "ventures" }) : t("leaderboard.venture", { defaultValue: "venture" })}
+                        · {displayMonths}{t("leaderboard.mo_played", { defaultValue: "mo played" })}
                     </span>
                 </div>
             </div>
@@ -253,7 +260,9 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
                     {category === "bestVentureValuation" ? formatMoney(entry.bestVentureValuation) : formatMoney(entry.totalLifetimeCash)}
                 </p>
                 <p className="text-[0.5625rem] text-slate-400 dark:text-slate-500">
-                    {category === "bestVentureValuation" ? `Lifetime Cash: ${formatMoney(entry.totalLifetimeCash)}` : `Peak Valuation: ${formatMoney(entry.bestVentureValuation)}`}
+                    {category === "bestVentureValuation" 
+                        ? `${t("leaderboard.lifetime_cash", { defaultValue: "Lifetime Cash:" })} ${formatMoney(entry.totalLifetimeCash)}` 
+                        : `${t("leaderboard.peak_val", { defaultValue: "Peak Valuation:" })} ${formatMoney(entry.bestVentureValuation)}`}
                 </p>
             </div>
         </div>
@@ -263,6 +272,7 @@ function LeaderboardRow({ entry, rank, isMe, category }: {
 // ── Stats Header ──────────────────────────────────────────────────────────────
 
 function StatsHeader({ entries, username, globalRank, totalPlayers, category }: { entries: LeaderboardEntry[]; username: string | null; globalRank: number | null; totalPlayers: number; category: "bestVentureValuation" | "totalLifetimeCash" }) {
+    const { t } = useTranslation();
     const topEntry = entries[0];
 
     return (
@@ -271,19 +281,19 @@ function StatsHeader({ entries, username, globalRank, totalPlayers, category }: 
                 <p className="text-base font-black text-amber-600 dark:text-amber-400">
                     {topEntry ? (category === "bestVentureValuation" ? formatMoney(topEntry.bestVentureValuation) : formatMoney(topEntry.totalLifetimeCash)) : "—"}
                 </p>
-                <p className="text-[0.5625rem] font-black text-amber-500 uppercase tracking-widest mt-0.5">{category === "bestVentureValuation" ? "Top Valuation" : "Top Lifetime Cash"}</p>
+                <p className="text-[0.5625rem] font-black text-amber-500 uppercase tracking-widest mt-0.5">{category === "bestVentureValuation" ? t('leaderboard.top_valuation') : t('leaderboard.top_lifetime_cash')}</p>
             </div>
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-3 text-center border border-indigo-100 dark:border-indigo-800/40">
                 <p className="text-base font-black text-indigo-600 dark:text-indigo-400">
                     {globalRank && globalRank > 0 ? `#${globalRank}` : "—"}
                 </p>
-                <p className="text-[0.5625rem] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Your Rank</p>
+                <p className="text-[0.5625rem] font-black text-indigo-500 uppercase tracking-widest mt-0.5">{t('leaderboard.your_rank')}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 text-center border border-slate-100 dark:border-slate-700/50">
                 <p className="text-base font-black text-slate-700 dark:text-slate-300">
                     {totalPlayers > 0 ? Math.max(totalPlayers, globalRank || 0).toLocaleString() : "—"}
                 </p>
-                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mt-0.5">Founders</p>
+                <p className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest mt-0.5">{t('leaderboard.founders')}</p>
             </div>
         </div>
     );
@@ -298,6 +308,7 @@ interface Props {
 }
 
 export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
+    const { t } = useTranslation();
     const [username, setUsername]   = useState<string | null>(null);
     const [showSetup, setShowSetup] = useState(false);
     const [entries, setEntries]     = useState<LeaderboardEntry[]>([]);
@@ -362,20 +373,20 @@ export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
                 </button>
                 <div className="flex-1 min-w-0">
                     <h1 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                        🏆 Global Leaderboard
+                        🏆 {t('leaderboard.global_leaderboard')}
                     </h1>
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 mt-1.5 w-max">
                         <button 
                             onClick={() => setCategory("bestVentureValuation")}
                             className={`px-3 py-1 rounded-md text-[0.5625rem] font-black uppercase tracking-widest transition-all ${category === "bestVentureValuation" ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"}`}
                         >
-                            Peak Valuation
+                            {t('leaderboard.peak_valuation')}
                         </button>
                         <button 
                             onClick={() => setCategory("totalLifetimeCash")}
                             className={`px-3 py-1 rounded-md text-[0.5625rem] font-black uppercase tracking-widest transition-all ${category === "totalLifetimeCash" ? "bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}
                         >
-                            Lifetime Cash
+                            {t('leaderboard.lifetime_cash')}
                         </button>
                     </div>
                 </div>
@@ -400,10 +411,10 @@ export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
                     {/* Column Headers */}
                     {!loading && entries.length > 0 && (
                         <div className="flex items-center px-4 mb-2">
-                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest w-8 text-center shrink-0">Rank</span>
-                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest flex-1 ml-3">Founder</span>
+                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest w-8 text-center shrink-0">{t('leaderboard.rank_header')}</span>
+                            <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest flex-1 ml-3">{t('leaderboard.founder_header')}</span>
                             <span className="text-[0.5625rem] font-black text-slate-400 uppercase tracking-widest text-right">
-                                {category === "bestVentureValuation" ? "Peak Valuation" : "Lifetime Cash"}
+                                {category === "bestVentureValuation" ? t('leaderboard.peak_valuation') : t('leaderboard.lifetime_cash')}
                             </span>
                         </div>
                     )}
@@ -419,8 +430,8 @@ export function LeaderboardModal({ open, onClose, currentIndustry }: Props) {
                         ) : entries.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4">
                                 <p className="text-5xl">🌱</p>
-                                <p className="font-black text-slate-700 dark:text-slate-300 text-lg">Be the first!</p>
-                                <p className="text-sm text-slate-400 text-center">No one has entered the leaderboard yet. Start a venture to claim your spot.</p>
+                                <p className="font-black text-slate-700 dark:text-slate-300 text-lg">{t('leaderboard.be_first')}</p>
+                                <p className="text-sm text-slate-400 text-center">{t('leaderboard.no_players')}</p>
                             </div>
                         ) : (
                             <>

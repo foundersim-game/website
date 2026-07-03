@@ -1,0 +1,290 @@
+[
+  {
+    "headline": "Record-Breaking Earnings Beat",
+    "context": "Q3 revenue surged 42% YoY, crushing analyst consensus by $2.1B. Cloud growth remains the primary driver."
+  },
+  {
+    "headline": "AI Product Launch Triggers Surge",
+    "context": "New AI assistant product goes viral overnight, adding 12M new signups within 48 hours of launch."
+  },
+  {
+    "headline": "Massive Government Contract Secured",
+    "context": "$4.2B multi-year federal cloud contract awarded. Analysts raise price targets across the board."
+  },
+  {
+    "headline": "Major Competitor Files for Bankruptcy",
+    "context": "Key rival's collapse creates an immediate market share vacuum. Analysts estimate $800M revenue opportunity."
+  },
+  {
+    "headline": "Strong Revenue Growth Reported",
+    "context": "Beat estimates by 8% this quarter. International expansion is gaining traction faster than expected."
+  },
+  {
+    "headline": "New Enterprise Partnership Announced",
+    "context": "Multi-year licensing deal signed with Fortune 500 firm. Adds estimated $120M to annual recurring revenue."
+  },
+  {
+    "headline": "Analyst Cluster Upgrades to Buy",
+    "context": "Three major firms upgraded the stock citing improving unit economics and accelerating net revenue retention."
+  },
+  {
+    "headline": "Product Expansion Into New Market",
+    "context": "Company enters the APAC market. Early adoption metrics from beta users exceed internal projections."
+  },
+  {
+    "headline": "In-Line Quarterly Results",
+    "context": "Revenue met consensus; management reiterates full-year guidance. No major surprises in earnings call."
+  },
+  {
+    "headline": "Board Approves Routine Dividend",
+    "context": "Quarterly dividend of $0.24 per share declared, unchanged from prior quarter. No buyback changes."
+  },
+  {
+    "headline": "Annual Developer Conference Announced",
+    "context": "Company confirms its annual developer summit for next quarter. Product roadmap updates expected."
+  },
+  {
+    "headline": "No Material Business Changes",
+    "context": "Filing confirms ongoing operations consistent with guidance. No acquisitions or divestitures pending."
+  },
+  {
+    "headline": "Leadership Transition Confirmed",
+    "context": "COO transition confirmed as planned. New hire has strong background in enterprise software growth."
+  },
+  {
+    "headline": "Misses Revenue Estimates",
+    "context": "Fell 6% short of analyst expectations. Management attributed miss to macro headwinds and deal slippage."
+  },
+  {
+    "headline": "Analyst Downgrade to Hold",
+    "context": "Citing slowing growth and elevated valuation multiples, two major banks cut their ratings this week."
+  },
+  {
+    "headline": "Layoffs Announced — 8% Headcount Reduction",
+    "context": "Company announces restructuring, cutting 8% of global workforce. Severance costs will hit Q4 margins."
+  },
+  {
+    "headline": "Cloud Outage Impacts Major Clients",
+    "context": "A 6-hour outage affected thousands of enterprise customers. SLA credits expected to impact revenue."
+  },
+  {
+    "headline": "CEO Abruptly Resigns Amid Pressure",
+    "context": "CEO departure follows leaked board meeting minutes demanding strategic pivot. Stock hits 52-week low."
+  },
+  {
+    "headline": "DOJ Launches Antitrust Investigation",
+    "context": "Department of Justice opens formal antitrust probe into market dominance practices. Legal costs expected to be material."
+  },
+  {
+    "headline": "Massive Data Breach Confirmed",
+    "context": "140M user records compromised. Company faces class-action lawsuit and FTC investigation simultaneously."
+  },
+  {
+    "headline": "Earnings Fraud Allegations Emerge",
+    "context": "Short seller publishes 60-page report alleging revenue manipulation across three fiscal years."
+  },
+  {
+    "headline": "Geopolitical Crisis Spikes Oil Demand",
+    "context": "Supply disruptions in the Middle East push crude to $140/barrel. Company hedges positioned perfectly."
+  },
+  {
+    "headline": "Massive New Reserve Discovery",
+    "context": "Exploratory drilling reveals an estimated 2.4 billion barrel reserve off the coast of Brazil."
+  },
+  {
+    "headline": "Strong Refining Margins This Quarter",
+    "context": "Crack spreads widened significantly. Downstream operations posted strongest quarter in four years."
+  },
+  {
+    "headline": "Renewable Expansion Ahead of Schedule",
+    "context": "Solar and wind projects reached commercial operation 3 months early, ahead of regulatory deadlines."
+  },
+  {
+    "headline": "OPEC Output Decision — No Change",
+    "context": "OPEC maintains current production quotas. Oil prices stable in the $78-85 range heading into next quarter."
+  },
+  {
+    "headline": "Routine Refinery Maintenance Completed",
+    "context": "Scheduled turnaround at Gulf Coast refinery completed on time and on budget. Full capacity now restored."
+  },
+  {
+    "headline": "Energy Prices Hold Steady This Month",
+    "context": "Natural gas and crude oil prices remained range-bound. No significant catalysts expected near term."
+  },
+  {
+    "headline": "Oil Demand Projections Revised Down",
+    "context": "IEA cuts global demand forecast by 1.2M barrels/day. Weak China data the primary driver of the revision."
+  },
+  {
+    "headline": "Environmental Lawsuit Filed",
+    "context": "EPA and 12 states file suit over pipeline spill. Estimated cleanup liability: $800M to $1.2B."
+  },
+  {
+    "headline": "Catastrophic Refinery Explosion",
+    "context": "Major refinery explosion forces complete shutdown. Estimated damage: $3B. Insurance coverage disputed."
+  },
+  {
+    "headline": "Massive Oil Spill Triggers Federal Response",
+    "context": "Offshore rig blowout causes largest spill in a decade. Congressional hearings immediately scheduled."
+  },
+  {
+    "headline": "FDA Approves Blockbuster Drug",
+    "context": "Revolutionary cancer treatment gains FDA approval. Analysts project $6B in peak annual revenue."
+  },
+  {
+    "headline": "Phase 3 Trial Exceeds All Endpoints",
+    "context": "Drug candidate shows 94% efficacy vs. 61% placebo. Fast-track designation expected next week."
+  },
+  {
+    "headline": "Strong Medicare Reimbursement Rates",
+    "context": "CMS announces favorable reimbursement update for key product lines starting next fiscal year."
+  },
+  {
+    "headline": "Major Hospital Network Partnership",
+    "context": "10-year exclusive supply agreement signed with a 400-hospital network valued at $1.8B."
+  },
+  {
+    "headline": "Clinical Trial Results Inconclusive",
+    "context": "Phase 2 trial met primary endpoint but secondary endpoints showed mixed results. Phase 3 still planned."
+  },
+  {
+    "headline": "Patent Cliff Being Managed",
+    "context": "Key drug loses exclusivity this quarter. Generic competition limited due to manufacturing complexity."
+  },
+  {
+    "headline": "Regulatory Submission Filed on Schedule",
+    "context": "BLA submitted to FDA for new indication. Standard 12-month review timeline expected."
+  },
+  {
+    "headline": "Clinical Trial Failure — Drug Candidate",
+    "context": "Phase 3 study misses primary endpoint. Program suspended. $400M in R&D investment written off."
+  },
+  {
+    "headline": "FDA Issues Complete Response Letter",
+    "context": "FDA declines to approve drug citing manufacturing deficiencies. Resubmission at least 18 months away."
+  },
+  {
+    "headline": "Drug Recall Announced — Safety Concern",
+    "context": "Voluntary recall of 14M units following reports of adverse cardiac events. DOJ criminal probe opened."
+  },
+  {
+    "headline": "CEO Investigated for Securities Fraud",
+    "context": "DOJ alleges CEO sold shares ahead of undisclosed clinical trial failure. Board forming special committee."
+  },
+  {
+    "headline": "Record Defense Budget Allocation",
+    "context": "Congress passes $940B defense bill. Company wins largest single contract in its 50-year history."
+  },
+  {
+    "headline": "Geopolitical Conflict Drives Procurement",
+    "context": "NATO emergency spending authorization triggers $12B in accelerated orders. Backlog hits all-time high."
+  },
+  {
+    "headline": "Major F-35 Contract Extension",
+    "context": "Multiyear fighter jet contract extended through 2032. Program adds $2.4B to existing backlog."
+  },
+  {
+    "headline": "Satellite Launch Contract Secured",
+    "context": "Space Force selects company for next-generation reconnaissance satellite program worth $1.8B."
+  },
+  {
+    "headline": "Contract Deliveries On Schedule",
+    "context": "Q3 deliverables met on time. No program cost overruns reported. Margin guidance maintained."
+  },
+  {
+    "headline": "Defense Budget Under Congressional Review",
+    "context": "Continuing resolution extends current year funding. Final appropriations expected by end of Q1."
+  },
+  {
+    "headline": "International Arms Sales Approved",
+    "context": "State Department grants export license for allied nation equipment deal. Modest revenue contribution expected."
+  },
+  {
+    "headline": "Contract Cost Overrun Reported",
+    "context": "Program cost overruns of $840M reported on next-gen aircraft program. Pentagon reviewing contract terms."
+  },
+  {
+    "headline": "Peace Treaty Reduces Defense Spending Outlook",
+    "context": "Major regional peace agreement reduces near-term defense budget projection for next fiscal year."
+  },
+  {
+    "headline": "Weapons System Catastrophic Failure",
+    "context": "Publicized test failure of flagship missile defense system. Congressional hearing scheduled within 30 days."
+  },
+  {
+    "headline": "Bribery Scandal Rocks Leadership",
+    "context": "Senior executives charged with bribery of foreign officials in $2.1B procurement scandal. CEO suspended."
+  },
+  {
+    "headline": "Rate Cuts Trigger Housing Boom",
+    "context": "Fed's 75bps rate cut reignites mortgage demand. Monthly applications up 38%. Portfolio values surge."
+  },
+  {
+    "headline": "Major Urban Redevelopment Win",
+    "context": "Company wins exclusive rights to $3.8B urban redevelopment project in Manhattan's financial district."
+  },
+  {
+    "headline": "Strong Rental Income Growth",
+    "context": "Same-store rental income grew 9% YoY. Occupancy rates hit 97.2%, highest level in company history."
+  },
+  {
+    "headline": "Commercial Portfolio Refinanced",
+    "context": "$1.4B portfolio refinanced at lower rates, saving $42M annually in interest expense."
+  },
+  {
+    "headline": "Property Values Stable This Quarter",
+    "context": "Appraisal data shows flat-to-modest appreciation across the portfolio. No major impairments flagged."
+  },
+  {
+    "headline": "Occupancy Rates Holding Steady",
+    "context": "Commercial vacancies stabilizing at 12.4%. Management expects gradual improvement through year-end."
+  },
+  {
+    "headline": "New Development Breaking Ground",
+    "context": "Mixed-use project in Austin breaks ground. 240K sq ft project expected to reach NOI positive in 28 months."
+  },
+  {
+    "headline": "Rising Interest Rates Pressure Valuations",
+    "context": "Cap rate expansion of 50bps this quarter reduces fair value estimates across the commercial portfolio."
+  },
+  {
+    "headline": "Major Tenant Defaults on Lease",
+    "context": "Anchor retail tenant responsible for 8% of rental income files Chapter 11. Lease termination likely."
+  },
+  {
+    "headline": "Mortgage Default Wave Hits Portfolio",
+    "context": "Residential mortgage default rates surge to 4.2%. Portfolio writedowns expected to exceed $1.8B."
+  },
+  {
+    "headline": "Major Market Crash in Real Estate",
+    "context": "Housing prices fell 18% in the top 10 markets this quarter. Fire sale of assets likely to follow."
+  },
+  {
+    "headline": "Strong GDP Growth Boosts All Sectors",
+    "context": "GDP growth of 4.1% annualized crushes expectations. Consumer spending and business investment both accelerating."
+  },
+  {
+    "headline": "Inflation Data Better Than Expected",
+    "context": "CPI came in at 2.1%, below the Fed's target. Rate cut expectations for next quarter jump to 80%."
+  },
+  {
+    "headline": "Market Consolidates After Recent Rally",
+    "context": "Broad markets trading range-bound. Investors await next week's Fed minutes for direction."
+  },
+  {
+    "headline": "Mixed Economic Data This Month",
+    "context": "Jobs data strong, but manufacturing PMI slipped to 49.2. Markets weighing conflicting signals."
+  },
+  {
+    "headline": "Index Rebalancing Completed",
+    "context": "Quarterly index rebalancing created modest flows. No major sector dislocations as a result."
+  },
+  {
+    "headline": "Recession Fears Return on Weak Jobs Data",
+    "context": "Payrolls added only 42K vs. 185K expected. Unemployment ticks up to 4.8%. Recession odds now at 35%."
+  },
+  {
+    "headline": "Flash Crash Triggered by Algorithm Error",
+    "context": "Erroneous trading algorithm causes brief but violent sell-off. Circuit breakers triggered on three exchanges."
+  }
+]

@@ -8,7 +8,7 @@ const openai = new OpenAI({
     dangerouslyAllowBrowser: true // Required for client-side use
 });
 
-export async function generateAIEvent(startup: Startup, founder: Founder, seenEvents: string[] = []) {
+export async function generateAIEvent(startup: Startup, founder: Founder, seenEvents: string[] = [], language: string = 'en') {
     // If no API key or offline, the calling code will fallback to PREDEFINED_EVENTS
     if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === "dummy") {
         return null;
@@ -49,6 +49,8 @@ Stats: Intelligence ${attributes.intelligence}, Leadership ${attributes.leadersh
 Based on the startup's current context, generate a realistic, challenging, or opportunistic situational event.
 The event should feel like it belongs in the specific industry and phase they are in.
 CRITICALLY IMPORTANT: The event MUST match the current scale of the startup. If they are in Month 2 with 500 users, they should NOT receive "Enterprise Deals" or "Major PR scandals". If they have $50M in cash, they shouldn't stress over a $500 software bill. Scale the magnitude of the narrative and the numbers appropriately.
+
+CRITICALLY IMPORTANT: ALL OUTPUT TEXT (title, description, and choice texts) MUST BE WRITTEN IN THE FOLLOWING LANGUAGE: ${language.toUpperCase()}
 
 CRITICAL EFFECTS FORMULATION:
 All quantities inside the "effects" dictionary MUST be RAW NUMBERS (integers or floats). Do NOT format values asStrings (e.g. use -5000, NOT "-5000" or "spent $5k").
@@ -113,7 +115,7 @@ ${seenEvents.length > 0 ? `Do NOT generate any events similar in premise or titl
     }
 }
 
-export async function generateFounderStory(founderName: string, startupName: string, events: string[]) {
+export async function generateFounderStory(founderName: string, startupName: string, events: string[], language: string = 'en') {
     if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === "dummy") {
         return "Your startup journey comes to an end. (AI Summary requires an internet connection and API Key)";
     }
@@ -128,7 +130,8 @@ export async function generateFounderStory(founderName: string, startupName: str
                     content: `You are an AI generating a dramatic, 3-paragraph summary of a startup's journey. 
             The founder is ${founderName} and the startup is ${startupName}.
             Base the story heavily on this timeline of events:\n${timeline}\n
-            Conclude with an endgame assessment (IPO, acquisition, or failure).`
+            Conclude with an endgame assessment (IPO, acquisition, or failure).
+            CRITICALLY IMPORTANT: THE STORY MUST BE WRITTEN IN THE FOLLOWING LANGUAGE: ${language.toUpperCase()}`
                 }
             ]
         });
@@ -140,7 +143,7 @@ export async function generateFounderStory(founderName: string, startupName: str
 }
 
 
-export async function generateChadBanter(startup: Startup, founder: Founder, competitor: any) {
+export async function generateChadBanter(startup: Startup, founder: Founder, competitor: any, language: string = 'en') {
     if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY === "dummy") {
         return null;
     }

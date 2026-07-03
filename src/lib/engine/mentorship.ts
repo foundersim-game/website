@@ -9,39 +9,39 @@ export type AdviceContent = {
 
 export const MENTOR_ADVICE: Record<string, AdviceContent> = {
     intro_plg: {
-        title: "👋 WELCOME, {name}!",
-        message: "I'm Sam, {name} — I've backed over a hundred startups in my time. Think of me as your advisor in the passenger seat. I'll check in when things get tricky.\n\nFirst order of business: keep an eye on your Runway — that's how many months of cash you have left. Let's build something great.",
-        buttonText: "GOT IT, THANKS SAM",
+        title: "mentorship.intro_plg.title",
+        message: "mentorship.intro_plg.message",
+        buttonText: "mentorship.intro_plg.buttonText",
         trigger: "month_1_plg"
     },
     intro_slg: {
-        title: "👋 WELCOME, {name}!",
-        message: "I'm Sam, {name} — I've backed over a hundred startups in my time. Think of me as your advisor in the passenger seat. I'll check in when things get tricky.\n\nFirst order of business: keep an eye on your Runway — that's how many months of cash you have left. Let's build something great.",
-        buttonText: "GOT IT, THANKS SAM",
+        title: "mentorship.intro_slg.title",
+        message: "mentorship.intro_slg.message",
+        buttonText: "mentorship.intro_slg.buttonText",
         trigger: "month_1_slg"
     },
     low_runway: {
-        title: "RUNWAY ALERT! ⚠️",
-        message: "You have less than 4 months of cash left. This is the 'Default Dead' zone. You need to either 'Pitch Investors' immediately or cut your burn rate. Consider firing non-essential staff or pausing expensive marketing.",
-        buttonText: "I'M ON IT",
+        title: "mentorship.low_runway.title",
+        message: "mentorship.low_runway.message",
+        buttonText: "mentorship.low_runway.buttonText",
         trigger: "runway_low"
     },
     high_burnout: {
-        title: "YOU'RE BURNING OUT! 🧘",
-        message: "Your burnout is over 70%. Your decision-making is suffering, and the team is starting to notice. You must 'Rest and Recharge' this month. A dead founder can't lead a unicorn.",
-        buttonText: "THANKS, SAM",
+        title: "mentorship.high_burnout.title",
+        message: "mentorship.high_burnout.message",
+        buttonText: "mentorship.high_burnout.buttonText",
         trigger: "burnout_high"
     },
     hiring_first: {
-        title: "TIME TO DELEGATE! 👥",
-        message: "You've got some traction! You can't do everything alone anymore. Hiring your first Engineer will boost product quality passively, but watch your burn. Hire slow, fire fast.",
-        buttonText: "SHOW ME CANDIDATES",
+        title: "mentorship.hiring_first.title",
+        message: "mentorship.hiring_first.message",
+        buttonText: "mentorship.hiring_first.buttonText",
         trigger: "first_hire"
     },
     scaling_fast: {
-        title: "STAY AGGRESSIVE! 🚀",
-        message: "The fundamentals look solid. You have runway, PMF is improving, and your unit economics are healthy. Now is the time to be bold. Experiment with 'New Marketing Channels' or double down on 'Product Innovation'.",
-        buttonText: "GOT IT, THANKS SAM",
+        title: "mentorship.scaling_fast.title",
+        message: "mentorship.scaling_fast.message",
+        buttonText: "mentorship.scaling_fast.buttonText",
         trigger: "scaling"
     }
 };
@@ -70,18 +70,18 @@ export function getConsultationAdvice(startup: Startup): AdviceContent {
     
     if ((m.net_profit || 0) > 0) {
         return {
-            title: "PROFITS ARE UP! 💰",
-            message: "You're in the rare group of profitable startups. You can now bootstrap to greatness or raise a 'clean' round with massive leverage. I'd suggest aggressive hiring in Sales to dominate the market.",
-            buttonText: "PRUDENT ADVICE",
+            title: "mentorship.consult_profit.title",
+            message: "mentorship.consult_profit.message",
+            buttonText: "mentorship.consult_profit.buttonText",
             trigger: "consult_profit"
         };
     }
 
     if (m.pmf_score < 30) {
         return {
-            title: "FIX THE PRODUCT 🛠️",
-            message: "Your PMF score is low. Marketing right now is like pouring water into a leaky bucket. Stop the ads. Put 100% of your energy into 'Fixing Bugs' and 'MVP Features' until users actually stick.",
-            buttonText: "CHARTING COURSE",
+            title: "mentorship.consult_pmf.title",
+            message: "mentorship.consult_pmf.message",
+            buttonText: "mentorship.consult_pmf.buttonText",
             trigger: "consult_pmf"
         };
     }

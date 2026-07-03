@@ -266,7 +266,10 @@ export interface LeaderboardEntry {
     iap_god_mode?: boolean;
     iap_titan?: boolean;
     iap_premium?: boolean;
-    shadowbanned?: boolean; // set by Cloud Function when piracy is detected
+    shadowbanned?: boolean;
+    flagged_for_exploit?: boolean;
+    createdAt?: any;
+    lastUpdated?: any;
 }
 
 // Minimum wealth to appear on the global leaderboard ($0 so everyone appears)
@@ -345,5 +348,18 @@ export async function getTotalPlayers(): Promise<number> {
         return countSnap.data().count;
     } catch {
         return 0;
+    }
+}
+
+export async function clearExploitFlag(username: string): Promise<void> {
+    try {
+        if (!username) return;
+        const db = getDb();
+        const ref = doc(db, "players", username.toLowerCase());
+        await updateDoc(ref, {
+            flagged_for_exploit: false
+        });
+    } catch (e) {
+        console.error("Failed to clear exploit flag", e);
     }
 }

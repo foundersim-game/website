@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
+import { useTranslation } from "react-i18next";
 
 export type CharacterDialogProps = {
     isOpen: boolean;
@@ -282,6 +283,7 @@ export function CharacterDialog({
     onDismiss,
     isPremium = false,
 }: CharacterDialogProps) {
+    const { t } = useTranslation();
     const { isDark } = useTheme();
     const cfg = CHARACTER_CONFIG[character];
     const hasChoices = !!(choiceA && choiceB);
@@ -445,14 +447,14 @@ export function CharacterDialog({
                                     padding: "4px 12px", borderRadius: 99,
                                     boxShadow: `0 2px 16px ${cfg.glowColor}`,
                                 }}>
-                                    {cfg.name}
+                                    {t(`storyline.character_${character}_name`, { defaultValue: cfg.name })}
                                 </span>
                                 <span style={{
                                     color: "rgba(255,255,255,0.5)",
                                     fontSize: 9, fontWeight: 600,
                                     letterSpacing: "0.1em", textTransform: "uppercase",
                                 }}>
-                                    {cfg.role}
+                                    {t(`storyline.character_${character}_role`, { defaultValue: cfg.role })}
                                 </span>
                             </motion.div>
 

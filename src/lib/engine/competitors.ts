@@ -44,42 +44,42 @@ export const RIVAL_INTRO = "I heard you're trying to build in my space, {name}. 
 const COMPETITOR_ACTIONS: CompetitorAction[] = [
     {
         type: "price_cut",
-        description: "slashed their prices by 40%! Growth is accelerating.",
+        description: "competitors.action.price_cut",
         impactUser: -0.04,   // Lose 4% users
         impactMorale: -2,
         impactBrand: -1,
     },
     {
         type: "feature_launch",
-        description: "launched a new platform feature you don't have yet!",
+        description: "competitors.action.feature_launch",
         impactUser: -0.03,
         impactMorale: -5,
         impactBrand: -2,
     },
     {
         type: "ai_pivot",
-        description: "just announced a pivot to 'AI-First' architecture.",
+        description: "competitors.action.ai_pivot",
         impactUser: -0.05,
         impactMorale: -8,
         impactBrand: -5,
     },
     {
         type: "massive_marketing",
-        description: "is running a massive ad campaign targeting your users.",
+        description: "competitors.action.massive_marketing",
         impactUser: -0.06,
         impactMorale: 0,
         impactBrand: -10,
     },
     {
         type: "vulture_talent",
-        description: "is aggressively poaching your top talent with high bonuses.",
+        description: "competitors.action.vulture_talent",
         impactUser: 0,
         impactMorale: -15,   // Heavy morale hit
         impactBrand: 0,
     },
     {
         type: "press_attack",
-        description: "published a hit-piece on your recent downtime.",
+        description: "competitors.action.press_attack",
         impactUser: -0.05,
         impactMorale: -10,
         impactBrand: -15,

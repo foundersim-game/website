@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bug, Send, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { playSound } from "@/lib/audio";
 
 interface ReportBugModalProps {
@@ -12,6 +13,7 @@ interface ReportBugModalProps {
 }
 
 export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
+    const { t } = useTranslation();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
@@ -21,7 +23,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
         e.preventDefault();
         
         if (!name.trim() || !email.trim() || !message.trim()) {
-            toast.error("Please fill in all fields to report a bug.");
+            toast.error(t("report_bug.error_fill_all", { defaultValue: "Please fill in all fields to report a bug." }));
             playSound("fail");
             return;
         }
@@ -45,7 +47,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
             });
 
             if (response.ok) {
-                toast.success("Bug report submitted successfully! Thank you.");
+                toast.success(t("report_bug.success", { defaultValue: "Bug report submitted successfully! Thank you." }));
                 playSound("success");
                 setName("");
                 setEmail("");
@@ -55,7 +57,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
                 throw new Error("Failed to submit form");
             }
         } catch (error) {
-            toast.error("Failed to submit bug report. Please try again later.");
+            toast.error(t("report_bug.error_submit", { defaultValue: "Failed to submit bug report. Please try again later." }));
             playSound("fail");
         } finally {
             setIsSubmitting(false);
@@ -93,9 +95,9 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
                                     ✕
                                 </button>
                             </div>
-                            <h2 className="text-xl font-black tracking-tight mt-2">Report a Bug</h2>
+                            <h2 className="text-xl font-black tracking-tight mt-2">{t("dashboard.menu.report_bug", { defaultValue: "Report a Bug" })}</h2>
                             <p className="text-rose-100 text-sm font-medium mt-1 leading-snug">
-                                Encountered an issue? Let us know so we can fix it!
+                                {t("report_bug.subtitle", { defaultValue: "Encountered an issue? Let us know so we can fix it!" })}
                             </p>
                         </div>
 
@@ -104,38 +106,38 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
-                                        Your Name
+                                        {t("report_bug.your_name", { defaultValue: "Your Name" })}
                                     </label>
                                     <input
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        placeholder="John Doe"
+                                        placeholder={t("report_bug.name_placeholder", { defaultValue: "John Doe" })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-rose-400 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
-                                        Email Address
+                                        {t("report_bug.email", { defaultValue: "Email Address" })}
                                     </label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="john@example.com"
+                                        placeholder={t("report_bug.email_placeholder", { defaultValue: "john@example.com" })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-rose-400 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center justify-between">
-                                        Bug Details
+                                        {t("report_bug.details", { defaultValue: "Bug Details" })}
                                     </label>
                                     <textarea
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
-                                        placeholder="Please describe the issue, what you were doing when it happened, and any error messages..."
+                                        placeholder={t("report_bug.details_placeholder", { defaultValue: "Please describe the issue, what you were doing when it happened, and any error messages..." })}
                                         rows={4}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-rose-400 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                                     />
@@ -144,7 +146,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
                                 <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex gap-2.5 mt-2">
                                     <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
                                     <p className="text-[0.625rem] text-amber-700 dark:text-amber-400 leading-snug">
-                                        If possible, include steps to reproduce the bug. We will follow up via email if we need more details.
+                                        {t("report_bug.disclaimer", { defaultValue: "If possible, include steps to reproduce the bug. We will follow up via email if we need more details." })}
                                     </p>
                                 </div>
 
@@ -158,7 +160,7 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
                                     ) : (
                                         <Send className="size-4" />
                                     )}
-                                    {isSubmitting ? "SUBMITTING..." : "SUBMIT BUG REPORT"}
+                                    {isSubmitting ? t("report_bug.submitting", { defaultValue: "SUBMITTING..." }) : t("report_bug.submit", { defaultValue: "SUBMIT BUG REPORT" })}
                                 </button>
                             </form>
                         </div>

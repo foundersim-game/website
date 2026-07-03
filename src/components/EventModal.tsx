@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, ArrowRight, TrendingUp, TrendingDown, Target, Users, Landmark, Activity, Heart, Briefcase } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
+import { useTranslation } from 'react-i18next';
 
 export type EventChoice = {
     text: string;
@@ -116,12 +117,15 @@ const MetricIcon = ({ metric, className = "size-4" }: { metric: string; classNam
 };
 
 export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremium = false }: EventModalProps) {
+    const { t } = useTranslation();
     const { isDark } = useTheme();
     const [resolvedChoice, setResolvedChoice] = useState<EventChoice | null>(null);
     const [isExiting, setIsExiting] = useState(false);
 
-    // Typewriter for the event description
-    const { displayed: displayedDesc, done: descDone, skip } = useTypewriter(event?.description || "", !!event && !resolvedChoice);
+    const { displayed: displayedDesc, done: descDone, skip } = useTypewriter(
+        event ? t(event.description) : "",
+        !!event && !resolvedChoice
+    );
 
     useEffect(() => {
         if (event) {
@@ -249,7 +253,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                     padding: "4px 14px", borderRadius: 99,
                                     boxShadow: `0 4px 16px rgba(0,0,0,0.2)`,
                                 }}>
-                                    Dynamic Event
+                                    {t("event_modal.dynamic_event")}
                                 </span>
                             </div>
 
@@ -278,7 +282,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                             lineHeight: 1.1
                                         }}
                                     >
-                                        {event.title}
+                                        {t(event.title)}
                                     </motion.h2>
 
                                     <div
@@ -341,10 +345,10 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                                     >
                                                         <div style={{ flex: 1 }}>
                                                             <p style={{ fontSize: 13, fontWeight: 900, color: isDark ? "#f1f5f9" : "#1e293b", textTransform: "uppercase", letterSpacing: "0.02em" }}>
-                                                                {choice.text}
+                                                                {t(choice.text)}
                                                             </p>
                                                             {choice.subtext && (
-                                                                <p style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b", marginTop: 2 }}>{choice.subtext}</p>
+                                                                <p style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b", marginTop: 2 }}>{t(choice.subtext)}</p>
                                                             )}
                                                         </div>
                                                         <ArrowRight className="size-5 text-slate-300" />
@@ -362,10 +366,10 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                 >
                                     <div>
                                         <p style={{ fontSize: 11, fontWeight: 900, color: THEME.accent, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
-                                            Analysis Complete
+                                            {t("event_modal.analysis_complete")}
                                         </p>
                                         <h2 style={{ fontSize: 24, fontWeight: 900, color: isDark ? "#f1f5f9" : "#0f172a", marginBottom: 12 }}>
-                                            The Outcome
+                                            {t("event_modal.the_outcome")}
                                         </h2>
                                         <div style={{
                                             background: isDark ? "#1e293b" : "#f8fafc",
@@ -419,7 +423,7 @@ export function EventModal({ event, onResolve, onClose, multiplier = 1, isPremiu
                                             display: "flex", alignItems: "center", justifyContent: "center", gap: 10
                                         }}
                                     >
-                                        Acknowledged <ArrowRight className="size-5" />
+                                        {t("event_modal.acknowledged")} <ArrowRight className="size-5" />
                                     </button>
                                 </motion.div>
                             )}

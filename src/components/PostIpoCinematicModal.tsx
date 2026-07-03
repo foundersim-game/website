@@ -3,29 +3,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { Volume2, VolumeX, Sparkles } from "lucide-react";
 import { playSound } from "../lib/audio";
+import { useTranslation } from "react-i18next";
 
 interface PostIpoCinematicModalProps {
     isOpen: boolean;
     onComplete: () => void;
 }
 
-const DIALOGUE_STEPS = [
-    {
-        text: "You made it. Ringing that bell is the dream.",
-        subtext: "But take a breath, because the game just changed.",
-    },
-    {
-        text: "Private markets forgive. Public markets punish.",
-        subtext: "Every quarter, Wall Street will grade your existence. Miss your numbers, and the activist sharks will circle.",
-    },
-    {
-        text: "You're no longer just an operator. You're a capital allocator.",
-        subtext: "Stock splits, margin loans, lobbying, hostile takeovers... Welcome to the big leagues.",
-    },
-    {
-        text: "Let me show you your new command center.",
-        subtext: "Welcome to the Founder Terminal.",
-    }
+const DIALOGUE_KEYS = [
+    { titleKey: "cinematic.sam_made_it", subtextKey: "cinematic.sam_breathe", defTitle: "You made it. Ringing that bell is the dream.", defSub: "But take a breath, because the game just changed." },
+    { titleKey: "cinematic.sam_markets", subtextKey: "cinematic.sam_wall_street", defTitle: "Private markets forgive. Public markets punish.", defSub: "Every quarter, Wall Street will grade your existence. Miss your numbers, and the activist sharks will circle." },
+    { titleKey: "cinematic.sam_no_longer_operator", subtextKey: "cinematic.sam_splits_loans", defTitle: "You're no longer just an operator. You're a capital allocator.", defSub: "Stock splits, margin loans, lobbying, hostile takeovers... Welcome to the big leagues." },
+    { titleKey: "cinematic.sam_command_center", subtextKey: "cinematic.sam_welcome_terminal", defTitle: "Let me show you your new command center.", defSub: "Welcome to the Founder Terminal." }
 ];
 
 // Warm, low-frequency ambient pad chord frequencies (Pure sine waves only for cinematic hum)
@@ -37,8 +26,14 @@ const CHORDS = [
 ];
 
 export function PostIpoCinematicModal({ isOpen, onComplete }: PostIpoCinematicModalProps) {
+    const { t } = useTranslation();
     const [step, setStep] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
+    
+    const DIALOGUE_STEPS = DIALOGUE_KEYS.map(k => ({
+        text: t(k.titleKey, { defaultValue: k.defTitle }),
+        subtext: t(k.subtextKey, { defaultValue: k.defSub })
+    }));
     
     // Typewriter state
     const [displayedTitle, setDisplayedTitle] = useState("");

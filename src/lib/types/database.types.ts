@@ -502,6 +502,8 @@ export type PublicCompanyState = {
     eps_guidance: number;          // Guidance player gave for NEXT quarter
     consensus_eps: number;         // What Wall Street expects (their model)
     buyback_authorized: number;    // $ authorized for buyback
+    last_buyback_month?: number;   // month counter when last buyback was executed
+    last_fpo_month?: number;       // month counter when last FPO was executed
     short_interest: number;        // 0-100: % of float sold short
     analyst_ratings: AnalystRating[];
     quarterly_beats: number;       // Consecutive beats (positive streak)

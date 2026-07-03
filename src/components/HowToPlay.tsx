@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Zap, TrendingUp, DollarSign, Users, Shield, Award, BarChart3, 
   Heart, AlertCircle, Sparkles, Globe, ChevronRight, 
@@ -8,157 +9,78 @@ import {
 } from "lucide-react";
 
 export function HowToPlayContent() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('basics');
   const [selectedIndustry, setSelectedIndustry] = useState('SaaS');
 
-  const tabs = [
-    { id: 'basics',      label: 'Basics',      icon: BarChart3 },
-    { id: 'skills',      label: 'Skills',      icon: GraduationCap },
-    { id: 'product',     label: 'Product',     icon: Zap },
-    { id: 'industries',  label: 'Industries',  icon: Globe },
-    { id: 'growth',      label: 'Growth',      icon: TrendingUp },
-    { id: 'funding',     label: 'Finance',     icon: DollarSign },
-    { id: 'team',        label: 'Team',        icon: Users },
-    { id: 'competitors', label: 'Rivals',      icon: Shield },
-    { id: 'ending',      label: 'Exits & IPO', icon: Award },
-  ];
+  const tabs = useMemo(() => [
+    { id: 'basics',      label: t('howToPlay.tabs_basics'),      icon: BarChart3 },
+    { id: 'skills',      label: t('howToPlay.tabs_skills'),      icon: GraduationCap },
+    { id: 'product',     label: t('howToPlay.tabs_product'),     icon: Zap },
+    { id: 'industries',  label: t('howToPlay.tabs_industries'),  icon: Globe },
+    { id: 'growth',      label: t('howToPlay.tabs_growth'),      icon: TrendingUp },
+    { id: 'funding',     label: t('howToPlay.tabs_funding'),     icon: DollarSign },
+    { id: 'team',        label: t('howToPlay.tabs_team'),        icon: Users },
+    { id: 'competitors', label: t('howToPlay.tabs_competitors'), icon: Shield },
+    { id: 'ending',      label: t('howToPlay.tabs_ending'),      icon: Award },
+  ], [t]);
 
-  const industries = [
-    { id: 'SaaS', name: 'SaaS', icon: Box, description: 'Software as a Service. High margins, predictable recurring revenue.' },
-    { id: 'AI', name: 'AI Platform', icon: BrainCircuit, description: 'Cutting-edge intelligence. High compute costs but massive scaling potential.' },
-    { id: 'FinTech', name: 'FinTech', icon: CreditCard, description: 'Banking and payments. Trust-dependent, regulated, volume-driven revenue.' },
-    { id: 'Game', name: 'Mobile Game', icon: Gamepad2, description: 'Entertainment first. Hit-driven with complex monetization levers.' },
-    { id: 'Marketplace', name: 'Marketplace', icon: ShoppingBag, description: 'Connecting buyers and sellers. Hard to start (cold-start), huge network effects.' },
-    { id: 'OTT', name: 'OTT Streaming', icon: MonitorPlay, description: 'Media and content. Reliability is king, high infrastructure burn.' },
-    { id: 'DevTools', name: 'Dev Tools', icon: Terminal, description: 'Building for builders. Reliability and word-of-mouth are everything.' },
-    { id: 'EdTech', name: 'EdTech', icon: GraduationCap, description: 'Digital learning. Completion rates drive reputation and referrals.' },
-  ];
+  const industries = useMemo(() => [
+    { id: 'SaaS',        name: t('howToPlay.industries_saas_name'),        icon: Box,          description: t('howToPlay.industries_saas_desc') },
+    { id: 'AI',          name: t('howToPlay.industries_ai_name'),          icon: BrainCircuit, description: t('howToPlay.industries_ai_desc') },
+    { id: 'FinTech',     name: t('howToPlay.industries_fintech_name'),     icon: CreditCard,   description: t('howToPlay.industries_fintech_desc') },
+    { id: 'Game',        name: t('howToPlay.industries_game_name'),        icon: Gamepad2,     description: t('howToPlay.industries_game_desc') },
+    { id: 'Marketplace', name: t('howToPlay.industries_marketplace_name'), icon: ShoppingBag,  description: t('howToPlay.industries_marketplace_desc') },
+    { id: 'OTT',         name: t('howToPlay.industries_ott_name'),         icon: MonitorPlay,  description: t('howToPlay.industries_ott_desc') },
+    { id: 'DevTools',    name: t('howToPlay.industries_devtools_name'),    icon: Terminal,     description: t('howToPlay.industries_devtools_desc') },
+    { id: 'EdTech',      name: t('howToPlay.industries_edtech_name'),      icon: GraduationCap,description: t('howToPlay.industries_edtech_desc') },
+  ], [t]);
 
-  const industryDetails: Record<string, any> = {
+  const industryDetails = useMemo(() => ({
     'SaaS': {
-      viral: {
-        title: 'Self-Serve SaaS',
-        formula: 'Revenue = Paid Users × Monthly Price',
-        drivers: 'PMF vs. Pricing Tension. Early-game "Honeymoon" multipliers help early growth.',
-        tip: 'Keep pricing low relative to PMF early to maximize conversion.'
-      },
-      sales: {
-        title: 'Enterprise SaaS',
-        formula: 'Revenue = Active Contracts × Annual Contract Value (ACV)',
-        drivers: 'Win Rate is driven 50% by Sales Team skill and 50% by Product Quality.',
-        tip: 'Enterprise deals pay 12 months upfront. Great for cash flow!'
-      }
+      viral: { title: t('howToPlay.ind_saas_viral_title'), formula: t('howToPlay.ind_saas_viral_formula'), drivers: t('howToPlay.ind_saas_viral_drivers'), tip: t('howToPlay.ind_saas_viral_tip') },
+      sales: { title: t('howToPlay.ind_saas_sales_title'), formula: t('howToPlay.ind_saas_sales_formula'), drivers: t('howToPlay.ind_saas_sales_drivers'), tip: t('howToPlay.ind_saas_sales_tip') }
     },
     'AI': {
-      viral: {
-        title: 'Self-Serve API Model',
-        formula: 'Revenue = Paid Users × Token Usage × Price',
-        drivers: 'Token Volume scales with Innovation Score and Team technical power.',
-        tip: 'Innovation drives usage. Keep your Engineers building hits.'
-      },
-      sales: {
-        title: 'Enterprise AI Solutions',
-        formula: 'Revenue = Closed Deals × 10x Enterprise Premium',
-        drivers: 'Very low base win rate. Requires highly skilled Solution Architects.',
-        tip: 'Each contract is worth 10x your base price. Big fish only.'
-      }
+      viral: { title: t('howToPlay.ind_ai_viral_title'), formula: t('howToPlay.ind_ai_viral_formula'), drivers: t('howToPlay.ind_ai_viral_drivers'), tip: t('howToPlay.ind_ai_viral_tip') },
+      sales: { title: t('howToPlay.ind_ai_sales_title'), formula: t('howToPlay.ind_ai_sales_formula'), drivers: t('howToPlay.ind_ai_sales_drivers'), tip: t('howToPlay.ind_ai_sales_tip') }
     },
     'FinTech': {
-      viral: {
-        title: 'Consumer Neo-Bank',
-        formula: 'Revenue = Users × Transaction Volume × Interchange %',
-        drivers: 'Transaction Volume depends heavily on PMF (Trust) and quality.',
-        tip: 'Regulatory compliance overhead adds to your monthly burn.'
-      },
-      sales: {
-        title: 'B2B Embedded Finance API',
-        formula: 'Revenue = Platform Deals × Bulk Transaction Fees',
-        drivers: 'Enterprise clients value Reliability above all else. 0% downtime = 100% renewal.',
-        tip: 'A single reliability outage in FinTech can trigger massive churn.'
-      }
+      viral: { title: t('howToPlay.ind_fintech_viral_title'), formula: t('howToPlay.ind_fintech_viral_formula'), drivers: t('howToPlay.ind_fintech_viral_drivers'), tip: t('howToPlay.ind_fintech_viral_tip') },
+      sales: { title: t('howToPlay.ind_fintech_sales_title'), formula: t('howToPlay.ind_fintech_sales_formula'), drivers: t('howToPlay.ind_fintech_sales_drivers'), tip: t('howToPlay.ind_fintech_sales_tip') }
     },
     'Game': {
-      viral: {
-        title: 'F2P Viral Mobile Game',
-        formula: 'Revenue = (Ads × Freq) + (Users × IAP Conversion × Price)',
-        drivers: 'Ad Intensity (Slider) increases revenue but destroys PMF and spikes churn.',
-        tip: 'Check your Ad Intensity! Past 40%, users start quitting in droves.'
-      },
-      sales: {
-        title: 'Branded / IP Licensed Game',
-        formula: 'Revenue = License Contracts × Monthly Franchise Fee',
-        drivers: 'Fixed revenue per brand deal. High Reputation helps close big IPs.',
-        tip: 'You don\'t own the users here; you own the contract. Sticky but slower growth.'
-      }
+      viral: { title: t('howToPlay.ind_game_viral_title'), formula: t('howToPlay.ind_game_viral_formula'), drivers: t('howToPlay.ind_game_viral_drivers'), tip: t('howToPlay.ind_game_viral_tip') },
+      sales: { title: t('howToPlay.ind_game_sales_title'), formula: t('howToPlay.ind_game_sales_formula'), drivers: t('howToPlay.ind_game_sales_drivers'), tip: t('howToPlay.ind_game_sales_tip') }
     },
     'Marketplace': {
-      viral: {
-        title: 'Community Marketplace',
-        formula: 'Revenue = Users × GMV per User × Take Rate %',
-        drivers: 'Network Effects log-scale bonus: revenue per user GROWS as your base grows.',
-        tip: 'Cross 10,000 users to unlock the first tier of exponential network effects.'
-      },
-      sales: {
-        title: 'Managed Marketplace',
-        formula: 'Revenue = Active Vetted Contracts × Retainer Fee',
-        drivers: 'Operations-intensive. Vetting quality dictates how much suppliers pay to be listed.',
-        tip: 'High COGS (30%+) due to manual vetting and supply-side management.'
-      }
+      viral: { title: t('howToPlay.ind_marketplace_viral_title'), formula: t('howToPlay.ind_marketplace_viral_formula'), drivers: t('howToPlay.ind_marketplace_viral_drivers'), tip: t('howToPlay.ind_marketplace_viral_tip') },
+      sales: { title: t('howToPlay.ind_marketplace_sales_title'), formula: t('howToPlay.ind_marketplace_sales_formula'), drivers: t('howToPlay.ind_marketplace_sales_drivers'), tip: t('howToPlay.ind_marketplace_sales_tip') }
     },
     'OTT': {
-      viral: {
-        title: 'Direct-to-Consumer Streaming',
-        formula: 'Revenue = Subscribed Users × Monthly Price',
-        drivers: 'High infrastructure burn (CDN). Quality/Content determines conversion.',
-        tip: 'Reliability is critical. If content buffers, users cancel immediate.'
-      },
-      sales: {
-        title: 'B2B Content Licensing',
-        formula: 'Revenue = License Deals × Periodic Renewal Fee',
-        drivers: 'Sales-driven content distribution to larger platforms/airlines/hotels.',
-        tip: 'Lower upside than consumer, but much lower infrastructure cost.'
-      }
+      viral: { title: t('howToPlay.ind_ott_viral_title'), formula: t('howToPlay.ind_ott_viral_formula'), drivers: t('howToPlay.ind_ott_viral_drivers'), tip: t('howToPlay.ind_ott_viral_tip') },
+      sales: { title: t('howToPlay.ind_ott_sales_title'), formula: t('howToPlay.ind_ott_sales_formula'), drivers: t('howToPlay.ind_ott_sales_drivers'), tip: t('howToPlay.ind_ott_sales_tip') }
     },
     'DevTools': {
-      viral: {
-        title: 'Self-Serve DevTool / OSS',
-        formula: 'Revenue = Paid Developer Seats × Price',
-        drivers: 'Developer word-of-mouth (Virality) is unusually high (8x multiplier).',
-        tip: 'Developers hate bugs. Reliability is the lead growth engine here.'
-      },
-      sales: {
-        title: 'Enterprise Dev Platform',
-        formula: 'Revenue = Enterprise Contracts × Security/SSO Premium',
-        drivers: 'SOC2, Security, and Compliance features close these deals.',
-        tip: 'Standard engineers can\'t build these; hire Senior Sales AEs.'
-      }
+      viral: { title: t('howToPlay.ind_devtools_viral_title'), formula: t('howToPlay.ind_devtools_viral_formula'), drivers: t('howToPlay.ind_devtools_viral_drivers'), tip: t('howToPlay.ind_devtools_viral_tip') },
+      sales: { title: t('howToPlay.ind_devtools_sales_title'), formula: t('howToPlay.ind_devtools_sales_formula'), drivers: t('howToPlay.ind_devtools_sales_drivers'), tip: t('howToPlay.ind_devtools_sales_tip') }
     },
     'EdTech': {
-      viral: {
-        title: 'Direct-to-Learner Platform',
-        formula: 'Revenue = Subscribed Learners × Price',
-        drivers: 'PMF (Student Success) above 60 unlocks major viral referrals.',
-        tip: 'Help students graduate! Completion rates drive your organic growth rate.'
-      },
-      sales: {
-        title: 'Institutional / Corporate learning',
-        formula: 'Revenue = Active Seat Licenses × Per-Seat Price',
-        drivers: 'Winning multi-seat contracts at universities or HR departments.',
-        tip: 'Long procurement cycles. You need a CFO to handle these contracts.'
-      }
-    }
-  };
+      viral: { title: t('howToPlay.ind_edtech_viral_title'), formula: t('howToPlay.ind_edtech_viral_formula'), drivers: t('howToPlay.ind_edtech_viral_drivers'), tip: t('howToPlay.ind_edtech_viral_tip') },
+      sales: { title: t('howToPlay.ind_edtech_sales_title'), formula: t('howToPlay.ind_edtech_sales_formula'), drivers: t('howToPlay.ind_edtech_sales_drivers'), tip: t('howToPlay.ind_edtech_sales_tip') }
+    },
+  }), [t]);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'industries':
-        const indData = industryDetails[selectedIndustry] || industryDetails['SaaS'];
+        const indData = (industryDetails as Record<string, any>)[selectedIndustry] || industryDetails['SaaS'];
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Industries & Modes</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.industries_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Every industry is governed by different physical laws. Select one below to see how its business models function.
+                {t('howToPlay.industries_subtitle')}
               </p>
             </div>
 
@@ -193,19 +115,19 @@ export function HowToPlayContent() {
                 {/* Viral Mode */}
                 <div className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-3 opacity-10"><Zap className="size-12 text-indigo-500" /></div>
-                  <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1">Mode: Viral / Self-Serve</p>
+                  <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1">{t('howToPlay.industries_mode_viral')}</p>
                   <h4 className="text-lg font-black text-slate-800 dark:text-slate-200 mb-3">{indData.viral.title}</h4>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Revenue Formula</p>
+                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">{t('howToPlay.industries_revenue_formula')}</p>
                       <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{indData.viral.formula}</p>
                     </div>
                     <div>
-                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Core Levers</p>
+                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">{t('howToPlay.industries_core_levers')}</p>
                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{indData.viral.drivers}</p>
                     </div>
                     <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/20">
-                      <p className="text-[0.625rem] font-black text-indigo-600 dark:text-indigo-400 uppercase mb-1 flex items-center gap-1"><Sparkles className="size-3" /> Growth Pro-Tip</p>
+                      <p className="text-[0.625rem] font-black text-indigo-600 dark:text-indigo-400 uppercase mb-1 flex items-center gap-1"><Sparkles className="size-3" /> {t('howToPlay.industries_growth_tip')}</p>
                       <p className="text-[0.6875rem] text-indigo-900/80 dark:text-indigo-300/80 font-bold italic">{indData.viral.tip}</p>
                     </div>
                   </div>
@@ -214,19 +136,19 @@ export function HowToPlayContent() {
                 {/* Sales Mode */}
                 <div className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-3 opacity-10"><Users className="size-12 text-emerald-500" /></div>
-                  <p className="text-[0.625rem] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest mb-1">Mode: Enterprise / B2B</p>
+                  <p className="text-[0.625rem] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest mb-1">{t('howToPlay.industries_mode_sales')}</p>
                   <h4 className="text-lg font-black text-slate-800 dark:text-slate-200 mb-3">{indData.sales.title}</h4>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Revenue Formula</p>
+                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">{t('howToPlay.industries_revenue_formula')}</p>
                       <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">{indData.sales.formula}</p>
                     </div>
                     <div>
-                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">Core Levers</p>
+                      <p className="text-[0.625rem] font-black text-slate-400 dark:text-slate-500 uppercase mb-1">{t('howToPlay.industries_core_levers')}</p>
                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{indData.sales.drivers}</p>
                     </div>
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/20">
-                      <p className="text-[0.625rem] font-black text-emerald-600 dark:text-emerald-400 uppercase mb-1 flex items-center gap-1"><BrainCircuit className="size-3" /> Strategy Pro-Tip</p>
+                      <p className="text-[0.625rem] font-black text-emerald-600 dark:text-emerald-400 uppercase mb-1 flex items-center gap-1"><BrainCircuit className="size-3" /> {t('howToPlay.industries_strategy_tip')}</p>
                       <p className="text-[0.6875rem] text-emerald-900/80 dark:text-emerald-300/80 font-bold italic">{indData.sales.tip}</p>
                     </div>
                   </div>
@@ -238,9 +160,9 @@ export function HowToPlayContent() {
             <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
               <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-[0.6875rem] font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-1">Hidden Multipliers</p>
+                <p className="text-[0.6875rem] font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-1">{t('howToPlay.industries_hidden_title')}</p>
                 <p className="text-[0.6875rem] text-amber-800/80 dark:text-amber-300/80 font-medium leading-relaxed">
-                  Profit margins are not flat. <strong className="font-bold">AI Platforms</strong> suffer from GPU compute COGS. <strong className="font-bold">FinTech</strong> carries high regulatory costs. <strong className="font-bold">OTT</strong> burns cash on CDN delivery. Scale carefully.
+                  {t('howToPlay.industries_hidden_body')}
                 </p>
               </div>
             </div>
@@ -251,44 +173,44 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">The Founder's Journey</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.basics_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                You are the CEO of a brand-new startup. Each month you make one key decision — then the simulation runs. Your goal is to grow from an idea into a venture-backed company and eventually exit via Acquisition or IPO.
+                {t('howToPlay.basics_subtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
                 <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black mb-2 shadow-sm shadow-indigo-600/30">1</div>
-                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">Burn Rate & Runway</p>
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">{t('howToPlay.basics_burn_rate_title')}</p>
                 <p className="text-[0.6875rem] text-indigo-700 dark:text-indigo-400 font-medium">
-                  <strong className="font-bold text-indigo-900 dark:text-indigo-200">Burn Rate</strong> is your monthly cash outflow (salaries, ads, rent). <strong className="font-bold text-indigo-900 dark:text-indigo-200">Runway</strong> is months until you're out of cash. Hit zero and you go <strong className="font-bold text-indigo-900 dark:text-indigo-200">Bankrupt</strong>.
+                  {t('howToPlay.basics_burn_rate_body')}
                 </p>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl">
                 <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black mb-2 shadow-sm shadow-emerald-600/30">2</div>
-                <p className="text-xs font-black text-emerald-900 dark:text-emerald-300 mb-1 uppercase tracking-wider">Focus Energy (Hours)</p>
-                <p className="text-[0.6875rem] text-emerald-700 dark:text-emerald-400 font-medium">Every action and program costs <strong className="font-bold text-emerald-900 dark:text-emerald-200">Focus Hours</strong>. Exceeding your 100h cap accelerates <strong className="font-bold text-emerald-900 dark:text-emerald-200">Burnout</strong>, which tanks productivity and team morale. Hire to delegate.</p>
+                <p className="text-xs font-black text-emerald-900 dark:text-emerald-300 mb-1 uppercase tracking-wider">{t('howToPlay.basics_focus_title')}</p>
+                <p className="text-[0.6875rem] text-emerald-700 dark:text-emerald-400 font-medium">{t('howToPlay.basics_focus_body')}</p>
               </div>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1"><BarChart3 className="size-3" /> Monthly Loop</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1"><BarChart3 className="size-3" /> {t('howToPlay.basics_monthly_loop')}</p>
               <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed">
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Choose your action</strong> from the dashboard (Build, Market, Pitch, etc.)</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Advance the month</strong> — the engine processes growth, churn, revenue, and events.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Rivals move too</strong> — they raise money, build features, and may attack you.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Valuation grows</strong> dynamically based on user count, revenue, PMF, and team quality.</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">{t('howToPlay.basics_loop1').split(':')[0]}:</strong> {t('howToPlay.basics_loop1').split(':').slice(1).join(':').trim()}</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">{t('howToPlay.basics_loop2').split('—')[0].trim()}</strong> — {t('howToPlay.basics_loop2').split('—').slice(1).join('—').trim()}</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">{t('howToPlay.basics_loop3').split('—')[0].trim()}</strong> — {t('howToPlay.basics_loop3').split('—').slice(1).join('—').trim()}</li>
+                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">{t('howToPlay.basics_loop4').split(' ')[0]} {t('howToPlay.basics_loop4').split(' ')[1]}</strong> {t('howToPlay.basics_loop4').split(' ').slice(2).join(' ')}</li>
               </ul>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">✨ Premium Store Upgrades</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">{t('howToPlay.basics_store_title')}</p>
               <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed">
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Ad-Free Pro:</strong> Removes all popup ads and banner ads permanently.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Founder's Starter Pack:</strong> Instantly grants $5M cash, +10 employee morale, and removes burnout.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Caffeine IV Drip:</strong> Permanently adds +100 Max Focus Hours every single month.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Titan of Industry:</strong> Grants $100M cash, permanent 50% discount on M&A/Fundraising, and Ad-Free status.</li>
+                <li>• {t('howToPlay.basics_store1')}</li>
+                <li>• {t('howToPlay.basics_store2')}</li>
+                <li>• {t('howToPlay.basics_store3')}</li>
+                <li>• {t('howToPlay.basics_store4')}</li>
               </ul>
             </div>
           </div>
@@ -298,59 +220,59 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Founder Skills & SP</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.skills_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Skill Points (SP) allow you to unlock permanent passive bonuses for your startup. Unlocked skills persist throughout the current game session.
+                {t('howToPlay.skills_subtitle')}
               </p>
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-900/30 p-5 rounded-2xl">
               <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-3 uppercase tracking-widest flex items-center gap-2">
-                <GraduationCap className="size-4" /> How to Earn SP?
+                <GraduationCap className="size-4" /> {t('howToPlay.skills_how_to_earn')}
               </p>
               <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
                   <div className="text-xl">💰</div>
                   <div>
-                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">Funding Milestones</p>
-                    <p className="text-[0.625rem] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> for every major funding round you close (Seed, Series A, Series B, etc).</p>
+                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">{t('howToPlay.skills_funding_title')}</p>
+                    <p className="text-[0.625rem] text-slate-500 font-medium">{t('howToPlay.skills_funding_body')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
                   <div className="text-xl">📈</div>
                   <div>
-                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">User Milestones</p>
-                    <p className="text-[0.625rem] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> when your total users cross 1,000, 10,000, and 100,000.</p>
+                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">{t('howToPlay.skills_user_title')}</p>
+                    <p className="text-[0.625rem] text-slate-500 font-medium">{t('howToPlay.skills_user_body')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800">
                   <div className="text-xl">⏳</div>
                   <div>
-                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">Tenure & Survival</p>
-                    <p className="text-[0.625rem] text-slate-500 font-medium">Earn <strong className="text-indigo-600">+1 SP</strong> automatically every 12 months you survive in the simulation.</p>
+                    <p className="text-[0.6875rem] font-black text-slate-800 dark:text-slate-200 uppercase">{t('howToPlay.skills_tenure_title')}</p>
+                    <p className="text-[0.625rem] text-slate-500 font-medium">{t('howToPlay.skills_tenure_body')}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Skill Branches</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('howToPlay.skills_branches')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
-                  <p className="text-[0.625rem] font-black text-blue-700 uppercase mb-1">⚙️ Technical</p>
-                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">Reduces technical debt and improves product reliability/quality passively.</p>
+                  <p className="text-[0.625rem] font-black text-blue-700 uppercase mb-1">{t('howToPlay.skills_branch_tech')}</p>
+                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">{t('howToPlay.skills_branch_tech_body')}</p>
                 </div>
                 <div className="p-3 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800 rounded-xl">
-                  <p className="text-[0.625rem] font-black text-pink-700 uppercase mb-1">📈 Marketing</p>
-                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">Boosts organic growth, virality, and brand awareness.</p>
+                  <p className="text-[0.625rem] font-black text-pink-700 uppercase mb-1">{t('howToPlay.skills_branch_mkt')}</p>
+                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">{t('howToPlay.skills_branch_mkt_body')}</p>
                 </div>
                 <div className="p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 rounded-xl">
-                  <p className="text-[0.625rem] font-black text-violet-700 uppercase mb-1">👔 Leadership</p>
-                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">Increases team morale and improves success in investor pitches.</p>
+                  <p className="text-[0.625rem] font-black text-violet-700 uppercase mb-1">{t('howToPlay.skills_branch_lead')}</p>
+                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">{t('howToPlay.skills_branch_lead_body')}</p>
                 </div>
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
-                  <p className="text-[0.625rem] font-black text-emerald-700 uppercase mb-1">💰 Fundraising</p>
-                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">Improves valuation caps and investor pipeline quality.</p>
+                  <p className="text-[0.625rem] font-black text-emerald-700 uppercase mb-1">{t('howToPlay.skills_branch_fund')}</p>
+                  <p className="text-[0.625rem] text-slate-500 font-medium leading-tight">{t('howToPlay.skills_branch_fund_body')}</p>
                 </div>
               </div>
             </div>
@@ -361,9 +283,9 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Building The Product</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.product_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Product quality directly affects almost every simulation outcome. A low-quality product bleeds users, stalls virality, and crashes your valuation.
+                {t('howToPlay.product_subtitle')}
               </p>
             </div>
 
@@ -371,22 +293,22 @@ export function HowToPlayContent() {
               <div className="flex gap-4 items-start bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl">
                 <div className="size-10 rounded-xl bg-violet-600 text-white flex items-center justify-center font-black shadow-lg shadow-violet-600/20 shrink-0">✨</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">Product Quality</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Raised by building features and refactoring code. Quality above 60 unlocks full viral growth potential. Below 30, users churn heavily and growth is throttled to 20% of normal.</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t('howToPlay.product_quality_title')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t('howToPlay.product_quality_body')}</p>
                 </div>
               </div>
               <div className="flex gap-4 items-start bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl">
                 <div className="size-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-lg shadow-blue-600/20 shrink-0">🔁</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">PMF Score (Product-Market Fit)</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">PMF reflects how well users love your product. It grows automatically as quality improves and users engage. Low PMF ({'<'}45) adds +10% monthly churn on top of your base rate.</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t('howToPlay.product_pmf_title')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t('howToPlay.product_pmf_body')}</p>
                 </div>
               </div>
               <div className="flex gap-4 items-start bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl">
                 <div className="size-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black shadow-lg shadow-amber-600/20 shrink-0">⚠️</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">Technical Debt</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Building features too fast accumulates Tech Debt. High debt drops reliability, triggers server crisis events, and limits how high your Quality can reach.</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t('howToPlay.product_debt_title')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t('howToPlay.product_debt_body')}</p>
                 </div>
               </div>
             </div>
@@ -394,8 +316,8 @@ export function HowToPlayContent() {
             <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3">
               <AlertCircle className="size-6 text-amber-600 dark:text-amber-500 shrink-0" />
               <div>
-                <p className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase mb-1">Key Insight: Bad Products Can't Go Viral</p>
-                <p className="text-[0.6875rem] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">The viral multiplier only kicks in when Quality {'>'} 50 AND PMF {'>'} 15. Fix the product first, then market it.</p>
+                <p className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase mb-1">{t('howToPlay.product_insight_title')}</p>
+                <p className="text-[0.6875rem] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">{t('howToPlay.product_insight_body')}</p>
               </div>
             </div>
           </div>
@@ -405,45 +327,45 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Growth Strategies</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.growth_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                When you create your startup, you choose a Go-To-Market strategy. This fundamentally changes how users, leads, and revenue are calculated.
+                {t('howToPlay.growth_subtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-800 p-4 rounded-2xl">
-                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300 mb-1">📲 Viral / Self-Serve Growth</p>
-                <p className="text-[0.625rem] text-indigo-500 dark:text-indigo-400 font-black uppercase tracking-widest mb-2">Self-Serve SaaS · F2P Viral · Community Marketplace · Consumer Neo-bank</p>
+                <p className="text-sm font-black text-indigo-900 dark:text-indigo-300 mb-1">{t('howToPlay.growth_viral_title')}</p>
+                <p className="text-[0.625rem] text-indigo-500 dark:text-indigo-400 font-black uppercase tracking-widest mb-2">{t('howToPlay.growth_viral_sub')}</p>
                 <ul className="text-[0.6875rem] text-indigo-700 dark:text-indigo-400 font-medium space-y-1.5 leading-relaxed">
-                  <li>• Growth metric = <strong className="font-bold">Free Users</strong></li>
-                  <li>• Revenue comes from converting free → paid via PMF & pricing</li>
-                  <li>• Viral growth multiplies when Quality {'>'} 50 and PMF {'>'} 30</li>
-                  <li>• Marketing team boosts organic intake</li>
-                  <li>• Churn is your enemy — bad product empties the bucket</li>
+                  <li>• <strong className="font-bold">{t('howToPlay.growth_viral1')}</strong></li>
+                  <li>• {t('howToPlay.growth_viral2')}</li>
+                  <li>• {t('howToPlay.growth_viral3')}</li>
+                  <li>• {t('howToPlay.growth_viral4')}</li>
+                  <li>• {t('howToPlay.growth_viral5')}</li>
                 </ul>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 p-4 rounded-2xl">
-                <p className="text-sm font-black text-emerald-900 dark:text-emerald-300 mb-1">🤝 Enterprise / B2B Sales</p>
-                <p className="text-[0.625rem] text-emerald-500 dark:text-emerald-400 font-black uppercase tracking-widest mb-2">Enterprise SaaS · Branded IP Game · Managed Marketplace · B2B Finance API</p>
+                <p className="text-sm font-black text-emerald-900 dark:text-emerald-300 mb-1">{t('howToPlay.growth_sales_title')}</p>
+                <p className="text-[0.625rem] text-emerald-500 dark:text-emerald-400 font-black uppercase tracking-widest mb-2">{t('howToPlay.growth_sales_sub')}</p>
                 <ul className="text-[0.6875rem] text-emerald-700 dark:text-emerald-400 font-medium space-y-1.5 leading-relaxed">
-                  <li>• Growth metric = <strong className="font-bold">B2B Leads → Active Deals → Closed Won</strong></li>
-                  <li>• Revenue = Contracts × Price (no free tier)</li>
-                  <li>• Sales team skill directly drives win rate</li>
-                  <li>• Hire a CFO to activate the Fundraising Roadshow</li>
-                  <li>• Slow but sticky: enterprise clients rarely churn</li>
+                  <li>• <strong className="font-bold">{t('howToPlay.growth_sales1')}</strong></li>
+                  <li>• {t('howToPlay.growth_sales2')}</li>
+                  <li>• {t('howToPlay.growth_sales3')}</li>
+                  <li>• {t('howToPlay.growth_sales4')}</li>
+                  <li>• {t('howToPlay.growth_sales5')}</li>
                 </ul>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Churn — What Kills Growth</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('howToPlay.growth_churn_title')}</p>
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl space-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                <div className="flex justify-between"><span>Product Quality below expected</span><span className="font-black text-rose-600">+up to 5% extra churn</span></div>
-                <div className="flex justify-between"><span>PMF Score below 45</span><span className="font-black text-rose-600">+up to 10% extra churn</span></div>
-                <div className="flex justify-between"><span>Reliability below 60%</span><span className="font-black text-rose-600">+up to 5% extra churn</span></div>
-                <div className="flex justify-between"><span>Team Morale below 40</span><span className="font-black text-rose-600">+up to 2% extra churn</span></div>
-                <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 mt-2"><span className="font-black text-slate-700 dark:text-slate-300">Maximum monthly churn cap</span><span className="font-black text-slate-700 dark:text-slate-300">40%</span></div>
+                <div className="flex justify-between"><span>{t('howToPlay.growth_churn1')}</span><span className="font-black text-rose-600">{t('howToPlay.growth_churn_extra1')}</span></div>
+                <div className="flex justify-between"><span>{t('howToPlay.growth_churn2')}</span><span className="font-black text-rose-600">{t('howToPlay.growth_churn_extra2')}</span></div>
+                <div className="flex justify-between"><span>{t('howToPlay.growth_churn3')}</span><span className="font-black text-rose-600">{t('howToPlay.growth_churn_extra3')}</span></div>
+                <div className="flex justify-between"><span>{t('howToPlay.growth_churn4')}</span><span className="font-black text-rose-600">{t('howToPlay.growth_churn_extra4')}</span></div>
+                <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 mt-2"><span className="font-black text-slate-700 dark:text-slate-300">{t('howToPlay.growth_churn_max')}</span><span className="font-black text-slate-700 dark:text-slate-300">{t('howToPlay.growth_churn_max_val')}</span></div>
               </div>
             </div>
           </div>
@@ -453,77 +375,63 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Corporate Finance & Wealth</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.funding_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Managing your company's balance sheet and your personal net worth is key to scaling. Dilute carefully to raise capital, and reinvest personal gains to grow your brand.
+                {t('howToPlay.funding_subtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">💵 Fundraising & Dilution</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Use "Pitch Investors" to build your pipeline, then negotiate term sheets. Investors give you cash in exchange for equity. Once diluted, you cannot buy back equity until post-IPO.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_fundraising_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_fundraising_body')}</p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">💼 Board of Directors & Salary</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Raising institutional rounds forms a **Board of Directors**. If you want to increase your personal **Founder Salary**, you must submit a proposal. Board members vote based on cash burn, runway, and growth rate.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_board_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_board_body')}</p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">🎲 Stock Options & Margin Loans</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Grant yourself **Executive Stock Option Plans** via Board approval to receive additional equity vesting over time. You can exercise these options to gain common shares, or leverage your existing equity as collateral for **Margin Loans** to get personal cash.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_options_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_options_body')}</p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📄 10b5-1 Compliance Plans</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Avoid compliance investigations when selling founder equity. Set up a **10b5-1 Plan** in the Compliance tab to schedule automated, secondary sales of your shares for safe personal cash.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_compliance_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_compliance_body')}</p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">🏦 Corporate Debt</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Once you reach Series A, you can access non-dilutive capital through **Venture Debt** or **Revenue-Based Loans**. This provides runway without giving up equity, but requires monthly interest and principal payments.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_debt_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_debt_body')}</p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">📉 Treasury & Stock Trading</p>
-                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Put idle corporate or personal cash to work by investing in the **Stock Market**. Build a portfolio to generate yield, or engage in **Options Trading** once your company is public.
-                </p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1 uppercase tracking-wider">{t('howToPlay.funding_treasury_title')}</p>
+                <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{t('howToPlay.funding_treasury_body')}</p>
               </div>
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl flex gap-3">
               <Sparkles className="size-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <div>
-                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">👑 Personal Lifestyle & Brand</p>
-                <p className="text-[0.6875rem] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">
-                  Spend your personal cash on luxury estates, supercars, yachts, or philanthropy. Upgrading your lifestyle raises your **Founder Brand Score**, which passively attracts better employee candidates and lowers marketing CAC.
-                </p>
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">{t('howToPlay.funding_lifestyle_title')}</p>
+                <p className="text-[0.6875rem] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">{t('howToPlay.funding_lifestyle_body')}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Investor Relations & CFO</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('howToPlay.funding_ir_title')}</p>
               <ul className="text-slate-600 dark:text-slate-400 text-xs font-medium space-y-2 leading-relaxed bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl">
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">Monthly Investor Updates:</strong> Costs nothing. Adds +1 Reputation/mo.</li>
-                <li>• <strong className="font-bold text-slate-800 dark:text-slate-200">CFO Roadshow:</strong> Replaces the Consultant once you hire a CFO. Zero extra cost, higher investor lead volume.</li>
+                <li>• {t('howToPlay.funding_ir1')}</li>
+                <li>• {t('howToPlay.funding_ir2')}</li>
               </ul>
             </div>
 
             <div className="bg-slate-900 text-slate-100 p-4 rounded-xl">
-              <p className="text-xs font-black uppercase text-indigo-400 mb-1">Valuation Formula</p>
-              <p className="text-[0.6875rem] font-medium leading-relaxed text-slate-300">Your valuation grows dynamically with <strong className="font-bold text-white">Revenue × ARR Multiple × PMF Factor × Team Score</strong>. A company with high revenue but low PMF will be worth less than a high-PMF competitor at the same revenue level.</p>
+              <p className="text-xs font-black uppercase text-indigo-400 mb-1">{t('howToPlay.funding_valuation_label')}</p>
+              <p className="text-[0.6875rem] font-medium leading-relaxed text-slate-300">{t('howToPlay.funding_valuation_body')}</p>
             </div>
           </div>
         );
@@ -532,40 +440,40 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Hiring & Morale</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.team_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Every employee has a role, a salary, and a skill level that directly impacts the simulation — not just as a headcount number.
+                {t('howToPlay.team_subtitle')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { emoji: "👨‍💻", role: "Engineers", color: "blue", effect: "Clear tech debt passively. The higher the skill, the more debt removed monthly." },
-                { emoji: "📣", role: "Marketers", color: "pink", effect: "Increase brand awareness and organic user growth. Reduce CAC over time." },
-                { emoji: "🤝", role: "Sales", color: "emerald", effect: "In Enterprise mode, their combined skill score drives pipeline win-rate directly. In Viral/Self-Serve, they boost conversion by up to +50% per 100 skill points." },
-                { emoji: "🎨", role: "Designers", color: "violet", effect: "Raise product quality by improving UX and reducing friction." },
+                { emoji: "👨‍💻", roleKey: "engineers_role", effectKey: "engineers_effect", cls: "p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30" },
+                { emoji: "📣",   roleKey: "marketers_role", effectKey: "marketers_effect", cls: "p-3 bg-pink-50/50 dark:bg-pink-900/20 rounded-xl border border-pink-100 dark:border-pink-900/30" },
+                { emoji: "🤝",   roleKey: "sales_role",     effectKey: "sales_effect",     cls: "p-3 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30" },
+                { emoji: "🎨",   roleKey: "designers_role", effectKey: "designers_effect", cls: "p-3 bg-violet-50/50 dark:bg-violet-900/20 rounded-xl border border-violet-100 dark:border-violet-900/30" },
               ].map(e => (
-                <div key={e.role} className={`p-3 bg-${e.color}-50/50 dark:bg-${e.color}-900/20 rounded-xl border border-${e.color}-100 dark:border-${e.color}-900/30`}>
-                  <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1">{e.emoji} {e.role}</p>
-                  <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{e.effect}</p>
+                <div key={e.roleKey} className={e.cls}>
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1">{e.emoji} {t(`howToPlay.team_${e.roleKey}`)}</p>
+                  <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t(`howToPlay.team_${e.effectKey}`)}</p>
                 </div>
               ))}
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">🏆 C-Suite Executives (CXOs)</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('howToPlay.team_cxo_title')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
-                  { title: "🎯 CPO", desc: "Accelerates product features and reduces time-to-quality.", color: "violet" },
-                  { title: "💻 CTO", desc: "Passively reduces tech debt at 2× the rate of standard engineers.", color: "blue" },
-                  { title: "✉️ CMO", desc: "Boosts brand awareness multiplier. Reduces ad spend waste.", color: "pink" },
-                  { title: "⚙️ COO", desc: "Reduces founder burnout accumulation. Increases team morale floor.", color: "amber" },
-                  { title: "📊 CFO", desc: "Reduces burn rate by 10%. Unlocks the Fundraising Roadshow program.", color: "emerald" },
-                  { title: "📅 EA", desc: "Expands your monthly focus capacity, letting you run more actions.", color: "indigo" },
+                  { titleKey: "cpo_title", descKey: "cpo_desc", cls: "p-2.5 bg-violet-50/50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-800 rounded-xl", txtCls: "text-xs font-black text-violet-800 dark:text-violet-400 mb-0.5" },
+                  { titleKey: "cto_title", descKey: "cto_desc", cls: "p-2.5 bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800 rounded-xl",   txtCls: "text-xs font-black text-blue-800 dark:text-blue-400 mb-0.5" },
+                  { titleKey: "cmo_title", descKey: "cmo_desc", cls: "p-2.5 bg-pink-50/50 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-800 rounded-xl",   txtCls: "text-xs font-black text-pink-800 dark:text-pink-400 mb-0.5" },
+                  { titleKey: "coo_title", descKey: "coo_desc", cls: "p-2.5 bg-amber-50/50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800 rounded-xl", txtCls: "text-xs font-black text-amber-800 dark:text-amber-400 mb-0.5" },
+                  { titleKey: "cfo_title", descKey: "cfo_desc", cls: "p-2.5 bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800 rounded-xl", txtCls: "text-xs font-black text-emerald-800 dark:text-emerald-400 mb-0.5" },
+                  { titleKey: "ea_title",  descKey: "ea_desc",  cls: "p-2.5 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800 rounded-xl",  txtCls: "text-xs font-black text-indigo-800 dark:text-indigo-400 mb-0.5" },
                 ].map(cxo => (
-                  <div key={cxo.title} className={`p-2.5 bg-${cxo.color}-50/50 dark:bg-${cxo.color}-950/30 border border-${cxo.color}-100 dark:border-${cxo.color}-800 rounded-xl`}>
-                    <p className={`text-xs font-black text-${cxo.color}-800 dark:text-${cxo.color}-400 mb-0.5`}>{cxo.title}</p>
-                    <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{cxo.desc}</p>
+                  <div key={cxo.titleKey} className={cxo.cls}>
+                    <p className={cxo.txtCls}>{t(`howToPlay.team_${cxo.titleKey}`)}</p>
+                    <p className="text-[0.625rem] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t(`howToPlay.team_${cxo.descKey}`)}</p>
                   </div>
                 ))}
               </div>
@@ -577,35 +485,33 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Market Rivals</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.competitors_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                You operate in a competitive market. Rivals make moves every month — and so does your AI mentor/rival character Chadly.
+                {t('howToPlay.competitors_subtitle')}
               </p>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Rival Tactics</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{t('howToPlay.competitors_tactics_title')}</p>
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl space-y-2">
                 {[
-                  { tactic: "💸 Price Cut", effect: "Steals users & compresses your margins" },
-                  { tactic: "💔 Talent Poaching", effect: "Attempts to hire your employees away" },
-                  { tactic: "📰 Press Attack", effect: "Damages brand reputation and PMF" },
-                  { tactic: "🚀 Feature Launch", effect: "Raises rival's quality and threat level" },
-                  { tactic: "💰 Fundraise", effect: "Extends their runway, increases their pressure" },
+                  { tacticKey: "tactic_price",     effectKey: "tactic_price_effect" },
+                  { tacticKey: "tactic_talent",    effectKey: "tactic_talent_effect" },
+                  { tacticKey: "tactic_press",     effectKey: "tactic_press_effect" },
+                  { tacticKey: "tactic_feature",   effectKey: "tactic_feature_effect" },
+                  { tacticKey: "tactic_fundraise", effectKey: "tactic_fundraise_effect" },
                 ].map(r => (
-                  <div key={r.tactic} className="flex justify-between items-center bg-white dark:bg-slate-900 p-2.5 rounded-xl">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{r.tactic}</span>
-                    <span className="text-[0.625rem] bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full font-bold">{r.effect}</span>
+                  <div key={r.tacticKey} className="flex justify-between items-center bg-white dark:bg-slate-900 p-2.5 rounded-xl">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t(`howToPlay.competitors_${r.tacticKey}`)}</span>
+                    <span className="text-[0.625rem] bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full font-bold">{t(`howToPlay.competitors_${r.effectKey}`)}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl">
-              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">🤝 Mergers, Acquisitions & Subsidiaries</p>
-              <p className="text-[0.6875rem] text-indigo-700 dark:text-indigo-400 font-medium">
-                You can **acquire competitor companies** directly to absorb their users, cash, and market share! Go to the **Market** menu, view active rivals, and make an acquisition offer. If successful, their entire user base is merged into your startup, and they become a **Subsidiary** that you can actively manage for additional synergies and revenue streams. *(Titan owners get a permanent 50% cash discount on M&A acquisitions).*
-              </p>
+              <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1 uppercase tracking-wider">{t('howToPlay.competitors_manda_title')}</p>
+              <p className="text-[0.6875rem] text-indigo-700 dark:text-indigo-400 font-medium">{t('howToPlay.competitors_manda_body')}</p>
             </div>
           </div>
         );
@@ -614,9 +520,9 @@ export function HowToPlayContent() {
         return (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">Exits & Public Markets</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-2">{t('howToPlay.ending_title')}</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-semibold">
-                Building a huge company leads to the ultimate test: liquidating your ownership through an Acquisition or taking the company public on the stock exchange.
+                {t('howToPlay.ending_subtitle')}
               </p>
             </div>
 
@@ -624,20 +530,16 @@ export function HowToPlayContent() {
               <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
                 <div className="size-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-black shadow-lg shadow-slate-900/20 shrink-0">🏛️</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">1. IPO (Initial Public Offering)</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                    Take your company public on the stock exchange. Requires hitting <strong className="font-bold text-slate-700 dark:text-slate-300">$50M ARR, 10k+ users, PMF ≥ 60, and Series A raised</strong>. Run the IPO Roadshow to build demand, price your stock, and list on the ticker.
-                  </p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t('howToPlay.ending_ipo_title')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t('howToPlay.ending_ipo_body')}</p>
                 </div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex gap-3">
                 <div className="size-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/20 shrink-0">💰</div>
                 <div>
-                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">2. M&A Acquisition Exit</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                    A strategic buyer approaches you with a buyout offer based on your current valuation. You can negotiate the payout. Payout is typically 5-10x your ARR.
-                  </p>
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-200">{t('howToPlay.ending_manda_title')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{t('howToPlay.ending_manda_body')}</p>
                 </div>
               </div>
             </div>
@@ -645,20 +547,16 @@ export function HowToPlayContent() {
             <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-2xl flex gap-3">
               <MonitorPlay className="size-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <div>
-                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">🎙️ Post-IPO: Quarterly Earnings Calls</p>
-                <p className="text-[0.6875rem] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">
-                  Every 3 months post-IPO, you must host an **Earnings Call**. Present your financial results to Wall Street and answer analyst questions. Keeping analyst sentiment high drives your stock price up, while poor reporting or bad answers will trigger sell-offs.
-                </p>
+                <p className="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase mb-1">{t('howToPlay.ending_earnings_title')}</p>
+                <p className="text-[0.6875rem] text-indigo-800 dark:text-indigo-400 font-medium leading-relaxed">{t('howToPlay.ending_earnings_body')}</p>
               </div>
             </div>
 
             <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 p-4 rounded-2xl flex gap-3">
               <Shield className="size-6 text-rose-600 dark:text-rose-400 shrink-0" />
               <div>
-                <p className="text-xs font-black text-rose-900 dark:text-rose-300 uppercase mb-1">🏛️ Compliance & Congressional Lobbying</p>
-                <p className="text-[0.6875rem] text-rose-800 dark:text-rose-400 font-medium leading-relaxed">
-                  Hire lobbyists in the **Compliance** tab to influence regulation. Lobbying Congress shields your company from heavy fines when navigating lawsuits, auditing investigations, or antitrust crackdowns from regulators.
-                </p>
+                <p className="text-xs font-black text-rose-900 dark:text-rose-300 uppercase mb-1">{t('howToPlay.ending_lobbying_title')}</p>
+                <p className="text-[0.6875rem] text-rose-800 dark:text-rose-400 font-medium leading-relaxed">{t('howToPlay.ending_lobbying_body')}</p>
               </div>
             </div>
           </div>
