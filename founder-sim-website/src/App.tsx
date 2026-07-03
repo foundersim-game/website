@@ -87,6 +87,7 @@ const LandingPage = () => {
   ];
 
   const v2Features = [
+    { icon: '🌍', label: 'Global Localizations', desc: 'Now available in Español, Deutsch, French, and Brazilian Portuguese' },
     { icon: '🏆', label: 'Global Leaderboards', desc: 'Compete against founders worldwide to claim the top spot' },
     { icon: '🎬', label: 'Story Mode', desc: 'Vote on upcoming cinematic campaigns of iconic founders' },
     { icon: '🧠', label: 'Founder Burnout', desc: 'Balance your mental health or face severe attribute penalties' },
@@ -121,7 +122,7 @@ const LandingPage = () => {
       {/* ── V2 ANNOUNCEMENT BANNER ── */}
       <div className="v2-banner">
         <Sparkles size={13} style={{ color: 'var(--amber)' }} />
-        <span className="v2-banner-text">🎉 VERSION 2.1.0 — LEADERBOARDS & STORY MODE — IS NOW LIVE</span>
+        <span className="v2-banner-text">🎉 VERSION 2.3.0 — LEADERBOARDS & STORY MODE — IS NOW LIVE</span>
         <span className="v2-banner-sub">Compete globally, manage burnout, and vote on upcoming cinematic campaigns</span>
         <a href="#v2" className="v2-banner-cta">See What's New <ArrowRight size={11} /></a>
       </div>
@@ -221,8 +222,8 @@ const LandingPage = () => {
             <motion.div className="store-row" style={{ marginBottom: 56 }}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
               <a href="https://apps.apple.com/app/founder-sim/id6738854346" target="_blank" rel="noreferrer" className="store-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516.024.034 1.52.087 2.475-1.258.955-1.345.762-2.391.728-2.43Zm3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422.212-2.189 1.675-2.789 1.698-2.854.023-.065-.597-.79-1.254-1.157a3.692 3.692 0 0 0-1.563-.434c-1.089-.058-2.254.969-2.741.969-.487 0-1.432-.979-2.261-.979-1.254 0-2.584.87-3.411 2.155-1.674 2.582-1.272 5.617.387 8.01 1.01 1.464 2.285 3.12 3.86 3.064 1.575-.058 2.059-.971 3.86-.971 1.8 0 2.285.971 3.86.971 1.575 0 2.85-1.59 3.86-3.053.847-1.226 1.14-2.428 1.14-2.428s-1.89-1.745-1.89-3.84c0-2.095 1.705-2.99 1.705-2.99Z" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 384 512">
+                  <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
                 </svg>
                 <div>
                   <span className="store-badge-sub">Download on the</span>
@@ -230,8 +231,8 @@ const LandingPage = () => {
                 </div>
               </a>
               <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer" className="store-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M14.316 7.332 2.628 1.139C2.086.85 1.401 1.252 1.401 1.87v12.261c0 .618.685 1.02 1.227.73l11.688-6.192c.563-.298.563-1.135 0-1.433v-.004Z" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 512 512">
+                  <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
                 </svg>
                 <div>
                   <span className="store-badge-sub">Get it on</span>
@@ -312,14 +313,14 @@ const LandingPage = () => {
         <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: 72 }}>
           <div className="v2-release-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
             <Zap size={16} style={{ color: 'var(--amber)' }} />
-            <span>VERSION 2.1.0 — LEADERBOARDS & STORY MODE</span>
+            <span>VERSION 2.3.0 — LEADERBOARDS & STORY MODE</span>
             <Zap size={16} style={{ color: 'var(--amber)' }} />
           </div>
           <h2 className="section-title" style={{ fontSize: 'clamp(34px,4.5vw,64px)', marginBottom: 20 }}>
             THE BIGGEST UPDATE<br /><span className="glow-amber">IN FOUNDER SIM HISTORY</span>
           </h2>
           <p style={{ fontSize: 17, color: 'var(--text-muted)', maxWidth: 620, margin: '0 auto', lineHeight: 1.8 }}>
-            V2.1 transforms Founder Sim from a funding simulator into a massive global competition.
+            V2.3 transforms Founder Sim from a funding simulator into a massive global competition.
             Compete on the leaderboards, vote for upcoming cinematic stories, and manage your stress.
             The empire era has begun.
           </p>
@@ -338,7 +339,7 @@ const LandingPage = () => {
         <motion.div variants={fadeUp} style={{ textAlign: 'center', marginTop: 56 }}>
           <a href="https://apps.apple.com/app/founder-sim/id6738854346" target="_blank" rel="noreferrer"
             className="btn btn-brand" style={{ fontSize: 13 }}>
-            Play V2.1.0 Free <ArrowRight size={14} />
+            Play V2.3.0 Free <ArrowRight size={14} />
           </a>
         </motion.div>
       </Reveal>
@@ -576,11 +577,15 @@ const LandingPage = () => {
           </p>
           <div className="store-row" style={{ justifyContent: 'center' }}>
             <a href="https://apps.apple.com/app/founder-sim/id6738854346" target="_blank" rel="noreferrer" className="store-badge">
-              <span style={{ fontSize: 26 }}>🍎</span>
+              <span style={{ fontSize: 26, display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+              </span>
               <div><span className="store-badge-sub">Download on the</span><span className="store-badge-main">App Store</span></div>
             </a>
             <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer" className="store-badge">
-              <span style={{ fontSize: 26 }}>🤖</span>
+              <span style={{ fontSize: 26, display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="currentColor" viewBox="0 0 512 512"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
+              </span>
               <div><span className="store-badge-sub">Get it on</span><span className="store-badge-main">Google Play</span></div>
             </a>
           </div>
@@ -607,13 +612,13 @@ const LandingPage = () => {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', transition: 'all .2s' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-                🍎 App Store
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg> App Store
               </a>
               <a href="https://play.google.com/store/apps/details?id=com.foundersim.app&pli=1" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', transition: 'all .2s' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-                🤖 Google Play
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 512 512"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg> Google Play
               </a>
             </div>
           </div>
@@ -663,7 +668,7 @@ const LandingPage = () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 999, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.14)' }}>
               <TrendingUp size={13} color="var(--amber)" />
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>V2.0.0 Live Now</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>V2.3.0 Live Now</span>
             </div>
           </div>
         </div>
