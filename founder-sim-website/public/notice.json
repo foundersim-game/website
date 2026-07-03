@@ -1,9 +1,9 @@
 {
-    "id": "v2_1_update",
+    "id": "v2_3_update",
     "active": false,
-    "title": "🚀 Founder Sim v2.1 is Here!",
-    "message": "Update now to experience the latest features! Version 2.1 brings new improvements, bug fixes, and an enhanced startup journey.",
-    "actionText": "Update to v2.1",
+    "title": "🚀 Founder Sim v2.3 is Here!",
+    "message": "Update now to experience the latest features! Version 2.3 brings new improvements, bug fixes, and an enhanced startup journey.",
+    "actionText": "Update to v2.3",
     "actionUrl": "https://apps.apple.com/app/founder-sim-startup-game/id6761432505",
     "banner": {
         "active": true,
