@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Startup, MarketStock } from "@/lib/types/database.types";
-import { cn, formatMoney, formatNumber } from "@/lib/utils";
+import { getCurrencySymbol, cn, formatMoney, formatNumber } from "@/lib/utils";
 
 // Subsidiary string parsing helper
 const parseSubsidiaryString = (subStr: string) => {
@@ -70,6 +70,7 @@ export function ManageSubsidiaryModal({
     onListSubsidiary,
     onDivestSubsidiary
 }: ManageSubsidiaryModalProps) {
+    const c = getCurrencySymbol();
     const [injectAmount, setInjectAmount] = useState<number>(1000000);
 
     if (!open || !subRaw) return null;
@@ -334,7 +335,7 @@ export function ManageSubsidiaryModal({
                                     disabled={corporateCash < 1000000}
                                 />
                                 <div className="flex justify-between w-full mt-1 px-1 text-[0.5rem] font-black text-slate-400 uppercase">
-                                    <span>$1M</span>
+                                    <span>{c}1M</span>
                                     <span>{formatMoney(Math.max(1, Math.floor(corporateCash / 1000000)) * 1000000)} (Max)</span>
                                 </div>
                                 <button
@@ -364,7 +365,7 @@ export function ManageSubsidiaryModal({
                                 >
                                     <span className="text-[0.625rem] font-black uppercase">🎯 Rebrand Division</span>
                                     <span className="text-[0.5rem] text-slate-500 dark:text-slate-400 font-medium">
-                                        Cost: $5M corporate cash
+                                        Cost: {c}5M corporate cash
                                     </span>
                                     <span className="text-[0.4688rem] font-bold text-violet-600 dark:text-violet-400 mt-1">
                                         Boosts awareness & resets risk.
@@ -382,7 +383,7 @@ export function ManageSubsidiaryModal({
                                 >
                                     <span className="text-[0.625rem] font-black uppercase">📈 Underwrite IPO</span>
                                     <span className="text-[0.5rem] text-slate-500 dark:text-slate-400 font-medium">
-                                        Cost: $2M corporate cash
+                                        Cost: {c}2M corporate cash
                                     </span>
                                     <span className="text-[0.4688rem] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                                         List stock on public market. Keep 80% stake.

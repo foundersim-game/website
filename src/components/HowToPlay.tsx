@@ -108,7 +108,7 @@ export function HowToPlayContent() {
 
             <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-3xl border border-slate-200 dark:border-slate-800">
               <p className="text-sm text-slate-600 dark:text-slate-400 font-bold mb-4 italic leading-relaxed">
-                "{industries.find(i => i.id === selectedIndustry)?.description}"
+                &quot;{industries.find(i => i.id === selectedIndustry)?.description}&quot;
               </p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

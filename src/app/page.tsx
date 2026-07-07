@@ -15,6 +15,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { playSound, playSynthSound } from "@/lib/audio";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { secureSave, secureLoad } from "@/lib/security";
 
 export type SaveSlot = {
   id: string;
@@ -72,11 +73,11 @@ export default function Home() {
 
   const loadSaves = () => {
     try {
-      const raw = JSON.parse(localStorage.getItem("founder_sim_saves") || "[]") as SaveSlot[];
+      const raw = (secureLoad("founder_sim_saves") || []) as SaveSlot[];
       let sorted = raw.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       if (sorted.length > MAX_SLOTS) {
         sorted = sorted.slice(0, MAX_SLOTS);
-        localStorage.setItem("founder_sim_saves", JSON.stringify(sorted));
+        secureSave("founder_sim_saves", sorted);
       }
       setSavedGames(sorted);
 
@@ -145,7 +146,7 @@ export default function Home() {
   const handleDelete = (id: string) => {
     playSound("click");
     const updated = savedGames.filter(s => s.id !== id);
-    localStorage.setItem("founder_sim_saves", JSON.stringify(updated));
+    secureSave("founder_sim_saves", updated);
     setSavedGames(updated);
     setConfirmDelete(null);
   };

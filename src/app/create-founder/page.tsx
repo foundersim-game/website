@@ -113,6 +113,7 @@ const BRAND_COLORS = [
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 import { SCENARIOS, ScenarioId, SCENARIOS as SCENARIO_DEFS } from "@/lib/engine/legacy";
+import { secureSave, secureLoad } from "@/lib/security";
 
 const TOTAL_STEPS = 7;
 

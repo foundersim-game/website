@@ -40,13 +40,16 @@ import KeynoteModal from "./KeynoteModal";
 import PitchDeckModal from "./PitchDeckModal";
 import SprintModal from "./SprintModal";
 
+import { getCurrencySymbol } from "@/lib/utils";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtCash(n: number): string {
-  if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-  if (Math.abs(n) >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
-  if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  if (Math.abs(n) >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
+  const c = getCurrencySymbol();
+  if (Math.abs(n) >= 1e12) return `${c}${(n / 1e12).toFixed(2)}T`;
+  if (Math.abs(n) >= 1e9) return `${c}${(n / 1e9).toFixed(1)}B`;
+  if (Math.abs(n) >= 1e6) return `${c}${(n / 1e6).toFixed(1)}M`;
+  if (Math.abs(n) >= 1e3) return `${c}${(n / 1e3).toFixed(0)}K`;
+  return `${c}${n.toFixed(0)}`;
 }
 function fmtNum(n: number): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
@@ -987,7 +990,7 @@ function ActionPanel({
         {storyState.keyPeople.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-6 text-center">
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No key people yet</p>
-            <p className="text-[0.625rem] text-slate-300 mt-1">They'll appear as the story progresses</p>
+            <p className="text-[0.625rem] text-slate-300 mt-1">They&apos;ll appear as the story progresses</p>
           </div>
         ) : storyState.keyPeople.map((person) => {
           const hearts = Math.round((person.loyalty / 100) * 5);

@@ -15,6 +15,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { processMonth, calculateFinancials, StartupAction, evaluateSalaryProposal, evaluateResolution, getBoardMembers, INDUSTRY_PRICING_CONFIG, PricingConfigNode, getPricingScale } from "@/lib/engine/simulation";
 import { getNextFundingStage, getFundingPhase, generateFundingTerms, checkEndgame } from "@/lib/engine/funding";
 import { recordExit, SCENARIOS, ScenarioId, getLegacyData } from "@/lib/engine/legacy";
+import { computeLegacyScore } from "@/lib/engine/legacyScore";
 import { generateAcquisitionOffer, generateMnATargets, MnATarget } from "@/lib/engine/manda";
 import { getRandomEvent } from "@/lib/engine/events";
 import { generateAIEvent, generateFounderStory, generateChadBanter } from "@/lib/engine/ai";
@@ -138,7 +139,7 @@ function TraitBadge({ trait }: { trait: EmployeeTrait }) {
         </span>
     );
 }
-import { cn, formatMoney, formatNumber } from "@/lib/utils";
+import { cn, formatMoney, formatNumber, getCurrencySymbol } from "@/lib/utils";
 
 import { iapService, IAP_PRODUCT_IDS } from "@/lib/services/iapService";
 import { adService } from "@/lib/services/adService";
@@ -147,6 +148,7 @@ import { STRATEGY_PLAYBOOK } from "@/lib/engine/strategyPlaybook_i18n";
 import { playSound, isAudioMuted, toggleAudioMute } from "@/lib/audio";
 import { NetworkStatusOverlay } from "@/components/NetworkStatusOverlay";
 import { App } from "@capacitor/app";
+import { secureSave, secureLoad } from "@/lib/security";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatSaveDate(dateStr: string) {
@@ -595,6 +597,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
     handlePurchaseAsset, handleToggleLifestyle, handleActionClick, handleAllocateESOP, expandedMetric, setExpandedMetric, currentTime, cashGrants, setCashGrants, energyRefills, setEnergyRefills, setConfirmDialog, isOnline, isPremium, rejectedCandidates, allEmployees, handleRivalryAction, setActionCategory, onUnlockSkill, setFounder, marketStocks, setMarketStocks, mnaTargets, setMnaTargets,
     hrSearchRole, setHrSearchRole, hrCandidates, setHrCandidates, isProcessing, handleAcquireRival, setCompetitors }: ActionSheetProps) {
 
+    const c = getCurrencySymbol();
     const employees = allEmployees;
     const { t } = useTranslation();
     const [isManageSubModalOpen, setIsManageSubModalOpen] = useState(false);
@@ -750,7 +753,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <p className="text-[0.5625rem] font-black text-emerald-600 dark:text-emerald-400 tracking-tighter text-right leading-tight max-w-[8.125rem] whitespace-normal">{effectsList}</p>
                     <div className="flex gap-1 items-center">
                         {scaledEffects.cash && (
-                            <span className="text-[0.5rem] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">(Cost: ${Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
+                            <span className="text-[0.5rem] font-bold text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">(Cost: {c}{Math.round(Math.abs(scaledEffects.cash)).toLocaleString()})</span>
                         )}
                         <span className="text-[0.5rem] font-black bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">⚡{action.energyCost}h</span>
                     </div>
@@ -1000,7 +1003,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                         {t(`dashboard.ops.pricing.labels.${cfg.label.toLowerCase().replace(/[\\s\\/%]/g, '_')}`, { defaultValue: cfg.label })}
                                     </span>
                                     <span className="text-xl font-black text-slate-800 dark:text-white tracking-tighter">
-                                        {cfg.unit === "%" ? `${m.pricing}%` : `$${m.pricing}`}
+                                        {cfg.unit === "%" ? `${m.pricing}%` : `$${c}${m.pricing}`}
                                         <span className="text-xs text-slate-400 dark:text-slate-500 font-normal tracking-normal lowercase"> {cfg.unit}</span>
                                     </span>
                                 </div>
@@ -1019,8 +1022,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 />
                                 <div className="flex justify-between w-full mt-1 px-1 text-[0.5rem] font-black text-slate-400 uppercase">
                                     <span>{t("dashboard.ops.pricing.free")}</span>
-                                    <span>${Math.round(cfg.maxPrice / 2)}</span>
-                                    <span>${cfg.maxPrice}</span>
+                                    <span>{c}{Math.round(cfg.maxPrice / 2)}</span>
+                                    <span>{c}{cfg.maxPrice}</span>
                                 </div>
 
                                 {/* Sub-sliders (like Ad Frequency) */}
@@ -1258,7 +1261,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         className="w-full py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">{t("dashboard.marketing.trigger_viral_hit")}</span>
-                        <span className="bg-pink-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-pink-400/30">$1.99</span>
+                        <span className="bg-pink-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-pink-400/30">{c}1.99</span>
                     </button>
                 </div>
 
@@ -1272,7 +1275,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     <div className="text-center">
                         <p className="text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase">{t("dashboard.marketing.cac")}</p>
-                        <p className="text-xs font-black text-slate-700 dark:text-slate-200">${(m.cac || 0).toLocaleString()}</p>
+                        <p className="text-xs font-black text-slate-700 dark:text-slate-200">{formatMoney(m.cac || 0)}</p>
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     <div className="text-center">
@@ -1385,21 +1388,21 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">👨‍💻 {t("dashboard.ops.hiring.poach_btn", { role: t("dashboard.ops.hiring.roles.engineer") })}</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">{c}2.99</span>
                         </button>
                         <button
                             onClick={() => handleIAP_Poach10x("marketer")}
                             className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">📣 {t("dashboard.ops.hiring.poach_btn", { role: t("dashboard.ops.hiring.roles.marketer") })}</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">{c}2.99</span>
                         </button>
                         <button
                             onClick={() => handleIAP_Poach10x("sales")}
                             className="w-full py-2 bg-white/50 hover:bg-white dark:bg-slate-800 hover:dark:bg-slate-700 text-violet-700 dark:text-violet-300 text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 border border-violet-200 dark:border-violet-800 shadow-sm"
                         >
                             <span className="flex items-center gap-2">🤝 {t("dashboard.ops.hiring.poach", { defaultValue: "Poach" })} {t(`dashboard.roles.${activeConfig.salesRoleName.replace(/ \/ /g, "_").replace(/ /g, "_").toLowerCase()}`, { defaultValue: activeConfig.salesRoleName })}</span>
-                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">$2.99</span>
+                            <span className="bg-violet-100 dark:bg-violet-900 px-2 py-0.5 rounded-full text-[0.5rem]">{c}2.99</span>
                         </button>
                     </div>
                 </div>
@@ -1658,7 +1661,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
                                                         <span className="text-[0.5625rem] text-slate-500 dark:text-slate-500">❤️ {cultureFit}% fit</span>
                                                         <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
-                                                        <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">${salary.toLocaleString()}/mo</span>
+                                                        <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">{formatMoney(salary)}/mo</span>
                                                     </div>
                                                     <p className="text-[0.5rem] text-slate-400 dark:text-slate-600 mt-0.5">4yr vest · 1yr cliff</p>
                                                 </div>
@@ -1903,7 +1906,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                     <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
                                                     <span className="text-[0.5625rem] text-slate-500 dark:text-slate-500">❤️ {cand._culture}% fit</span>
                                                     <span className="text-[0.5625rem] text-slate-400 dark:text-slate-700">·</span>
-                                                    <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">${(cand.expectedSalary / 12).toLocaleString()}/mo</span>
+                                                    <span className="text-[0.5625rem] font-bold text-slate-600 dark:text-slate-300">{formatMoney(cand.expectedSalary / 12)}/mo</span>
                                                 </div>
                                             </div>
                                             <span className={cn("text-[0.5625rem] font-black px-2 py-1 rounded-full", roleDef.tagBg, "dark:bg-slate-800", roleDef.text)}>➕ Hire</span>
@@ -2114,11 +2117,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             let emoji = "📈";
             let sub = "Late Stage Growth Capital";
 
-            if (nextRound.includes("Angel")) { emoji = "👼"; sub = "$50K–$500K · 5–15% equity"; }
-            else if (nextRound.includes("Seed")) { emoji = "🌱"; sub = "$500K–$2M · 15–25% equity"; }
-            else if (nextRound === "Series A") { emoji = "⚡"; sub = "$2M–$15M · 20–30% equity"; }
-            else if (nextRound === "Series B") { emoji = "📈"; sub = "$15M–$150M · 15–25% equity"; }
-            else if (nextRound === "Series C") { emoji = "💎"; sub = "$150M–$500M · 10–20% equity"; }
+            const c = getCurrencySymbol();
+            if (nextRound.includes("Angel")) { emoji = "👼"; sub = `$${c}50K–$${c}500K · 5–15% equity`; }
+            else if (nextRound.includes("Seed")) { emoji = "🌱"; sub = `$${c}500K–$${c}2M · 15–25% equity`; }
+            else if (nextRound === "Series A") { emoji = "⚡"; sub = `$${c}2M–$${c}15M · 20–30% equity`; }
+            else if (nextRound === "Series B") { emoji = "📈"; sub = `$${c}15M–$${c}150M · 15–25% equity`; }
+            else if (nextRound === "Series C") { emoji = "💎"; sub = `$${c}150M–$${c}500M · 10–20% equity`; }
             else if (nextRound.includes("Series") || nextRound.includes("Round")) {
                 emoji = "🏛️";
                 sub = "Institutional Scaling Capital · 5-10% equity";
@@ -2288,7 +2292,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 onClick={() => handleIssueBond(50000000, 24)}
                                 className="flex-1 bg-amber-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20"
                             >
-                                {t("dashboard.markets.issue_50m_bonds", { defaultValue: "Issue $50M Bonds" })}<br />
+                                {t("dashboard.markets.issue_50m_bonds", { defaultValue: `Issue $${c}50M Bonds` })}<br />
                                 <span className="text-[0.5rem] opacity-70">24mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
                             </button>
                             <button
@@ -2296,12 +2300,12 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 disabled={startup.valuation < 500000000}
                                 className="flex-1 bg-orange-600 text-white p-3 rounded-2xl text-[0.625rem] font-black uppercase tracking-wider hover:bg-orange-700 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-md shadow-orange-600/20"
                             >
-                                {t("dashboard.markets.issue_150m_bonds", { defaultValue: "Issue $150M Bonds" })}<br />
+                                {t("dashboard.markets.issue_150m_bonds", { defaultValue: `Issue $${c}150M Bonds` })}<br />
                                 <span className="text-[0.5rem] opacity-70">36mo · {m.net_profit >= 0 ? "5.0%" : "8.5%"} APR</span>
                             </button>
                         </div>
                         {startup.valuation < 500000000 && (
-                            <p className="text-[0.5rem] text-rose-500 mt-2 text-center font-bold">⚠️ $150M Bonds require a valuation of at least $500M.</p>
+                            <p className="text-[0.5rem] text-rose-500 mt-2 text-center font-bold">⚠️ ${c}150M Bonds require a valuation of at least $500M.</p>
                         )}
                     </div>
 
@@ -2349,7 +2353,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                 <span className="text-xl">💰</span>
                                 <div>
                                     <p className="text-[0.625rem] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">{t("dashboard.funding.emergency_grant", { defaultValue: "Emergency Grant" })}</p>
-                                    <p className="text-[0.5rem] font-bold text-emerald-500 dark:text-emerald-500 uppercase mt-0.5">{t("dashboard.funding.watch_ad", { defaultValue: "Watch ad for +$50,000" })}</p>
+                                    <p className="text-[0.5rem] font-bold text-emerald-500 dark:text-emerald-500 uppercase mt-0.5">{t("dashboard.funding.watch_ad", { defaultValue: `Watch ad for +$${c}50,000` })}</p>
                                 </div>
                             </div>
                             {(() => {
@@ -2387,8 +2391,8 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                                         cash: s.metrics.cash + 50000
                                                     }
                                                 }));
-                                                addTimelineEvent(`💰 Emergency Grant: +$50,000 received from strategic advisors.`);
-                                                toast.success("Emergency Grant Received!", { description: "+$50,000 added to your balance.", icon: "💰" });
+                                                addTimelineEvent(`💰 Emergency Grant: +$${c}50,000 received from strategic advisors.`);
+                                                toast.success("Emergency Grant Received!", { description: "+${c}50,000 added to your balance.", icon: "💰" });
                                                 setCashGrants([...validGrants, Date.now()]); // Update rates limit
                                             }, 'cash');
                                         }}
@@ -2655,7 +2659,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     const liveArr = (m.revenue || 0) * 12;
                     const hasCFO = !!(startup as any).cxoTeam?.["CFO"];
                     const ipoChecks = [
-                        { label: t("dashboard.funding.arr_metric", { amount: "$50M", defaultValue: "$50M ARR" }), pass: liveArr >= 50_000_000 },
+                        { label: t("dashboard.funding.arr_metric", { amount: `$${c}50M`, defaultValue: `$${c}50M ARR` }), pass: liveArr >= 50_000_000 },
                         { label: t("dashboard.funding.users_metric", { amount: "10K+", defaultValue: "10K+ Users" }), pass: m.users >= 10_000 },
                         { label: t("dashboard.funding.pmf_score_metric", { defaultValue: "PMF Score ≥ 60" }), pass: (m.pmf_score ?? 0) >= 60 },
                         { label: t("dashboard.funding.tech_debt_metric", { defaultValue: "Tech Debt < 40%" }), pass: (m.technical_debt ?? 0) < 40 },
@@ -3080,7 +3084,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                     <p className="text-[0.625rem] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">{t("dashboard.founder.monthly_salary_draw")}</p>
 
                     <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 mb-3 shadow-inner">
-                        <span className="text-xl font-black text-indigo-600 shrink-0">$</span>
+                        <span className="text-xl font-black text-indigo-600 shrink-0">{c}</span>
                         <input
                             type="number"
                             value={salaryInput}
@@ -4325,9 +4329,9 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 addTimelineEvent(`🏛️ Federal Liaison: Funded federal regulatory liaison with ${formatMoney(amount)}. Lobbying score +${points}, CEO Reputation +8.`);
                 toast.success(t("dashboard.lobbying.liaison_active"), { description: t("dashboard.lobbying.liaison_active_desc") });
             } else if (type === "coalition") {
-                // Grant $15M R&D cash immediately!
+                // Grant ${c}15M R&D cash immediately!
                 newStartup.metrics.cash += 15000000;
-                addTimelineEvent(`🏛️ Coalition Subsidy: Sponsored bipartisan coalition with ${formatMoney(amount)}, securing an immediate $15,000,000 federal R&D tax grant!`);
+                addTimelineEvent(`🏛️ Coalition Subsidy: Sponsored bipartisan coalition with ${formatMoney(amount)}, securing an immediate $${c}15,000,000 federal R&D tax grant!`);
                 toast.success(t("dashboard.lobbying.subsidy"), { description: t("dashboard.lobbying.subsidy_desc") });
             } else {
                 addTimelineEvent(`🏛️ PAC Funding: Funded PAC campaign with ${formatMoney(amount)}. Lobbying score +${points}.`);
@@ -4357,7 +4361,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">{t("dashboard.lobbying.force_bull")}</span>
-                        <span className="bg-emerald-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-emerald-400/30">$4.99</span>
+                        <span className="bg-emerald-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-emerald-400/30">{c}4.99</span>
                     </button>
                 </div>
 
@@ -4984,7 +4988,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             }
 
             if (setStartup) setStartup(newStartup);
-            addTimelineEvent(`🪑 Board approved: ${name} (Cost: ${formatMoney(cost)})`);
+            addTimelineEvent(`🪑 Board approved: ${name} (Cost: ${c}{formatMoney(cost)})`);
             toast.success(t("dashboard.board.resolution_passed"));
         };
 
@@ -5009,7 +5013,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                                     disabled={!pub || pub.share_price < 50}
                                     className="shrink-0 ml-2 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded text-[0.625rem] font-black uppercase hover:opacity-90 disabled:opacity-30 transition-all"
                                 >
-                                    {(!pub || pub.share_price < 50) ? "Req $50+" : "Execute"}
+                                    {(!pub || pub.share_price < 50) ? `Req $${c}50+` : "Execute"}
                                 </button>
                             </div>
                         </div>
@@ -5288,7 +5292,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                         className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[0.625rem] font-black uppercase rounded-xl transition flex items-center justify-between px-3 shadow-md active:scale-95"
                     >
                         <span className="flex items-center gap-2">{t("dashboard.fines.make_disappear")}</span>
-                        <span className="bg-amber-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-amber-400/30">$0.99</span>
+                        <span className="bg-amber-900/30 px-2 py-0.5 rounded-full text-[0.5rem] border border-amber-400/30">{c}0.99</span>
                     </button>
                 </div>
 
@@ -5661,7 +5665,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
         const handleExerciseOptions = (optId: string, amount: number, strike: number) => {
             const cost = amount * strike;
             if (personalCash < cost) {
-                toast.error(t("dashboard.options.insufficient_personal_cash"), { description: `You need ${formatMoney(cost)} of personal cash to exercise these options.` });
+                toast.error(t("dashboard.options.insufficient_personal_cash"), { description: `You need ${c}{formatMoney(cost)} of personal cash to exercise these options.` });
                 return;
             }
 
@@ -5699,7 +5703,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 });
             }
             setStartup(newStartup);
-            addTimelineEvent(`🎲 Stock Options: Exercised ${formatNumber(amount)} stock options at a strike of ${formatMoney(strike)} (Cost: ${formatMoney(cost)}).`);
+            addTimelineEvent(`🎲 Stock Options: Exercised ${formatNumber(amount)} stock options at a strike of ${formatMoney(strike)} (Cost: ${c}{formatMoney(cost)}).`);
             toast.success(t("dashboard.options.options_exercised"), { description: `Converted ${formatNumber(amount)} options into common shares.` });
         };
 
@@ -5975,7 +5979,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             }
 
             setStartup(newStartup);
-            addTimelineEvent(`🏢 Corporate Oversight: Spun off internal division into subsidiary "${name}" (Treasury Cost: ${formatMoney(cost)}).`);
+            addTimelineEvent(`🏢 Corporate Oversight: Spun off internal division into subsidiary "${name}" (Treasury Cost: ${c}{formatMoney(cost)}).`);
             toast.success(t("dashboard.subsidiary.subsidiary_spun_off"), { description: `"${name}" is now an active subsidiary.` });
         };
 
@@ -6028,7 +6032,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
             newStartup.metrics.cash -= cost;
 
             const parsed = parseSubsidiary(rawName);
-            // Increase its asset value by $5M due to marketing goodwill pop
+            // Increase its asset value by ${c}5M due to marketing goodwill pop
             // Rebranding also boosts revenue ~8% (brand premium effect)
             const newSubStr = serializeSubsidiary({ ...parsed, valuation: parsed.valuation + cost, revenue: Math.floor(parsed.revenue * 1.08) });
             newStartup.subsidiaries = subs.map((s: string) => s === rawName ? newSubStr : s);
@@ -6057,7 +6061,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 const fee = 2000000;
                 const corporateCash = startup.metrics.cash || 0;
                 if (corporateCash < fee) {
-                    toast.error(t("dashboard.subsidiary.insufficient_treasury_cash"), { description: `Listing ${parsed.name} requires $2,000,000 in IPO fees.` });
+                    toast.error(t("dashboard.subsidiary.insufficient_treasury_cash"), { description: `Listing ${parsed.name} requires $${c}2,000,000 in IPO fees.` });
                     return;
                 }
 
@@ -6070,7 +6074,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
                 const subARR = parsed.valuation * 0.15;
                 if (subARR < 50000000) {
-                    toast.error(t("dashboard.subsidiary.ipo_requirements_not"), { description: `${parsed.name} must have at least $50,000,000 ARR to qualify (currently ${formatMoney(subARR)}).` });
+                    toast.error(t("dashboard.subsidiary.ipo_requirements_not"), { description: `${parsed.name} must have at least $${c}50,000,000 ARR to qualify (currently ${formatMoney(subARR)}).` });
                     return;
                 }
 
@@ -6113,7 +6117,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                 if (setMarketStocks) setMarketStocks(updatedStocks);
                 setStartup(newStartup);
 
-                addTimelineEvent(`🏢 Subsidiary IPO: Carved out division "${parsed.name}" and listed it on the public market as ${newStock.symbol} at $${newStock.currentPrice.toFixed(2)}/share (IPO Fee: $2,000,000). Parent Corp retains 80% stake.`);
+                addTimelineEvent(`🏢 Subsidiary IPO: Carved out division "${parsed.name}" and listed it on the public market as ${newStock.symbol} at ${c}{newStock.currentPrice.toFixed(2)}/share (IPO Fee: $${c}2,000,000). Parent Corp retains 80% stake.`);
                 toast.success(t("dashboard.subsidiary.subsidiary_listed"), { description: `"${parsed.name}" is now trading publicly under symbol ${newStock.symbol}.` });
             } catch (e: any) {
                 toast.error(e.message || "IPO failed");
@@ -6142,13 +6146,13 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
                             <div>
                                 <p className="text-[0.5rem] uppercase font-black text-slate-400">{t("dashboard.subsidiary.subsidiary_asset_value")}</p>
                                 <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
-                                    {subs.length === 0 ? "$0.00" : formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).valuation, 0))}
+                                    {subs.length === 0 ? `$${c}0.00` : formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).valuation, 0))}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-[0.5rem] uppercase font-black text-slate-400">{t("dashboard.subsidiary.total_monthly_net")}</p>
                                 <p className={cn("text-xs font-black mt-0.5", subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                                    {subs.length === 0 ? "$0 / mo" : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0))} / mo`}
+                                    {subs.length === 0 ? `$${c}0 / mo` : `${subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0) >= 0 ? '+' : ''}${formatMoney(subs.reduce((sum: number, s: string) => sum + parseSubsidiary(s).netIncome, 0))} / mo`}
                                 </p>
                             </div>
                         </div>
@@ -6383,6 +6387,7 @@ function ActionSheet({ category, startup, founder, m, selectedAction, setSelecte
 
 export default function Dashboard() {
     const { t, i18n } = useTranslation();
+    const c = getCurrencySymbol();
     const [isBannerActive, setIsBannerActive] = useState(false);
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
@@ -6453,7 +6458,7 @@ export default function Dashboard() {
             const fullState = localStorage.getItem("founder_sim_state");
             if (fullState) {
                 try {
-                    const d = JSON.parse(fullState);
+                    const d = secureLoad("founder_sim_state") || JSON.parse(fullState);
                     if (d.marketStocks && d.marketStocks.length > 0) {
                         setMarketStocks(d.marketStocks);
                         return;
@@ -6964,7 +6969,7 @@ export default function Dashboard() {
             const service = LIFESTYLE_TOGGLES.find(t => t.id === id);
             if (service) {
                 if (!isClosing) {
-                    toast.success(`${service.name} Activated`, { description: `Cost: ${formatMoney(service.monthlyCost)}/mo`, icon: service.emoji });
+                    toast.success(`${service.name} Activated`, { description: `Cost: ${c}{formatMoney(service.monthlyCost)}/mo`, icon: service.emoji });
                 } else {
                     toast.info(`${service.name} Deactivated`);
                 }
@@ -7055,7 +7060,7 @@ export default function Dashboard() {
         const fullState = localStorage.getItem("founder_sim_state");
         if (fullState) {
             try {
-                const d = JSON.parse(fullState);
+                const d = secureLoad("founder_sim_state") || JSON.parse(fullState);
                 if (d.startup) {
                     // Retroactive sync for SLG: ensure closed_won matches users if it is 0
                     if (d.startup.gtm_motion === "SLG" && d.startup.metrics?.b2b_pipeline) {
@@ -7347,7 +7352,7 @@ export default function Dashboard() {
 
     const handleSaveAndQuit = () => {
         if (startup.name !== "New Startup") {
-            localStorage.setItem("founder_sim_state", JSON.stringify({ startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime }));
+            secureSave("founder_sim_state", { startup, founder, month, eventsTimeline, competitors, unlockedAchievements, ongoingPrograms, seenEventIds, founderMeta, focusHoursUsed, actionUsageLog, storyState, marketStocks, insiderStockPicks, geniusUsesThisHour, lastGeniusResetTime });
         }
         router.push("/");
     };
@@ -7787,7 +7792,7 @@ export default function Dashboard() {
 
     const handleOpenSaveModal = () => {
         try {
-            const raw = JSON.parse(localStorage.getItem("founder_sim_saves") || "[]") as SaveSlot[];
+            const raw = (secureLoad("founder_sim_saves") || []) as SaveSlot[];
             setAvailableSaves(raw.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         } catch { setAvailableSaves([]); }
         setIsSaveModalOpen(true);
@@ -7795,7 +7800,7 @@ export default function Dashboard() {
 
     const handleDeleteSave = (id: string) => {
         const updated = availableSaves.filter(s => s.id !== id);
-        localStorage.setItem("founder_sim_saves", JSON.stringify(updated));
+        secureSave("founder_sim_saves", updated);
         setAvailableSaves(updated);
     };
 
@@ -7813,7 +7818,7 @@ export default function Dashboard() {
         };
 
         const existingSavesRaw = localStorage.getItem("founder_sim_saves");
-        const existingSaves: SaveSlot[] = existingSavesRaw ? JSON.parse(existingSavesRaw) : [];
+        const existingSaves: SaveSlot[] = secureLoad("founder_sim_saves") || [];
         let updatedSaves;
 
         if (slotIdToOverwrite) {
@@ -7827,7 +7832,7 @@ export default function Dashboard() {
             updatedSaves = updatedSaves.slice(0, MAX_SLOTS);
         }
 
-        localStorage.setItem("founder_sim_saves", JSON.stringify(updatedSaves));
+        secureSave("founder_sim_saves", updatedSaves);
         setAvailableSaves(updatedSaves.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         toast.success("Game Saved!", { description: `${newSave.companyName} at Month ${month}` });
         setSaveConfirmOverwrite(null);
@@ -7855,7 +7860,7 @@ export default function Dashboard() {
             return;
         }
         if (!forceFree && (startup.metrics.cash || 0) < cashCost) {
-            toast.error("Insufficient Funds", { description: `You need $${cashCost.toLocaleString()} to execute this.` });
+            toast.error("Insufficient Funds", { description: `you need ${c}{cashCost.toLocaleString()} to execute this.` });
             return;
         }
         const { startup: ns, founder: nf } = applyEffectsToState(scaledEffects, startup, founder);
@@ -8033,7 +8038,7 @@ export default function Dashboard() {
         const poolAvailable = startup.metrics.option_pool || 0;
         // Epsilon check: if they offer effectively 0%, don't block them
         if (totalEquity > 0.001 && poolAvailable < totalEquity) {
-            toast.error("Insufficient Option Pool!", { description: `You need ${totalEquity.toFixed(3)}% but only have ${poolAvailable.toFixed(3)}%` });
+            toast.error("Insufficient Option Pool!", { description: `You need ${c}{totalEquity.toFixed(3)}% but only have ${poolAvailable.toFixed(3)}%` });
             return;
         }
 
@@ -8277,7 +8282,7 @@ export default function Dashboard() {
                 }
             } : e),
         }));
-        toast.success("Training complete!", { description: "-$2,000" });
+        toast.success("Training complete!", { description: "-${c}2,000" });
     };
 
 
@@ -8454,7 +8459,7 @@ export default function Dashboard() {
         const purchasePrice = Math.floor(comp.valuation * premium);
 
         if (startup.metrics.cash < purchasePrice) {
-            toast.error("Insufficient Funds", { description: `You need ${formatMoney(purchasePrice)} corporate cash to acquire this rival.` });
+            toast.error("Insufficient Funds", { description: `You need ${c}{formatMoney(purchasePrice)} corporate cash to acquire this rival.` });
             return;
         }
 
@@ -8684,7 +8689,7 @@ export default function Dashboard() {
                     newStartup.valuation = newStartup.public_company.shares_outstanding * playerStock.currentPrice;
                 }
 
-                // Check for Stock Split (10-for-1) if price > $1,000
+                // Check for Stock Split (10-for-1) if price > ${c}1,000
                 if (newStartup.public_company.share_price > 1000) {
                     const oldPrice = newStartup.public_company.share_price;
                     newStartup.public_company.shares_outstanding *= 10;
@@ -8757,11 +8762,11 @@ export default function Dashboard() {
                     }
 
                     addTimelineEvent(
-                        `📢 STOCK SPLIT: Board executed a 10-for-1 stock split as the share price crossed $1,000 (was $${oldPrice.toFixed(2)}). Outstanding shares multiplied by 10, share price divided to $${newStartup.public_company.share_price.toFixed(2)}/share to increase market liquidity.`,
+                        `📢 STOCK SPLIT: Board executed a 10-for-1 stock split as the share price crossed $${c}1,000 (was ${c}{oldPrice.toFixed(2)}). Outstanding shares multiplied by 10, share price divided to ${c}{newStartup.public_company.share_price.toFixed(2)}/share to increase market liquidity.`,
                         nextMonth
                     );
                     toast.info("📢 10-for-1 Stock Split Executed!", {
-                        description: `Your stock split from $${oldPrice.toFixed(2)} to $${newStartup.public_company.share_price.toFixed(2)} per share. Shareholder positions multiplied by 10.`
+                        description: `Your stock split from ${c}{oldPrice.toFixed(2)} to ${c}{newStartup.public_company.share_price.toFixed(2)} per share. Shareholder positions multiplied by 10.`
                     });
                 }
 
@@ -8996,7 +9001,7 @@ export default function Dashboard() {
 
                         totalDividendReceived += dividendReceived;
                         addTimelineEvent(
-                            t("dashboard.timeline.dividend", { name: parsed.name, symbol: listedStock.symbol, qni: formatMoney(quarterlyNetIncome), dps: dividendPerShare.toFixed(4), received: formatMoney(dividendReceived), stake: (parentOwnershipFraction * 100).toFixed(1), payout: (parsed.dividendRatio * 100).toFixed(0), defaultValue: `💰 Dividend: ${parsed.name} (${listedStock.symbol}) — Q net income ${formatMoney(quarterlyNetIncome)} → $${dividendPerShare.toFixed(4)}/share. Parent received ${formatMoney(dividendReceived)} (${(parentOwnershipFraction * 100).toFixed(1)}% stake, ${(parsed.dividendRatio * 100).toFixed(0)}% payout).` }),
+                            t("dashboard.timeline.dividend", { name: parsed.name, symbol: listedStock.symbol, qni: formatMoney(quarterlyNetIncome), dps: dividendPerShare.toFixed(4), received: formatMoney(dividendReceived), stake: (parentOwnershipFraction * 100).toFixed(1), payout: (parsed.dividendRatio * 100).toFixed(0), defaultValue: `💰 Dividend: ${parsed.name} (${listedStock.symbol}) — Q net income ${formatMoney(quarterlyNetIncome)} → ${c}{dividendPerShare.toFixed(4)}/share. Parent received ${formatMoney(dividendReceived)} (${(parentOwnershipFraction * 100).toFixed(1)}% stake, ${(parsed.dividendRatio * 100).toFixed(0)}% payout).` }),
                             nextMonth
                         );
                     });
@@ -9081,7 +9086,7 @@ export default function Dashboard() {
                     ReviewTriggers.ipoDay();
                     playSound("success");
 
-                    // Scale shares outstanding so that the initial share price starts at a realistic $50.00/share
+                    // Scale shares outstanding so that the initial share price starts at a realistic ${c}50.00/share
                     const targetSharePrice = 50;
                     const initialShares = Math.max(10_000_000, Math.floor(finalValuation / targetSharePrice));
                     const initialFloat = Math.floor(initialShares * 0.20);
@@ -9231,7 +9236,7 @@ export default function Dashboard() {
                     const lbUser = getLbUsername();
                     if (!lbUser) return;
                     if (newStartup.game_mode === 'fairytale') return; // No leaderboard for Fairytale
-                    const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+
                     const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
                     const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
                     const assetVal = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
@@ -9256,7 +9261,7 @@ export default function Dashboard() {
                     const lbUser = getLbUsername();
                     if (!lbUser) return;
                     if (newStartup.game_mode === 'fairytale') return; // No leaderboard for Fairytale
-                    const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+
                     const lbLeg = computeLegacyScore(founder, newStartup, nextMonth);
                     const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
                     const assetVal = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
@@ -9515,7 +9520,7 @@ export default function Dashboard() {
                 const founderEquityPct = (startup.capTable || []).find((e: any) => e.name === "Founder" && e.type === "Founder")?.equity ?? 100;
                 const assetValue = (founder.assets || []).reduce((s: number, a: any) => s + (a.currentValue || 0), 0);
                 const totalNetWorth = (founder.personal_wealth || 0) + assetValue + (newStartup.valuation * founderEquityPct / 100);
-                const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+
                 const lbLegacy = computeLegacyScore(founder, newStartup, nextMonth);
                 upsertCurrentVenture(lbUser, {
                     runId: getLbRunId(),
@@ -9987,7 +9992,8 @@ export default function Dashboard() {
                     };
 
                     // ── COMPREHENSIVE event translator ──
-                    const translateEvent = (msg: string): string => {
+
+                    const rawTranslateEvent = (msg: string): string => {
                         const retMatch = msg.match(/Retention: (.*) is dissatisfied with their salary \(no raise in (\d+)mo\)\./);
                         if (retMatch) return t("timeline.retention_warning", { name: retMatch[1], months: retMatch[2], defaultValue: msg });
                         const vacMatch = msg.match(/Take a Short Vacation: (\d+-\d+) days away completely offline\. Result: ([-+\d]+) founder burnout ([-+\d]+) founder health/);
@@ -10020,6 +10026,7 @@ export default function Dashboard() {
                         if (marketNewsMatch) return `🗞️ ${t("dashboard.timeline.market_news", { symbol: marketNewsMatch[1], news: t(`dashboard.markets.news_headlines.${marketNewsMatch[2].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, { defaultValue: marketNewsMatch[2] }) })}`;
                         return msg;
                     };
+                    const translateEvent = (msg: string): string => rawTranslateEvent(msg).replace(/\$|€|R\$/g, c);
 
                     const items = sortedMonths.map(monthNum => {
                         const events = byMonth[monthNum] || [];
@@ -10701,7 +10708,7 @@ export default function Dashboard() {
                         {pendingCandidate?.isLegendary && (
                             <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-white shadow-lg">
                                 <p className="text-[0.5625rem] font-black uppercase tracking-widest opacity-80">⭐ Legendary Candidate</p>
-                                <p className="text-[0.6875rem] font-semibold mt-0.5 italic leading-snug opacity-95">"{pendingCandidate.storyQuote}"</p>
+                                <p className="text-[0.6875rem] font-semibold mt-0.5 italic leading-snug opacity-95">&quot;{pendingCandidate.storyQuote}&quot;</p>
                             </div>
                         )}
                         <DialogDescription className="text-xs font-bold text-slate-500 uppercase">
@@ -11067,7 +11074,7 @@ export default function Dashboard() {
                                 onClick={handleIAP_TrainingAgency}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg shadow-sm transition-all active:scale-95 text-[0.625rem] font-black uppercase tracking-wider shrink-0"
                             >
-                                <span>💎</span> {startup.employees.length <= 20 ? "$0.99" : startup.employees.length <= 100 ? "$2.99" : "$4.99"}
+                                <span>💎</span> {startup.employees.length <= 20 ? `$${c}0.99` : startup.employees.length <= 100 ? `$${c}2.99` : `$${c}4.99`}
                             </button>
                         </div>
 
@@ -11299,7 +11306,7 @@ export default function Dashboard() {
                                                     )}
 
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[0.5625rem] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train $2K</button>
+                                                        <button onClick={() => handleTrainEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-indigo-600 text-[0.5625rem] font-black uppercase border-2 border-indigo-50 hover:bg-indigo-50 transition-all">Train {c}2K</button>
                                                         <button onClick={() => handlePromoteEmployee(emp.id)} className="py-2.5 rounded-xl bg-white text-amber-600 text-[0.5625rem] font-black uppercase border-2 border-amber-50 hover:bg-amber-50 transition-all">Promote</button>
                                                         <button
                                                             onClick={() => handleIncrementSalary(emp.id)}
@@ -11570,7 +11577,7 @@ export default function Dashboard() {
 
             {/* ════════════ ENDGAME MODAL ════════════ */}
             {isEndgameOpen && (() => {
-                const { computeLegacyScore } = require("../../lib/engine/legacyScore");
+
                 const outcome = startup.outcome ?? (endgameStory ? "wound_down" : "active");
                 const monthsPlayed = startup.history?.length ?? 0;
                 const legacy = computeLegacyScore(founder, startup, monthsPlayed);
@@ -11780,7 +11787,7 @@ export default function Dashboard() {
                                     <div className="size-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏛️</div>
                                     <div>
                                         <p className="text-base font-black text-white mb-1">Post-IPO: The Public Company Era</p>
-                                        <p className="text-xs text-indigo-100 font-medium leading-relaxed">Your IPO was just the beginning. The V2 update picks up where Founder Sim leaves off — you'll run your company as a publicly listed entity. Manage quarterly earnings, deal with shareholder activism, navigate board politics, and face the brutally realistic world of public markets.</p>
+                                        <p className="text-xs text-indigo-100 font-medium leading-relaxed">Your IPO was just the beginning. The V2 update picks up where Founder Sim leaves off — you&apos;ll run your company as a publicly listed entity. Manage quarterly earnings, deal with shareholder activism, navigate board politics, and face the brutally realistic world of public markets.</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-3">
@@ -11798,7 +11805,7 @@ export default function Dashboard() {
                                 <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🎭</div>
                                 <div>
                                     <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">The Talent Roster Update</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unique executive traits, legendary hires, and internal politics. Will you hire the toxic genius who builds 10x faster but destroys your team's soul?</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unique executive traits, legendary hires, and internal politics. Will you hire the toxic genius who builds 10x faster but destroys your team&apos;s soul?</p>
                                 </div>
                             </div>
                         </div>
@@ -11809,7 +11816,7 @@ export default function Dashboard() {
                                 <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🌐</div>
                                 <div>
                                     <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">The Empire Expansion</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the "War Room" UI. Delegate divisions to your VPs, execute hostile takeovers of rivals, lobby regulators, and expand into international markets.</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Unlock the &quot;War Room&quot; UI. Delegate divisions to your VPs, execute hostile takeovers of rivals, lobby regulators, and expand into international markets.</p>
                                 </div>
                             </div>
                         </div>
@@ -11831,7 +11838,7 @@ export default function Dashboard() {
                                 <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">🧠</div>
                                 <div>
                                     <p className="text-base font-black text-slate-800 dark:text-slate-100 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Founder Skill Web</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A massive RPG-style skill tree. Spec into "Growth Hacking", "Product Visionary", or "Cold-Blooded Dealmaker" to unlock unique perks.</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">A massive RPG-style skill tree. Spec into &quot;Growth Hacking&quot;, &quot;Product Visionary&quot;, or &quot;Cold-Blooded Dealmaker&quot; to unlock unique perks.</p>
                                 </div>
                             </div>
                         </div>
@@ -11840,7 +11847,7 @@ export default function Dashboard() {
                     <div className={`px-8 pt-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.02)] shrink-0 ${isPremium ? 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+70px)] md:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px)+120px)]'}`}>
                         <p className="text-[0.625rem] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider italic">Founder Sim V2.0.0 Launched</p>
                         <Button className="rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white px-12 h-12 shadow-xl shadow-indigo-600/20 transition-all active:scale-95" onClick={() => setIsRoadmapOpen(false)}>
-                            LET'S SCALE →
+                            LET&apos;S SCALE →
                         </Button>
                     </div>
                 </DialogContent>
@@ -12082,7 +12089,7 @@ export default function Dashboard() {
                             <Instagram className="size-8" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Claim $50,000 Cash!</h2>
+                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Claim {c}50,000 Cash!</h2>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
                                 Follow Founder Sim on Instagram for exclusive updates, tips, and sneak peeks of upcoming features!
                             </p>
@@ -12093,11 +12100,11 @@ export default function Dashboard() {
                                 playSound("success");
                                 window.open("https://instagram.com/foundersim", "_blank");
                                 setStartup((s: any) => ({ ...s, metrics: { ...s.metrics, cash: (s.metrics?.cash || 0) + 50000 } }));
-                                toast.success("$50,000 added to your cash balance!");
+                                toast.success(`$${c}50,000 added to your cash balance!`);
                                 setIsInstagramModalOpen(false);
                             }}
                         >
-                            FOLLOW & CLAIM $50,000
+                            FOLLOW & CLAIM {c}50,000
                         </Button>
                         <button
                             onClick={() => {
@@ -12106,7 +12113,7 @@ export default function Dashboard() {
                             }}
                             className="text-[0.625rem] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-500 transition-colors mt-2"
                         >
-                            No thanks, I don't want free cash
+                            No thanks, I don&apos;t want free cash
                         </button>
                     </div>
                 </DialogContent>
@@ -12144,6 +12151,11 @@ export default function Dashboard() {
                                 {i18n.language === lang.code && <Check className="size-5" />}
                             </button>
                         ))}
+                    </div>
+                    <div className="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[0.65rem] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                        <p>
+                            {t("menu.languageDisclaimer", { defaultValue: "Please note: Translations for non-English languages are in beta. If you spot any errors or awkward phrasing, please submit a bug report so we can improve it. We in no manner want to disrespect any language or culture!" })}
+                        </p>
                     </div>
                 </DialogContent>
             </Dialog>

@@ -1,5 +1,4 @@
 "use client";
-import { getCurrencySymbol } from "@/lib/utils";
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -280,7 +279,7 @@ function StockDetail({
                 </div>
                 <div className="flex items-end justify-between">
                     <div>
-                        <p className="text-3xl font-black text-white">{c}{stock.currentPrice.toFixed(2)}</p>
+                        <p className="text-3xl font-black text-white">${stock.currentPrice.toFixed(2)}</p>
                         <div className={`flex items-center gap-1 mt-0.5 ${isPositive ? "text-emerald-300" : "text-red-300"}`}>
                             {isPositive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
                             <span className="text-xs font-black">{isPositive ? "+" : ""}{priceChange.toFixed(2)}%</span>
@@ -337,7 +336,7 @@ function StockDetail({
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[0.625rem] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">{t("dashboard.trading.position", { defaultValue: "Your Position" })}</p>
                                     <p className="text-sm font-black text-indigo-900 dark:text-indigo-100">{pos.shares.toLocaleString()} {t("dashboard.markets.shares_lowercase", { defaultValue: "shares" })}</p>
-                                    <p className="text-[0.625rem] text-indigo-500">{t("dashboard.markets.avg", { defaultValue: "Avg cost" })} {c}{pos.averageCost.toFixed(2)} &middot; {t("dashboard.trading.pnl", { defaultValue: "P&L" })} {pct(stock.currentPrice, pos.averageCost)}</p>
+                                    <p className="text-[0.625rem] text-indigo-500">{t("dashboard.markets.avg", { defaultValue: "Avg cost" })} ${pos.averageCost.toFixed(2)} &middot; {t("dashboard.trading.pnl", { defaultValue: "P&L" })} {pct(stock.currentPrice, pos.averageCost)}</p>
                                 </div>
                                 <p className={`text-sm font-black ${stock.currentPrice >= pos.averageCost ? "text-emerald-600" : "text-red-500"}`}>
                                     {stock.currentPrice >= pos.averageCost ? "+" : ""}{fmt((stock.currentPrice - pos.averageCost) * pos.shares)}
@@ -430,7 +429,7 @@ function StockDetail({
                                     <label className="text-[0.5625rem] font-black text-amber-700 uppercase tracking-widest">{t("dashboard.markets.tender_offer_premium", { defaultValue: "Tender Offer Premium:" })} {toPremium}%</label>
                                     <input type="range" min={15} max={60} value={toPremium} onChange={e => setToPremium(+e.target.value)}
                                         className="w-full accent-amber-500" />
-                                    <p className="text-[0.5625rem] text-amber-600">{t("dashboard.markets.est_acceptance", { defaultValue: "Est. acceptance:" })} {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% {t("dashboard.markets.of_float", { defaultValue: "of float" })} &middot; {t("dashboard.markets.offered_price", { defaultValue: "Offered price:" })} {c}{(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/{t("dashboard.markets.share", { defaultValue: "share" })}</p>
+                                    <p className="text-[0.5625rem] text-amber-600">{t("dashboard.markets.est_acceptance", { defaultValue: "Est. acceptance:" })} {(getTenderOfferAcceptance(toPremium, tier) * 100).toFixed(0)}% {t("dashboard.markets.of_float", { defaultValue: "of float" })} &middot; {t("dashboard.markets.offered_price", { defaultValue: "Offered price:" })} ${(stock.currentPrice * (1 + toPremium / 100)).toFixed(2)}/{t("dashboard.markets.share", { defaultValue: "share" })}</p>
                                     {stock.poisonPillActive && (
                                         <p className="text-[0.5625rem] text-red-600 font-bold">☠️ Poison pill active — add 40% to your budget</p>
                                     )}
@@ -773,7 +772,7 @@ export default function StockMarketView({
                                         <div className="flex items-center gap-2 shrink-0">
                                             <Sparkline data={stock.priceHistory} positive={change >= 0} />
                                             <div className="text-right">
-                                                <p className="text-sm font-black text-slate-800 dark:text-slate-200">{c}{stock.currentPrice.toFixed(2)}</p>
+                                                <p className="text-sm font-black text-slate-800 dark:text-slate-200">${stock.currentPrice.toFixed(2)}</p>
                                                 <p className={`text-[0.625rem] font-black ${change >= 0 ? "text-emerald-500" : "text-red-500"}`}>
                                                     {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                                                 </p>
@@ -847,7 +846,7 @@ export default function StockMarketView({
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-100">{displayStock.symbol}</p>
-                                                <p className="text-[0.625rem] text-slate-400">{pos.shares.toLocaleString()} {t("dashboard.markets.shares_lowercase", { defaultValue: "shares" })} &middot; {t("dashboard.markets.avg", { defaultValue: "avg" })} {c}{pos.averageCost.toFixed(2)}</p>
+                                                <p className="text-[0.625rem] text-slate-400">{pos.shares.toLocaleString()} {t("dashboard.markets.shares_lowercase", { defaultValue: "shares" })} &middot; {t("dashboard.markets.avg", { defaultValue: "avg" })} ${pos.averageCost.toFixed(2)}</p>
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">{fmt(currentVal)}</p>

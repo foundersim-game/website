@@ -111,7 +111,7 @@ export default function StoryPlayPage() {
         <div className="text-4xl mb-4">⚠️</div>
         <h2 className="text-xl font-black text-white mb-2">Campaign Not Found</h2>
         <p className="text-slate-400 text-sm mb-6">
-          The campaign "{campaignId}" doesn't exist or could not be loaded.
+          The campaign &quot;{campaignId}&quot; doesn&apos;t exist or could not be loaded.
         </p>
         <button
           onClick={() => router.push("/story-mode")}

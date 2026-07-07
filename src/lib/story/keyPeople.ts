@@ -83,18 +83,21 @@ export function checkBetrayalThresholds(storyState: StoryModeState): BetrayalAle
 // ── Passive effect summary ────────────────────────────────────────────────────
 // Returns a human-readable summary of what a person contributes monthly.
 
+import { getCurrencySymbol } from "@/lib/utils";
+
 export function getPassiveEffectSummary(person: KeyPerson): string[] {
   if (!person.passiveEffect) return ["No passive monthly effect."];
   const fx = person.passiveEffect;
   const lines: string[] = [];
+  const c = getCurrencySymbol();
 
   if (fx.product_quality) lines.push(`+${fx.product_quality} Product Quality/mo`);
   if (fx.brand_awareness) lines.push(`+${fx.brand_awareness} Brand Awareness/mo`);
   if (fx.innovation) lines.push(`+${fx.innovation} Innovation/mo`);
   if (fx.team_morale) lines.push(`${fx.team_morale > 0 ? "+" : ""}${fx.team_morale} Team Morale/mo`);
   if (fx.ceo_reputation) lines.push(`${fx.ceo_reputation > 0 ? "+" : ""}${fx.ceo_reputation} CEO Reputation/mo`);
-  if (fx.revenue) lines.push(`+$${(fx.revenue / 1000).toFixed(0)}K Revenue/mo`);
-  if (fx.cash) lines.push(`+$${(fx.cash / 1000).toFixed(0)}K Cash/mo`);
+  if (fx.revenue) lines.push(`+${c}${(fx.revenue / 1000).toFixed(0)}K Revenue/mo`);
+  if (fx.cash) lines.push(`+${c}${(fx.cash / 1000).toFixed(0)}K Cash/mo`);
 
   return lines.length > 0 ? lines : ["Active presence"];
 }

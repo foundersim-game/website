@@ -60,6 +60,11 @@ export function LanguageSwitcher({ className }: { className?: string }) {
                         </button>
                     ))}
                 </div>
+                <div className="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[0.65rem] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                    <p>
+                        {t("menu.languageDisclaimer", { defaultValue: "Please note: Translations for non-English languages are in beta. If you spot any errors or awkward phrasing, please submit a bug report so we can improve it. We in no manner want to disrespect any language or culture!" })}
+                    </p>
+                </div>
             </DialogContent>
         </Dialog>
     );

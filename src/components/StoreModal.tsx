@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Startup } from "@/lib/types/database.types";
 import { iapService, IAP_PRODUCT_IDS } from "@/lib/services/iapService";
+import { getCurrencySymbol } from "@/lib/utils";
 import { toast } from "sonner";
 import { Product } from "@capgo/native-purchases";
 import { Capacitor } from "@capacitor/core";
@@ -38,23 +39,23 @@ export function StoreModal({ open, onClose, startup, setStartup, setFounder }: S
         } else {
             // Mock products for Web
             setProducts([
-                { identifier: IAP_PRODUCT_IDS.AD_FREE, title: t('store.ad_free_title'), description: t('store.ad_free_desc'), price: 4.99, priceString: "$4.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.STARTER_PACK, title: t('store.starter_pack_title'), description: t('store.starter_pack_desc'), price: 1.99, priceString: "$1.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.CAFFEINE_DRIP, title: t('store.caffeine_drip_title'), description: t('store.caffeine_drip_desc'), price: 9.99, priceString: "$9.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TITAN_INDUSTRY, title: t('store.titan_title'), description: t('store.titan_desc'), price: 19.99, priceString: "$19.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.GOD_MODE, title: t('store.god_mode_title'), description: t('store.god_mode_desc'), price: 14.99, priceString: "$14.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.GOV_CONTRACT, title: t('store.gov_contract_title'), description: t('store.gov_contract_desc'), price: 3.99, priceString: "$3.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.SV_DARLING, title: t('store.sv_darling_title'), description: t('store.sv_darling_desc'), price: 9.99, priceString: "$9.99", currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.AD_FREE, title: t('store.ad_free_title'), description: t('store.ad_free_desc'), price: 4.99, priceString: `${getCurrencySymbol()}4.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.STARTER_PACK, title: t('store.starter_pack_title'), description: t('store.starter_pack_desc'), price: 1.99, priceString: `${getCurrencySymbol()}1.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.CAFFEINE_DRIP, title: t('store.caffeine_drip_title'), description: t('store.caffeine_drip_desc'), price: 9.99, priceString: `${getCurrencySymbol()}9.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.TITAN_INDUSTRY, title: t('store.titan_title'), description: t('store.titan_desc'), price: 19.99, priceString: `${getCurrencySymbol()}19.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.GOD_MODE, title: t('store.god_mode_title'), description: t('store.god_mode_desc'), price: 14.99, priceString: `${getCurrencySymbol()}14.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.GOV_CONTRACT, title: t('store.gov_contract_title'), description: t('store.gov_contract_desc'), price: 3.99, priceString: `${getCurrencySymbol()}3.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.SV_DARLING, title: t('store.sv_darling_title'), description: t('store.sv_darling_desc'), price: 9.99, priceString: `${getCurrencySymbol()}9.99`, currencyCode: "USD" } as Product,
                 
                 // Contextual Mock Products
-                { identifier: IAP_PRODUCT_IDS.PR_FIXER, title: t('store.pr_fixer_title'), description: t('store.pr_fixer_desc'), price: 0.99, priceString: "$0.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TIKTOK_VIRAL, title: t('store.tiktok_viral_title'), description: t('store.tiktok_viral_desc'), price: 1.99, priceString: "$1.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.BALI_RETREAT, title: t('store.bali_retreat_title'), description: t('store.bali_retreat_desc'), price: 1.99, priceString: "$1.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.POACH_10X, title: t('store.poach_rockstar'), description: t('store.poach_rockstar_desc'), price: 2.99, priceString: "$2.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.BRIBE_SENATOR, title: t('store.bribe_senator_title'), description: t('store.bribe_senator_desc'), price: 4.99, priceString: "$4.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TRAIN_BOUTIQUE, title: t('store.train_boutique_title'), description: t('store.train_boutique_desc'), price: 0.99, priceString: "$0.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TRAIN_CORPORATE, title: t('store.train_corporate_title'), description: t('store.train_corporate_desc'), price: 2.99, priceString: "$2.99", currencyCode: "USD" } as Product,
-                { identifier: IAP_PRODUCT_IDS.TRAIN_GLOBAL, title: t('store.train_global_title'), description: t('store.train_global_desc'), price: 4.99, priceString: "$4.99", currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.PR_FIXER, title: t('store.pr_fixer_title'), description: t('store.pr_fixer_desc'), price: 0.99, priceString: `${getCurrencySymbol()}0.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.TIKTOK_VIRAL, title: t('store.tiktok_viral_title'), description: t('store.tiktok_viral_desc'), price: 1.99, priceString: `${getCurrencySymbol()}1.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.BALI_RETREAT, title: t('store.bali_retreat_title'), description: t('store.bali_retreat_desc'), price: 1.99, priceString: `${getCurrencySymbol()}1.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.POACH_10X, title: t('store.poach_rockstar'), description: t('store.poach_rockstar_desc'), price: 2.99, priceString: `${getCurrencySymbol()}2.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.BRIBE_SENATOR, title: t('store.bribe_senator_title'), description: t('store.bribe_senator_desc'), price: 4.99, priceString: `${getCurrencySymbol()}4.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.TRAIN_BOUTIQUE, title: t('store.train_boutique_title'), description: t('store.train_boutique_desc'), price: 0.99, priceString: `${getCurrencySymbol()}0.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.TRAIN_CORPORATE, title: t('store.train_corporate_title'), description: t('store.train_corporate_desc'), price: 2.99, priceString: `${getCurrencySymbol()}2.99`, currencyCode: "USD" } as Product,
+                { identifier: IAP_PRODUCT_IDS.TRAIN_GLOBAL, title: t('store.train_global_title'), description: t('store.train_global_desc'), price: 4.99, priceString: `${getCurrencySymbol()}4.99`, currencyCode: "USD" } as Product,
             ]);
         }
         setIsLoading(false);

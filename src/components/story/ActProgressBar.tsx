@@ -72,7 +72,7 @@ export default function ActProgressBar({ campaign, storyState, currentMonth }: P
       {/* Current act title */}
       {campaign.acts.find((a) => a.act === currentAct) && (
         <div className="mt-2 text-xs text-slate-400 italic">
-          "{campaign.acts.find((a) => a.act === currentAct)!.title}"
+          &quot;{campaign.acts.find((a) => a.act === currentAct)!.title}&quot;
         </div>
       )}
     </div>

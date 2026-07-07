@@ -47,7 +47,7 @@ export default async function handler(
 
     const PACKAGE_NAME = "com.foundersim.app";
     const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/purchases/products/${productId}/tokens/${purchaseToken}`;
-    
+
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token.token}` },
     });
@@ -68,9 +68,9 @@ export default async function handler(
         return response.status(200).json({ valid: false, error: `Google API Error: ${res.status}` });
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Verify] Exception during verification:', error);
-    // Be strict: if it fails, don't grant the item. The user can retry later.
-    return response.status(200).json({ valid: false, error: 'Internal verification error' });
+    // Return the actual error message so we can debug why Vercel is failing
+    return response.status(200).json({ valid: false, error: `Internal verification error: ${error?.message || String(error)}` });
   }
 }
