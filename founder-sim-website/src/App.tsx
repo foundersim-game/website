@@ -4,7 +4,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
   ArrowRight, Star, X,
-  ExternalLink, ChevronRight, Mail, MessageSquare, ShieldCheck, Instagram, Sparkles, Zap, Trophy, TrendingUp
+  ExternalLink, ChevronRight, Mail, MessageSquare, ShieldCheck, Instagram, Zap, Trophy, TrendingUp
 } from 'lucide-react';
 
 // ── ASSETS ────────────────────────────────────────────────────────────
@@ -119,12 +119,12 @@ const LandingPage = () => {
     <div style={{ minHeight: '100vh' }}>
       <div className="site-bg" />
 
-      {/* ── V2 ANNOUNCEMENT BANNER ── */}
-      <div className="v2-banner">
-        <Sparkles size={13} style={{ color: 'var(--amber)' }} />
-        <span className="v2-banner-text">🎉 VERSION 2.3.0 — LEADERBOARDS & STORY MODE — IS NOW LIVE</span>
-        <span className="v2-banner-sub">Compete globally, manage burnout, and vote on upcoming cinematic campaigns</span>
-        <a href="#v2" className="v2-banner-cta">See What's New <ArrowRight size={11} /></a>
+      {/* ── PRODUCT HUNT BANNER ── */}
+      <div className="v2-banner" style={{ background: 'linear-gradient(90deg, rgba(218,85,47,0.95) 0%, rgba(234,108,69,0.9) 50%, rgba(218,85,47,0.95) 100%)' }}>
+        <span style={{ fontSize: 13 }}>🚀</span>
+        <span className="v2-banner-text">WE ARE LIVE ON PRODUCT HUNT TODAY!</span>
+        <span className="v2-banner-sub">Help us reach #1 by showing your support.</span>
+        <a href="https://www.producthunt.com/products/founder-sim-startup-game?launch=founder-sim-startup-game" target="_blank" rel="noreferrer" className="v2-banner-cta">Upvote Now <ArrowRight size={11} /></a>
       </div>
 
       {/* ── NAV ── */}

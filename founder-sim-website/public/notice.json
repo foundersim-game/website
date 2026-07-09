@@ -1,12 +1,12 @@
 {
-    "id": "v2_3_update",
-    "active": false,
-    "title": "🚀 Founder Sim v2.3 is Here!",
-    "message": "Update now to experience the latest features! Version 2.3 brings new improvements, bug fixes, and an enhanced startup journey.",
-    "actionText": "Update to v2.3",
-    "actionUrl": "https://apps.apple.com/app/founder-sim-startup-game/id6761432505",
+    "id": "ph_launch",
+    "active": true,
+    "title": "🚀 We're LIVE on Product Hunt!",
+    "message": "Founder Sim is launching on Product Hunt today! We would love your support to help us reach #1. Tap below to upvote and join the discussion!",
+    "actionText": "Upvote on Product Hunt",
+    "actionUrl": "https://www.producthunt.com/products/founder-sim-startup-game?launch=founder-sim-startup-game",
     "banner": {
-        "active": true,
-        "text": "🏆 Global Leaderboards are now LIVE! Claim your username and climb the ranks today."
+        "active": false,
+        "text": "🚀 Founder Sim is LIVE on Product Hunt today! Help us reach #1 by upvoting our launch!"
     }
 }
