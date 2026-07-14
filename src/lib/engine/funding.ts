@@ -70,7 +70,8 @@ export function generateFundingTerms(startup: Startup, stage: string, investorUp
 }
 
 export function checkEndgame(startup: Startup): string | null {
-    if (startup.metrics.cash < 0 && startup.metrics.burn_rate > 0) {
+    // If the startup runs out of cash and isn't generating a profit to recover, it's game over.
+    if (startup.metrics.cash <= 0 && startup.metrics.net_profit <= 0) {
         return "bankruptcy";
     }
     return null;

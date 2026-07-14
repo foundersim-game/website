@@ -9,6 +9,8 @@ import {
   getTopCompetence,
   getPassiveEffectSummary,
 } from "@/lib/story/keyPeople";
+import { haptic } from "@/lib/story/storyHaptics";
+import { playCoinTick } from "@/lib/story/storyAudio";
 
 interface Props {
   keyPeople: KeyPerson[];
@@ -46,7 +48,11 @@ export default function KeyPeoplePanel({ keyPeople, currentMonth, accentColor }:
           return (
             <div key={person.id}>
               <button
-                onClick={() => setExpandedId(isExpanded ? null : person.id)}
+                onClick={() => {
+                  haptic.light();
+                  playCoinTick();
+                  setExpandedId(isExpanded ? null : person.id);
+                }}
                 className="w-full text-left"
               >
                 <div

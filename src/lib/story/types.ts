@@ -118,7 +118,7 @@ export interface KeyPerson {
   id: string;
   displayName: string;      // Short name shown in UI e.g. "Woz"
   title: string;            // Role e.g. "Co-Founder & Chief Engineer"
-  historicalName: string;   // Flavor only e.g. "Steve Wozniak"
+  historicalName: string;   // Flavor only — fictional name used for display
   emoji: string;
   loyalty: number;          // 0–100. Displayed as hearts.
   loyaltyThreshold: number; // Below this → triggers betrayal/departure event
@@ -298,6 +298,17 @@ export interface ActDefinition {
 // ─────────────────────────────────────────────────────────────────────────────
 // 17. Campaign Definition
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// 17. Historical Baselines
+// Used by the Rubber-Band Engine to anchor the simulation to reality over time.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface HistoricalBaseline {
+  month: number;
+  targetValuation: number;
+  targetUsers: number;
+  targetCash: number;
+}
+
 export interface StoryCampaign {
   id: CampaignId;
   companyName: string;
@@ -314,6 +325,8 @@ export interface StoryCampaign {
   };
   startingMetrics: {
     cash: number;
+    burn_rate?: number;
+    pricing?: number;
     users: number;
     product_quality: number;
     technical_debt: number;
@@ -328,6 +341,7 @@ export interface StoryCampaign {
   initialKeyPeople: KeyPerson[];        // isActive = true ones start immediately
   initialBoardMembers: StoryBoardMember[];
   initialRivals: HistoricalRival[];
+  historicalBaselines?: HistoricalBaseline[];
   acts: ActDefinition[];
 }
 
@@ -361,6 +375,8 @@ export interface StoryModeState {
   narrativeFlags: Record<string, boolean>;
   // Monthly notices from rival actions, key person effects etc.
   lastMonthNotices: string[];
+  // Track pacing for filler events
+  lastEventMonth?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -371,6 +387,9 @@ export interface StorySaveFile {
   // We store a lightweight snapshot of startup metrics — not the full Startup type
   // because Startup has Supabase-tied IDs we don't need in story mode
   startupSnapshot: StoryStartupSnapshot;
+  // Rewind Feature (Premium)
+  previousMonthState?: StoryModeState;
+  previousMonthSnapshot?: StoryStartupSnapshot;
   savedAt: string; // ISO timestamp
   version: number; // For future migration. Start at 1.
 }
@@ -402,4 +421,12 @@ export interface StoryStartupSnapshot {
     founder_burnout: number;
     pricing: number;
   };
+}
+
+export interface FounderSkills {
+  technical: number;
+  leadership: number;
+  marketing: number;
+  fundraising: number;
+  networking: number;
 }

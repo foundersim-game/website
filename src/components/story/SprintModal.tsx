@@ -8,6 +8,8 @@ import {
   getAllocationTotal,
   describeAllocationImpacts,
 } from "@/lib/story/sprintAllocation";
+import { haptic } from "@/lib/story/storyHaptics";
+import { playCoinTick } from "@/lib/story/storyAudio";
 
 interface Props {
   currentAllocation: SprintAllocation;
@@ -23,7 +25,13 @@ export default function SprintModal({ currentAllocation, onSave, onClose, accent
   const impacts = describeAllocationImpacts(allocation);
 
   function updateBucket(bucket: keyof SprintAllocation, value: number) {
-    setAllocation((prev) => ({ ...prev, [bucket]: Math.max(0, Math.min(100, value)) }));
+    setAllocation((prev) => {
+      const next = Math.max(0, Math.min(100, value));
+      if (prev[bucket] !== next) {
+        haptic.light();
+      }
+      return { ...prev, [bucket]: next };
+    });
   }
 
   return (
@@ -141,7 +149,13 @@ export default function SprintModal({ currentAllocation, onSave, onClose, accent
             Cancel
           </button>
           <button
-            onClick={() => isValid && onSave(allocation)}
+            onClick={() => {
+              if (isValid) {
+                haptic.light();
+                playCoinTick();
+                onSave(allocation);
+              }
+            }}
             disabled={!isValid}
             className="flex-1 py-3 rounded-xl font-black text-white transition-all"
             style={{

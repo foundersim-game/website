@@ -15,14 +15,18 @@ import {
   VC_PERSONALITIES,
   PITCH_CARD_META,
 } from "@/lib/story/pitchDeck";
+import { haptic } from "@/lib/story/storyHaptics";
+import { playCoinTick, playLevelUp, playError } from "@/lib/story/storyAudio";
+import { burstAt } from "@/lib/story/storyParticles";
 
 interface Props {
   vcPersonality: VCPersonality;
   baseFunding: number; // e.g. 5_000_000
+  fundraisingSkill: number;
   onComplete: (result: PitchDeckResult, cashBonus: number) => void;
 }
 
-export default function PitchDeckModal({ vcPersonality, baseFunding, onComplete }: Props) {
+export default function PitchDeckModal({ vcPersonality, baseFunding, fundraisingSkill, onComplete }: Props) {
   const [hand] = useState<PitchCardType[]>(() => dealPitchHand());
   const [selected, setSelected] = useState<PitchCardType[]>([]);
   const [phase, setPhase] = useState<"select" | "results">("select");
@@ -34,17 +38,38 @@ export default function PitchDeckModal({ vcPersonality, baseFunding, onComplete 
   function toggleCard(card: PitchCardType) {
     if (phase !== "select") return;
     setSelected((prev) => {
-      if (prev.includes(card)) return prev.filter((c) => c !== card);
+      if (prev.includes(card)) {
+        haptic.light();
+        playCoinTick();
+        return prev.filter((c) => c !== card);
+      }
       if (prev.length >= 3) return prev;
+      haptic.medium();
+      playCoinTick();
       return [...prev, card];
     });
   }
 
   function handlePresent() {
     if (selected.length < 3) return;
-    const s = scorePitchDeck(selected, vcPersonality);
+    haptic.heavy();
+    
+    let s = scorePitchDeck(selected, vcPersonality);
+    
+    // Skill bonus
+    if (fundraisingSkill >= 80) s += 3;
+    else if (fundraisingSkill >= 40) s += 1;
+
     const r = interpretPitchScore(s);
     const detail = getPitchResultDetail(r, baseFunding);
+    
+    if (r === "rejected") {
+      playError();
+    } else {
+      playLevelUp();
+      burstAt("💵", 20, window.innerWidth / 2, window.innerHeight / 2);
+    }
+
     setScore(s);
     setResult(detail);
     setPhase("results");
@@ -52,6 +77,8 @@ export default function PitchDeckModal({ vcPersonality, baseFunding, onComplete 
 
   function handleAccept() {
     if (!result) return;
+    haptic.light();
+    playCoinTick();
     onComplete(result.result, result.cashBonus);
   }
 
@@ -226,6 +253,11 @@ export default function PitchDeckModal({ vcPersonality, baseFunding, onComplete 
                 </div>
               </div>
             )}
+
+            <div className="flex gap-4 items-center text-xs justify-center mb-6">
+              <span className="text-slate-500">Raw Score: {score - (fundraisingSkill >= 80 ? 3 : fundraisingSkill >= 40 ? 1 : 0)}</span>
+              <span className="text-emerald-400">Fundraising Skill: {fundraisingSkill >= 80 ? "Master (+3 Score)" : fundraisingSkill >= 40 ? "Expert (+1 Score)" : "Novice"}</span>
+            </div>
 
             <button
               onClick={handleAccept}

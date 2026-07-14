@@ -201,6 +201,87 @@ export async function upsertCurrentVenture(username: string, snapshot: VentureSn
     }
 }
 
+// ── Story Mode Leaderboard ──────────────────────────────────────────────────
+
+export interface StoryRunLeaderboardEntry {
+    id: string;
+    username: string;
+    campaignId: string;
+    monthsPlayed: number;
+    outcome: "win" | "loss";
+    createdAt: Date;
+}
+
+export async function submitStoryRun(username: string, campaignId: string, monthsPlayed: number, outcome: "win" | "loss"): Promise<void> {
+    try {
+        const db = getDb();
+        const runsRef = collection(db, "story_runs");
+        await addDoc(runsRef, {
+            username,
+            campaignId,
+            monthsPlayed,
+            outcome,
+            createdAt: serverTimestamp(),
+        });
+    } catch (e: any) {
+        console.error("Failed to submit story run:", e);
+    }
+}
+
+export async function getStoryLeaderboard(campaignId: string, limitCount = 50): Promise<StoryRunLeaderboardEntry[]> {
+    try {
+        const db = getDb();
+        const runsRef = collection(db, "story_runs");
+        const q = query(
+            runsRef,
+            where("campaignId", "==", campaignId),
+            where("outcome", "==", "win"),
+            orderBy("monthsPlayed", "asc"),
+            limit(limitCount)
+        );
+
+        const snap = await getDocs(q);
+        const results: StoryRunLeaderboardEntry[] = [];
+        
+        // Track lowest months per username so we only show their best run
+        const bestPerUser = new Map<string, number>();
+
+        snap.forEach((doc) => {
+            const data = doc.data();
+            const username = data.username;
+            const months = data.monthsPlayed;
+            if (!bestPerUser.has(username) || bestPerUser.get(username)! > months) {
+                bestPerUser.set(username, months);
+            }
+        });
+
+        // Now collect unique best runs
+        const addedUsers = new Set<string>();
+        snap.forEach((doc) => {
+            const data = doc.data();
+            const username = data.username;
+            if (!addedUsers.has(username) && bestPerUser.get(username) === data.monthsPlayed) {
+                addedUsers.add(username);
+                results.push({
+                    id: doc.id,
+                    username: data.username,
+                    campaignId: data.campaignId,
+                    monthsPlayed: data.monthsPlayed,
+                    outcome: data.outcome,
+                    createdAt: data.createdAt?.toDate() || new Date(),
+                });
+            }
+        });
+
+        // Re-sort since map filtering might disrupt ordering if there are exact ties out of order
+        results.sort((a, b) => a.monthsPlayed - b.monthsPlayed);
+        return results;
+    } catch (e: any) {
+        console.error("Failed to fetch story leaderboard:", e);
+        return [];
+    }
+}
+
 /** Called at game-over — archives this run and updates cumulative stats */
 export async function finalizeVenture(username: string, snapshot: VentureSnapshot): Promise<void> {
     try {

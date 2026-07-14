@@ -1,10 +1,11 @@
 // src/lib/story/campaigns/pineapple.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// PINEAPPLE CAMPAIGN — Inspired by Apple Inc. / Steve Jobs
+// PINEAPPLE CAMPAIGN
 // Company Name: Pineapple Computers → Pineapple Inc.
-// Founder Name: Steve
+// Founder Name: Steve Blake (fictional)
 // Win Condition: Reach $1 Trillion Valuation
 // Duration: ~300 in-game months (25 years)
+// ⚠️  All characters and products are fictional. Any resemblance to real persons is satirical.
 //
 // Acts:
 //   Act 1 (Mo 1–48):   The Garage & The Rise
@@ -27,10 +28,10 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WOZ: KeyPerson = {
-  id: "woz",
-  displayName: "Woz",
+  id: "boz",
+  displayName: "Boz",
   title: "Co-Founder & Chief Engineer",
-  historicalName: "Steve Wozniak",
+  historicalName: "Boz Winters",
   emoji: "🧑‍💻",
   loyalty: 90,
   loyaltyThreshold: 25,
@@ -42,10 +43,10 @@ const WOZ: KeyPerson = {
 };
 
 const MARKKULA: KeyPerson = {
-  id: "markkula",
+  id: "makkala",
   displayName: "Mike M.",
   title: "Angel Investor & Board Mentor",
-  historicalName: "Mike Markkula",
+  historicalName: "Marcus Kaye",
   emoji: "💼",
   loyalty: 70,
   loyaltyThreshold: 30,
@@ -57,10 +58,10 @@ const MARKKULA: KeyPerson = {
 };
 
 const SCULLEY: KeyPerson = {
-  id: "sculley",
-  displayName: "Sculley",
+  id: "sullivan",
+  displayName: "Sullivan",
   title: "Chief Executive Officer",
-  historicalName: "John Sculley",
+  historicalName: "Jack Sullivan",
   emoji: "🍸",
   loyalty: 60,
   loyaltyThreshold: 35,
@@ -72,10 +73,10 @@ const SCULLEY: KeyPerson = {
 };
 
 const JONY: KeyPerson = {
-  id: "jony",
-  displayName: "Jony",
+  id: "tony",
+  displayName: "Tony",
   title: "Chief Design Officer",
-  historicalName: "Jony Ive",
+  historicalName: "Jon Avery",
   emoji: "🎨",
   loyalty: 85,
   loyaltyThreshold: 20,
@@ -159,42 +160,42 @@ const ACTS: ActDefinition[] = [
   {
     act: 1,
     title: "The Garage & The Rise",
-    monthRange: [1, 48],
+    monthRange: [1, 84],
     description: "Two visionaries, a garage, and a dream to put computers in every home.",
     color: "from-amber-500 to-orange-600",
   },
   {
     act: 2,
     title: "The Fall & The Wilderness",
-    monthRange: [49, 119],
+    monthRange: [85, 249],
     description: "Betrayed by the man you hired. Cast out of your own creation.",
     color: "from-slate-600 to-slate-800",
   },
   {
     act: 3,
     title: "The Return of the King",
-    monthRange: [120, 189],
+    monthRange: [250, 305],
     description: "90 days from bankruptcy. One acquisition. One last chance to rewrite history.",
     color: "from-violet-600 to-purple-800",
   },
   {
     act: 4,
     title: "The Ecosystem Monopoly",
-    monthRange: [190, 300],
-    description: "iPhone. App Store. $1 Trillion. Your legacy, secured forever.",
+    monthRange: [306, 600],
+    description: "iSphere. Orchard Store. $1 Trillion. Your legacy, secured forever.",
     color: "from-cyan-500 to-blue-700",
   },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EVENTS — ACT 1: The Garage & The Rise (Months 1–48)
+// EVENTS — ACT 1: The Garage & The Rise (Months 1–84)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_garage",
     title: "🏠 The Garage",
-    description: "It's 1976. You and Woz are hand-building circuit boards in your parents' garage in Los Altos. You have a working prototype of the Pineapple I — but you need $1,300 for parts to build 50 units for Byte Shop, a local computer store that might actually buy them.",
+    description: "It's 1976. You and Boz are hand-building circuit boards in your parents' garage in Los Altos. You have a working prototype of the Pineapple I — but you need $1,300 for parts to build 50 units for Byte Shop, a local computer store that might actually buy them.",
     trigger: { type: "month_reached", value: 1 },
     act: 1,
     imageSlug: "garage",
@@ -205,7 +206,7 @@ const ACT1_EVENTS: StoryEvent[] = [
         label: "Sell Your VW Bus & Calculators",
         description: "Liquidate your personal electronics and your car to raise parts money. All in.",
         onSuccess: { cash: 1300, team_morale: 15, setsFlag: "sold_possessions" },
-        successText: "You raised $1,300 scraping everything together. Woz is impressed. The Pineapple I is being built.",
+        successText: "You raised $1,300 scraping everything together. Boz is impressed. The Pineapple I is being built.",
       },
       {
         id: "beg_byte_shop",
@@ -223,32 +224,32 @@ const ACT1_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_woz_accident",
-    title: "🚁 Woz's Accident",
-    description: "Woz was in a small plane crash. He's physically okay, but he's shaken up — talking about taking a leave of absence to finish his college degree. The Pineapple II launch is 4 months away.",
+    title: "🚁 Boz's Accident",
+    description: "Boz was in a small plane crash. He's physically okay, but he's shaken up — talking about taking a leave of absence to finish his college degree. The Pineapple II launch is 4 months away.",
     trigger: { type: "month_reached", value: 4 },
     act: 1,
     choices: [
       {
         id: "convince_woz_to_stay",
-        label: "Convince Woz to Stay — Passionately",
+        label: "Convince Boz to Stay — Passionately",
         description: "Have an honest, personal conversation about what you're building together.",
         onSuccess: {
-          keyPersonLoyaltyDelta: [{ personId: "woz", delta: 15 }],
+          keyPersonLoyaltyDelta: [{ personId: "boz", delta: 15 }],
           team_morale: 10,
           setsFlag: "woz_committed",
         },
-        successText: "Woz stays. He's all in. That conversation reminded him why you started this.",
+        successText: "Boz stays. He's all in. That conversation reminded him why you started this.",
       },
       {
         id: "let_woz_take_leave",
         label: "Support Him — Give Him Time",
         description: "Tell him to take the time he needs. He'll come back stronger.",
         onSuccess: {
-          keyPersonLoyaltyDelta: [{ personId: "woz", delta: 25 }],
+          keyPersonLoyaltyDelta: [{ personId: "boz", delta: 25 }],
           product_quality: -8,
           team_morale: -10,
         },
-        successText: "Woz takes 2 months off. The loyalty runs deep — he returns recharged.",
+        successText: "Boz takes 2 months off. The loyalty runs deep — he returns recharged.",
       },
     ],
   },
@@ -257,7 +258,7 @@ const ACT1_EVENTS: StoryEvent[] = [
     id: "pineapple_faire",
     title: "🖥️ The West Coast Computer Faire",
     description: "April 1977. The first major consumer computer expo. 13,000 attendees. You're debuting the Pineapple II — color graphics, a real keyboard, a molded plastic case. Your booth is at the entrance. Every journalist in tech is here.",
-    trigger: { type: "month_reached", value: 6 },
+    trigger: { type: "month_reached", value: 12 },
     act: 1,
     imageSlug: "faire",
     soundtrackCue: "garage_era",
@@ -300,23 +301,23 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_first_angel",
     title: "💰 The First Angel",
-    description: "Mike Markkula shows up at your garage. Former Intel marketing executive. He believes in what you're building so much he's offering $250,000 and hands-on marketing expertise — in exchange for a 30% equity stake and a board seat. This will change everything.",
-    trigger: { type: "month_reached", value: 10 },
+    description: "Marcus Kaye shows up at your garage. Former chip company marketing executive. He believes in what you're building so much he's offering $250,000 and hands-on marketing expertise — in exchange for a 30% equity stake and a board seat. This will change everything.",
+    trigger: { type: "month_reached", value: 8 },
     act: 1,
     choices: [
       {
         id: "accept_markkula",
         label: "Accept — Take the $250K",
-        description: "Give up 30% equity. Markkula joins the board and brings professional marketing.",
+        description: "Give up 30% equity. Marcus joins the board and brings professional marketing.",
         onSuccess: {
           cash: 250000,
           brand_awareness: 20,
           ceo_reputation: 10,
-          activatesKeyPersonId: "markkula",
-          keyPersonLoyaltyDelta: [{ personId: "markkula", delta: 20 }],
+          activatesKeyPersonId: "makkala",
+          keyPersonLoyaltyDelta: [{ personId: "makkala", delta: 20 }],
           setsFlag: "markkula_onboard",
         },
-        successText: "Markkula is in. His 'Empathy, Focus, and Impute' marketing philosophy will shape the brand forever.",
+        successText: "Marcus is in. His 'Empathy, Focus, and Impute' marketing philosophy will shape the brand forever.",
       },
       {
         id: "negotiate_equity",
@@ -325,14 +326,14 @@ const ACT1_EVENTS: StoryEvent[] = [
         onSuccess: {
           cash: 250000,
           brand_awareness: 15,
-          activatesKeyPersonId: "markkula",
-          keyPersonLoyaltyDelta: [{ personId: "markkula", delta: 5 }],
+          activatesKeyPersonId: "makkala",
+          keyPersonLoyaltyDelta: [{ personId: "makkala", delta: 5 }],
           setsFlag: "markkula_onboard",
         },
         onFail: { team_morale: -10, ceo_reputation: -5 },
         successRate: 0.5,
-        successText: "Markkula agreed to 20%. He's slightly less enthusiastic — but he's in.",
-        failText: "Markkula walked. He doesn't negotiate on terms he believes in. The deal is off.",
+        successText: "Marcus agreed to 20%. He's slightly less enthusiastic — but he's in.",
+        failText: "Marcus walked. He doesn't negotiate on terms he believes in. The deal is off.",
       },
       {
         id: "bootstrap_harder",
@@ -350,7 +351,7 @@ const ACT1_EVENTS: StoryEvent[] = [
     id: "pineapple_ipo_prep",
     title: "📈 Going Public",
     description: "December 1980. The Pineapple II has been a runaway success. Investors are lining up. Your underwriters say you could raise $100M+ in an IPO and it would be the largest tech IPO since Ford. The press is calling it 'the IPO of the decade.'",
-    trigger: { type: "month_reached", value: 30 },
+    trigger: { type: "month_reached", value: 56 },
     act: 1,
     isClimax: true,
     soundtrackCue: "hypergrowth",
@@ -390,7 +391,7 @@ const ACT1_EVENTS: StoryEvent[] = [
     id: "pineapple_iii_disaster",
     title: "💀 The Pineapple III Disaster",
     description: "You overrode engineering decisions to make the Pineapple III thinner and fanless. It runs so hot that solder chips melt and clock chips fail. 14,000 units have been shipped. Customers are returning them. The press is calling it 'the most expensive paperweight in Silicon Valley.'",
-    trigger: { type: "month_reached", value: 35 },
+    trigger: { type: "month_reached", value: 60 },
     act: 1,
     choices: [
       {
@@ -421,18 +422,18 @@ const ACT1_EVENTS: StoryEvent[] = [
           ceo_reputation: -20,
           team_morale: -25,
           brand_awareness: -20,
-          keyPersonLoyaltyDelta: [{ personId: "woz", delta: -20 }],
+          keyPersonLoyaltyDelta: [{ personId: "boz", delta: -20 }],
         },
-        successText: "The team knows the truth. Morale collapses. Woz is furious — he was in those meetings.",
+        successText: "The team knows the truth. Morale collapses. Boz is furious — he was in those meetings.",
       },
     ],
   },
 
   {
     id: "pineapple_xerox_parc",
-    title: "🔬 The Xerox PARC Visit",
-    description: "You've arranged a visit to Xerox's research lab — PARC — where they've built something extraordinary: a graphical user interface with a mouse, windows, and icons. They've had this for years and done nothing with it. You see the future in one afternoon.",
-    trigger: { type: "month_reached", value: 38 },
+    title: "🔬 The Zenith Labs Visit",
+    description: "You've arranged a visit to Zenith's research lab — Labs — where they've built something extraordinary: a graphical user interface with a mouse, windows, and icons. They've had this for years and done nothing with it. You see the future in one afternoon.",
+    trigger: { type: "month_reached", value: 44 },
     act: 1,
     imageSlug: "xerox_parc",
     choices: [
@@ -450,7 +451,7 @@ const ACT1_EVENTS: StoryEvent[] = [
       },
       {
         id: "license_properly",
-        label: "License It — Pay Xerox Fairly",
+        label: "License It — Pay Zenith Fairly",
         description: "Negotiate a proper IP license. Slower but cleaner.",
         condition: (s) => s.metrics.cash >= 1_000_000,
         conditionFailReason: "Licensing requires at least $1M in cash reserves.",
@@ -475,9 +476,9 @@ const ACT1_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_cofounder_split",
-    title: "💔 Woz Wants Out",
-    description: "Woz has decided he wants to leave. He says the company has changed — it's become political, bureaucratic, corporate. He wants to go back to building things with his hands. He's offering to sell his shares quietly and leave without drama.",
-    trigger: { type: "month_reached", value: 42 },
+    title: "💔 Boz Wants Out",
+    description: "Boz has decided he wants to leave. He says the company has changed — it's become political, bureaucratic, corporate. He wants to go back to building things with his hands. He's offering to sell his shares quietly and leave without drama.",
+    trigger: { type: "month_reached", value: 66 },
     act: 1,
     requiredPriorEvents: ["pineapple_garage"],
     choices: [
@@ -489,68 +490,68 @@ const ACT1_EVENTS: StoryEvent[] = [
         conditionFailReason: "You need at least $5M to buy his shares at fair value.",
         onSuccess: {
           cash: -5_000_000,
-          deactivatesKeyPersonId: "woz",
+          deactivatesKeyPersonId: "boz",
           ceo_reputation: 10,
           team_morale: -5,
           setsFlag: "woz_departed_cleanly",
         },
-        successText: "Woz leaves with dignity. He tells the press you're 'still the best product mind in Silicon Valley.'",
+        successText: "Boz leaves with dignity. He tells the press you're 'still the best product mind in Silicon Valley.'",
       },
       {
         id: "fight_to_keep_woz",
         label: "Fight to Keep Him — Make It Personal",
         description: "Have the most honest conversation of your life. Ask him to stay one more year.",
         onSuccess: {
-          keyPersonLoyaltyDelta: [{ personId: "woz", delta: 20 }],
+          keyPersonLoyaltyDelta: [{ personId: "boz", delta: 20 }],
           team_morale: 15,
           setsFlag: "woz_stayed",
         },
         onFail: {
-          deactivatesKeyPersonId: "woz",
+          deactivatesKeyPersonId: "boz",
           team_morale: -20,
           ceo_reputation: -5,
         },
         successRate: 0.55,
-        successText: "Woz agrees to stay another year. The team sees it as a vote of confidence in the mission.",
-        failText: "He's made up his mind. Woz leaves quietly. The company feels different without him.",
+        successText: "Boz agrees to stay another year. The team sees it as a vote of confidence in the mission.",
+        failText: "He's made up his mind. Boz leaves quietly. The company feels different without him.",
       },
     ],
   },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EVENTS — ACT 2: The Fall & The Wilderness (Months 49–119)
+// EVENTS — ACT 2: The Fall & The Wilderness (Months 85–249)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_sugar_water",
     title: "🍬 'Do You Want to Sell Sugar Water?'",
-    description: "You've been courting John Sculley — the President of Pepsi-Cola, marketing genius behind the Pepsi Challenge. Your pitch to him: 'Do you want to sell sugar water for the rest of your life, or do you want to come with me and change the world?' He's ready to say yes — but hiring him means giving up the CEO title.",
-    trigger: { type: "month_reached", value: 50 },
+    description: "You've been courting Jack Sullivan — a beverage empire president and marketing genius who ran the Cola Challenge campaign. Your pitch to him: 'Do you want to sell sugar water for the rest of your life, or do you want to come with me and change the world?' He's ready to say yes — but hiring him means giving up the CEO title.",
+    trigger: { type: "month_reached", value: 85 },
     act: 2,
     imageSlug: "boardroom",
     soundtrackCue: "boardroom_crisis",
     choices: [
       {
         id: "hire_sculley_as_ceo",
-        label: "Hire Sculley as CEO — You Become Chairman",
+        label: "Hire Sullivan as CEO — You Become Chairman",
         description: "You become President & Chairman of the board. He runs the company day-to-day.",
         onSuccess: {
           brand_awareness: 25,
           ceo_reputation: -8,
           founderRoleChange: "cpo_chairman",
-          activatesKeyPersonId: "sculley",
-          keyPersonLoyaltyDelta: [{ personId: "sculley", delta: 30 }],
+          activatesKeyPersonId: "sullivan",
+          keyPersonLoyaltyDelta: [{ personId: "sullivan", delta: 30 }],
           setsFlag: "hired_outside_ceo",
           unlocksEventId: "pineapple_boardroom_coup",
         },
-        successText: "Sculley is CEO. The board is thrilled. You feel the power shift immediately — and you hate it.",
+        successText: "Sullivan is CEO. The board is thrilled. You feel the power shift immediately — and you hate it.",
       },
       {
         id: "stay_as_ceo",
         label: "Stay as CEO — Lead It Yourself",
-        description: "Decline the Sculley hire. You lead the company. The board gets nervous.",
+        description: "Decline the Sullivan hire. You lead the company. The board gets nervous.",
         condition: (s) => s.metrics.team_morale >= 55 && (s.ceo_reputation ?? 0) >= 60,
         conditionFailReason: "Your team morale or reputation is too low. The board won't support a solo CEO right now.",
         onSuccess: {
@@ -567,8 +568,8 @@ const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_mac_launch",
     title: "💻 Hello, World",
-    description: "January 24, 1984. You've been working on the Macintosh in secret for 3 years — a computer with a GUI, a mouse, and a soul. The launch keynote is in 2 days. You're going to introduce it to the world yourself.",
-    trigger: { type: "month_reached", value: 60 },
+    description: "January 24, 1984. You've been working on the PineMac in secret for 3 years — a computer with a GUI, a mouse, and a soul. The launch keynote is in 2 days. You're going to introduce it to the world yourself.",
+    trigger: { type: "month_reached", value: 94 },
     act: 2,
     imageSlug: "keynote",
     soundtrackCue: "hypergrowth",
@@ -613,14 +614,14 @@ const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_boardroom_coup",
     title: "⚔️ The Boardroom Coup",
-    description: "Sculley has called an emergency board meeting — without telling you. He's presented growth numbers you've disputed. The board is about to vote on removing you from all operational roles. You have one hour to fight for your company.",
-    trigger: { type: "month_reached", value: 72 },
+    description: "Sullivan has called an emergency board meeting — without telling you. He's presented growth numbers you've disputed. The board is about to vote on removing you from all operational roles. You have one hour to fight for your company.",
+    trigger: { type: "month_reached", value: 110 },
     act: 2,
     imageSlug: "boardroom",
     soundtrackCue: "boardroom_crisis",
     isClimax: true,
     requiredPriorEvents: ["pineapple_sugar_water"],
-    blockedByEvents: ["pineapple_sugar_water"],  // Only fires if Sculley was hired
+    blockedByEvents: ["pineapple_sugar_water"],  // Only fires if Sullivan was hired
     choices: [
       {
         id: "fight_the_board",
@@ -631,7 +632,7 @@ const ACT2_EVENTS: StoryEvent[] = [
         onSuccess: {
           ceo_reputation: 15,
           team_morale: 10,
-          keyPersonLoyaltyDelta: [{ personId: "sculley", delta: -25 }],
+          keyPersonLoyaltyDelta: [{ personId: "sullivan", delta: -25 }],
           setsFlag: "survived_coup",
         },
         onFail: {
@@ -640,8 +641,8 @@ const ACT2_EVENTS: StoryEvent[] = [
           setsFlag: "lost_coup",
         },
         successRate: 0.5,
-        successText: "You survived. The board kept you — but Sculley is now your enemy.",
-        failText: "You lost. The board sided with Sculley. They stripped your operational role.",
+        successText: "You survived. The board kept you — but Sullivan is now your enemy.",
+        failText: "You lost. The board sided with Sullivan. They stripped your operational role.",
       },
       {
         id: "negotiate_exit",
@@ -662,7 +663,7 @@ const ACT2_EVENTS: StoryEvent[] = [
     id: "pineapple_exile_begins",
     title: "🏝️ The Wilderness Years",
     description: "You've been pushed out. You're 30 years old, worth $200M, and have no idea what to do with yourself. You could start a new company, buy a movie studio, or travel the world. But every morning you think about Pineapple.",
-    trigger: { type: "month_reached", value: 75 },
+    trigger: { type: "month_reached", value: 113 },
     act: 2,
     choices: [
       {
@@ -680,16 +681,16 @@ const ACT2_EVENTS: StoryEvent[] = [
       },
       {
         id: "buy_pixar",
-        label: "Buy Pixar — The Animation Studio",
+        label: "Buy Voxel — The Animation Studio",
         description: "Acquire a struggling computer animation division for $10M. It's a long shot.",
         condition: (s) => s.metrics.cash >= 10_000_000,
-        conditionFailReason: "You need at least $10M in personal cash to acquire Pixar.",
+        conditionFailReason: "You need at least $10M in personal cash to acquire Voxel.",
         onSuccess: {
           cash: -10_000_000,
           brand_awareness: 10,
           setsFlag: "pixar_acquired",
         },
-        successText: "You bought Pixar for $10M. Their first movie will be called 'Toy Story.' Nobody knows it yet.",
+        successText: "You bought Voxel for $10M. Their first movie will be called 'Block Story.' Nobody knows it yet.",
       },
       {
         id: "travel_and_reflect",
@@ -707,9 +708,9 @@ const ACT2_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_pixar_toy_story",
-    title: "🎬 Toy Story",
-    description: "Pixar has finished their first feature film — Toy Story. It's the world's first fully computer-animated movie. Disney is distributing it. If it's a hit, Pixar becomes enormously valuable. If it bombs, you've lost $60M.",
-    trigger: { type: "month_reached", value: 105 },
+    title: "🎬 Block Story",
+    description: "Voxel has finished their first feature film — Block Story. It's the world's first fully computer-animated movie. The Kingdom is distributing it. If it's a hit, Voxel becomes enormously valuable. If it bombs, you've lost $60M.",
+    trigger: { type: "month_reached", value: 236 },
     act: 2,
     requiredPriorEvents: ["pineapple_exile_begins"],
     choices: [
@@ -718,7 +719,7 @@ const ACT2_EVENTS: StoryEvent[] = [
         label: "Release It — Trust the Vision",
         description: "Let it out. You believe in this team.",
         condition: (_s, state) => state.narrativeFlags["pixar_acquired"] === true,
-        conditionFailReason: "You didn't acquire Pixar. This event isn't available.",
+        conditionFailReason: "You didn't acquire Voxel. This event isn't available.",
         onSuccess: {
           cash: 80_000_000,
           valuation_multiplier: 1.8,
@@ -726,14 +727,22 @@ const ACT2_EVENTS: StoryEvent[] = [
           ceo_reputation: 15,
           setsFlag: "pixar_success",
         },
-        successText: "Toy Story grosses $360M. Pixar's IPO raises $140M. Your $10M investment is now worth $1.2B.",
+        successText: "Block Story grosses $360M. Voxel's IPO raises $140M. Your $10M investment is now worth $1.2B.",
       },
+      {
+        id: "pixar_missed",
+        label: "We Didn't Buy Them",
+        description: "You watched from the sidelines as Block Story became a massive hit.",
+        condition: (_s, state) => !state.narrativeFlags["pixar_acquired"],
+        onSuccess: {},
+        successText: "A missed opportunity, but you have other things to focus on.",
+      }
     ],
   },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EVENTS — ACT 3: The Return of the King (Months 120–189)
+// EVENTS — ACT 3: The Return of the King (Months 250–305)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACT3_EVENTS: StoryEvent[] = [
@@ -741,7 +750,7 @@ const ACT3_EVENTS: StoryEvent[] = [
     id: "pineapple_return",
     title: "🎯 The Return",
     description: "1996. Pineapple is 90 days from bankruptcy. Their OS is a disaster. Their stock is at an all-time low. And they've just agreed to acquire your NextStep company for $427M — which brings you back inside the building you were thrown out of 11 years ago.",
-    trigger: { type: "month_reached", value: 120 },
+    trigger: { type: "month_reached", value: 250 },
     act: 3,
     imageSlug: "return",
     soundtrackCue: "comeback_arc",
@@ -768,7 +777,7 @@ const ACT3_EVENTS: StoryEvent[] = [
     id: "pineapple_product_purge",
     title: "🔪 The Product Purge",
     description: "Pineapple has 40+ products. Printers, cameras, TVs, a handheld device called Newton, a dozen Mac variants. You've done the analysis: almost all are losing money. You want to kill 70% of them and focus on 4 products. The board is horrified.",
-    trigger: { type: "month_reached", value: 125 },
+    trigger: { type: "month_reached", value: 256 },
     act: 3,
     requiredPriorEvents: ["pineapple_return"],
     choices: [
@@ -803,8 +812,8 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_microsoft_pact",
     title: "🤝 The Enemy at the Gates",
-    description: "Softek will invest $150M in Pineapple and guarantee Office on Mac for 5 years — but you have to abandon the IP lawsuit, and they get non-voting shares. At the Macworld keynote, Bill Gates's face appears on a giant screen behind you while you announce this. The crowd boos.",
-    trigger: { type: "month_reached", value: 130 },
+    description: "Softek will invest $150M in Pineapple and guarantee Office on Mac for 5 years — but you have to abandon the IP lawsuit, and they get non-voting shares. At the TechWorld keynote, the Softek CEO's face appears on a giant screen behind you while you announce this. The crowd boos.",
+    trigger: { type: "month_reached", value: 257 },
     act: 3,
     requiredPriorEvents: ["pineapple_return"],
     choices: [
@@ -842,7 +851,7 @@ const ACT3_EVENTS: StoryEvent[] = [
     id: "pineapple_think_different",
     title: "🌟 'Think Different'",
     description: "You fired your ad agency and hired TBWA. They came back with a concept called 'Think Different' — a tribute to the rebels and misfits who change the world. Einstein. Gandhi. Lennon. Chaplin. It's the most expensive ad campaign in Pineapple's history. It's also exactly what the brand needs.",
-    trigger: { type: "month_reached", value: 138 },
+    trigger: { type: "month_reached", value: 258 },
     act: 3,
     requiredPriorEvents: ["pineapple_return"],
     choices: [
@@ -860,6 +869,16 @@ const ACT3_EVENTS: StoryEvent[] = [
           setsFlag: "think_different",
         },
         successText: "The campaign runs. Pineapple is cool again. Wall Street doesn't understand why — but customers do.",
+      },
+      {
+        id: "cancel_campaign",
+        label: "Cancel the Campaign",
+        description: "You don't have the cash for either option.",
+        onSuccess: {
+          brand_awareness: -10,
+          team_morale: -10,
+        },
+        successText: "TBWA resigned the account. The brand remains stagnant.",
       },
       {
         id: "smaller_campaign",
@@ -880,8 +899,8 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_imac_launch",
     title: "🖥️ The iMac",
-    description: "A translucent blue teardrop-shaped all-in-one computer. The iMac. No floppy drive (the world is outraged). USB ports (nobody uses USB yet). A handle for 'portability.' The press thinks you're insane. Ive thinks it's perfect. You agree with Ive.",
-    trigger: { type: "month_reached", value: 145 },
+    description: "A translucent blue teardrop-shaped all-in-one computer. The iMac. No floppy drive (the world is outraged). USB ports (nobody uses USB yet). A handle for 'portability.' The press thinks you're insane. Jon A. thinks it's perfect. You agree with Jon A.",
+    trigger: { type: "month_reached", value: 266 },
     act: 3,
     requiredPriorEvents: ["pineapple_return"],
     choices: [
@@ -894,7 +913,7 @@ const ACT3_EVENTS: StoryEvent[] = [
           brand_awareness: 30,
           innovation: 20,
           valuation_multiplier: 2.0,
-          activatesKeyPersonId: "jony",
+          activatesKeyPersonId: "tony",
           setsFlag: "imac_launched",
         },
         successText: "The iMac sells 800,000 units in 5 months. It saves Pineapple. '1984 all over again,' writes the press.",
@@ -918,23 +937,23 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_design_hire",
     title: "🎨 The Quiet Genius",
-    description: "There's a young British designer at Pineapple named Jony. Most executives walk past him. You've been watching his work — the iMac was his breakthrough. He wants to redesign every single product Pineapple makes. You want to give him an unlimited mandate.",
-    trigger: { type: "month_reached", value: 148 },
+    description: "There's a quiet British designer at Pineapple named Jon A. Most executives walk past him. You've been watching his work — the iMac was his breakthrough. He wants to redesign every single product Pineapple makes. You want to give him an unlimited mandate.",
+    trigger: { type: "month_reached", value: 267 },
     act: 3,
     requiredPriorEvents: ["pineapple_imac_launch"],
     choices: [
       {
         id: "empower_jony",
-        label: "Give Jony Unlimited Creative Authority",
+        label: "Give Jon A. Unlimited Creative Authority",
         description: "Make him Chief Design Officer with veto power on all product decisions.",
         onSuccess: {
           product_quality: 20,
           brand_awareness: 10,
-          activatesKeyPersonId: "jony",
-          keyPersonLoyaltyDelta: [{ personId: "jony", delta: 30 }],
+          activatesKeyPersonId: "tony",
+          keyPersonLoyaltyDelta: [{ personId: "tony", delta: 30 }],
           setsFlag: "jony_empowered",
         },
-        successText: "Jony's studio becomes the most powerful room at Pineapple. Every product will feel inevitable.",
+        successText: "Jon A.'s studio becomes the most powerful room at Pineapple. Every product will feel inevitable.",
       },
       {
         id: "normal_hire",
@@ -942,24 +961,24 @@ const ACT3_EVENTS: StoryEvent[] = [
         description: "Bring him in with a normal VP title. Let him earn the broader mandate.",
         onSuccess: {
           product_quality: 10,
-          activatesKeyPersonId: "jony",
+          activatesKeyPersonId: "tony",
         },
-        successText: "Jony joins officially. He's excellent — but the full extent of his vision is still constrained.",
+        successText: "Jon A. joins officially. He's excellent — but the full extent of his vision is still constrained.",
       },
     ],
   },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EVENTS — ACT 4: The Ecosystem Monopoly (Months 190–300)
+// EVENTS — ACT 4: The Ecosystem Monopoly (Months 306–600)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACT4_EVENTS: StoryEvent[] = [
   {
     id: "pineapple_ipod",
     title: "🎵 1,000 Songs in Your Pocket",
-    description: "The music industry is in crisis. Napster happened. CDs are dying. Your idea: a pocket-sized device that holds 1,000 songs and syncs with a library application on the Mac. You want to call it the iPod. Your team thinks you're crazy — hardware is hard, and you're a software company.",
-    trigger: { type: "month_reached", value: 190 },
+    description: "The music industry is in crisis. StreamRip happened. CDs are dying. Your idea: a pocket-sized device that holds 1,000 songs and syncs with a library application on the Mac. You want to call it the iBud. Your team thinks you're crazy — hardware is hard, and you're a software company.",
+    trigger: { type: "month_reached", value: 306 },
     act: 4,
     requiredPriorEvents: ["pineapple_imac_launch"],
     isClimax: true,
@@ -967,9 +986,9 @@ const ACT4_EVENTS: StoryEvent[] = [
       {
         id: "build_ipod",
         label: "Build It — This Changes Music Forever",
-        description: "Greenlight the iPod project. 9 months, $30M budget, 100 engineers.",
+        description: "Greenlight the iBud project. 9 months, $30M budget, 100 engineers.",
         condition: (s) => s.metrics.cash >= 30_000_000,
-        conditionFailReason: "Need $30M to fund the iPod project.",
+        conditionFailReason: "Need $30M to fund the iBud project.",
         onSuccess: {
           cash: -30_000_000,
           innovation: 25,
@@ -978,7 +997,7 @@ const ACT4_EVENTS: StoryEvent[] = [
           valuation_multiplier: 2.5,
           setsFlag: "ipod_launched",
         },
-        successText: "iPod ships. 600,000 units in 6 months. It's the Walkman for the digital age. It also opens a door: what if we made the phone?",
+        successText: "iBud ships. 600,000 units in 6 months. It's the Walkman for the digital age. It also opens a door: what if we made the phone?",
       },
       {
         id: "license_hardware",
@@ -998,7 +1017,7 @@ const ACT4_EVENTS: StoryEvent[] = [
     id: "pineapple_itunes_store",
     title: "🎸 The iTunes Store",
     description: "You've convinced the 5 major record labels to sell songs for $0.99 each on a new digital music store you'll run. Nobody thought you could get them all in a room together. You did it in 6 months. Now you have to launch it.",
-    trigger: { type: "month_reached", value: 200 },
+    trigger: { type: "month_reached", value: 324 },
     act: 4,
     requiredPriorEvents: ["pineapple_ipod"],
     choices: [
@@ -1020,9 +1039,9 @@ const ACT4_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_iphone_project",
-    title: "📱 The iPhone Project",
+    title: "📱 The iSphere Project",
     description: "You have 2 years of secret development. A phone that is also a computer. No keyboard. Just glass. The carriers call it 'insane.' Your board calls it 'risky.' You call it 'the most important thing you'll ever build.'",
-    trigger: { type: "month_reached", value: 218 },
+    trigger: { type: "month_reached", value: 348 },
     act: 4,
     isClimax: true,
     requiredPriorEvents: ["pineapple_ipod"],
@@ -1039,16 +1058,27 @@ const ACT4_EVENTS: StoryEvent[] = [
           product_quality: 20,
           setsFlag: "iphone_in_development",
         },
-        successText: "The iPhone project begins. You call it 'Project Purple.' The building is locked down. Nobody leaves until it's done.",
+        successText: "The iSphere project begins. You call it 'Project Citrus.' The building is locked down. Nobody leaves until it's done.",
       },
+      {
+        id: "cancel_iphone",
+        label: "Cancel the Project — Focus on Pods",
+        description: "It's too expensive and risky. Stick to the music business.",
+        onSuccess: {
+          cash: 50_000_000,
+          team_morale: -15,
+          innovation: -20,
+        },
+        successText: "You played it safe. The iSphere dies in R&D. But your cash position is secure.",
+      }
     ],
   },
 
   {
     id: "pineapple_iphone_keynote",
     title: "🎤 'Every Once in a While...'",
-    description: "January 9, 2007. Macworld. You walk on stage and say: 'Every once in a while, a revolutionary product comes along that changes everything.' Then you introduce the iPhone.",
-    trigger: { type: "month_reached", value: 228 },
+    description: "It's January, 2007. TechWorld. You walk on stage and say: 'Every once in a while, a revolutionary product comes along that changes everything.' Then you introduce the iSphere.",
+    trigger: { type: "month_reached", value: 369 },
     act: 4,
     imageSlug: "keynote",
     soundtrackCue: "closing_bell",
@@ -1058,7 +1088,7 @@ const ACT4_EVENTS: StoryEvent[] = [
       {
         id: "iphone_keynote",
         label: "Take the Stage — Make History",
-        description: "Deliver the iPhone introduction yourself. It's a 2-hour live performance.",
+        description: "Deliver the iSphere introduction yourself. It's a 2-hour live performance.",
         triggersKeynoteMiniGame: true,
         onSuccess: {
           users: 5_000_000,
@@ -1073,7 +1103,7 @@ const ACT4_EVENTS: StoryEvent[] = [
           valuation_multiplier: 2.0,
           setsFlag: "iphone_launched",
         },
-        successText: "The world stops. 'An iPod. A phone. And an internet communicator.' The audience understands on the third repeat. They erupt.",
+        successText: "The world stops. 'An iBud. A phone. And an internet communicator.' The audience understands on the third repeat. They erupt.",
         failText: "It was still extraordinary — just not flawless. The product sells 4M units in the first year.",
       },
     ],
@@ -1081,15 +1111,15 @@ const ACT4_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_app_store",
-    title: "📲 The App Store",
-    description: "You initially didn't want third-party apps on the iPhone. Then you changed your mind. Now you're opening a marketplace for developers — 500 apps at launch, 30% of every purchase. It's about to become the most profitable store in history.",
-    trigger: { type: "month_reached", value: 238 },
+    title: "📲 The Orchard Store",
+    description: "You initially didn't want third-party apps on the iSphere. Then you changed your mind. Now you're opening a marketplace for developers — 500 apps at launch, 30% of every purchase. It's about to become the most profitable store in history.",
+    trigger: { type: "month_reached", value: 387 },
     act: 4,
     requiredPriorEvents: ["pineapple_iphone_keynote"],
     choices: [
       {
         id: "open_app_store",
-        label: "Open the App Store to All Developers",
+        label: "Open the Orchard Store to All Developers",
         description: "30% commission. Any developer. Any app. Launch with 500 apps on Day 1.",
         onSuccess: {
           users: 10_000_000,
@@ -1098,7 +1128,7 @@ const ACT4_EVENTS: StoryEvent[] = [
           brand_awareness: 30,
           setsFlag: "app_store_live",
         },
-        successText: "500 apps. Then 10,000. Then 1,000,000. The App Store becomes a $70B annual business.",
+        successText: "500 apps. Then 10,000. Then 1,000,000. The Orchard Store becomes a $70B annual business.",
       },
       {
         id: "curated_store",
@@ -1119,7 +1149,7 @@ const ACT4_EVENTS: StoryEvent[] = [
     id: "pineapple_health_scare",
     title: "🏥 The Diagnosis",
     description: "You've been diagnosed with a rare form of pancreatic cancer. The doctors say it's treatable if you act immediately. You've kept it private. The board doesn't know. You're 49 years old and the company has never been more important.",
-    trigger: { type: "month_reached", value: 250 },
+    trigger: { type: "month_reached", value: 390 },
     act: 4,
     isClimax: true,
     choices: [
@@ -1138,7 +1168,7 @@ const ACT4_EVENTS: StoryEvent[] = [
       },
       {
         id: "delay_treatment",
-        label: "Delay — The iPhone 3G Launch Can't Wait",
+        label: "Delay — The iSphere 2 Launch Can't Wait",
         description: "Put the company first. Delay treatment by 9 months.",
         onSuccess: {
           founder_health: -25,
@@ -1154,16 +1184,16 @@ const ACT4_EVENTS: StoryEvent[] = [
 
   {
     id: "pineapple_ipad",
-    title: "📋 'What Is iPad?'",
-    description: "2010. A device between a phone and a laptop — critics say it fills no need. You disagree. You say there's a whole category of things we do better while leaning back than leaning forward. The iPad is the most personal computer ever made.",
-    trigger: { type: "month_reached", value: 260 },
+    title: "📋 'What Is PinePad?'",
+    description: "2010. A device between a phone and a laptop — critics say it fills no need. You disagree. You say there's a whole category of things we do better while leaning back than leaning forward. The PinePad is the most personal computer ever made.",
+    trigger: { type: "month_reached", value: 408 },
     act: 4,
     requiredPriorEvents: ["pineapple_app_store"],
     choices: [
       {
         id: "launch_ipad",
         label: "Launch — A New Category of Device",
-        description: "Ship the iPad. Let the world figure out what it is.",
+        description: "Ship the PinePad. Let the world figure out what it is.",
         onSuccess: {
           users: 8_000_000,
           brand_awareness: 25,
@@ -1171,7 +1201,7 @@ const ACT4_EVENTS: StoryEvent[] = [
           revenue: 300_000_000,
           setsFlag: "ipad_launched",
         },
-        successText: "3M units sold in 80 days. It's a phenomenon. iPad spawns an entire new market category.",
+        successText: "3M units sold in 80 days. It's a phenomenon. PinePad spawns an entire new market category.",
       },
     ],
   },
@@ -1180,7 +1210,7 @@ const ACT4_EVENTS: StoryEvent[] = [
     id: "pineapple_succession",
     title: "🎗️ One More Thing",
     description: "Your health is failing. You know this will be your last keynote. You've groomed Tim to take over operations. But the board needs to vote on formally naming him CEO — which means you step down. You believe he can run the company. You just need to trust that belief.",
-    trigger: { type: "month_reached", value: 280 },
+    trigger: { type: "month_reached", value: 424 },
     act: 4,
     isClimax: true,
     choices: [
@@ -1236,6 +1266,95 @@ const ACT4_EVENTS: StoryEvent[] = [
       },
     ],
   },
+
+  {
+    id: "pineapple_watch",
+    title: "⌚ The PineWatch",
+    description: "It's 2015 (Month 468). Your first major new product category since the PinePad. It's not just a screen on a wrist — it's a fitness tracker, a communication device, and a fashion accessory.",
+    trigger: { type: "month_reached", value: 468 },
+    act: 4,
+    choices: [
+      {
+        id: "launch_pinewatch",
+        label: "Launch The PineWatch",
+        description: "Focus heavily on health and fitness.",
+        onSuccess: {
+          users: 5_000_000,
+          revenue: 1_000_000_000,
+          brand_awareness: 15,
+          valuation_multiplier: 1.1,
+          setsFlag: "pinewatch_launched",
+        },
+        successText: "The PineWatch becomes the best-selling watch in the world, eclipsing the entire Swiss watch industry.",
+      },
+    ],
+  },
+
+  {
+    id: "pineapple_silicon",
+    title: "💻 PineSilicon",
+    description: "It's 2020 (Month 528). You've relied on outside chips for decades. Now, your hardware team has built custom silicon that completely outclasses the competition in performance and power efficiency. It's time to transition the entire PineMac lineup.",
+    trigger: { type: "month_reached", value: 528 },
+    act: 4,
+    choices: [
+      {
+        id: "transition_silicon",
+        label: "Control the Whole Stack",
+        description: "Ditch your chip supplier. Transition every computer to custom PineSilicon.",
+        onSuccess: {
+          product_quality: 35,
+          innovation: 40,
+          revenue: 2_000_000_000,
+          valuation_multiplier: 1.2,
+          setsFlag: "silicon_transitioned",
+        },
+        successText: "The transition is flawless. Your computers are now years ahead of the rest of the industry.",
+      },
+    ],
+  },
+
+  {
+    id: "pineapple_vision",
+    title: "🥽 PineVision",
+    description: "It's 2024 (Month 576). The headset. Spatial computing. It's a $3,500 device that feels like magic but is too expensive for the mass market. It's the biggest hardware gamble in a decade.",
+    trigger: { type: "month_reached", value: 576 },
+    act: 4,
+    choices: [
+      {
+        id: "launch_pinevision",
+        label: "Launch PineVision — Set the Standard",
+        description: "Price it high. Target developers and early adopters.",
+        onSuccess: {
+          innovation: 50,
+          users: 500_000,
+          brand_awareness: 10,
+          setsFlag: "pinevision_launched",
+        },
+        successText: "The reviews are mixed on utility, but universally praise the engineering. The spatial computing era has begun.",
+      },
+    ],
+  },
+
+  {
+    id: "pineapple_end_of_narrative",
+    title: "🚀 The Future is Unwritten",
+    description: "It is now 2026 (Month 600). You've survived 50 years. From a wooden box in a garage to the most valuable company in human history. The scripted narrative ends here. From now on, you write the new path for Pineapple.",
+    trigger: { type: "month_reached", value: 600 },
+    act: 4,
+    imageSlug: "end_of_narrative",
+    isClimax: true,
+    choices: [
+      {
+        id: "continue_sandbox",
+        label: "Continue in Sandbox Mode",
+        description: "The story ends, but the simulation never does.",
+        onSuccess: {
+          team_morale: 50,
+        },
+        successText: "You step out into the unknown. The rest of history is up to you.",
+      },
+    ],
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1249,7 +1368,7 @@ export const PINEAPPLE_CAMPAIGN: StoryCampaign = {
   founderEmoji: "🍎",
   industry: "Hardware & Software",
   tagline: "From a garage to a trillion dollars.",
-  description: "Start with $5,000 and a dream. Build the personal computer. Get fired from your own company. Return from exile. Build the iPhone. Reach $1 Trillion.",
+  description: "Start with $5,000 and a dream. Build the personal computer. Get fired from your own company. Return from exile. Build the iSphere. Reach $1 Trillion.",
   difficulty: "Hard",
   themeColors: {
     primary: "from-slate-700 to-slate-900",
@@ -1258,6 +1377,8 @@ export const PINEAPPLE_CAMPAIGN: StoryCampaign = {
   },
   startingMetrics: {
     cash: 5_000,
+    burn_rate: 100,
+    pricing: 100,
     users: 0,
     product_quality: 15,
     technical_debt: 0,
@@ -1268,9 +1389,20 @@ export const PINEAPPLE_CAMPAIGN: StoryCampaign = {
     innovation: 25,
   },
   winCondition: {
-    description: "Reach $1 Trillion Valuation",
-    check: (startup) => startup.valuation >= 1_000_000_000_000,
+    description: "Survive 600 Months (50 Years) Without Getting Fired or Going Bankrupt",
+    check: (startup, storyState) => (storyState?.currentMonth ?? 0) >= 600,
   },
+  historicalBaselines: [
+    { month: 1, targetValuation: 10_000, targetUsers: 0, targetCash: 1_500 },
+    { month: 24, targetValuation: 3_000_000, targetUsers: 500, targetCash: 250_000 },
+    { month: 48, targetValuation: 1_800_000_000, targetUsers: 50_000, targetCash: 100_000_000 }, // 1980 IPO
+    { month: 120, targetValuation: 2_000_000_000, targetUsers: 250_000, targetCash: 300_000_000 }, // 1986
+    { month: 240, targetValuation: 3_000_000_000, targetUsers: 5_000_000, targetCash: 1_200_000_000 }, // 1996 Slump
+    { month: 360, targetValuation: 75_000_000_000, targetUsers: 150_000_000, targetCash: 10_000_000_000 }, // 2006 iPod Era
+    { month: 420, targetValuation: 350_000_000_000, targetUsers: 500_000_000, targetCash: 50_000_000_000 }, // 2011 iPhone Dominance
+    { month: 504, targetValuation: 1_000_000_000_000, targetUsers: 1_000_000_000, targetCash: 250_000_000_000 }, // 2018 $1T Milestone
+    { month: 600, targetValuation: 3_500_000_000_000, targetUsers: 2_000_000_000, targetCash: 160_000_000_000 } // 2026 Peak
+  ],
   events: [
     ...ACT1_EVENTS,
     ...ACT2_EVENTS,

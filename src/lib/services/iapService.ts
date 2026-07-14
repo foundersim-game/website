@@ -13,6 +13,10 @@ export const IAP_PRODUCT_IDS = {
     GOV_CONTRACT: "founder_sim_gov_contract",
     SV_DARLING: "founder_sim_sv_darling",
 
+    // Story Mode
+    STORY_PACK: "founder_sim_story_pack",
+    STORY_REWIND: "founder_sim_story_rewind",
+
     // New Contextual Consumables
     TRAIN_BOUTIQUE: "founder_sim_train_boutique",
     TRAIN_CORPORATE: "founder_sim_train_corporate",
@@ -31,6 +35,8 @@ const PRODUCT_METADATA: Record<string, { price: number; type: "consumable" | "no
     founder_sim_titan: { price: 19.99, type: "non_consumable" },
     founder_sim_god_mode: { price: 9.99, type: "non_consumable" },
     founder_sim_sv_darling: { price: 4.99, type: "non_consumable" },
+    founder_sim_story_pack: { price: 4.99, type: "non_consumable" },
+    founder_sim_story_rewind: { price: 0.99, type: "consumable" },
     founder_sim_starter_pack: { price: 1.99, type: "consumable" },
     founder_sim_gov_contract: { price: 2.99, type: "consumable" },
     founder_sim_train_boutique: { price: 1.99, type: "consumable" },
@@ -96,6 +102,7 @@ export class IAPService {
             if (localStorage.getItem("founder_sim_titan") === "true") owned.push(IAP_PRODUCT_IDS.TITAN_INDUSTRY);
             if (localStorage.getItem("founder_sim_god_mode") === "true") owned.push(IAP_PRODUCT_IDS.GOD_MODE);
             if (localStorage.getItem("founder_sim_sv_darling") === "true") owned.push(IAP_PRODUCT_IDS.SV_DARLING);
+            if (localStorage.getItem("founder_sim_story_pack") === "true") owned.push(IAP_PRODUCT_IDS.STORY_PACK);
             return owned;
         }
         try {
@@ -119,6 +126,9 @@ export class IAPService {
             if (owned.includes(IAP_PRODUCT_IDS.SV_DARLING)) {
                 localStorage.setItem("founder_sim_sv_darling", "true");
             }
+            if (owned.includes(IAP_PRODUCT_IDS.STORY_PACK)) {
+                localStorage.setItem("founder_sim_story_pack", "true");
+            }
             return owned;
         } catch (error) {
             console.warn("[IAP] Native check failed, falling back to localStorage", error);
@@ -129,6 +139,7 @@ export class IAPService {
         if (localStorage.getItem("founder_sim_titan") === "true") ownedFallback.push(IAP_PRODUCT_IDS.TITAN_INDUSTRY);
         if (localStorage.getItem("founder_sim_god_mode") === "true") ownedFallback.push(IAP_PRODUCT_IDS.GOD_MODE);
         if (localStorage.getItem("founder_sim_sv_darling") === "true") ownedFallback.push(IAP_PRODUCT_IDS.SV_DARLING);
+        if (localStorage.getItem("founder_sim_story_pack") === "true") ownedFallback.push(IAP_PRODUCT_IDS.STORY_PACK);
         return ownedFallback;
     }
 
@@ -158,6 +169,12 @@ export class IAPService {
             if (productId === IAP_PRODUCT_IDS.SV_DARLING) {
                 localStorage.setItem("founder_sim_sv_darling", "true");
             }
+            if (productId === IAP_PRODUCT_IDS.STORY_PACK) {
+                localStorage.setItem("founder_sim_story_pack", "true");
+            }
+            if (productId === IAP_PRODUCT_IDS.STORY_REWIND) {
+                // Handled as consumable
+            }
             analyticsService.logEvent("iap_success", {
                 product_id: productId,
                 product_price: meta?.price ?? 0,
@@ -184,7 +201,8 @@ export class IAPService {
                 IAP_PRODUCT_IDS.TIKTOK_VIRAL,
                 IAP_PRODUCT_IDS.BALI_RETREAT,
                 IAP_PRODUCT_IDS.POACH_10X,
-                IAP_PRODUCT_IDS.BRIBE_SENATOR
+                IAP_PRODUCT_IDS.BRIBE_SENATOR,
+                IAP_PRODUCT_IDS.STORY_REWIND
             ];
 
             const isConsumable = consumableIds.includes(productId);
@@ -259,6 +277,9 @@ export class IAPService {
                 }
                 if (productId === IAP_PRODUCT_IDS.SV_DARLING) {
                     localStorage.setItem("founder_sim_sv_darling", "true");
+                }
+                if (productId === IAP_PRODUCT_IDS.STORY_PACK) {
+                    localStorage.setItem("founder_sim_story_pack", "true");
                 }
                 analyticsService.logEvent("iap_success", {
                     product_id: productId,

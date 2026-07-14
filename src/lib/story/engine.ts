@@ -28,10 +28,13 @@ import {
   KeyPerson,
   CultureArchetype,
   HistoricalRival,
+  FounderSkills,
 } from "./types";
+import { calculateLegacyPerks } from "./legacyEngine";
 import { PINEAPPLE_CAMPAIGN } from "./campaigns/pineapple";
 import { BOOKFACE_CAMPAIGN } from "./campaigns/bookface"; // IDE cache bust
 import { SEARCHGO_CAMPAIGN } from "./campaigns/searchgo"; // IDE cache bust
+import { getFillerEvent, getBailoutEvent } from "./fillerEvents";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign Registry
@@ -44,6 +47,20 @@ export const CAMPAIGNS: Record<string, StoryCampaign> = {
 
 export function getCampaign(id: string): StoryCampaign | null {
   return CAMPAIGNS[id] ?? null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Founder Skills Calculation
+// ─────────────────────────────────────────────────────────────────────────────
+export function getFounderSkills(storyState: StoryModeState): FounderSkills {
+  const flags = Object.keys(storyState.narrativeFlags).filter((f) => storyState.narrativeFlags[f]);
+  return {
+    technical: Math.min(100, 20 + flags.filter(f => f.includes("tech") || f.includes("code") || f.includes("ai")).length * 15),
+    leadership: Math.min(100, 30 + flags.filter(f => f.includes("team") || f.includes("hire") || f.includes("board")).length * 12),
+    marketing: Math.min(100, 20 + flags.filter(f => f.includes("brand") || f.includes("pr") || f.includes("launch")).length * 15),
+    fundraising: Math.min(100, 20 + flags.filter(f => f.includes("fund") || f.includes("pitch") || f.includes("ipo")).length * 20),
+    networking: Math.min(100, 30 + storyState.pitchResults.filter(p => p.won).length * 15),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +79,7 @@ export function checkStoryEvents(
   const completed = new Set(storyState.completedEventIds);
   const skipped = new Set(storyState.skippedEventIds);
 
-  return campaign.events.filter((event) => {
+  const triggeredEvents = campaign.events.filter((event) => {
     // Already resolved
     if (completed.has(event.id)) return false;
     if (skipped.has(event.id)) return false;
@@ -86,6 +103,52 @@ export function checkStoryEvents(
     if (t.type === "valuation_reached") return snapshot.valuation >= t.value;
     return false;
   });
+
+  // Inject bailout if needed
+  if (snapshot.metrics.cash <= 0 && !storyState.narrativeFlags["bailed_out"]) {
+    return [getBailoutEvent()];
+  }
+
+  // If no main events triggered, check if we need a filler event
+  if (triggeredEvents.length === 0) {
+    const lastEvent = storyState.lastEventMonth || 0;
+    if (currentMonth - lastEvent >= 6) {
+      triggeredEvents.push(getFillerEvent(currentMonth, storyState.currentAct));
+    }
+  }
+
+  return triggeredEvents;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getNextMilestone
+// ─────────────────────────────────────────────────────────────────────────────
+export function getNextMilestone(storyState: StoryModeState): { title: string; hint?: string } | null {
+  const campaign = getCampaign(storyState.campaignId);
+  if (!campaign) return null;
+
+  const completed = new Set(storyState.completedEventIds);
+  const skipped = new Set(storyState.skippedEventIds);
+
+  const nextEvent = campaign.events.find(
+    (e) => !completed.has(e.id) && !skipped.has(e.id)
+  );
+
+  if (!nextEvent) return null;
+
+  let hint = "";
+  if (nextEvent.trigger.type === "month_reached") {
+    const diff = nextEvent.trigger.value - storyState.currentMonth;
+    if (diff > 0) {
+      hint = `Estimated: ${diff} month${diff > 1 ? "s" : ""} from now`;
+    } else {
+      hint = "Approaching soon...";
+    }
+  } else if (nextEvent.trigger.type === "valuation_reached") {
+    hint = `Target Valuation: $${(nextEvent.trigger.value / 1e9).toFixed(1)}B`;
+  }
+
+  return { title: nextEvent.title, hint };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -109,7 +172,18 @@ export function applyStoryChoice(
     return { newSnapshot: snapshot, newStoryState: storyState, notices: [] };
   }
 
-  const event = campaign.events.find((e) => e.id === eventId);
+  let event = campaign.events.find((e) => e.id === eventId);
+  
+  // ── 0. Check dynamic events if not in campaign ──────────────────────────
+  if (!event) {
+    if (eventId === "bailout_event") {
+      event = getBailoutEvent();
+    } else if (eventId.startsWith("filler_event_")) {
+      const monthStr = eventId.replace("filler_event_", "");
+      event = getFillerEvent(parseInt(monthStr, 10), storyState.currentAct);
+    }
+  }
+
   const choice = event?.choices.find((c) => c.id === choiceId);
   if (!event || !choice) {
     return { newSnapshot: snapshot, newStoryState: storyState, notices: ["❌ Invalid event or choice"] };
@@ -240,6 +314,7 @@ export function applyStoryChoice(
       narrativeFlags: newFlags,
       founderRole: newRole,
       cultureArchetype: newCulture,
+      lastEventMonth: storyState.currentMonth,
     },
     notices,
   };
@@ -306,8 +381,12 @@ export function processStoryMonth(
 
   // ── E. Expenses ───────────────────────────────────────────────────────────
   const activeKeyPeopleCount = storyState.keyPeople.filter((p) => p.isActive).length;
-  const keyPeopleSalaries = activeKeyPeopleCount * 8_000; // flat per active key person
-  const infraCost = Math.max(500, m.users * 0.4);
+  // Key people cost more as the company grows
+  const actSalaryScale: Record<number, number> = { 1: 0, 2: 3_000, 3: 8_000, 4: 15_000 };
+  const baseSalary = actSalaryScale[storyState.currentAct] ?? 8_000;
+  const keyPeopleSalaries = activeKeyPeopleCount * baseSalary;
+  
+  const infraCost = Math.max(100, Math.floor(m.users * 0.2));
   const totalExpenses = m.burn_rate + keyPeopleSalaries + infraCost;
 
   // ── F. Net profit & cash ──────────────────────────────────────────────────
@@ -316,7 +395,11 @@ export function processStoryMonth(
 
   // ── G. Natural user growth ────────────────────────────────────────────────
   const brandFraction = m.brand_awareness / 100;
-  const naturalGrowth = Math.floor(m.users * 0.02 * (1 + brandFraction + pmfFraction * 0.5));
+  
+  // S-Curve Market Saturation: The world only has so many people.
+  // As users approach 5 billion, natural growth approaches 0.
+  const marketSaturation = Math.max(0, 1 - (m.users / 5_000_000_000));
+  const naturalGrowth = Math.floor(m.users * 0.02 * (1 + brandFraction + pmfFraction * 0.5) * marketSaturation);
   m.users = Math.max(0, m.users + naturalGrowth);
 
   // ── H. Runway ────────────────────────────────────────────────────────────
@@ -333,8 +416,78 @@ export function processStoryMonth(
     m.founder_burnout = clamp(m.founder_burnout + 3);
   }
 
+  // ── K. Dynamic Valuation ─────────────────────────────────────────────────
+  // Update the snapshot valuation dynamically based on ARR and Cash
+  const annualRevenue = m.revenue * 12;
+  const growthRate = naturalGrowth / Math.max(1, m.users);
+  const revenueMultiple = Math.min(15, Math.max(3, 5 + (growthRate * 100) + (brandFraction * 5)));
+  
+  const dynamicValuation = m.cash + (annualRevenue * revenueMultiple);
+  // Smooth the valuation so it doesn't jump wildly month-to-month
+  let newValuation = Math.floor(snapshot.valuation * 0.8 + dynamicValuation * 0.2);
+
+  // ── L. Historical Trajectory Anchoring (Rubber-Band Engine) ─────────────
+  const campaign = getCampaign(storyState.campaignId);
+  if (campaign?.historicalBaselines && campaign.historicalBaselines.length > 0) {
+    const baselines = [...campaign.historicalBaselines].sort((a, b) => a.month - b.month);
+    let prev = baselines[0];
+    let next = baselines[baselines.length - 1];
+    
+    if (storyState.currentMonth <= prev.month) {
+      next = prev;
+    } else if (storyState.currentMonth < next.month) {
+      for (let i = 0; i < baselines.length - 1; i++) {
+        if (storyState.currentMonth >= baselines[i].month && storyState.currentMonth < baselines[i+1].month) {
+          prev = baselines[i];
+          next = baselines[i+1];
+          break;
+        }
+      }
+    }
+    
+    const ratio = next.month === prev.month ? 1 : (storyState.currentMonth - prev.month) / (next.month - prev.month);
+    
+    const targetValuation = prev.targetValuation + (next.targetValuation - prev.targetValuation) * ratio;
+    const targetUsers = prev.targetUsers + (next.targetUsers - prev.targetUsers) * ratio;
+    const targetCash = prev.targetCash + (next.targetCash - prev.targetCash) * ratio;
+
+    // Performance multiplier (0.5x to 1.5x) based on how well the player is running the company
+    const performanceRaw = ((m.pmf_score / 100) + (m.product_quality / 100) + (m.team_morale / 100)) / 3;
+    const performanceMultiplier = 0.5 + performanceRaw;
+
+    const rubberValuation = targetValuation * performanceMultiplier;
+    const rubberUsers = targetUsers * performanceMultiplier;
+    const rubberCash = targetCash * performanceMultiplier;
+    
+    const valDrop = newValuation > rubberValuation;
+    
+    // Smooth interpolation to avoid massive jumps: 5% pull towards reality per month
+    newValuation = Math.floor(newValuation * 0.95 + rubberValuation * 0.05);
+    m.users = Math.floor(m.users * 0.95 + rubberUsers * 0.05);
+    
+    // Pull cash slightly slower (2%) so their active spending still feels impactful in the short term
+    m.cash = Math.floor(m.cash * 0.98 + rubberCash * 0.02);
+
+    // Explain the shifts if they are significant
+    if (valDrop && (newValuation < snapshot.valuation * 0.95) && Math.random() < 0.20) {
+       const slumpReasons = [
+           "📉 Market saturation is slowing our organic growth.",
+           "📉 Macroeconomic headwinds are reducing our valuation multiples.",
+           "📉 A broader tech sector slump is dragging down our perceived value."
+       ];
+       notices.push(slumpReasons[Math.floor(Math.random() * slumpReasons.length)]);
+    } else if (!valDrop && (newValuation > snapshot.valuation * 1.05) && Math.random() < 0.20) {
+       const boomReasons = [
+           "📈 Incredible organic word-of-mouth is accelerating our adoption!",
+           "📈 Favorable market conditions are driving a surge in our valuation.",
+           "📈 Investors are highly bullish on our sector, increasing our multiples."
+       ];
+       notices.push(boomReasons[Math.floor(Math.random() * boomReasons.length)]);
+    }
+  }
+
   return {
-    newSnapshot: { ...snapshot, metrics: m },
+    newSnapshot: { ...snapshot, metrics: m, valuation: Math.max(newValuation, snapshot.valuation) },
     notices,
   };
 }
@@ -359,9 +512,16 @@ export function checkWinCondition(
 // Returns a loss reason string if the game is over, null if still alive.
 // ─────────────────────────────────────────────────────────────────────────────
 export function checkLossConditions(
-  snapshot: StoryStartupSnapshot
+  snapshot: StoryStartupSnapshot,
+  storyState: StoryModeState
 ): string | null {
-  if (snapshot.metrics.cash <= 0) return "Your company ran out of cash. Game over.";
+  if (snapshot.metrics.cash <= 0) {
+    if (!storyState.narrativeFlags["bailed_out"]) {
+      // Don't trigger loss yet; checkStoryEvents will inject the bailout event
+      return null;
+    }
+    return "Your company ran out of cash. Game over.";
+  }
   if (snapshot.metrics.founder_burnout >= 100) return "Complete burnout. You stepped away from everything.";
   if (snapshot.metrics.founder_health <= 5) return "Your health deteriorated to a critical level.";
   return null;
@@ -411,26 +571,29 @@ export function initializeStorySnapshot(campaignId: string): StoryStartupSnapsho
   if (!campaign) return null;
   const sm = campaign.startingMetrics;
 
+  // Apply Founder's Legacy
+  const legacy = calculateLegacyPerks();
+
   return {
     name: campaign.companyName,
     valuation: 200_000,
     ceo_reputation: sm.ceo_reputation,
     metrics: {
-      cash: sm.cash,
-      burn_rate: 2_000,
-      runway: Math.floor(sm.cash / 2_000),
-      users: sm.users,
+      cash: sm.cash + legacy.startingCashBonus,
+      burn_rate: sm.burn_rate ?? 2_000,
+      runway: Math.floor((sm.cash + legacy.startingCashBonus) / (sm.burn_rate ?? 2_000)),
+      users: sm.users + legacy.startingUsersBonus,
       revenue: 0,
       product_quality: sm.product_quality,
       technical_debt: sm.technical_debt,
-      team_morale: sm.team_morale,
+      team_morale: Math.min(100, sm.team_morale + legacy.initialMoraleBonus),
       brand_awareness: sm.brand_awareness,
       innovation: sm.innovation,
       pmf_score: sm.pmf_score,
       reliability: 90,
       founder_health: 100,
       founder_burnout: 0,
-      pricing: 0,
+      pricing: (sm as any).pricing ?? 10,
     },
   };
 }

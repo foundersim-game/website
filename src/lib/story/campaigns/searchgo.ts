@@ -1,13 +1,14 @@
 // src/lib/story/campaigns/searchgo.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// SEARCHGO CAMPAIGN — Inspired by Google / Larry Page & Sergey Brin
+// SEARCHGO CAMPAIGN
 // Company Name: SearchGo
-// Founders: Larry (player) & Sergey (key person)
+// Founders: Larry (player) & Serge (key person) (fictional)
 // Win Condition: Reach $1 Trillion Valuation OR 10 Billion daily searches
 // Duration: ~240 in-game months (20 years)
+// ⚠️  All characters and products are fictional. Any resemblance to real persons is satirical.
 //
 // Acts:
-//   Act 1 (Mo 1–36):   The Stanford Garage
+//   Act 1 (Mo 1–36):   The Campus Garage
 //   Act 2 (Mo 37–96):  The Algorithm & The Money
 //   Act 3 (Mo 97–168): "Don't Be Evil" Goes Public
 //   Act 4 (Mo 169–240): The Everything Company
@@ -28,9 +29,9 @@ import {
 
 const SERGEY: KeyPerson = {
   id: "sergey",
-  displayName: "Sergey",
+  displayName: "Serge",
   title: "Co-Founder & President of Technology",
-  historicalName: "Sergey Brin",
+  historicalName: "Serge Bell",
   emoji: "🔬",
   loyalty: 95,
   loyaltyThreshold: 30,
@@ -45,7 +46,7 @@ const ERIC_SCHMIDT: KeyPerson = {
   id: "eric",
   displayName: "Eric",
   title: "Chief Executive Officer",
-  historicalName: "Eric Schmidt",
+  historicalName: "Erik Stein",
   emoji: "🧳",
   loyalty: 70,
   loyaltyThreshold: 25,
@@ -60,7 +61,7 @@ const SUNDAR: KeyPerson = {
   id: "sundar",
   displayName: "Sundar",
   title: "SVP Products → CEO",
-  historicalName: "Sundar Pichai",
+  historicalName: "Sanjay Patel",
   emoji: "🌟",
   loyalty: 90,
   loyaltyThreshold: 20,
@@ -87,7 +88,7 @@ const INITIAL_BOARD: StoryBoardMember[] = [
   },
   {
     id: "sergey_seat",
-    name: "Sergey",
+    name: "Serge",
     seat: "founder",
     agenda: "growth",
     loyaltyToFounder: 95,
@@ -157,7 +158,7 @@ const MICROSOFT_RIVAL: HistoricalRival = {
 const ACTS: ActDefinition[] = [
   {
     act: 1,
-    title: "The Stanford Garage",
+    title: "The Campus Garage",
     monthRange: [1, 36],
     description: "A grad school project becomes the world's most important algorithm.",
     color: "from-green-600 to-emerald-800",
@@ -166,7 +167,7 @@ const ACTS: ActDefinition[] = [
     act: 2,
     title: "The Algorithm & The Money",
     monthRange: [37, 96],
-    description: "AdWords. Venture capital. Adult supervision. The internet is yours.",
+    description: "AdPrint. Venture capital. Adult supervision. The internet is yours.",
     color: "from-yellow-500 to-amber-700",
   },
   {
@@ -193,7 +194,7 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_backrub",
     title: "🔗 BackRub Becomes SearchGo",
-    description: "It's 1998. You and Sergey have been building a search engine in your Stanford dorm room. You called it BackRub because it analyzed back-links. You've decided to rename it: SearchGo. Andy Bechtolsheim writes a $100K check before you even have a bank account. You cash it 2 weeks later when you finally incorporate.",
+    description: "It's 1998. You and Serge have been building a search engine in your Westlake University dorm room. You called it BackRub because it analyzed back-links. You've decided to rename it: SearchGo. Andy Holt writes a $100K check before you even have a bank account. You cash it 2 weeks later when you finally incorporate.",
     trigger: { type: "month_reached", value: 1 },
     act: 1,
     soundtrackCue: "garage_era",
@@ -216,7 +217,7 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_pagerank",
     title: "🧮 The Algorithm",
-    description: "PageRank works. Every search query returns better results than anything Altavista or Excite can produce. The difference is so obvious you could prove it blindfolded. Stanford wants to license the technology to Excite for $1.6M. Excite says no — the search results are 'too good' and would stop users from clicking on portal content.",
+    description: "PageRank works. Every search query returns better results than anything Findit or Seek can produce. The difference is so obvious you could prove it blindfolded. Westlake wants to license the technology to Seek for $1.6M. Seek says no — the search results are 'too good' and would stop users from clicking on portal content.",
     trigger: { type: "month_reached", value: 5 },
     act: 1,
     choices: [
@@ -289,29 +290,28 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_hire_eric",
     title: "🧳 'The Adult in the Room'",
-    description: "After months of interviews, Eric Schmidt — ex-Sun Microsystems, ex-Novell — is the candidate the VCs approve. He's the most credentialed person you've ever met. He's also going to tell you what to do with your own company.",
+    description: "After months of interviews, Erik Stein — ex-tech giant executive — is the candidate the VCs approve. He's the most credentialed person you've ever met. He's also going to tell you what to do with your own company.",
     trigger: { type: "month_reached", value: 28 },
-    act: 1,
-    requiredPriorEvents: ["searchgo_vc_round"],
+    act: 2,
     choices: [
       {
-        id: "hire_eric",
-        label: "Hire Eric as CEO — Become President of Products",
-        description: "You and Sergey become Presidents. Eric runs day-to-day operations.",
+        id: "accept_ceo",
+        label: "Accept Erik — Bring in Adult Supervision",
+        description: "You and Serge become Presidents. Erik runs day-to-day operations.",
         onSuccess: {
           ceo_reputation: -5,
           team_morale: 5,
           brand_awareness: 10,
           founderRoleChange: "cpo_chairman",
-          activatesKeyPersonId: "eric",
+          activatesKeyPersonId: "erik_stein",
           setsFlag: "eric_hired",
         },
-        successText: "Eric joins. The troika is formed. It works — because you made the rules.",
+        successText: "Erik joins. The troika is formed. It works — because you made the rules.",
       },
       {
         id: "reject_eric_stay_ceo",
         label: "Reject — Stay as CEO Ourselves",
-        description: "You and Sergey run the company. Push back on VC pressure.",
+        description: "You and Serge run the company. Push back on VC pressure.",
         condition: (s) => (s.ceo_reputation ?? 0) >= 70,
         conditionFailReason: "CEO Reputation < 70. The VCs have too much leverage right now.",
         onSuccess: {
@@ -327,22 +327,22 @@ const ACT1_EVENTS: StoryEvent[] = [
 
   {
     id: "searchgo_adwords",
-    title: "💵 AdWords — Monetizing Intent",
+    title: "💵 AdPrint — Monetizing Intent",
     description: "Your research team has a concept: instead of banner ads, show ads next to search results that are relevant to what the user just searched for. Pay-per-click. Self-serve. The most targeted ad system ever built. It's simple. It's revolutionary. It will generate $100B/year.",
     trigger: { type: "month_reached", value: 20 },
     act: 1,
     choices: [
       {
         id: "launch_adwords",
-        label: "Launch AdWords — Ads That Respect Users",
-        description: "Text-only ads, clearly labeled, only relevant to the search query.",
+        label: "Launch AdPrint — Ads That Respect Users",
+        description: "Keyword-based text ads. Ranked by relevance and bid. No banners. No interruptions.",
         onSuccess: {
           revenue: 500_000,
-          brand_awareness: 15,
+          brand_awareness: 20,
           pmf_score: 10,
-          setsFlag: "adwords_live",
+          setsFlag: "adprint_live",
         },
-        successText: "AdWords launches. Revenue hits $100K on day 1. It's self-serve. It scales infinitely.",
+        successText: "AdPrint launches. Revenue hits $100K on day 1. It's self-serve. It scales infinitely.",
       },
       {
         id: "display_ads",
@@ -366,27 +366,27 @@ const ACT1_EVENTS: StoryEvent[] = [
 const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_gmail",
-    title: "📧 1 Gigabyte of Email",
-    description: "April Fool's Day 2004. You're announcing Gmail — 1GB of free email storage at a time when everyone else offers 4MB. People think it's a joke. It's not. It's the most ambitious product you've ever shipped beyond search, and it re-defines what email is.",
+    title: "📧 1 Gigabyte of MailBox",
+    description: "April Fool's Day 2004. You're announcing MailBox — 1GB of free email storage at a time when everyone else offers 4MB. People think it's a joke. It's not. It's the most ambitious product you've ever shipped beyond search, and it re-defines what email is.",
     trigger: { type: "month_reached", value: 50 },
     act: 2,
     choices: [
       {
         id: "launch_gmail",
-        label: "Launch Gmail — 1GB Free for Everyone",
+        label: "Launch MailBox — 1GB Free for Everyone",
         description: "Invite-only to control server costs. 1GB storage minimum.",
         onSuccess: {
           users: 100000,
           brand_awareness: 30,
           innovation: 15,
           product_quality: 10,
-          setsFlag: "gmail_launched",
+          setsFlag: "mailbox_launched",
         },
-        successText: "The invite codes sell for $200 on eBay on day one. Gmail is the most desired product in tech.",
+        successText: "The invite codes sell for $200 on eBay on day one. MailBox is the most desired product in tech.",
       },
       {
         id: "integrate_search",
-        label: "Integrate Email Into Search — Not Standalone",
+        label: "Integrate Mail Into Search — Not Standalone",
         description: "Don't launch a separate product. Just add email to your existing platform.",
         onSuccess: {
           users: 20000,
@@ -401,7 +401,7 @@ const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_ipo",
     title: "🔔 The Dutch Auction IPO",
-    description: "August 19, 2004. Your IPO is using a Dutch auction — every investor bids what they think shares are worth. No Goldman Sachs bankers getting allocation. No insider favoritism. The SEC almost blocked it over your 'Founder's Letter.' You priced at $85/share. Market opens at $100.01.",
+    description: "August 19, 2004. Your IPO is using a Dutch auction — every investor bids what they think shares are worth. No investment bankers getting allocation. No insider favoritism. The regulators almost blocked it over your 'Founder's Letter.' You priced at $85/share. Market opens at $100.01.",
     trigger: { type: "month_reached", value: 70 },
     act: 2,
     isClimax: true,
@@ -424,7 +424,7 @@ const ACT2_EVENTS: StoryEvent[] = [
       },
       {
         id: "traditional_ipo",
-        label: "Traditional IPO — Goldman Sachs Route",
+        label: "Traditional IPO — Wall Street Route",
         description: "Let the bankers handle it. Maximize Day 1 pop.",
         onSuccess: {
           cash: 2_000_000_000,
@@ -440,7 +440,7 @@ const ACT2_EVENTS: StoryEvent[] = [
 
   {
     id: "searchgo_maps",
-    title: "🗺️ SearchGo Maps",
+    title: "🗺️ SearchGo Atlas",
     description: "You acquired a satellite imagery company and a mapping startup. Now you want to merge them into a free mapping product. The plan: make every map on earth free, forever. GPS companies think you're insane. You think GPS companies are about to become obsolete.",
     trigger: { type: "month_reached", value: 80 },
     act: 2,
@@ -448,7 +448,7 @@ const ACT2_EVENTS: StoryEvent[] = [
     choices: [
       {
         id: "launch_maps",
-        label: "Launch SearchGo Maps — Free, Forever",
+        label: "Launch SearchGo Atlas — Free, Forever",
         description: "Maps for everyone. No charge. Monetize through local business ads.",
         condition: (s) => s.metrics.cash >= 50_000_000,
         conditionFailReason: "Need $50M+ in cash to fund maps infrastructure.",
@@ -458,23 +458,23 @@ const ACT2_EVENTS: StoryEvent[] = [
           brand_awareness: 30,
           innovation: 15,
           valuation_multiplier: 1.5,
-          setsFlag: "maps_launched",
+          setsFlag: "atlas_launched",
         },
-        successText: "SearchGo Maps launches. Within 2 years it's on every phone on earth. Garmin's stock drops 40%.",
+        successText: "SearchGo Atlas launches. Within 2 years it's on every phone on earth. Garmin's stock drops 40%.",
       },
     ],
   },
 
   {
     id: "searchgo_china",
-    title: "🇨🇳 The China Decision",
-    description: "The Chinese government wants SearchGo to operate in China — but only if you agree to censor search results. Remove content they deem 'harmful.' You have 15% of the Chinese search market operating through a workaround. The full entry requires compliance. Your 'Don't Be Evil' motto is now literally in the balance.",
+    title: "🇨🇳 The East Decision",
+    description: "The government in the East wants SearchGo to operate — but only if you agree to censor search results. Remove content they deem 'harmful.' You have 15% of the market operating through a workaround. The full entry requires compliance. Your 'Don't Be Evil' motto is now literally in the balance.",
     trigger: { type: "month_reached", value: 88 },
     act: 2,
     choices: [
       {
         id: "enter_china_censored",
-        label: "Enter China — Accept the Censorship Terms",
+        label: "Enter the Market — Accept the Censorship Terms",
         description: "50M new users. Enormous market. You censor 'sensitive' results.",
         onSuccess: {
           users: 500000,
@@ -483,19 +483,18 @@ const ACT2_EVENTS: StoryEvent[] = [
           brand_awareness: -10,
           setsFlag: "china_entered",
         },
-        successText: "You entered China. Revenue surges. But Sergey is deeply uncomfortable. Human rights advocates call you hypocrites.",
+        successText: "You entered the East. Revenue surges. But Serge is deeply uncomfortable. Human rights advocates call you hypocrites.",
       },
       {
-        id: "refuse_china",
-        label: "Refuse — 'Don't Be Evil' Means Something",
-        description: "Walk away from 1.4 billion potential users rather than censor.",
+        id: "exit_china",
+        label: "Walk Away — Values Over Revenue",
+        description: "Shut down operations rather than censor results. Take the revenue hit.",
         onSuccess: {
           ceo_reputation: 20,
           brand_awareness: 15,
-          team_morale: 15,
-          setsFlag: "china_refused",
+          revenue: -50_000_000,
         },
-        successText: "You walked away from China. The press celebrated. Sergey hugged you.",
+        successText: "You walked away from the East. The press celebrated. Serge hugged you.",
       },
     ],
   },
@@ -509,16 +508,16 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_android",
     title: "📱 The Mobile Operating System",
-    description: "You acquired Android Inc. for $50M. A mobile OS that runs on any hardware. If you control the mobile OS, you control search on every smartphone. It's an audacious vertical integration play — and the carriers hate it.",
-    trigger: { type: "month_reached", value: 100 },
-    act: 3,
+    description: "You acquired DroidOS for $50M. A mobile OS that runs on any hardware. If you control the mobile OS, you control search on every smartphone. It's an audacious vertical integration play — and the carriers hate it.",
+    trigger: { type: "month_reached", value: 130 },
+    act: 4,
     choices: [
       {
         id: "launch_android",
-        label: "Launch Android — Open Source, Free to Manufacturers",
-        description: "Give Android away for free. Win the market by being everywhere.",
+        label: "Launch DroidOS — Open Source, Free to Manufacturers",
+        description: "Give DroidOS away for free. Win the market by being everywhere.",
         condition: (s) => s.metrics.cash >= 100_000_000,
-        conditionFailReason: "Need $100M+ cash to fund open-source Android development.",
+        conditionFailReason: "Need $100M+ cash to fund open-source DroidOS development.",
         onSuccess: {
           cash: -100_000_000,
           users: 2_000_000,
@@ -526,18 +525,18 @@ const ACT3_EVENTS: StoryEvent[] = [
           valuation_multiplier: 2.0,
           setsFlag: "android_launched",
         },
-        successText: "Android ships. Within 3 years it's on 80% of smartphones worldwide. Apple is furious.",
+        successText: "DroidOS ships. Within 3 years it's on 80% of smartphones worldwide. Pineapple is furious.",
       },
       {
-        id: "android_premium",
-        label: "License Android for $10/Device",
+        id: "license_android",
+        label: "License DroidOS for $10/Device",
         description: "Charge manufacturers a licensing fee. More revenue, less adoption.",
         onSuccess: {
           cash: 50_000_000,
           users: 200_000,
           brand_awareness: 15,
         },
-        successText: "Revenue comes in. Adoption is slower. Apple keeps more market share.",
+        successText: "Revenue comes in. Adoption is slower. Pineapple keeps more market share.",
       },
     ],
   },
@@ -545,14 +544,14 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_youtube",
     title: "📺 $1.65 Billion in Stock",
-    description: "YouTube has 100 million video views per day. They're 20 months old and have no revenue model. Everyone thinks you're paying 100× too much. You think video search is the future of the internet. You want to buy them for $1.65B in stock.",
-    trigger: { type: "month_reached", value: 110 },
-    act: 3,
+    description: "ViewTube has 100 million video views per day. They're 20 months old and have no revenue model. Everyone thinks you're paying 100× too much. You think video search is the future of the internet. You want to buy them for $1.65B in stock.",
+    trigger: { type: "month_reached", value: 140 },
+    act: 4,
     choices: [
       {
         id: "buy_youtube",
-        label: "Buy YouTube — Own Video Forever",
-        description: "Acquire YouTube for $1.65B in stock. Let them operate independently.",
+        label: "Buy ViewTube — Own Video Forever",
+        description: "Acquire ViewTube for $1.65B in stock. Let them operate independently.",
         condition: (s) => s.valuation >= 30_000_000_000,
         conditionFailReason: "SearchGo valuation needs to be $30B+ to issue $1.65B in stock.",
         onSuccess: {
@@ -561,7 +560,7 @@ const ACT3_EVENTS: StoryEvent[] = [
           valuation_multiplier: 1.6,
           setsFlag: "youtube_acquired",
         },
-        successText: "YouTube becomes the world's second most visited website. You paid $1.65B. It's worth $180B.",
+        successText: "ViewTube becomes the world's second most visited website. You paid $1.65B. It's worth $180B.",
       },
     ],
   },
@@ -576,7 +575,7 @@ const ACT3_EVENTS: StoryEvent[] = [
       {
         id: "empower_sundar",
         label: "Put Sundar in Charge of All Products",
-        description: "Give him oversight of Search, Ads, Android, Maps, Gmail — everything.",
+        description: "Give him oversight of Search, Ads, DroidOS, Atlas, MailBox — everything.",
         onSuccess: {
           product_quality: 15,
           team_morale: 20,
@@ -716,7 +715,7 @@ const ACT4_EVENTS: StoryEvent[] = [
   {
     id: "searchgo_trillion_win",
     title: "🏆 $1 Trillion",
-    description: "Alphabet's market capitalization has crossed $1 Trillion. SearchGo processes more than 8 billion searches per day — more information queries than all libraries in human history combined, every single day. From a Stanford dorm room. From PageRank on a whiteboard.",
+    description: "Alphabet's market capitalization has crossed $1 Trillion. SearchGo processes more than 8 billion searches per day — more information queries than all libraries in human history combined, every single day. From a campus dorm room. From PageRank on a whiteboard.",
     trigger: { type: "valuation_reached", value: 900_000_000_000 },
     act: 4,
     isClimax: true,

@@ -7,6 +7,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { playWav, playLevelUp, playCoinTick } from "@/lib/story/storyAudio";
+import { haptic } from "@/lib/story/storyHaptics";
+import { burstAt } from "@/lib/story/storyParticles";
 
 interface Target {
   id: string;
@@ -18,6 +21,7 @@ interface Target {
 }
 
 interface Props {
+  marketingSkill: number;
   onComplete: (score: number) => void;
 }
 
@@ -40,11 +44,17 @@ const TARGETS: Omit<Target, "hit">[] = [
 const TOTAL_MS = 26000;
 const MAX_SCORE = TARGETS.length * 2; // 24 points max (2 per perfect hit)
 
-export default function KeynoteModal({ onComplete }: Props) {
+export default function KeynoteModal({ marketingSkill, onComplete }: Props) {
   const [phase, setPhase] = useState<"countdown" | "active" | "results">("countdown");
   const [countdown, setCountdown] = useState(3);
   const [elapsed, setElapsed] = useState(0);
-  const [targets, setTargets] = useState<Target[]>(TARGETS.map((t) => ({ ...t })));
+  
+  const [targets, setTargets] = useState<Target[]>(() => {
+    // Skill bonus: >80 = +50% time, >40 = +25% time
+    const multiplier = marketingSkill >= 80 ? 1.5 : marketingSkill >= 40 ? 1.25 : 1.0;
+    return TARGETS.map((t) => ({ ...t, windowMs: t.windowMs * multiplier }));
+  });
+
   const [rawScore, setRawScore] = useState(0);
   const [hits, setHits] = useState<string[]>([]);   // IDs of hit targets
   const rafRef = useRef<number>(0);
@@ -55,14 +65,17 @@ export default function KeynoteModal({ onComplete }: Props) {
     setTimeout(() => setVisible(true), 30);
   }, []);
 
-  // Countdown phase
+  // Countdown phase — with haptic ticks
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdown <= 0) {
+      haptic.heavy();
       setPhase("active");
       startTimeRef.current = performance.now();
       return;
     }
+    haptic.light();
+    playCoinTick(0.3);
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [phase, countdown]);
@@ -88,15 +101,25 @@ export default function KeynoteModal({ onComplete }: Props) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase]);
 
-  // End game
+  // End game — ceremony
   useEffect(() => {
     if (phase !== "results") return;
     const normalized = Math.round((rawScore / MAX_SCORE) * 100);
+    if (normalized >= 80) {
+      playLevelUp(0.5);
+      haptic.victoryRumble();
+    } else if (normalized >= 50) {
+      playWav("success", { volume: 0.4 });
+      haptic.success();
+    } else {
+      playWav("fail", { volume: 0.35 });
+      haptic.warning();
+    }
     const timer = setTimeout(() => onComplete(normalized), 2500);
     return () => clearTimeout(timer);
   }, [phase, rawScore, onComplete]);
 
-  const handleTargetClick = useCallback((target: Target) => {
+  const handleTargetClick = useCallback((target: Target, e: React.MouseEvent) => {
     if (phase !== "active") return;
     if (hits.includes(target.id)) return;
 
@@ -107,6 +130,17 @@ export default function KeynoteModal({ onComplete }: Props) {
     // Perfect hit: clicked in first 40% of window
     const isPerfect = age < target.windowMs * 0.4;
     const points = isPerfect ? 2 : 1;
+
+    // Sound + haptic feedback
+    if (isPerfect) {
+      playWav("success", { volume: 0.55, rate: 1.2 });
+      haptic.heavy();
+      burstAt("⭐", 8, e.clientX, e.clientY, 700);
+    } else {
+      playWav("click", { volume: 0.4, rate: 1.1 });
+      haptic.medium();
+      burstAt("✦", 4, e.clientX, e.clientY, 500);
+    }
 
     setRawScore((s) => s + points);
     setHits((h) => [...h, target.id]);
@@ -175,7 +209,7 @@ export default function KeynoteModal({ onComplete }: Props) {
             return (
               <div
                 key={target.id}
-                onClick={() => handleTargetClick(target)}
+                onClick={(e) => handleTargetClick(target, e)}
                 className="absolute"
                 style={{
                   left: `${target.x}%`,
@@ -263,7 +297,19 @@ export default function KeynoteModal({ onComplete }: Props) {
               ? "Solid. The product speaks for itself."
               : "The presentation didn't land. The product will have to do the talking."}
           </p>
-          <p className="text-slate-500 text-sm">Returning to your story...</p>
+          <p className="text-sm font-bold text-slate-300">Audience Impact: {normalizedScore}%</p>
+          
+          <div className="flex gap-4 items-center text-xs mt-2 mb-4">
+            <span className="text-slate-500">Hits: {hits.length}/{targets.length}</span>
+            <span className="text-indigo-400">Marketing Skill: {marketingSkill >= 80 ? "Master (+50% Time)" : marketingSkill >= 40 ? "Expert (+25% Time)" : "Novice"}</span>
+          </div>
+
+          <button
+            onClick={() => onComplete(normalizedScore)}
+            className="px-8 py-4 rounded-xl font-black text-slate-900 bg-amber-400 hover:bg-amber-300 transition-colors uppercase tracking-widest text-sm shadow-lg shadow-amber-400/20"
+          >
+            Continue
+          </button>
         </div>
       )}
     </div>

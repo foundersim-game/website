@@ -1,10 +1,11 @@
 // src/lib/story/campaigns/bookface.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// BOOKFACE CAMPAIGN — Inspired by Facebook / Mark Zuckerberg
+// BOOKFACE CAMPAIGN
 // Company Name: BookFace
-// Founder Name: Mark
+// Founder Name: Max Zeller (fictional)
 // Win Condition: 2 Billion Users
 // Duration: ~240 in-game months (20 years)
+// ⚠️  All characters and products are fictional. Any resemblance to real persons is satirical.
 //
 // Acts:
 //   Act 1 (Mo 1–36):   The Dorm Room
@@ -30,7 +31,7 @@ const EDUARDO: KeyPerson = {
   id: "eduardo",
   displayName: "Eduardo",
   title: "Co-Founder & CFO",
-  historicalName: "Eduardo Saverin",
+  historicalName: "Eddie Savin",
   emoji: "🤝",
   loyalty: 80,
   loyaltyThreshold: 30,
@@ -45,7 +46,7 @@ const SEAN: KeyPerson = {
   id: "sean",
   displayName: "Sean",
   title: "President (Advisor)",
-  historicalName: "Sean Parker",
+  historicalName: "Shane Paxton",
   emoji: "🎸",
   loyalty: 65,
   loyaltyThreshold: 20,
@@ -60,7 +61,7 @@ const SHERYL: KeyPerson = {
   id: "sheryl",
   displayName: "Sheryl",
   title: "Chief Operating Officer",
-  historicalName: "Sheryl Sandberg",
+  historicalName: "Sara Segal",
   emoji: "👩‍💼",
   loyalty: 85,
   loyaltyThreshold: 25,
@@ -159,7 +160,7 @@ const ACTS: ActDefinition[] = [
     act: 3,
     title: "Going Public",
     monthRange: [97, 180],
-    description: "The most anticipated IPO since Google. $104B valuation. And then: silence.",
+    description: "The most anticipated IPO since SearchGo. $104B valuation. And then: silence.",
     color: "from-indigo-600 to-violet-800",
   },
   {
@@ -178,15 +179,15 @@ const ACTS: ActDefinition[] = [
 const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "bookface_launch",
-    title: "🏫 thefacebook.com",
-    description: "It's February 4, 2004. You built the site in 2 weeks from your dorm room. It's live at Harvard. Within 24 hours, 1,200 students have signed up. Eduardo put in $19,000. You control everything else. The site is simple: real names, real photos, your real social graph.",
+    title: "🏫 thebookface.com",
+    description: "It's early 2004. You built the site in 2 weeks from your dorm room at Westbrook University. It's live on campus. Within 24 hours, 1,200 students have signed up. Eddie put in $19,000. You control everything else. The site is simple: real names, real photos, your real social graph.",
     trigger: { type: "month_reached", value: 1 },
     act: 1,
     soundtrackCue: "garage_era",
     choices: [
       {
         id: "keep_harvard_only",
-        label: "Harvard Only — Exclusivity Creates Demand",
+        label: "Westbrook Only — Exclusivity Creates Demand",
         description: "Don't expand yet. Make it feel like a privilege to be on it.",
         onSuccess: {
           users: 1200,
@@ -194,7 +195,7 @@ const ACT1_EVENTS: StoryEvent[] = [
           brand_awareness: 8,
           setsFlag: "exclusivity_strategy",
         },
-        successText: "Harvard is obsessed. The waitlist for Yale and Princeton is already forming.",
+        successText: "Westbrook is obsessed. The waitlist for neighbouring schools is already forming.",
       },
       {
         id: "expand_to_ivies",
@@ -214,7 +215,7 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "bookface_winklevoss",
     title: "⚖️ The Twins",
-    description: "Tyler and Cameron Winklevoss, and their partner Divya Narendra, claim you stole their idea — HarvardConnect. They had commissioned you to help build it, and instead you built your own competing site. They want to settle. Or they'll sue.",
+    description: "Tyler and Cameron Westfield, and their partner Divya Nair, claim you stole their idea — CampusConnect. They had commissioned you to help build it, and instead you built your own competing site. They want to settle. Or they'll sue.",
     trigger: { type: "month_reached", value: 5 },
     act: 1,
     choices: [
@@ -232,7 +233,7 @@ const ACT1_EVENTS: StoryEvent[] = [
       {
         id: "fight_it",
         label: "Fight — Your Idea Is Completely Different",
-        description: "Go to court. Social networking and a dating site for Harvard athletes are not the same thing.",
+        description: "Go to court. Social networking and a dating site for campus athletes are not the same thing.",
         onSuccess: {
           ceo_reputation: -10,
           brand_awareness: 10, // controversy brings press
@@ -247,7 +248,7 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "bookface_palo_alto",
     title: "☀️ Move to Palo Alto",
-    description: "Sean Parker — the guy who co-founded Napster — has introduced himself. He says BookFace needs to leave Harvard and move to Silicon Valley permanently. 'You don't want to be a $10M company. You want to be a $100M company.' Eduardo hates him. You're intrigued.",
+    description: "Shane Paxton — the guy who co-founded StreamRip — has introduced himself. He says BookFace needs to leave Westbrook and move to Silicon Valley permanently. 'You don't want to be a $10M company. You want to be a $100M company.' Eddie hates him. You're intrigued.",
     trigger: { type: "month_reached", value: 14 },
     act: 1,
     choices: [
@@ -280,8 +281,8 @@ const ACT1_EVENTS: StoryEvent[] = [
 
   {
     id: "bookface_first_vc",
-    title: "💰 Peter Thiel's Check",
-    description: "Peter Thiel — PayPal co-founder, contrarian billionaire — wants to write a $500,000 check for 10% of BookFace. He thinks social networking is the future. He's the only VC who gets it. But you need to get Eduardo to agree to the dilution.",
+    title: "💰 Peter Hale's Check",
+    description: "Peter Hale — SwiftPay co-founder, contrarian billionaire — wants to write a $500,000 check for 10% of BookFace. He thinks social networking is the future. He's the only VC who gets it. But you need to get Eddie to agree to the dilution.",
     trigger: { type: "month_reached", value: 18 },
     act: 1,
     choices: [
@@ -323,7 +324,7 @@ const ACT1_EVENTS: StoryEvent[] = [
   {
     id: "bookface_dilute_eduardo",
     title: "🔪 The Dilution",
-    description: "Your lawyers have recommended restructuring the company in Delaware. In the process, Eduardo's equity stake will be diluted from 34% to under 1%. He's been inactive — still in New York. You're in Palo Alto building the future. Sean supports the move. The lawyers say it's legal.",
+    description: "Your lawyers have recommended restructuring the company in Delaware. In the process, Eddie's equity stake will be diluted from 34% to under 1%. He's been inactive — still in New York. You're in Palo Alto building the future. Shane supports the move. The lawyers say it's legal.",
     trigger: { type: "month_reached", value: 28 },
     act: 1,
     requiredPriorEvents: ["bookface_palo_alto"],
@@ -455,7 +456,7 @@ const ACT2_EVENTS: StoryEvent[] = [
   {
     id: "bookface_hire_sheryl",
     title: "👩‍💼 The COO Who Changed Everything",
-    description: "Sheryl Sandberg is running Google's global online sales division. You had dinner with her at a party and talked for 3 hours about monetizing social at scale. She wants to join BookFace as COO. She's the most operationally brilliant person you've ever met — and she'll free you to focus only on product.",
+    description: "Sara Segal is running SearchGo's global online sales division. You had dinner with her at a party and talked for 3 hours about monetizing social at scale. She wants to join BookFace as COO. She's the most operationally brilliant person you've ever met — and she'll free you to focus only on product.",
     trigger: { type: "month_reached", value: 55 },
     act: 2,
     choices: [
@@ -564,7 +565,7 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "bookface_ipo",
     title: "🔔 The IPO",
-    description: "May 18, 2012. The most anticipated tech IPO since Google. BookFace is going public at a $104B valuation. You ring the bell remotely from Menlo Park in a hoodie. Morgan Stanley prices it at $38. First trade: $42.05. Then the NASDAQ systems glitch. Then the stock starts to fall.",
+    description: "May, 2012. The most anticipated tech IPO since SearchGo. BookFace is going public at a $104B valuation. You ring the bell remotely from your Palo Alto HQ in a hoodie. Sterling Bank prices it at $38. First trade: $42.05. Then the NasTech exchange systems glitch. Then the stock starts to fall.",
     trigger: { type: "month_reached", value: 100 },
     act: 3,
     isClimax: true,
@@ -599,7 +600,7 @@ const ACT3_EVENTS: StoryEvent[] = [
       {
         id: "rebuild_mobile",
         label: "Tear Down the App — Rebuild Native",
-        description: "Abandon the HTML5 mobile app. Rebuild iOS and Android natively from scratch. 6 months.",
+        description: "Abandon the HTML5 mobile app. Rebuild iOS and DroidOS natively from scratch. 6 months.",
         condition: (s) => s.metrics.technical_debt <= 60,
         conditionFailReason: "Technical debt too high. You need to reduce tech debt before a native rebuild.",
         onSuccess: {
@@ -629,13 +630,13 @@ const ACT3_EVENTS: StoryEvent[] = [
   {
     id: "bookface_instagram",
     title: "📷 The $1 Billion Photo",
-    description: "Instagram has 30 million users and a tiny team of 13. Your product team is scared: they might become what photo-sharing on mobile looks like. You can buy them for $1 Billion — cash and stock. It's a huge number for a company with no revenue. The board thinks you've lost your mind.",
+    description: "PhotoGram has 30 million users and a tiny team of 13. Your product team is scared: they might become what photo-sharing on mobile looks like. You can buy them for $1 Billion — cash and stock. It's a huge number for a company with no revenue. The board thinks you've lost your mind.",
     trigger: { type: "month_reached", value: 90 },
     act: 3,
     choices: [
       {
         id: "buy_instagram",
-        label: "Acquire Instagram — $1B",
+        label: "Acquire PhotoGram — $1B",
         description: "Buy them before a competitor does. Let them operate independently.",
         condition: (s) => s.valuation >= 50_000_000_000,
         conditionFailReason: "Your valuation needs to support a $1B acquisition.",
@@ -646,7 +647,7 @@ const ACT3_EVENTS: StoryEvent[] = [
           valuation_multiplier: 1.4,
           setsFlag: "instagram_acquired",
         },
-        successText: "You bought Instagram for $1B. Three years later it's worth $100B. The board never brings it up again.",
+        successText: "You bought PhotoGram for $1B. Three years later it's worth $100B. The board never brings it up again.",
       },
       {
         id: "build_own",
@@ -657,7 +658,7 @@ const ACT3_EVENTS: StoryEvent[] = [
           product_quality: 10,
           brand_awareness: 5,
         },
-        successText: "BookFace Camera ships. It's decent. Instagram becomes TikTok's acquisition in 4 years.",
+        successText: "BookFace Camera ships. It's decent. PhotoGram gets acquired by a rival 4 years later.",
       },
     ],
   },

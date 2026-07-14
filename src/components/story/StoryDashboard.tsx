@@ -2,10 +2,10 @@
 // src/components/story/StoryDashboard.tsx
 // Full action-parity Story Mode dashboard — mirrors sandbox depth, adapted for story world.
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, Save, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Menu, Save, ChevronDown, ChevronRight, Info, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,22 +25,30 @@ import {
   KeyPerson,
   HistoricalRival,
 } from "@/lib/story/types";
+import { playWav, playHeartbeat, playLevelUp, playCoinTick, startAmbient, stopAmbient, isMuted, setMuted } from "@/lib/story/storyAudio";
+import { haptic } from "@/lib/story/storyHaptics";
+import { rainConfetti } from "@/lib/story/storyParticles";
 import {
   checkStoryEvents,
   applyStoryChoice,
   processStoryMonth,
   checkWinCondition,
   checkLossConditions,
+  getNextMilestone,
 } from "@/lib/story/engine";
 import { checkBetrayalThresholds } from "@/lib/story/keyPeople";
 import { getRandomVCPersonality } from "@/lib/story/pitchDeck";
+import { getFounderSkills } from "@/lib/story/engine";
 
 import StoryEventModal from "./StoryEventModal";
 import KeynoteModal from "./KeynoteModal";
 import PitchDeckModal from "./PitchDeckModal";
 import SprintModal from "./SprintModal";
+import ActReportCard from "./ActReportCard";
 
+import { iapService, IAP_PRODUCT_IDS } from "@/lib/services/iapService";
 import { getCurrencySymbol } from "@/lib/utils";
+import { saveRunToArchive } from "@/lib/story/archiveRegistry";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtCash(n: number): string {
@@ -66,6 +74,8 @@ interface Props {
   campaign: StoryCampaign;
   initialSnapshot: StoryStartupSnapshot;
   initialStoryState: StoryModeState;
+  hasRewindPoint?: boolean;
+  onRewind?: () => void;
   onSave: (snapshot: StoryStartupSnapshot, storyState: StoryModeState) => void;
 }
 
@@ -211,9 +221,203 @@ const STORY_LEGACY_ACTIONS: StoryAction[] = [
 type ToastEntry = { id: number; msg: string; type: "success" | "error" | "info" };
 let _toastId = 0;
 
+// ─── GameEndScreen ────────────────────────────────────────────────────────────
+// Cinematic win/loss screen with sound, haptics, and particles.
+interface GameEndScreenProps {
+  isWin: boolean;
+  message: string;
+  campaign: StoryCampaign;
+  snapshot: StoryStartupSnapshot;
+  currentMonth: number;
+  m: StoryStartupSnapshot["metrics"];
+  accentColor: string;
+  hasRewindPoint?: boolean;
+  onRewind?: () => void;
+  onClearGameEnd: () => void;
+  onBack: () => void;
+}
+
+function GameEndScreen({ isWin, message, campaign, snapshot, currentMonth, m, accentColor, hasRewindPoint, onRewind, onClearGameEnd, onBack }: GameEndScreenProps) {
+  const [valuationDisplay, setValuationDisplay] = useState(0);
+  const [usersDisplay, setUsersDisplay] = useState(0);
+  const [ceremonyDone, setCeremonyDone] = useState(false);
+
+  function fmtCashLocal(n: number) {
+    if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+    if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
+    return `$${n}`;
+  }
+  function fmtNumLocal(n: number) {
+    if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+    if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+    return `${n}`;
+  }
+
+  useEffect(() => {
+    stopAmbient(0.5);
+    const delay = setTimeout(() => {
+      if (isWin) {
+        playLevelUp(0.6);
+        haptic.victoryRumble();
+        rainConfetti(50, 2000);
+      } else {
+        playWav("fail", { volume: 0.5 });
+        haptic.error();
+      }
+      setCeremonyDone(true);
+    }, 500);
+
+    // Ticker animation for stats
+    const duration = 1200;
+    const steps = 40;
+    const interval = duration / steps;
+    let step = 0;
+    const ticker = setInterval(() => {
+      step++;
+      const pct = step / steps;
+      setValuationDisplay(Math.round(snapshot.valuation * pct));
+      setUsersDisplay(Math.round(m.users * pct));
+      if (step === steps) clearInterval(ticker);
+    }, interval);
+
+    return () => { clearTimeout(delay); clearInterval(ticker); };
+  }, []);
+
+  return (
+    <div
+      className="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center relative overflow-hidden"
+      style={{
+        background: isWin
+          ? "radial-gradient(ellipse at center, #0a1a0a 0%, #050d05 100%)"
+          : "radial-gradient(ellipse at center, #1a0a0a 0%, #0d0505 100%)",
+      }}
+    >
+      {/* Background glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: isWin
+            ? "radial-gradient(ellipse at 50% 40%, rgba(16,185,129,0.15) 0%, transparent 70%)"
+            : "radial-gradient(ellipse at 50% 40%, rgba(239,68,68,0.12) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Hero icon */}
+      <motion.div
+        initial={{ scale: 0, y: isWin ? 0 : -200, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: isWin ? 20 : 14, delay: 0.1 }}
+        className="text-8xl mb-6 relative z-10"
+        style={{
+          filter: isWin ? "drop-shadow(0 0 32px rgba(245,158,11,0.8))" : "none",
+        }}
+      >
+        {isWin ? "🏆" : "💀"}
+      </motion.div>
+
+      {/* Title */}
+      <motion.h1
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="text-4xl font-black mb-3 relative z-10"
+        style={{ color: isWin ? "#f0fdf4" : "#fef2f2" }}
+      >
+        {isWin ? "You Made History." : "Game Over."}
+      </motion.h1>
+
+      {/* Message */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="mb-6 max-w-sm text-sm relative z-10"
+        style={{ color: isWin ? "rgba(134,239,172,0.8)" : "rgba(252,165,165,0.8)" }}
+      >
+        {message}
+      </motion.p>
+
+      {/* Win condition badge */}
+      {isWin && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.7 }}
+          className="px-4 py-3 rounded-xl mb-6 text-sm border relative z-10"
+          style={{
+            background: "rgba(16,185,129,0.1)",
+            border: "1px solid rgba(16,185,129,0.3)",
+            color: "#6ee7b7",
+          }}
+        >
+          {campaign.winCondition.description} — Month {currentMonth}
+        </motion.div>
+      )}
+
+      {/* Stats with ticker */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.65 }}
+        className="flex gap-8 mb-8 relative z-10"
+      >
+        <div>
+          <div className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: isWin ? "rgba(134,239,172,0.6)" : "rgba(252,165,165,0.6)" }}>Valuation</div>
+          <div className="text-xl font-black text-white">{fmtCashLocal(valuationDisplay)}</div>
+        </div>
+        <div className="w-px bg-white/10" />
+        <div>
+          <div className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: isWin ? "rgba(134,239,172,0.6)" : "rgba(252,165,165,0.6)" }}>Users</div>
+          <div className="text-xl font-black text-white">{fmtNumLocal(usersDisplay)}</div>
+        </div>
+      </motion.div>
+
+      {/* CTAs */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: ceremonyDone ? 1 : 0, y: ceremonyDone ? 0 : 16 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row gap-3 relative z-10"
+      >
+        <button
+          onClick={onBack}
+          className="px-8 py-4 rounded-2xl font-black text-white text-sm uppercase tracking-wider shadow-lg transition-all active:scale-95"
+          style={{
+            background: `linear-gradient(135deg, ${accentColor}, ${accentColor}aa)`,
+            boxShadow: `0 8px 24px ${accentColor}44`,
+          }}
+        >
+          ← Back to Campaigns
+        </button>
+
+        {hasRewindPoint && onRewind && !isWin && (
+          <button
+            onClick={() => { onRewind(); onClearGameEnd(); }}
+            className="px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.9)",
+            }}
+          >
+            <RotateCcw className="size-4" /> Rewind 1 Month
+          </button>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function StoryDashboard({
-  campaign, initialSnapshot, initialStoryState, onSave,
+  campaign,
+  initialSnapshot,
+  initialStoryState,
+  hasRewindPoint,
+  onRewind,
+  onSave,
 }: Props) {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState<StoryStartupSnapshot>(initialSnapshot);
@@ -239,8 +443,18 @@ export default function StoryDashboard({
   // Game end
   const [gameEnd, setGameEnd] = useState<{ reason: GameEndReason; message: string } | null>(null);
 
+  // Check win/loss immediately on mount (in case we loaded a dead save)
+  useEffect(() => {
+    const loss = checkLossConditions(snapshot, storyState);
+    if (loss) setGameEnd({ reason: "loss", message: loss });
+    else if (checkWinCondition(snapshot, storyState)) setGameEnd({ reason: "win", message: campaign.winCondition.description });
+  }, []);
+
   // Advancing
   const [isAdvancing, setIsAdvancing] = useState(false);
+
+  // Act report card — shown when act transitions
+  const [actReportCard, setActReportCard] = useState<{ completedAct: 1 | 2 | 3 | 4; snapshot: StoryStartupSnapshot; state: StoryModeState } | null>(null);
 
   // Navigation state (3-level: main → subcategory → action detail)
   const [activeTab, setActiveTab] = useState<MainTab | null>(null);
@@ -265,6 +479,20 @@ export default function StoryDashboard({
   const m = snapshot.metrics;
   const currentEvent = pendingEvents[currentEventIdx] ?? null;
   const actDef = campaign.acts.find((a) => a.act === storyState.currentAct);
+
+  // Mute toggle
+  const [muted, setMutedState] = useState(isMuted);
+  function toggleMute() {
+    const next = !muted;
+    setMutedState(next);
+    setMuted(next);
+  }
+
+  // Start ambient music on mount, update on act change
+  useEffect(() => {
+    // if (!muted) startAmbient(storyState.currentAct as 1 | 2 | 3 | 4);
+    return () => stopAmbient();
+  }, [storyState.currentAct, muted]);
 
   // ── Toast helper ───────────────────────────────────────────────────────────
   function showToast(msg: string, type: "success" | "error" | "info" = "success") {
@@ -327,6 +555,8 @@ export default function StoryDashboard({
   // ── Advance Month ──────────────────────────────────────────────────────────
   const advanceMonth = useCallback(() => {
     if (isAdvancing || pendingEvents.length > 0) return;
+    playHeartbeat();
+    haptic.medium();
     setIsAdvancing(true);
     setActiveTab(null);
     setActiveSubcat(null);
@@ -341,15 +571,17 @@ export default function StoryDashboard({
 
     const events = checkStoryEvents(afterMonth, updatedStoryState, nextMonth);
 
-    const lossReason = checkLossConditions(afterMonth);
+    const lossReason = checkLossConditions(afterMonth, updatedStoryState);
     if (lossReason) {
       setSnapshot(afterMonth); setStoryState(updatedStoryState); setCurrentMonth(nextMonth);
       onSave(afterMonth, updatedStoryState);
+      saveRunToArchive(updatedStoryState, afterMonth, timeline, "loss");
       setGameEnd({ reason: "loss", message: lossReason }); setIsAdvancing(false); return;
     }
     if (checkWinCondition(afterMonth, updatedStoryState)) {
       setSnapshot(afterMonth); setStoryState(updatedStoryState); setCurrentMonth(nextMonth);
       onSave(afterMonth, updatedStoryState);
+      saveRunToArchive(updatedStoryState, afterMonth, timeline, "win");
       setGameEnd({ reason: "win", message: campaign.winCondition.description }); setIsAdvancing(false); return;
     }
 
@@ -360,10 +592,19 @@ export default function StoryDashboard({
     addLog(`Month ${nextMonth} begins.`, nextMonth);
     allNotices.forEach((n) => addLog(n, nextMonth));
 
+    // Act transition — show report card
+    if (updatedStoryState.currentAct > storyState.currentAct) {
+      setActReportCard({
+        completedAct: storyState.currentAct as 1 | 2 | 3 | 4,
+        snapshot: afterMonth,
+        state: updatedStoryState,
+      });
+    }
+
     if (allNotices.length > 0) { setMonthNotices(allNotices); setShowNotices(true); }
     if (events.length > 0) { setPendingEvents(events); setCurrentEventIdx(0); }
     setIsAdvancing(false);
-  }, [isAdvancing, pendingEvents.length, snapshot, storyState, currentMonth, campaign, onSave]);
+  }, [isAdvancing, pendingEvents.length, snapshot, storyState, currentMonth, campaign, onSave, timeline]);
 
   // ── Choice/Minigame handling ───────────────────────────────────────────────
   function handleChoiceMade(choiceId: string, succeeded: boolean) {
@@ -385,6 +626,12 @@ export default function StoryDashboard({
     if (nextIdx < pendingEvents.length) setCurrentEventIdx(nextIdx);
     else { setPendingEvents([]); setCurrentEventIdx(0); }
     onSave(newSnapshot, newStoryState);
+    
+    // Check if the choice directly triggered a loss (e.g. rejecting a bailout)
+    const lossReason = checkLossConditions(newSnapshot, newStoryState);
+    if (lossReason) {
+      setGameEnd({ reason: "loss", message: lossReason });
+    }
   }
 
   function handleKeynoteComplete(score: number) {
@@ -435,28 +682,31 @@ export default function StoryDashboard({
   ];
   const currentStage = STAGE_DATA[stageIndex];
 
-  // ── Game End ───────────────────────────────────────────────────────────────
+  // ── Game End — Cinematic ceremony ──────────────────────────────────────────
   if (gameEnd) {
     const isWin = gameEnd.reason === "win";
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
-        <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-8xl mb-6">{isWin ? "🏆" : "💀"}</motion.div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-3">{isWin ? "You Made History." : "Game Over."}</h1>
-        <p className="text-slate-500 dark:text-slate-400 mb-4 max-w-sm text-sm">{gameEnd.message}</p>
-        {isWin && <div className="px-4 py-3 rounded-xl mb-6 text-sm bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700">{campaign.winCondition.description} — Month {currentMonth}</div>}
-        <div className="text-slate-500 text-sm mb-1">Valuation: <span className="font-black text-slate-900 dark:text-white">{fmtCash(snapshot.valuation)}</span></div>
-        <div className="text-slate-500 text-sm mb-8">Users: <span className="font-black text-slate-900 dark:text-white">{fmtNum(m.users)}</span></div>
-        <button onClick={() => router.push("/story-mode")} className="px-8 py-4 rounded-2xl font-black text-white text-sm uppercase tracking-wider shadow-lg transition-all active:scale-95"
-          style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}aa)`, boxShadow: `0 8px 24px ${accentColor}44` }}>
-          ← Back to Campaigns
-        </button>
-      </div>
+      <GameEndScreen
+        isWin={isWin}
+        message={gameEnd.message}
+        campaign={campaign}
+        snapshot={snapshot}
+        currentMonth={currentMonth}
+        m={m}
+        accentColor={accentColor}
+        hasRewindPoint={hasRewindPoint}
+        onRewind={onRewind}
+        onClearGameEnd={() => setGameEnd(null)}
+        onBack={() => router.push("/story-mode")}
+      />
     );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // MAIN RENDER
   // ─────────────────────────────────────────────────────────────────────────────
+  const nextMilestone = getNextMilestone(storyState);
+
   return (
     <div className="min-h-[100dvh] flex flex-col h-[100dvh] overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
 
@@ -501,8 +751,15 @@ export default function StoryDashboard({
           </div>
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{campaign.companyName}</p>
-            <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {currentMonth}</p>
-            <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest leading-none">Story Mode · {campaign.founderName}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[0.625rem] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest leading-none">Month {currentMonth}</p>
+              {nextMilestone && (
+                <div className="text-[0.55rem] font-bold text-slate-500 uppercase tracking-wider leading-none bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <span className="text-[0.5rem]">🎯</span> NEXT: {nextMilestone.title} {nextMilestone.hint && `(${nextMilestone.hint})`}
+                </div>
+              )}
+            </div>
+            <p className="text-[0.5rem] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Story Mode · {campaign.founderName}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -512,6 +769,14 @@ export default function StoryDashboard({
           <div className="text-[0.625rem] font-black px-2.5 py-1.5 rounded-full shrink-0 hidden sm:flex items-center" style={{ background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}44` }}>
             ACT {storyState.currentAct}
           </div>
+          <button
+            onClick={toggleMute}
+            className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: muted ? "rgba(239,68,68,0.1)" : `${accentColor}18`, color: muted ? "#ef4444" : accentColor }}
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center justify-center transition-colors">
               <Menu className="h-4 w-4" />
@@ -656,7 +921,25 @@ export default function StoryDashboard({
       {/* ── MAIN CONTROLS (bottom) ─────────────────────────────────────────────── */}
       <div className="shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
         <div className="max-w-md mx-auto flex flex-col gap-4">
+          {/* ONBOARDING HINT */}
+          {maxFocus > focusUsed && pendingEvents.length === 0 && (
+            <div className="flex items-center justify-center -mb-2">
+              <span className="animate-pulse bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 text-[0.625rem] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
+                Spend your {maxFocus - focusUsed}h Focus Energy below 👇
+              </span>
+            </div>
+          )}
+          
           {/* ADVANCE MONTH */}
+          {hasRewindPoint && onRewind && (
+            <button 
+              onClick={onRewind}
+              disabled={isAdvancing || pendingEvents.length > 0}
+              className="text-xs font-bold text-slate-500 hover:text-slate-300 mx-auto flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              ⏪ Rewind Last Month <span className="px-1.5 py-0.5 rounded text-[8px] bg-amber-500/10 text-amber-500 uppercase tracking-widest border border-amber-500/20">Premium</span>
+            </button>
+          )}
           <button onClick={advanceMonth} disabled={isAdvancing || pendingEvents.length > 0}
             className={cn("w-full h-14 rounded-2xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg", (isAdvancing || pendingEvents.length > 0) && "opacity-60")}
             style={{ background: isAdvancing || pendingEvents.length > 0 ? "linear-gradient(135deg, #818cf8, #a78bfa)" : "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", boxShadow: "0 4px 15px rgba(99,102,241,0.4)" }}>
@@ -797,9 +1080,21 @@ export default function StoryDashboard({
         </div>
       )}
 
-      {showKeynote && <KeynoteModal onComplete={handleKeynoteComplete} />}
-      {showPitchDeck && <PitchDeckModal vcPersonality={pitchVCPersonality} baseFunding={5_000_000} onComplete={handlePitchComplete} />}
+      {showKeynote && <KeynoteModal marketingSkill={getFounderSkills(storyState).marketing} onComplete={handleKeynoteComplete} />}
+      {showPitchDeck && <PitchDeckModal vcPersonality={pitchVCPersonality} baseFunding={5_000_000} fundraisingSkill={getFounderSkills(storyState).fundraising} onComplete={handlePitchComplete} />}
       {showSprintModal && <SprintModal currentAllocation={storyState.sprintAllocation} onSave={handleSprintSave} onClose={() => setShowSprintModal(false)} accentColor={accentColor} />}
+
+      <AnimatePresence>
+        {actReportCard && (
+          <ActReportCard
+            campaign={campaign}
+            snapshot={actReportCard.snapshot}
+            storyState={actReportCard.state}
+            completedAct={actReportCard.completedAct}
+            onContinue={() => setActReportCard(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1287,12 +1582,13 @@ function ActionPanel({
   // ── SKILLS ─────────────────────────────────────────────────────────────────
   if (subcat === "skills") {
     const flags = Object.keys(storyState.narrativeFlags).filter((f) => storyState.narrativeFlags[f]);
+    const skills = getFounderSkills(storyState);
     const skillData = [
-      { label: "Technical", value: Math.min(100, 20 + flags.filter(f => f.includes("tech") || f.includes("code") || f.includes("ai")).length * 15), color: "bg-blue-500" },
-      { label: "Leadership", value: Math.min(100, 30 + flags.filter(f => f.includes("team") || f.includes("hire") || f.includes("board")).length * 12), color: "bg-purple-500" },
-      { label: "Marketing", value: Math.min(100, 20 + flags.filter(f => f.includes("brand") || f.includes("pr") || f.includes("launch")).length * 15), color: "bg-pink-500" },
-      { label: "Fundraising", value: Math.min(100, 20 + flags.filter(f => f.includes("fund") || f.includes("pitch") || f.includes("ipo")).length * 20), color: "bg-emerald-500" },
-      { label: "Networking", value: Math.min(100, 30 + storyState.pitchResults.filter(p => p.won).length * 15), color: "bg-amber-500" },
+      { label: "Technical", value: skills.technical, color: "bg-blue-500" },
+      { label: "Leadership", value: skills.leadership, color: "bg-purple-500" },
+      { label: "Marketing", value: skills.marketing, color: "bg-pink-500" },
+      { label: "Fundraising", value: skills.fundraising, color: "bg-emerald-500" },
+      { label: "Networking", value: skills.networking, color: "bg-amber-500" },
     ];
     return (
       <div className="space-y-3">

@@ -27,7 +27,9 @@ export type EventName =
   | "iap_success"
   | "iap_failed"
   | "story_mode_vote"
-  | "story_mode_waitlist";
+  | "story_mode_waitlist"
+  | "story_mode_play"
+  | "story_mode_reset";
 
 import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 
